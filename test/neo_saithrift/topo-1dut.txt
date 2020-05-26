@@ -1,0 +1,5 @@
+# 1 DUT
+
+PYPXR    DUT1    1       1   32
+PYPXR    PYPXR   33      34  1
+
