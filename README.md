@@ -50,7 +50,6 @@
 | Mcastfdb       |     Y       |
 | Rpfgroup       |     Y       |
 | Warmboot       |     Y       |
-| SegmentRoute   |     Planed  |
 | TAM            |     Planed  |
 | Dtel           |     Planed  |
 
@@ -65,10 +64,13 @@
 | SYNCE          |     Y       |
 | TWAMP          |     Y       |
 | Y1731          |     Y       |
-| APS            |     Planed  |
+| APS for VPN    |     Y       |
 | NetFlow        |     Planed  |
-| Buffer Monitor |     Planed  |
-| Latency Monitor|     Planed  |
+| Buffer Monitor |     Y       |
+| Latency Monitor|     Y       |
+| Service QoS    |     Y       |
+| NPM            |     Y       |
+| SD Detect      |     Y       |
 
 # Testing
 The Centec SAI use PTF framework to do testing. Centec add more than cases. More detail information refer to [PTF Tests](https://github.com/CentecNetworks/sai-advance/wiki/PTF-Tests)
@@ -88,9 +90,20 @@ Sales email: sales@centecnetworks.com<BR>
     Support SAI 1.5
     Support above feature list
 ### Dependencies
- This package depends on Centec SDK V5.5.6RC
+ This pakage depends on Centec SDK V5.5.6RC
 
-
+## 2020-07-31
+  Second release.
+### Feauture Added:
+    Support CTC7132
+    Support SAI 1.5
+    Support new feature list: 
+        APS for VPN, Buffer/Latency Monitor, 
+        Service QoS, NPM for 1564,2544
+        Signal Degrade Detect
+### Dependencies
+ This pakage depends on Centec SDK V5.6.0.21
+ 
 # How to compile
 
 ## 1. Preparation
@@ -112,7 +125,7 @@ First we need to edit $SAI\_SOURCE\_DIR/**CMakeLists.txt**, which located in thi
     SET(CHIPNAME "tsingma")
     SET(SDKHOME "../sdk/")
 
-If you want to enable warmboot feature, you will be need redis support,and set this 
+If you want to enable warmboot feature, you will be need redis support,and set below flag, and set the correct REDIS_INCLUDE_DIR
 
     SET(CONFIG_DBCLIENT 1)
 
