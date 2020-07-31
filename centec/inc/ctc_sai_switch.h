@@ -157,10 +157,10 @@
 \t  |  SAI_SWITCH_ATTR_SEGMENTROUTE_MAX_SID_DEPTH                             |              -                 |
 \t  |  SAI_SWITCH_ATTR_SEGMENTROUTE_TLV_TYPE                                  |              -                 |
 \t  |  SAI_SWITCH_ATTR_QOS_NUM_LOSSLESS_QUEUES                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SWITCH_ATTR_QUEUE_PFC_DEADLOCK_NOTIFY                              |              -                 |
+\t  |  SAI_SWITCH_ATTR_QUEUE_PFC_DEADLOCK_NOTIFY                              |           CTC7132              |
 \t  |  SAI_SWITCH_ATTR_PFC_DLR_PACKET_ACTION                                  |              -                 |
-\t  |  SAI_SWITCH_ATTR_PFC_TC_DLD_INTERVAL_RANGE                              |              -                 |
-\t  |  SAI_SWITCH_ATTR_PFC_TC_DLD_INTERVAL                                    |              -                 |
+\t  |  SAI_SWITCH_ATTR_PFC_TC_DLD_INTERVAL_RANGE                              |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_PFC_TC_DLD_INTERVAL                                    |           CTC7132              |
 \t  |  SAI_SWITCH_ATTR_PFC_TC_DLR_INTERVAL_RANGE                              |              -                 |
 \t  |  SAI_SWITCH_ATTR_PFC_TC_DLR_INTERVAL                                    |              -                 |
 \t  |  SAI_SWITCH_ATTR_SUPPORTED_PROTECTED_OBJECT_TYPE                        |              -                 |
@@ -185,13 +185,31 @@
 \t  |  SAI_SWITCH_ATTR_TAM_OBJECT_ID                                          |              -                 |    
 \t  |  SAI_SWITCH_ATTR_TAM_EVENT_NOTIFY                                       |              -                 |    
 \t  |  SAI_SWITCH_ATTR_PRE_SHUTDOWN                                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SWITCH_ATTR_NAT_ZONE_COUNTER_OBJECT_ID                                  |              -                 |  
-\t  |  SAI_SWITCH_ATTR_NAT_ENABLE                                                  |              -                 |
-\t  |  SAI_SWITCH_ATTR_Y1731_SESSION_EVENT_NOTIFY                                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SWITCH_ATTR_NUMBER_OF_Y1731_SESSION                                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SWITCH_ATTR_MAX_Y1731_SESSION                                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE    |    CTC8096,CTC7148,CTC7132     |
-
+\t  |  SAI_SWITCH_ATTR_NAT_ZONE_COUNTER_OBJECT_ID                             |              -                 |  
+\t  |  SAI_SWITCH_ATTR_NAT_ENABLE                                             |              -                 |
+\t  |  SAI_SWITCH_ATTR_Y1731_SESSION_EVENT_NOTIFY                             |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_NUMBER_OF_Y1731_SESSION                                |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MAX_Y1731_SESSION                                      |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE    |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_ECN_ACTION_ENABLE                                      |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_NOTIFY                                  |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_LATENCY_NOTIFY                                 |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE                       |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN               |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX               |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_OVERTHRD_EVENT               |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD              |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_PERIODIC_MONITOR_ENABLE |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_PERIODIC_MONITOR_ENABLE  |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_QUEUE_PERIODIC_MONITOR_ENABLE |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL                   |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK               |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK                |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN                  |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX                  |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD                |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL                       |           CTC7132              |
+\t  |  SAI_SWITCH_ATTR_SIGNAL_DEGRADE_EVENT_NOTIFY                            |           CTC7132              |
 \b
 */
 
@@ -203,6 +221,8 @@
 #define CTC_SAI_SWITCH_ATTR_MIN_PLANNED_RESTART_INTERVAL 1000*10    /* used in ctc_sai_switch_get_global_property */
 #define CTC_SAI_SWITCH_ATTR_NV_STORAGE_SIZE 1024*10     /* used in ctc_sai_switch_get_global_property */
 #define CTC_SAI_SWITCH_ATTR_COUNTER_REFRESH_INTERVAL 60 /* used in ctc_sai_switch_get_global_property */
+
+#define CTC_SAI_SWITCH_ATTR_MAX_FCDL_INTERVAL_TIME 53   /* refer to SYS_MAX_FCDL_INTERVAL_TIME */
 
 
 #include "ctc_sai.h"

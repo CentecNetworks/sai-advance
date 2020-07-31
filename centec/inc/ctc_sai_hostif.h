@@ -115,6 +115,11 @@
 \t  |  SAI_HOSTIF_TRAP_TYPE_IGMP_TYPE_V2_REPORT             |        CTC7148,CTC7132         |
 \t  |  SAI_HOSTIF_TRAP_TYPE_IGMP_TYPE_V3_REPORT             |        CTC7148,CTC7132         |
 \t  |  SAI_HOSTIF_TRAP_TYPE_SAMPLEPACKET                    |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_HOSTIF_TRAP_TYPE_UDLD                            |        CTC7148,CTC7132         |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CDP                             |        CTC7148,CTC7132         |
+\t  |  SAI_HOSTIF_TRAP_TYPE_VTP                             |        CTC7148,CTC7132         |
+\t  |  SAI_HOSTIF_TRAP_TYPE_DTP                             |        CTC7148,CTC7132         |
+\t  |  SAI_HOSTIF_TRAP_TYPE_PAGP                            |        CTC7148,CTC7132         |
 \t  |  SAI_HOSTIF_TRAP_TYPE_ARP_REQUEST                     |        CTC7148,CTC7132         |
 \t  |  SAI_HOSTIF_TRAP_TYPE_ARP_RESPONSE                    |        CTC7148,CTC7132         |
 \t  |  SAI_HOSTIF_TRAP_TYPE_DHCP                            |    CTC8096,CTC7148,CTC7132     |
@@ -141,8 +146,19 @@
 \t  |  SAI_HOSTIF_TRAP_TYPE_PIPELINE_DISCARD_EGRESS_BUFFER  |              -                 |
 \t  |  SAI_HOSTIF_TRAP_TYPE_PIPELINE_DISCARD_WRED           |              -                 |
 \t  |  SAI_HOSTIF_TRAP_TYPE_PIPELINE_DISCARD_ROUTER         |              -                 |
-\t  |  SAI_HOSTIF_TRAP_TYPE_PTP                             |              -                 |
-\t  |  SAI_HOSTIF_TRAP_TYPE_PTP_TX_EVENT                    |              -                 |
+\t  |  SAI_HOSTIF_TRAP_TYPE_PTP                             |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_PTP_TX_EVENT                    |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_DM       |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LT       |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LBR      |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LMR      |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_CV_FAIL |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_APS      |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DLM   |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DM    |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_MICROBURST_LOG |           CTC7132              |
+\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_LATENCY_OVERFLOW_LOG  |           CTC7132              |
+
 \b
  The Hostif user defined trap type supported by centec devices:
 \p
@@ -169,7 +185,7 @@
 #define CTC_SAI_DEFAULT_ETH_SWID 0
 #define CTC_SAI_DEFAULT_VRID     0
 #define CTC_SAI_DEFAULT_RIF_MTU  1500
-#define CTC_SAI_DEFAULT_ACL_HOST_IF_PRIORITY 0
+#define CTC_SAI_DEFAULT_ACL_HOST_IF_PRIORITY 1
 #define CTC_SAI_CTC_CPU_REASON_ID_MASK 0xFFFF
 #define CTC_SAI_CPU_MAX_QNUM_PER_GROUP 8
 

@@ -2491,10 +2491,12 @@ static sai_status_t ctc_sai_mcast_set_l2mc_packet_action(sai_object_key_t *key, 
         CTC_SAI_LOG_ERROR(SAI_API_L2MC,"l2mc property db not found\n");
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
-    
+    grp_param.group_id = p_entry_data->group_id;
     _ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, attr->value.s32);
     _ctc_sai_mcast_l2mc_to_param(l2mc_entry, &grp_param);
 
+    grp_param.group_id = p_entry_data->group_id;
+    
     CTC_SAI_CTC_ERROR_RETURN(ctcs_ipmc_add_group(lchip, &grp_param));
     p_entry_data->action = attr->value.s32;
 

@@ -607,6 +607,11 @@ _ctc_sai_router_interface_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, c
         p_rif_info->v6_state = *(uint32*)(user_data->p_value);
         ctcs_l3if_set_property(user_data->lchip, ctc_object_id.value, user_data->l3if_prop, *(uint32*)(user_data->p_value));
     }
+    else
+    {
+        //p_rif_info->v6_state = *(uint32*)(user_data->p_value);
+        ctcs_l3if_set_property(user_data->lchip, ctc_object_id.value, user_data->l3if_prop, *(uint32*)(user_data->p_value));
+    }
     return SAI_STATUS_SUCCESS;
 }
 

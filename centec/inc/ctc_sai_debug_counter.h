@@ -1,3 +1,107 @@
+/**
+ @file ctc_sai_ptp.h
+
+ @author  Copyright (C) 2020 Centec Networks Inc.  All rights reserved.
+
+ @date 2020-04-21
+
+ @version v2.0
+
+\p
+ This module defines SAI Debug Counter.
+\b
+\p
+ The Debug Counter Module APIs supported by centec devices:
+\p
+\b
+\t  |   API                                                     |   SUPPORT CHIPS LIST   |
+\t  |  create_debug_counter                                     |        CTC7132         |
+\t  |  remove_debug_counter                                     |        CTC7132         |
+\t  |  set_debug_counter_attribute                              |        CTC7132         |
+\t  |  get_debug_counter_attribute                              |        CTC7132         |
+\b
+\p
+ The Debug Counter attributes supported by centec devices:
+\p
+\b
+\t  |   ATTRIBUTE                                               |   SUPPORT CHIPS LIST   |
+\t  |  SAI_DEBUG_COUNTER_ATTR_INDEX                             |        CTC7132         |
+\t  |  SAI_DEBUG_COUNTER_ATTR_TYPE                              |        CTC7132         |
+\t  |  SAI_DEBUG_COUNTER_ATTR_BIND_METHOD                       |        CTC7132         |
+\t  |  SAI_DEBUG_COUNTER_ATTR_IN_DROP_REASON_LIST               |        CTC7132         |
+\t  |  SAI_DEBUG_COUNTER_ATTR_OUT_DROP_REASON_LIST              |        CTC7132         |
+\b
+\p
+ The Debug Counter drop reason supported by centec devices:
+\p
+\b
+\t  |   IN DROP REASON                                          |   SUPPORT CHIPS LIST   |
+\t  |  SAI_IN_DROP_REASON_L2_ANY                                |           -            |
+\t  |  SAI_IN_DROP_REASON_SMAC_MULTICAST                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_SMAC_EQUALS_DMAC                      |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_DMAC_RESERVED                         |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_VLAN_TAG_NOT_ALLOWED                  |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_INGRESS_VLAN_FILTER                   |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_INGRESS_STP_FILTER                    |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_FDB_UC_DISCARD                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_FDB_MC_DISCARD                        |           -            |
+\t  |  SAI_IN_DROP_REASON_L2_LOOPBACK_FILTER                    |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_EXCEEDS_L2_MTU                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_L3_ANY                                |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_EXCEEDS_L3_MTU                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_TTL                                   |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_L3_LOOPBACK_FILTER                    |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_NON_ROUTABLE                          |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_NO_L3_HEADER                          |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_IP_HEADER_ERROR                       |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_UC_DIP_MC_DMAC                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_DIP_LOOPBACK                          |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_SIP_LOOPBACK                          |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_SIP_MC                                |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_SIP_CLASS_E                           |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_SIP_UNSPECIFIED                       |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_MC_DMAC_MISMATCH                      |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_SIP_EQUALS_DIP                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_SIP_BC                                |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_DIP_LOCAL                             |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_DIP_LINK_LOCAL                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_SIP_LINK_LOCAL                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_IPV6_MC_SCOPE0                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_IPV6_MC_SCOPE1                        |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_IRIF_DISABLED                         |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_ERIF_DISABLED                         |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_LPM4_MISS                             |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_LPM6_MISS                             |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_BLACKHOLE_ROUTE                       |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_BLACKHOLE_ARP                         |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_UNRESOLVED_NEXT_HOP                   |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_L3_EGRESS_LINK_DOWN                   |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_DECAP_ERROR                           |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_ACL_ANY                               |        CTC7132         |
+\t  |  SAI_IN_DROP_REASON_ACL_INGRESS_PORT                      |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_INGRESS_LAG                       |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_INGRESS_VLAN                      |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_INGRESS_RIF                       |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_INGRESS_SWITCH                    |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_EGRESS_PORT                       |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_EGRESS_LAG                        |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_EGRESS_VLAN                       |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_EGRESS_RIF                        |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_EGRESS_SWITCH                     |           -            |
+\t  |  SAI_IN_DROP_REASON_ACL_EGRESS_LAG                        |           -            |
+\b
+\b
+\t  |   OUT DROP REASON                                         |   SUPPORT CHIPS LIST   |
+\t  |  SAI_OUT_DROP_REASON_L2_ANY                               |           -            |
+\t  |  SAI_OUT_DROP_REASON_EGRESS_VLAN_FILTER                   |        CTC7132         |
+\t  |  SAI_OUT_DROP_REASON_L3_ANY                               |           -            |
+\t  |  SAI_OUT_DROP_REASON_L3_EGRESS_LINK_DOWN                  |           -            |
+\b
+*/
+
+#ifndef _CTC_SAI_DEBUG_COUNTER_H
+#define _CTC_SAI_DEBUG_COUNTER_H
+
 #include "ctc_sai.h"
 #include "sal.h"
 #include "ctcs_api.h"
@@ -267,4 +371,4 @@ ctc_sai_debug_counter_get_port_stats(uint8 lchip, uint16 portid, uint32 drop_ind
 extern sai_status_t 
 ctc_sai_debug_counter_get_switch_stats(uint8 lchip, uint32 drop_index, uint32 with_clear, uint64* count);
 
-
+#endif /*_CTC_SAI_DEBUG_COUNTER_H*/

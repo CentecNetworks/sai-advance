@@ -179,6 +179,20 @@ ctc_sai_oid_get_vrf_id(sai_object_id_t oid, uint16* vrf_id)
 }
 
 sai_status_t
+ctc_sai_oid_get_vrf_id_u32(sai_object_id_t oid, uint32* vrf_id)
+{
+    ctc_object_id_t ctc_oid;
+    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_VIRTUAL_ROUTER, oid, &ctc_oid));
+    if (ctc_oid.type != SAI_OBJECT_TYPE_VIRTUAL_ROUTER)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_VIRTUAL_ROUTER, "Invalid virtual router object type 0x%llx \n", oid);
+        return SAI_STATUS_INVALID_OBJECT_ID;
+    }
+    *vrf_id = ctc_oid.value;
+    return SAI_STATUS_SUCCESS;
+}
+
+sai_status_t
 ctc_sai_oid_get_l3if_id(sai_object_id_t oid, uint16* l3if_id)
 {
     ctc_object_id_t ctc_oid;

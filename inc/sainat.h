@@ -60,7 +60,6 @@ typedef enum _sai_nat_type_t
  */
 typedef enum _sai_nat_entry_attr_t
 {
-
     /**
      * @brief Start of Attributes
      */
@@ -242,7 +241,6 @@ typedef enum _sai_nat_entry_attr_t
  */
 typedef struct _sai_nat_entry_key_t
 {
-
     /**
      * @brief IPv4 source address
      */
@@ -275,7 +273,6 @@ typedef struct _sai_nat_entry_key_t
  */
 typedef struct _sai_nat_entry_mask_t
 {
-
     /**
      * @brief IPv4 source address mask
      */
@@ -305,7 +302,6 @@ typedef struct _sai_nat_entry_mask_t
 
 typedef struct _sai_nat_entry_data_t
 {
-
     /**
      * @brief NAT entry keys
      */
@@ -323,7 +319,6 @@ typedef struct _sai_nat_entry_data_t
  */
 typedef struct _sai_nat_entry_t
 {
-
     /**
      * @brief Switch ID
      *
@@ -492,7 +487,6 @@ typedef sai_status_t (*sai_bulk_get_nat_entry_attribute_fn)(
  */
 typedef enum _sai_nat_zone_counter_attr_t
 {
-
     /**
      * @brief Start of Attributes
      */
@@ -500,6 +494,7 @@ typedef enum _sai_nat_zone_counter_attr_t
 
     /**
      * @brief NAT Type defined in sai_nat_type_t
+     *
      * @type sai_nat_type_t
      * @flags CREATE_AND_SET
      * @default SAI_NAT_TYPE_NONE
@@ -641,7 +636,6 @@ typedef sai_status_t (*sai_get_nat_zone_counter_attribute_fn)(
  */
 typedef struct _sai_nat_api_t
 {
-
     /**
      * @brief SAI NAT API set
      */

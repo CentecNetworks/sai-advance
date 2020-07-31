@@ -84,14 +84,17 @@ _ctc_sai_bfd_create_attr_check(uint8 lchip, uint32_t attr_count, const sai_attri
     uint32_t index = 0;
     uint8 hw_lkp_valid = 0, vlan_hdr_valid = 0, ach_header_valid = 0;
     sai_bfd_encapsulation_type_t bfd_encap_type = SAI_BFD_ENCAPSULATION_TYPE_NONE;
+    sai_bfd_mpls_type_t mpls_bfd_type = SAI_BFD_MPLS_TYPE_NORMAL;
     sai_bfd_ach_channel_type_t ach_type = 0;
     sai_object_id_t def_vr_obj_id = 0;
     ctc_sai_mpls_t* p_mpls_info = NULL;
     sai_inseg_entry_t inseg_entry;
+    uint8 is_mpls_tp_section_bfd = 0;
 
     sal_memset(&inseg_entry, 0, sizeof(sai_inseg_entry_t));
 
     CTC_SAI_LOG_ENTER(SAI_API_BFD);
+    
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_TYPE, &attr_value, &index);
     if (CTC_SAI_ERROR(status))
     {        
@@ -105,76 +108,212 @@ _ctc_sai_bfd_create_attr_check(uint8 lchip, uint32_t attr_count, const sai_attri
         }
     }
 
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_HW_LOOKUP_VALID, &attr_value, &index);
-    if (!CTC_SAI_ERROR(status))
-    {
-        hw_lkp_valid = attr_value->booldata;
-    }
-    else
-    {
-        /*default value */
-        hw_lkp_valid = true;
-    }
-
-    if(hw_lkp_valid)
-    {
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_VIRTUAL_ROUTER, &attr_value, &index);
-        if (CTC_SAI_ERROR(status))
-        {
-            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-        }
-
-        //TsingMa global res mode, only support default vr_id
-        if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) && p_ctc_sai_bfd[lchip]->use_global_res_info)
-        {
-            def_vr_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VIRTUAL_ROUTER, lchip, 0, 0, 0);
-            if(attr_value->oid != def_vr_obj_id)
-            {
-                return SAI_STATUS_ATTR_NOT_SUPPORTED_0 + index;
-            }
-        }
-
-    }
-    else
-    {
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_NEXT_HOP_ID, &attr_value, &index);
-        if (CTC_SAI_ERROR(status))
-        {        
-            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_SRC_MAC_ADDRESS, &attr_value, &index);
-            if (CTC_SAI_ERROR(status))
-            {
-                return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-            }
-            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_DST_MAC_ADDRESS, &attr_value, &index);
-            if (CTC_SAI_ERROR(status))
-            {
-                return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-            }
-        }
-    }
-
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_LOCAL_DISCRIMINATOR, &attr_value, &index);
     if (CTC_SAI_ERROR(status))
     {        
         return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
     }
+    
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_REMOTE_DISCRIMINATOR, &attr_value, &index);
     if (CTC_SAI_ERROR(status))
     {        
         return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
     }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_UDP_SRC_PORT, &attr_value, &index);
+    
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MIN_TX, &attr_value, &index);
+    if (CTC_SAI_ERROR(status))
+    {        
+        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MIN_RX, &attr_value, &index);
+    if (CTC_SAI_ERROR(status))
+    {        
+        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MULTIPLIER, &attr_value, &index);
     if (CTC_SAI_ERROR(status))
     {        
         return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
     }
 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE, &attr_value, &index);
+    if (CTC_SAI_ERROR(status))
+    {        
+        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+    }
+    else
+    {
+        if((SAI_BFD_ENCAPSULATION_TYPE_IP_IN_IP == attr_value->s32) || (SAI_BFD_ENCAPSULATION_TYPE_L3_GRE_TUNNEL == attr_value->s32))
+        {
+            return SAI_STATUS_ATTR_NOT_IMPLEMENTED_0 + index;
+        }
+        else
+        {
+            bfd_encap_type = attr_value->s32;
+        }
+    }
+
+    if( SAI_BFD_ENCAPSULATION_TYPE_NONE == bfd_encap_type)
+    {
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_HW_LOOKUP_VALID, &attr_value, &index);
+        if (!CTC_SAI_ERROR(status))
+        {
+            hw_lkp_valid = attr_value->booldata;
+        }
+        else
+        {
+            /*default value */
+            hw_lkp_valid = true;
+        }
+       
+        if(hw_lkp_valid)
+        {
+            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_VIRTUAL_ROUTER, &attr_value, &index);
+            if (CTC_SAI_ERROR(status))
+            {
+                return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+            }
+
+            //TsingMa global res mode, only support default vr_id
+            if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) && p_ctc_sai_bfd[lchip]->use_global_res_info)
+            {
+                def_vr_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VIRTUAL_ROUTER, lchip, 0, 0, 0);
+                if(attr_value->oid != def_vr_obj_id)
+                {
+                    return SAI_STATUS_ATTR_NOT_SUPPORTED_0 + index;
+                }
+            }
+
+        }
+        else
+        {
+            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_NEXT_HOP_ID, &attr_value, &index);
+            if (CTC_SAI_ERROR(status))
+            {        
+                status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_SRC_MAC_ADDRESS, &attr_value, &index);
+                if (CTC_SAI_ERROR(status))
+                {
+                    return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+                }
+                status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_DST_MAC_ADDRESS, &attr_value, &index);
+                if (CTC_SAI_ERROR(status))
+                {
+                    return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+                }
+                status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_PORT, &attr_value, &index);
+                if (CTC_SAI_ERROR(status))
+                {
+                    return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+                }                
+            }           
+        }
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_IPHDR_VERSION, &attr_value, &index);
+        if (CTC_SAI_ERROR(status))
+        {        
+            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+        }
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_SRC_IP_ADDRESS, &attr_value, &index);
+        if (CTC_SAI_ERROR(status))
+        {        
+            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+        }
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_DST_IP_ADDRESS, &attr_value, &index);
+        if (CTC_SAI_ERROR(status))
+        {        
+            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+        }
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_UDP_SRC_PORT, &attr_value, &index);
+        if (CTC_SAI_ERROR(status))
+        {        
+            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+        }
+    }
+    
+    if( SAI_BFD_ENCAPSULATION_TYPE_MPLS == bfd_encap_type)
+    {
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID, &attr_value, &index);
+        if (!CTC_SAI_ERROR(status))
+        {        
+            ach_header_valid = attr_value->booldata;
+        }
+
+        if(ach_header_valid)
+        {
+            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE, &attr_value, &index);
+            if (CTC_SAI_ERROR(status))
+            {        
+                return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+            }
+            else
+            {
+                ach_type = attr_value->s32;
+            }
+        }    
+            
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE, &attr_value, &index);
+        if (CTC_SAI_ERROR(status))
+        {        
+            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+        }
+        else
+        {
+            mpls_bfd_type =  attr_value->s32;
+        }
+        
+        if(mpls_bfd_type == SAI_BFD_MPLS_TYPE_TP)
+        {
+
+            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID, &attr_value, &index);
+            if (!CTC_SAI_ERROR(status))
+            {        
+                is_mpls_tp_section_bfd = 1;
+            }
+
+            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_TP_CV_ENABLE, &attr_value, &index);
+            if (!CTC_SAI_ERROR(status))
+            {        
+                if( SAI_BFD_ACH_CHANNEL_TYPE_TP != ach_type)
+                {
+                    return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+                }
+            }   
+
+        }
+
+        if(!is_mpls_tp_section_bfd)
+        {
+
+            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MPLS_IN_LABEL, &attr_value, &index);
+            if (CTC_SAI_ERROR(status))
+            {        
+                return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+            }
+            else
+            {
+                inseg_entry.switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, lchip);
+                inseg_entry.label = attr_value->u32;
+                p_mpls_info = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_MPLS, (void*)&inseg_entry);
+                if (NULL == p_mpls_info)
+                {
+                    return SAI_STATUS_ITEM_NOT_FOUND;
+                }
+            }   
+
+
+        }      
+             
+    }
+
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_VLAN_HEADER_VALID, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
     {        
-        /*TBD */
         return SAI_STATUS_ATTR_NOT_IMPLEMENTED_0 + index;
-        vlan_hdr_valid = attr_value->booldata;
     }
 
     if(!vlan_hdr_valid)
@@ -200,42 +339,7 @@ _ctc_sai_bfd_create_attr_check(uint8 lchip, uint32_t attr_count, const sai_attri
             return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
         }
     }
-
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE, &attr_value, &index);
-    if (CTC_SAI_ERROR(status))
-    {        
-        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-    }
-    else
-    {
-        if((SAI_BFD_ENCAPSULATION_TYPE_IP_IN_IP == attr_value->s32) || (SAI_BFD_ENCAPSULATION_TYPE_L3_GRE_TUNNEL == attr_value->s32))
-        {
-            return SAI_STATUS_ATTR_NOT_IMPLEMENTED_0 + index;
-        }
-        else
-        {
-            bfd_encap_type = attr_value->s32;
-        }
-    }
-
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_IPHDR_VERSION, &attr_value, &index);
-    if (CTC_SAI_ERROR(status))
-    {        
-        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-    }
-
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_SRC_IP_ADDRESS, &attr_value, &index);
-    if (CTC_SAI_ERROR(status))
-    {        
-        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-    }
-
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_DST_IP_ADDRESS, &attr_value, &index);
-    if (CTC_SAI_ERROR(status))
-    {        
-        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-    }
-
+    
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_TUNNEL_TOS, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
     {        
@@ -255,23 +359,7 @@ _ctc_sai_bfd_create_attr_check(uint8 lchip, uint32_t attr_count, const sai_attri
     if (!CTC_SAI_ERROR(status))
     {        
         return SAI_STATUS_ATTR_NOT_IMPLEMENTED_0 + index;
-    }
-
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MIN_TX, &attr_value, &index);
-    if (CTC_SAI_ERROR(status))
-    {        
-        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-    }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MIN_RX, &attr_value, &index);
-    if (CTC_SAI_ERROR(status))
-    {        
-        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-    }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MULTIPLIER, &attr_value, &index);
-    if (CTC_SAI_ERROR(status))
-    {        
-        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-    }
+    }    
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_REMOTE_MIN_TX, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
@@ -312,64 +400,6 @@ _ctc_sai_bfd_create_attr_check(uint8 lchip, uint32_t attr_count, const sai_attri
     if (!CTC_SAI_ERROR(status))
     {        
         return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-    }
-
-    if( SAI_BFD_ENCAPSULATION_TYPE_MPLS == bfd_encap_type)
-    {
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE, &attr_value, &index);
-        if (CTC_SAI_ERROR(status))
-        {        
-            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-        }
-
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID, &attr_value, &index);
-        if (CTC_SAI_ERROR(status))
-        {        
-            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-        }
-        else
-        {
-            ach_header_valid = attr_value->booldata;
-        }
-
-        if(ach_header_valid)
-        {
-            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE, &attr_value, &index);
-            if (CTC_SAI_ERROR(status))
-            {        
-                return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-            }
-            else
-            {
-                ach_type = attr_value->s32;
-            }
-        }
-
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MPLS_IN_LABEL, &attr_value, &index);
-        if (CTC_SAI_ERROR(status))
-        {        
-            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-        }
-        else
-        {
-            inseg_entry.switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, lchip);
-            inseg_entry.label = attr_value->u32;
-            p_mpls_info = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_MPLS, (void*)&inseg_entry);
-            if (NULL == p_mpls_info)
-            {
-                return SAI_STATUS_ITEM_NOT_FOUND;
-            }
-        }
-
-        if( SAI_BFD_ACH_CHANNEL_TYPE_TP == ach_type)
-        {
-            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_TP_CV_ENABLE, &attr_value, &index);
-            if (CTC_SAI_ERROR(status))
-            {        
-                return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
-            }
-        }
-        
     }
     
     return SAI_STATUS_SUCCESS;
@@ -526,6 +556,8 @@ _ctc_sai_bfd_build_ipbfd_nh(uint8 lchip, ctc_sai_bfd_t* p_bfd_info, uint32* nh_i
                     p_bfd_info->inner_nh_type = CTC_SAI_BFD_NH_TYPE_ILOOP;
                     p_bfd_info->inner_nhid = nhid;
                     p_bfd_info->inner_gport = port_assign.inter_port;
+
+                    goto out;
                     
                     error4:
                         CTC_SAI_LOG_ERROR(SAI_API_BFD, "build ipbfd nexthop rollback to error4\n");
@@ -912,8 +944,7 @@ _ctc_sai_bfd_wb_reload_cb(uint8 lchip, void* key, void* data)
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, sai_bfd_id, &ctc_object_id);
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_BFD, ctc_object_id.value));
 
-    if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
-        && (p_bfd_info->hw_lookup_valid) && (4 == p_bfd_info->ip_hdr_ver))
+    if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) && (p_bfd_info->hw_lookup_valid) && (4 == p_bfd_info->ip_hdr_ver))
     {
         /*do not need reload nexthop & l3if, use global */
     }
@@ -985,10 +1016,10 @@ _ctc_sai_bfd_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_db_trave
         ctc_sai_get_mac_str(ctc_sai_bfd_cur.src_mac, srcmac_buf);
         ctc_sai_get_mac_str(ctc_sai_bfd_cur.dst_mac, dstmac_buf);
     
-        CTC_SAI_LOG_DUMP(p_file, "%-4d 0x%016"PRIx64 " %-12d %-12d %-12d %-12d %-12d 0x%016"PRIx64 " %-12d %-12d %-12d %-12d %-12d %-22s %-22s 0x%016"PRIx64 " %-12d %-20s %-20s\n",\
+        CTC_SAI_LOG_DUMP(p_file, "%-4d 0x%016"PRIx64 " %-12d %-12d %-12d %-12d %-12d 0x%016"PRIx64 " %-12d %-12d %-12d %-12d %-12d %-22s %-22s 0x%016"PRIx64 "  %-20s %-20s\n",\
             num_cnt, bfd_oid_cur, ctc_sai_bfd_cur.session_type, ctc_sai_bfd_cur.offload_type, ctc_sai_bfd_cur.local_mep_index, ctc_sai_bfd_cur.remote_mep_index,
             ctc_sai_bfd_cur.hw_lookup_valid, ctc_sai_bfd_cur.vr_oid, ctc_sai_bfd_cur.udp_src_port, ctc_sai_bfd_cur.echo_en, ctc_sai_bfd_cur.ip_hdr_ver,
-            ctc_sai_bfd_cur.ip_tos, ctc_sai_bfd_cur.ip_ttl, srcip, dstip, ctc_sai_bfd_cur.dst_port_oid, ctc_sai_bfd_cur.micro_bfd_nh_id, srcmac_buf, dstmac_buf);
+            ctc_sai_bfd_cur.ip_tos, ctc_sai_bfd_cur.ip_ttl, srcip, dstip, ctc_sai_bfd_cur.dst_port_oid, srcmac_buf, dstmac_buf);
     }
 
     if((*((sai_bfd_encapsulation_type_t*)p_cb_data->value3) == ctc_sai_bfd_cur.encap_type)
@@ -1036,9 +1067,9 @@ void ctc_sai_bfd_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t 
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "BFD");
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "ctc_sai_bfd_t");
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "------------------------------------------- IP BFD ----------------------------------------------------------------------------");
-        CTC_SAI_LOG_DUMP(p_file, "%-4s %-18s %-12s %-12s %-12s %-12s %-12s %-18s %-12s %-12s %-12s %-12s %-12s %-22s %-22s %-18s %-12s %-20s %-20s \n", \
+        CTC_SAI_LOG_DUMP(p_file, "%-4s %-18s %-12s %-12s %-12s %-12s %-12s %-18s %-12s %-12s %-12s %-12s %-12s %-22s %-22s %-18s %-20s %-20s \n", \
             "No.", "Bfd_oid", "Session Type", "OffloadType", "lmepIndex", "rmepIndex", "hwlookup", "vr_oid", "udpsrcport", \
-            "echo en", "iphdrver", "iptos", "ipttl", "srcip", "dstip", "dstportoid", "micro_bfd_nh", "srcmac", "dstmac");
+            "echo en", "iphdrver", "iptos", "ipttl", "srcip", "dstip", "dstportoid", "srcmac", "dstmac");
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "-----------------------------------------------------------------------------------------------------------------------");
 
         sai_cb_data.value0 = p_file;
@@ -1167,7 +1198,7 @@ ctc_sai_bfd_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
             p_bfd_info->ip_tos = attr->value.u8;
             update_lmep.is_local = 1;
             update_lmep.update_type = CTC_OAM_BFD_LMEP_UPDATE_TYPE_TX_COS_EXP;
-            update_lmep.update_value = attr->value.u8;
+            update_lmep.update_value = attr->value.u8 >> 3 ;
             lmep_upd_en = 1;
             break;
         case SAI_BFD_SESSION_ATTR_MPLS_EXP:
@@ -1201,7 +1232,7 @@ ctc_sai_bfd_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         case SAI_BFD_SESSION_ATTR_MIN_TX:
             update_lmep.is_local = 1;
             update_lmep.update_type = CTC_OAM_BFD_LMEP_UPDATE_TYPE_TX_TIMER;
-            oam_bfd_timer.min_interval = attr->value.u8;
+            oam_bfd_timer.min_interval = attr->value.u32 & 0xFF;
             oam_bfd_timer.detect_mult = mep_info.lmep.bfd_lmep.local_detect_mult;
             update_lmep.p_update_value = &oam_bfd_timer;
             
@@ -1210,7 +1241,7 @@ ctc_sai_bfd_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         case SAI_BFD_SESSION_ATTR_MIN_RX:
             update_lmep.is_local = 0;
             update_lmep.update_type = CTC_OAM_BFD_RMEP_UPDATE_TYPE_RX_TIMER;
-            oam_bfd_timer.min_interval = attr->value.u8;
+            oam_bfd_timer.min_interval = attr->value.u32 & 0xFF;
             oam_bfd_timer.detect_mult = mep_info.rmep.bfd_rmep.remote_detect_mult;
             update_lmep.p_update_value = &oam_bfd_timer;
             
@@ -1229,10 +1260,11 @@ ctc_sai_bfd_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
             update_lmep.is_local = 1;
             p_bfd_info->cv_en = attr->value.booldata;
             update_lmep.update_type = CTC_OAM_BFD_LMEP_UPDATE_TYPE_CV_EN;
-            update_lmep.update_value = attr->value.u8;
+            update_lmep.update_value = attr->value.booldata;
             lmep_upd_en = 1;
             break;       
         default:
+            status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
             break;
 
     }
@@ -1431,7 +1463,7 @@ ctc_sai_bfd_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_i
             attr->value.booldata = p_bfd_info->cv_en;
             break;
         case SAI_BFD_SESSION_ATTR_TP_CV_SRC_MEP_ID:
-            sal_memcpy(attr->value.chardata, mep_info.lmep.bfd_lmep.mep_id, SAI_BFD_CV_SIZE);
+            sal_memcpy(attr->value.chardata, mep_info.lmep.bfd_lmep.mep_id, p_bfd_info->mep_id_len);
             break;
         case SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID:
             attr->value.oid = p_bfd_info->section_rif_oid;
@@ -1447,6 +1479,7 @@ ctc_sai_bfd_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_i
             status = SAI_STATUS_ATTR_NOT_SUPPORTED_0 + attr_idx;
             break;
         default:
+            status = SAI_STATUS_ATTR_NOT_SUPPORTED_0 + attr_idx;
             break;
 
     }
@@ -1592,13 +1625,13 @@ static ctc_sai_attr_fn_entry_t  bfd_attr_fn_entries[] =
       NULL },
     { SAI_BFD_SESSION_ATTR_MPLS_TTL,
       ctc_sai_bfd_get_info,
-      NULL },
+      ctc_sai_bfd_set_info },
     { SAI_BFD_SESSION_ATTR_MPLS_EXP,
       ctc_sai_bfd_get_info,
       ctc_sai_bfd_set_info },
     { SAI_BFD_SESSION_ATTR_TP_CV_ENABLE,
       ctc_sai_bfd_get_info,
-      NULL },
+      ctc_sai_bfd_set_info },
     { SAI_BFD_SESSION_ATTR_TP_CV_SRC_MEP_ID,
       ctc_sai_bfd_get_info,
       NULL },
@@ -1720,7 +1753,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
     {
-        p_bfd_info->encap_type = attr_value->u32;
+        p_bfd_info->encap_type = attr_value->s32;
     }
 
     /*IP hdr */
@@ -1813,7 +1846,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MULTIPLIER, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
     {
-        p_bfd_lmep->local_detect_mult = attr_value->u32;
+        p_bfd_lmep->local_detect_mult = attr_value->u8;
     }
 
     /*Encapsulation type */
@@ -1862,7 +1895,9 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_TP_CV_SRC_MEP_ID, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
     {
-        sal_memcpy(mep_id, attr_value->chardata, SAI_BFD_CV_SIZE);
+        /*TLV length + Type & Length */
+        p_bfd_info->mep_id_len = (attr_value->chardata[3] + 4);
+        sal_memcpy(mep_id, attr_value->chardata,  p_bfd_info->mep_id_len);
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID, &attr_value, &index);
@@ -1933,6 +1968,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
         CTC_SAI_ERROR_GOTO(_ctc_sai_bfd_add_local_ipuc(lchip, p_bfd_info), status, error2);
 
         p_bfd_lmep->ttl = p_bfd_info->ip_ttl;
+        p_bfd_lmep->tx_cos_exp = (p_bfd_info->ip_tos >> 3);
 
         if(SAI_NULL_OBJECT_ID != p_bfd_info->nh_tunnel_oid)
         {
@@ -2047,7 +2083,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
                 {
                     CTC_SAI_LOG_ERROR(SAI_API_BFD, "Failed to get route interface, invalid router_interface_id %d!\n", p_bfd_info->section_rif_oid);
                     status = SAI_STATUS_ITEM_NOT_FOUND;
-                    goto error1;
+                    goto error2;
                 }
     
                 CTC_SAI_ERROR_GOTO(ctc_sai_oid_get_l3if_id(p_bfd_info->section_rif_oid, &l3if_id), status, error2);
@@ -2078,12 +2114,12 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
             if(p_bfd_info->cv_en)
             {
                 CTC_SET_FLAG(p_bfd_lmep->flag, CTC_OAM_BFD_LMEP_FLAG_TP_WITH_MEP_ID);
-                p_bfd_lmep->mep_id_len = SAI_BFD_CV_SIZE;
-                sal_memcpy(p_bfd_lmep->mep_id, mep_id, SAI_BFD_CV_SIZE);
+                p_bfd_lmep->mep_id_len = p_bfd_info->mep_id_len;
+                sal_memcpy(p_bfd_lmep->mep_id, mep_id, p_bfd_info->mep_id_len);
 
                 CTC_SET_FLAG(p_bfd_rmep->flag, CTC_OAM_BFD_RMEP_FLAG_TP_WITH_MEP_ID);
-                p_bfd_rmep->mep_id_len = SAI_BFD_CV_SIZE;
-                sal_memcpy(p_bfd_rmep->mep_id, mep_id, SAI_BFD_CV_SIZE);
+                p_bfd_rmep->mep_id_len = p_bfd_info->mep_id_len;
+                sal_memcpy(p_bfd_rmep->mep_id, mep_id, p_bfd_info->mep_id_len);
             }
 
             ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP, p_bfd_info->nh_tunnel_oid, &ctc_object_id);
@@ -2120,8 +2156,8 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     p_bfd_rmep->remote_detect_mult = 3; //by default
     
 
-    CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_add_lmep(lchip, &lmep), status, error2);
-    CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_add_rmep(lchip, &rmep), status, error3);
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_add_lmep(lchip, &lmep), status, error3);
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_add_rmep(lchip, &rmep), status, error4);
 
     p_bfd_info->local_mep_index = lmep.lmep_index;
     p_bfd_info->remote_mep_index = rmep.rmep_index;
@@ -2131,24 +2167,28 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     update_lmep.is_local = 1;
     update_lmep.update_type = CTC_OAM_BFD_LMEP_UPDATE_TYPE_CC_EN;
     update_lmep.update_value = 1;
-    CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_lmep(lchip, &update_lmep), status, error3);
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_lmep(lchip, &update_lmep), status, error5);
     
     if(p_bfd_info->cv_en)
     {
         update_lmep.update_type = CTC_OAM_BFD_LMEP_UPDATE_TYPE_CV_EN;
         update_lmep.update_value = 1;
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_lmep(lchip, &update_lmep), status, error3);
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_lmep(lchip, &update_lmep), status, error5);
     }    
 
-    *sai_bfd_session_id = bfd_obj_id;
-
-    
+    *sai_bfd_session_id = bfd_obj_id;    
 
     goto out;
 
+error5:
+    CTC_SAI_LOG_ERROR(SAI_API_BFD, "rollback to error5\n");
+    ctcs_oam_remove_rmep(lchip, &rmep);
+error4:
+    CTC_SAI_LOG_ERROR(SAI_API_BFD, "rollback to error4\n");
+    ctcs_oam_remove_lmep(lchip, &lmep);
 error3:
     CTC_SAI_LOG_ERROR(SAI_API_BFD, "rollback to error3\n");
-    ctcs_oam_remove_lmep(lchip, &lmep);
+    _ctc_sai_bfd_remove_ipbfd_nh(lchip, p_bfd_info);  
 error2:
     CTC_SAI_LOG_ERROR(SAI_API_BFD, "rollback to error2\n");
     _ctc_sai_bfd_remove_db(lchip, bfd_obj_id);

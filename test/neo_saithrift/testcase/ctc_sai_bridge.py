@@ -3125,7 +3125,7 @@ class scenario_13_bridge_port_egress_vlan_filter(sai_base_test.ThriftInterfaceDa
 
 
 
-class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_14_normal_bridge_port_is_lag(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
     
         switch_init(self.client)
@@ -3142,7 +3142,7 @@ class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
         mac4 = '00:33:33:33:33:34'
         mac_action = SAI_PACKET_ACTION_FORWARD
         
-        lag_oid = sai_thrift_create_lag(self.client, [])
+        lag_oid = sai_thrift_create_lag(self.client)
         
         lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_oid, port1)
         lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_oid, port2)
@@ -3243,10 +3243,7 @@ class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
             
             
 
-
-
-
-class lag_test2(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_15_normal_bridge_port_with_lag_member_change(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
     
         switch_init(self.client)
@@ -3266,7 +3263,7 @@ class lag_test2(sai_base_test.ThriftInterfaceDataPlane):
         
         mac_action = SAI_PACKET_ACTION_FORWARD
         
-        lag_oid = sai_thrift_create_lag(self.client, [])
+        lag_oid = sai_thrift_create_lag(self.client)
 
         sai_thrift_vlan_remove_ports(self.client, switch.default_vlan.oid, [port1,port2,port3])
         

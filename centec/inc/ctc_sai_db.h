@@ -74,7 +74,8 @@ typedef enum ctc_sai_db_id_type_e
     CTC_SAI_DB_ID_TYPE_ACL_TABLE_INDEX,
     CTC_SAI_DB_ID_TYPE_ACL_ENTRY_INDEX,
     CTC_SAI_DB_ID_TYPE_ACL_GROUP_MEMBER_INDEX,
-    CTC_SAI_DB_ID_TYPE_ACL_RANGE_INDEX,
+    CTC_SAI_DB_ID_TYPE_ACL_PORT_RANGE_INDEX,
+    CTC_SAI_DB_ID_TYPE_ACL_VLAN_RANGE_INDEX,
     CTC_SAI_DB_ID_TYPE_ACL_COUNTER_INDEX,
     /* SDK ACL OR SCL */
     CTC_SAI_DB_ID_TYPE_SDK_SCL_GROUP_ID,
@@ -99,6 +100,12 @@ typedef enum ctc_sai_db_id_type_e
     CTC_SAI_DB_ID_TYPE_Y1731_REMOTE_MEP,
     CTC_SAI_DB_ID_TYPE_PTP,
     CTC_SAI_DB_ID_TYPE_SYNCE,
+    CTC_SAI_DB_ID_TYPE_UDF_GROUP,
+    CTC_SAI_DB_ID_TYPE_UDF_ENTRY,
+    CTC_SAI_DB_ID_TYPE_UDF_MATCH,
+    CTC_SAI_DB_ID_TYPE_MONITOR_BUFFER,
+    CTC_SAI_DB_ID_TYPE_MONITOR_LATENCY,
+
     CTC_SAI_DB_ID_TYPE_MAX,
 }ctc_sai_db_id_type_t;
 
@@ -111,7 +118,8 @@ typedef enum ctc_sai_db_entry_type_e
     CTC_SAI_DB_ENTRY_TYPE_MCAST_IPMC,
     CTC_SAI_DB_ENTRY_TYPE_MCAST_FDB,
     CTC_SAI_DB_ENTRY_TYPE_ACL, /* used for keeping the relationship between acl hardware entry(group) id and sdk entry(group) id */
-    CTC_SAI_DB_ENTRY_TYPE_ACL_BIND, /* used for keeping the relationship between bind point and bounded oid (group or table)*/
+    CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, /* used for keeping the relationship between bind point and bounded oid (group or table)*/
+    CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS,  /* used for keeping the relationship between bind point and bounded oid (group or table)*/
     CTC_SAI_DB_ENTRY_TYPE_MPLS,
     CTC_SAI_DB_ENTRY_TYPE_NAT,
     CTC_SAI_DB_ENTRY_TYPE_MAX,
@@ -268,6 +276,7 @@ typedef struct  ctc_sai_vector_property_s
 
 #define QOS_MAP_DOMAIN_NUM_DOT1P   8
 #define QOS_MAP_DOMAIN_NUM_DSCP   16
+#define QOS_MAP_DOMAIN_NUM_EXP   16
 
 typedef struct ctc_sai_qos_domain_map_id_s
 {
@@ -275,16 +284,19 @@ typedef struct ctc_sai_qos_domain_map_id_s
     {
         uint32 dot1p_to_tc_map_id;
         uint32 dscp_to_tc_map_id;
+        uint32 exp_to_tc_map_id;
     }tc;
     union
     {
-    uint32 dot1p_to_color_map_id;
-    uint32 dscp_to_color_map_id;
+        uint32 dot1p_to_color_map_id;
+        uint32 dscp_to_color_map_id;
+        uint32 exp_to_color_map_id;
     }color;
     union
     {
         uint32 tc_color_to_dot1p_map_id;
         uint32 tc_color_to_dscp_map_id;
+        uint32 tc_color_to_exp_map_id;
     }tc_color;
     uint16 ref_cnt_tc;
     uint16 ref_cnt_color;
@@ -314,7 +326,6 @@ typedef struct ctc_sai_switch_master_s{
     uint32 cpu_eth_port;
     uint32 profile_id;
     uint8 port_queues;
-    uint8  udf_group_cnt;
     uint32 fdb_miss_action[3];  /* pkt_action[0]:unicast; pkt_action[1]:muticast;  pkt_action[2]:broadcast; */
     uint8 default_tc;
     uint32 hostif_acl_grp_id;
@@ -324,9 +335,11 @@ typedef struct ctc_sai_switch_master_s{
     int32 epoll_sock;
     struct epoll_event evl;
     uint16 default_wtd_thrd[3]; /*refer to sai_packet_color_t*/
+    uint16 default_ecn_thrd[3]; /*refer to sai_packet_color_t*/
     uint32 tc_to_queue_map_id;
     ctc_sai_qos_domain_map_id_t  qos_domain_dot1p[QOS_MAP_DOMAIN_NUM_DOT1P];
     ctc_sai_qos_domain_map_id_t  qos_domain_dscp[QOS_MAP_DOMAIN_NUM_DSCP];
+    ctc_sai_qos_domain_map_id_t  qos_domain_exp[QOS_MAP_DOMAIN_NUM_EXP];
     uint32 route_cnt[MAX_CTC_IP_VER];
     uint32 nexthop_cnt[MAX_CTC_IP_VER];
     uint32 neighbor_cnt[MAX_CTC_IP_VER];
@@ -335,14 +348,22 @@ typedef struct ctc_sai_switch_master_s{
     sai_switch_state_change_notification_fn     switch_state_change_cb;
     sai_switch_shutdown_request_notification_fn switch_shutdown_request_cb;
     sai_fdb_event_notification_fn               fdb_event_cb;
+    sai_monitor_latency_notification_fn     monitor_latency_cb;
+    sai_monitor_buffer_notification_fn     monitor_buffer_cb;
     sai_port_state_change_notification_fn       port_state_change_cb;
     sai_packet_event_notification_fn            packet_event_cb;
     sai_bfd_session_state_change_notification_fn        bfd_event_cb;
-    sai_twamp_session_status_change_notification_fn     twamp_state_cb;
     sai_y1731_session_state_change_notification_fn      y1731_event_cb;
+    sai_queue_pfc_deadlock_notification_fn              pfc_deadlock_cb;
+    sai_signal_degrade_event_notification_fn            port_sd_cb;
     sai_object_id_t                             default_trap_grp_id;
     dal_pci_dev_t pci_dev;
     sai_mac_t vxlan_default_router_mac;
+    uint8 pfc_dld_interval[8];
+    uint32 monitor_buffer_total_thrd_min;
+    uint32 monitor_buffer_total_thrd_max;
+    uint32 monitor_latency_total_thrd_min;
+    uint32 monitor_latency_total_thrd_max;
 } ctc_sai_switch_master_t;
 
 typedef sai_status_t (*ctc_sai_wb_sync_cb)(uint8 lchip, void* key, void* data);
@@ -425,6 +446,8 @@ extern sai_status_t
 ctc_sai_db_alloc_id(uint8 lchip, ctc_sai_db_id_type_t type, uint32 *id);
 extern sai_status_t
 ctc_sai_db_free_id(uint8 lchip, ctc_sai_db_id_type_t type, uint32 id);
+extern sai_status_t
+ctc_sai_db_opf_get_count(uint8 lchip, ctc_sai_db_id_type_t type, uint32* count);
 extern sai_status_t
 ctc_sai_db_alloc_id_from_position(uint8 lchip, ctc_sai_db_id_type_t type, uint32 id);
 extern sai_status_t

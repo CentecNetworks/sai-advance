@@ -491,6 +491,7 @@ _ctc_sai_y1731_session_create_attr_check(uint8 lchip, uint32_t attr_count, const
     ctc_sai_y1731_meg_t* p_y1731_meg_info = NULL;
     ctc_object_id_t ctc_object_id;
     ctc_sai_next_hop_t* p_next_hop_info = NULL;
+    uint32 tp_section_oam_en = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_Y1731);
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_MEG, &attr_value, &index);
@@ -549,10 +550,20 @@ _ctc_sai_y1731_session_create_attr_check(uint8 lchip, uint32_t attr_count, const
         }
     }
 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_TP_ROUTER_INTERFACE_ID, &attr_value, &index);
+    if (!CTC_SAI_ERROR(status))
+    {
+        if(SAI_Y1731_MEG_TYPE_MPLS_TP != p_y1731_meg_info->meg_type)
+        {
+            return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+        }
+        tp_section_oam_en = 1;
+    }
+    
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_MPLS_IN_LABEL, &attr_value, &index);
     if (CTC_SAI_ERROR(status))
     {        
-        if(SAI_Y1731_MEG_TYPE_MPLS_TP == p_y1731_meg_info->meg_type)
+        if((SAI_Y1731_MEG_TYPE_MPLS_TP == p_y1731_meg_info->meg_type) && !tp_section_oam_en)
         {
             return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
         }
@@ -676,8 +687,7 @@ ctc_sai_y1731_session_get_info(sai_object_key_t *key, sai_attribute_t* attr, uin
             attr->value.s32 = p_y1731_session_info->dir;
             break;
         case SAI_Y1731_SESSION_ATTR_VLAN_ID:
-            if(( SAI_Y1731_MEG_TYPE_ETHER_VLAN == p_y1731_session_info->meg_type)
-                || ( SAI_Y1731_MEG_TYPE_L2VPN_VLAN == p_y1731_session_info->meg_type))
+            if( p_y1731_session_info->meg_type < SAI_Y1731_MEG_TYPE_MPLS_TP)
             {
                 attr->value.u32 = p_y1731_session_info->oam_key.u.eth.vlan_id;
             }
@@ -695,7 +705,14 @@ ctc_sai_y1731_session_get_info(sai_object_key_t *key, sai_attribute_t* attr, uin
                 || ( SAI_Y1731_MEG_TYPE_L2VPN_VPLS == p_y1731_session_info->meg_type)
                 || ( SAI_Y1731_MEG_TYPE_L2VPN_VPWS == p_y1731_session_info->meg_type))
             {
-                attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, p_y1731_session_info->oam_key.u.eth.gport);
+                if(CTC_IS_LINKAGG_PORT(p_y1731_session_info->oam_key.u.eth.gport))
+                {
+                    attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, p_y1731_session_info->oam_key.u.eth.gport);
+                }
+                else
+                {
+                    attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, p_y1731_session_info->oam_key.u.eth.gport);
+                }
             }
             else
             {
@@ -740,7 +757,7 @@ ctc_sai_y1731_session_get_info(sai_object_key_t *key, sai_attribute_t* attr, uin
             attr->value.booldata = p_y1731_session_info->dm_en;
             break;
         case SAI_Y1731_SESSION_ATTR_LOCAL_RDI:
-            attr->value.u8 = mep_info.lmep.y1731_lmep.present_rdi;
+            attr->value.booldata = mep_info.lmep.y1731_lmep.present_rdi;
             break;
         case SAI_Y1731_SESSION_ATTR_TP_ROUTER_INTERFACE_ID:
             if( SAI_Y1731_MEG_TYPE_MPLS_TP == p_y1731_session_info->meg_type)
@@ -825,6 +842,7 @@ ctc_sai_y1731_session_set_info(sai_object_key_t *key, const sai_attribute_t* att
             CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_lmep(lchip, &update_lmep), status, out);
          
             p_y1731_session_info->lmep_id = attr->value.u32;
+            break;
         case SAI_Y1731_SESSION_ATTR_CCM_PERIOD:            
             update_lmep.update_type = CTC_OAM_Y1731_LMEP_UPDATE_TYPE_CCM_INTERVAL;
             update_lmep.update_value = attr->value.s32;
@@ -873,7 +891,6 @@ ctc_sai_y1731_session_set_info(sai_object_key_t *key, const sai_attribute_t* att
             update_lmep.update_value = attr->value.booldata;
             CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_lmep(lchip, &update_lmep), status, out);
             
-            p_y1731_session_info->lm_en = attr->value.booldata;
             break;
         case SAI_Y1731_SESSION_ATTR_TTL:            
             update_lmep.update_type = CTC_OAM_Y1731_LMEP_UPDATE_TYPE_TTL;
@@ -1024,6 +1041,13 @@ _ctc_sai_y1731_rmep_create_attr_check(uint8 lchip, uint32_t attr_count, const sa
         }
     }
 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_ID, &attr_value, &index);
+    if (CTC_SAI_ERROR(status))
+    {        
+        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+    }
+    
+
     return status;
 }
 
@@ -1126,6 +1150,7 @@ ctc_sai_y1731_rmep_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         case SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS:            
             update_rmep.update_type = CTC_OAM_Y1731_RMEP_UPDATE_TYPE_RMEP_MACSA;
             update_rmep.p_update_value = (void*)&attr->value.mac;
+            update_rmep.rmep_id = p_y1731_rmep_info->rmep_id;
          
             CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_rmep), status, out);         
             break;
@@ -1359,7 +1384,7 @@ sai_status_t ctc_sai_y1731_create_y1731_meg( sai_object_id_t *sai_y1731_meg_id,
         p_y1731_meg_info->level = attr_value->u8;
     }
 
-    _ctc_sai_y1731_build_maid(p_y1731_meg_info->meg_type, p_y1731_meg_info->meg_name, &oam_maid);
+    CTC_SAI_CTC_ERROR_GOTO(_ctc_sai_y1731_build_maid(p_y1731_meg_info->meg_type, p_y1731_meg_info->meg_name, &oam_maid), status, error2);
     
     CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_add_maid(lchip, &oam_maid), status, error2);
 
@@ -1546,16 +1571,14 @@ sai_status_t ctc_sai_y1731_create_y1731_session( sai_object_id_t *sai_y1731_sess
             || (SAI_Y1731_MEG_TYPE_L2VPN_VPWS == p_y1731_meg_info->meg_type))
         {
             oam_key.u.eth.vlan_id = attr_value->u32;
-        }        
-    }
-    else
-    {
-        if( SAI_Y1731_MEG_TYPE_ETHER_VLAN == p_y1731_session_info->meg_type)
+        }
+            
+        if(( SAI_Y1731_MEG_TYPE_ETHER_VLAN == p_y1731_session_info->meg_type) && (0 == attr_value->u32))
         {
             oam_key.flag |= CTC_OAM_KEY_FLAG_LINK_SECTION_OAM;
             p_y1731_session_info->is_link_oam = 1;
-        }        
-    }
+        }   
+    }    
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_BRIDGE_ID, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
@@ -1814,12 +1837,14 @@ static sai_status_t ctc_sai_y1731_remove_y1731_session(sai_object_id_t sai_y1731
     ctc_sai_y1731_session_t* p_y1731_session_info = NULL;
     uint32 session_id = 0;
 
+    sal_memset(&lmep, 0, sizeof(ctc_oam_lmep_t));
+
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(sai_y1731_session_id, &lchip));
 
     CTC_SAI_DB_LOCK(lchip);
 
     CTC_SAI_LOG_ENTER(SAI_API_Y1731);
-    CTC_SAI_LOG_INFO(SAI_API_Y1731, "sai_y1731_session_id = %llu\n", sai_y1731_session_id);
+    CTC_SAI_LOG_INFO(SAI_API_Y1731, "remove sai_y1731_session_id = %llu\n", sai_y1731_session_id);
 
     p_y1731_session_info = ctc_sai_db_get_object_property(lchip, sai_y1731_session_id);
     if (NULL == p_y1731_session_info)
@@ -1890,7 +1915,7 @@ static sai_status_t ctc_sai_y1731_get_y1731_session_attribute(
     while (loop < attr_count)
     {
         CTC_SAI_ERROR_GOTO(ctc_sai_get_attribute(&key, key_str,
-                                                 SAI_OBJECT_TYPE_Y1731_MEG, loop, y1731_session_attr_fn_entries, &attr_list[loop]), status, out);
+                                                 SAI_OBJECT_TYPE_Y1731_SESSION, loop, y1731_session_attr_fn_entries, &attr_list[loop]), status, out);
         loop++ ;
     }
 
@@ -1920,6 +1945,8 @@ sai_status_t ctc_sai_y1731_create_y1731_remote_mep( sai_object_id_t *sai_y1731_r
     ctc_slistnode_t *node = NULL;
     ctc_sai_y1731_rmep_id_t *p_rmep_node_data = NULL;
     ctc_sai_y1731_rmep_id_t *p_rmep_node = NULL;
+
+    sal_memset(&oam_rmep, 0, sizeof(ctc_oam_rmep_t));
 
     CTC_SAI_LOG_ENTER(SAI_API_Y1731);
     CTC_SAI_PTR_VALID_CHECK(sai_y1731_rmep_id);
@@ -1967,7 +1994,7 @@ sai_status_t ctc_sai_y1731_create_y1731_remote_mep( sai_object_id_t *sai_y1731_r
     CTC_SLIST_LOOP(p_y1731_session_info->rmep_head, node)
     {
         p_rmep_node_data = _ctc_container_of(node, ctc_sai_y1731_rmep_id_t, node);
-        if (p_y1731_rmep_info->y1731_session_oid == p_rmep_node_data->rmep_oid)
+        if (rmep_obj_id == p_rmep_node_data->rmep_oid)
         {
             status = SAI_STATUS_ITEM_ALREADY_EXISTS;
             goto error3;
@@ -2011,6 +2038,8 @@ static sai_status_t ctc_sai_y1731_remove_y1731_remote_mep( sai_object_id_t sai_y
     uint32 session_id = 0;    
     ctc_slistnode_t *node = NULL;
     ctc_sai_y1731_rmep_id_t *p_rmep_node = NULL;
+
+    sal_memset(&rmep, 0, sizeof(ctc_oam_rmep_t));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(sai_y1731_rmep_id, &lchip));
 

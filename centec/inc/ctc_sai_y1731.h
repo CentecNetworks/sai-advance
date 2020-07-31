@@ -52,18 +52,17 @@
 \t  |  SAI_Y1731_SESSION_ATTR_LOCAL_MEP_ID                      |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_CCM_PERIOD                        |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_CCM_ENABLE                        |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_IS_P2P_MODE                       |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_REMOTE_MEP_LIST                   |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_LM_STATS_OFFLOAD_TYPE             |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_LM_STATS_ENABLE                   |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_LM_STATS_TYPE                     |        CTC7132         |
+\t  |  SAI_Y1731_SESSION_ATTR_LM_OFFLOAD_TYPE                   |        CTC7132         |
+\t  |  SAI_Y1731_SESSION_ATTR_LM_ENABLE                         |        CTC7132         |
+\t  |  SAI_Y1731_SESSION_ATTR_LM_TYPE                           |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_DM_OFFLOAD_TYPE                   |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_DM_ENABLE                         |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_LOCAL_RDI                         |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_TP_ROUTER_INTERFACE_ID            |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_TP_WITHOUT_GAL                    |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_MPLS_TTL                          |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_MPLS_EXP                          |        CTC7132         |
+\t  |  SAI_Y1731_SESSION_ATTR_TTL                               |        CTC7132         |
+\t  |  SAI_Y1731_SESSION_ATTR_EXP_OR_COS                        |        CTC7132         |
 \t  |  SAI_Y1731_SESSION_ATTR_NEXT_HOP_ID                       |        CTC7132         |
 \b
 \p
@@ -74,6 +73,7 @@
 \t  |  SAI_Y1731_REMOTE_MEP_ATTR_Y1731_SESSION_ID               |        CTC7132         |
 \t  |  SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_ID                  |        CTC7132         |
 \t  |  SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS         |        CTC7132         |
+\t  |  SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED         |        CTC7132         |
 \b 
 */
 
@@ -86,6 +86,10 @@
 #include "sal.h"
 #include "ctcs_api.h"
 /*don't need include other header files*/
+
+//refrence to CTC7132 SDK
+#define CTC_SAI_VPWS_OAM_FID_BASE (1 << 13)
+
 
 typedef struct ctc_sai_y1731_meg_s
 {

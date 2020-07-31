@@ -146,7 +146,7 @@ typedef enum _sai_next_hop_attr_t
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_TUNNEL
-     * @condition SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_TUNNEL_ENCAP
+     * @condition SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_TUNNEL_ENCAP or SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS
      */
     SAI_NEXT_HOP_ATTR_TUNNEL_ID,
 
@@ -221,26 +221,88 @@ typedef enum _sai_next_hop_attr_t
     SAI_NEXT_HOP_ATTR_COUNTER_ID,
 
     /**
+     * @brief To enable/disable Decrement TTL
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default false
+     */
+    SAI_NEXT_HOP_ATTR_DECREMENT_TTL,
+
+    /**
+     * @brief MPLS Outsegment type
+     *
+     * @type sai_outseg_type_t
+     * @flags CREATE_AND_SET
+     * @default SAI_OUTSEG_TYPE_SWAP
+     * @validonly SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS
+     */
+    SAI_NEXT_HOP_ATTR_OUTSEG_TYPE,
+
+    /**
+     * @brief MPLS Outsegment TTL mode
+     *
+     * @type sai_outseg_ttl_mode_t
+     * @flags CREATE_AND_SET
+     * @default SAI_OUTSEG_TTL_MODE_UNIFORM
+     * @validonly SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS and SAI_NEXT_HOP_ATTR_OUTSEG_TYPE == SAI_OUTSEG_TYPE_PUSH
+     */
+    SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE,
+
+    /**
+     * @brief MPLS Outsegment TTL value for pipe mode
+     *
+     * @type sai_uint8_t
+     * @flags CREATE_AND_SET
+     * @default 255
+     * @validonly SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS and SAI_NEXT_HOP_ATTR_OUTSEG_TYPE == SAI_OUTSEG_TYPE_PUSH and SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE == SAI_OUTSEG_TTL_MODE_PIPE
+     */
+    SAI_NEXT_HOP_ATTR_OUTSEG_TTL_VALUE,
+
+    /**
+     * @brief MPLS Outsegment MPLS EXP mode
+     *
+     * @type sai_outseg_exp_mode_t
+     * @flags CREATE_AND_SET
+     * @default SAI_OUTSEG_EXP_MODE_UNIFORM
+     * @validonly SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS and SAI_NEXT_HOP_ATTR_OUTSEG_TYPE == SAI_OUTSEG_TYPE_PUSH
+     */
+    SAI_NEXT_HOP_ATTR_OUTSEG_EXP_MODE,
+
+    /**
+     * @brief MPLS Outsegment EXP value for pipe mode
+     *
+     * @type sai_uint8_t
+     * @flags CREATE_AND_SET
+     * @default 0
+     * @validonly SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS and SAI_NEXT_HOP_ATTR_OUTSEG_TYPE == SAI_OUTSEG_TYPE_PUSH and SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE == SAI_OUTSEG_TTL_MODE_PIPE
+     */
+    SAI_NEXT_HOP_ATTR_OUTSEG_EXP_VALUE,
+
+    /**
+     * @brief TC AND COLOR -> MPLS EXP MAP for Uniform Mode
+     *
+     * If present overrides SAI_SWITCH_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP and SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     * @validonly SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS and SAI_NEXT_HOP_ATTR_OUTSEG_TYPE == SAI_OUTSEG_TYPE_PUSH and SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE == SAI_OUTSEG_TTL_MODE_UNIFORM
+     */
+    SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP,
+
+    /**
      * @brief Next hop entry tunnel-id for MPLS PUSH
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_TUNNEL
-     * @condition SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS
+     * @condition SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS or ( SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_TUNNEL_ENCAP and SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2 )
      * @allownull
      */
      SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID,
-     
-    /**
-     * @brief Next hop entry decap tunnel-id for MPLS PHP
-     *
-     * @type sai_object_id_t
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @objects SAI_OBJECT_TYPE_TUNNEL
-     * @condition SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_IP
-     * @allownull
-     */
-     SAI_NEXT_HOP_ATTR_MPLS_DECAP_TUNNEL_ID,
 
     /**
      * @brief Next hop id

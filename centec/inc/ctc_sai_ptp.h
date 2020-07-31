@@ -17,26 +17,26 @@
 \b
 \t  |   API                                                     |   SUPPORT CHIPS LIST   |
 \t  |  create_ptp_domain;                                       |        CTC7132         |
-\t  |  set_ptp_domain_attribute;           |        CTC7132         |
-\t  |  remove_ptp_domain;              |        CTC7132         |
-\t  |  get_ptp_domain_attribute;     |        CTC7132         |
+\t  |  set_ptp_domain_attribute;                                |        CTC7132         |
+\t  |  remove_ptp_domain;                                       |        CTC7132         |
+\t  |  get_ptp_domain_attribute;                                |        CTC7132         |
 \b
 \p
  The PTP Session attributes supported by centec devices:
 \p
 \b
 \t  |   ATTRIBUTE                                               |   SUPPORT CHIPS LIST   |
-\t  |  SAI_PTP_DOMAIN_ATTR_PTP_ENABLE_BASED_TYPE                                |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_DEVICE_TYPE                     |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET                      |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_FORMAT_TYPE                                |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE                 |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE                |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND                        |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS                                  |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY                           |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP                             |        CTC7132         |
-\t  |  SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP                            |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_PTP_ENABLE_BASED_TYPE                |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_DEVICE_TYPE                          |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET                 |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_FORMAT_TYPE                 |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE                      |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE                        |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND                 |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS                  |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY                |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP                        |        CTC7132         |
+\t  |  SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP                   |        CTC7132         |
 \b
 */
 
@@ -55,7 +55,6 @@ typedef struct ctc_sai_ptp_db_s
     bool is_time_offset; 
     sai_timeoffset_t drift_offset;
     sai_timeoffset_t time_offset;
-    sai_timeoffset_t clock_offset;
     sai_ptp_tod_interface_format_type_t tod_format;
     bool tod_enable;
     sai_ptp_tod_intf_mode_t tod_mode;

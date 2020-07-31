@@ -132,7 +132,10 @@
 \t  |  SAI_PORT_ATTR_PTP_MODE                                |              -                 |
 \t  |  SAI_PORT_ATTR_PORT_SERDES_ID                          |              -                 |
 \t  |  SAI_PORT_ATTR_ES                                      |            CTC7132             |
-
+\t  |  SAI_PORT_ATTR_Y1731_ENABLE                            |            CTC7132             |
+\t  |  SAI_PORT_ATTR_Y1731_LM_ENABLE                         |            CTC7132             |
+\t  |  SAI_PORT_ATTR_Y1731_MIP_ENABLE                        |            CTC7132             |
+\t  |  SAI_PORT_ATTR_MAC_ADDRESS                             |            CTC7132             |
 \b
 */
 
@@ -161,6 +164,12 @@
 #define    CTC_SAI_PORT_SPEED_50G 50000
 
 #define MAX_LANES 4
+
+typedef struct ctc_sai_port_service_id_s
+{
+   ctc_slistnode_t node;
+   uint16 service_id;
+}ctc_sai_port_service_id_t;
 
 typedef struct ctc_sai_port_db_s
 {
@@ -200,6 +209,9 @@ typedef struct ctc_sai_port_db_s
 
     /*router interface*/
     int32 sub_if_ref_cnt;
+
+    /*service id */
+    ctc_slist_t *service_id_list;
 }ctc_sai_port_db_t;
 
 

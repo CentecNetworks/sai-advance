@@ -465,7 +465,25 @@ _ctc_sai_hostif_trap_type_to_ctc_reason_id(uint8 lchip, sai_hostif_trap_type_t t
             case SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DM:
                 *p_ctc_cpu_reson = CTC_PKT_CPU_REASON_OAM + CTC_OAM_EXCP_MPLS_TP_DM_DLMDM_TO_CPU;
                 *p_custom_cpu_reson = CTC_PKT_CPU_REASON_OAM + CTC_OAM_EXCP_MPLS_TP_DM_DLMDM_TO_CPU;
-                break;     
+                break; 
+
+            /** 
+             * @brief log all packet to cpu when micro burst occur
+             * (default packet action is SAI_PACKET_ACTION_COPY)
+             */
+            case SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_MICROBURST_LOG:
+                *p_ctc_cpu_reson = CTC_PKT_CPU_REASON_MONITOR_BUFFER_LOG;
+                *p_custom_cpu_reson = CTC_PKT_CPU_REASON_MONITOR_BUFFER_LOG;
+                break;
+
+            /** 
+             * @brief log packet to cpu when latency over the threshold
+             * (default packet action is SAI_PACKET_ACTION_COPY)
+             */
+            case SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_LATENCY_OVERFLOW_LOG:
+                *p_ctc_cpu_reson = CTC_PKT_CPU_REASON_MONITOR_LATENCY_LOG;
+                *p_custom_cpu_reson = CTC_PKT_CPU_REASON_MONITOR_LATENCY_LOG;
+                break;
 
             default:
                 *p_ctc_cpu_reson = CTC_PKT_CPU_REASON_CUSTOM_BASE;
@@ -3984,7 +4002,18 @@ _ctc_sai_hostif_packet_receive_from_sdk(ctc_pkt_rx_t* p_pkt_rx)
         }
 
         attr_list[2].id = SAI_HOSTIF_PACKET_ATTR_BRIDGE_ID;
-        attr_list[2].value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, 0, 0, p_pkt_rx->rx_info.fid);
+        if(0 == p_pkt_rx->rx_info.logic_src_port) //.1Q bridge
+        {            
+            attr_list[2].value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, SAI_BRIDGE_TYPE_1Q, 0, 1);
+        }
+        else if(p_pkt_rx->rx_info.fid && (p_pkt_rx->rx_info.fid < CTC_SAI_VPWS_OAM_FID_BASE)) //.1D bridge fid < 8k
+        {
+            attr_list[2].value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, SAI_BRIDGE_TYPE_1D, 0, p_pkt_rx->rx_info.fid);
+        }
+        else  //cross connect bridge for vpws
+        {
+            attr_list[2].value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, SAI_BRIDGE_TYPE_CROSS_CONNECT, 0, p_pkt_rx->rx_info.fid);
+        }
         count = 3;
 
         /* PTP to CPU */

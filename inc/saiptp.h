@@ -27,6 +27,8 @@
 
 #include <saitypes.h>
 
+#define TOD_INTF_DISABLE 2
+
 /**
  @brief  define PTP device type
 */
@@ -128,15 +130,24 @@ typedef enum _sai_ptp_domain_attr_t
     SAI_PTP_DOMAIN_ATTR_DEVICE_TYPE,
 
      /**
-     * @brief  define the clock offset, include time offset, drift offset, etc.
+     * @brief  define the clock drift offset.
      *
      * @type sai_timeoffset_t
      * @flags CREATE_AND_SET
      */
-    SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET,   
+    SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_DRIFT_OFFSET,   
+
 
     /**
-     * @brief tod interface type, only support CCSA
+     * @brief  define the clock time offset.
+     *
+     * @type sai_timeoffset_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_TIME_OFFSET,   
+
+    /**
+     * @brief tod interface type
      *
      * @type sai_ptp_tod_interface_format_type_t
      * @flags CREATE_AND_SET
@@ -145,8 +156,8 @@ typedef enum _sai_ptp_domain_attr_t
     SAI_PTP_DOMAIN_ATTR_TOD_INTF_FORMAT_TYPE,
 
      /**
-     * @brief Leap seconds between GPS and UTC, used for input and output mode,
-     * the value can only be modified when the SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE == 0 
+     * @brief Leap seconds between GPS and UTC, set attr only support output mode, get attr support output and input mode 
+     * @condition  SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE == TOD_INTF_DISABLE
      *
      * @type sai_int8_t
      * @flags CREATE_AND_SET
@@ -154,8 +165,8 @@ typedef enum _sai_ptp_domain_attr_t
     SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND,
 
     /**
-     * @brief tod interface code 1PPS status <0-0xFF>, used for input and output mode,
-     * the value can only be modified when the SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE == 0
+     * @brief tod interface code 1PPS status <0-0xFF>, set attr only support output mode, get attr support output and input mode 
+     * @condition SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE == TOD_INTF_DISABLE
      *
      * @type  sai_uint8_t
      * @flags CREATE_AND_SET
@@ -163,8 +174,8 @@ typedef enum _sai_ptp_domain_attr_t
     SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS,
 
     /**
-     * @brief tod interface code 1PPS accuracy, used for input and output mode,
-     * the value can only be modified when the SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE == 0
+     * @brief tod interface code 1PPS accuracy, set attr only support output mode, get attr support output and input mode  
+     * @condition SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE == TOD_INTF_DISABLE
      *
      * @type  sai_uint8_t
      * @flags CREATE_AND_SET
@@ -172,8 +183,24 @@ typedef enum _sai_ptp_domain_attr_t
     SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY,
 
     /**
+     * @brief tod interface  GPS week, used for input mode with get attr
+     * @condition SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE== SAI_PTP_TOD_INTERFACE_INPUT
+     * @type  sai_uint16_t
+     * @flags READ_ONLY
+     */
+    SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK,
+
+    /**
+     * @brieftod interface GPS Second time of week, used for input mode with get attr  
+     * @condition SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE== SAI_PTP_TOD_INTERFACE_INPUT
+     * @type  sai_uint32_t
+     * @flags READ_ONLY
+     */
+    SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK,
+
+    /**
      * @brief tod interface mode,input or output, 
-     * the value can only be modified when the SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE == 0
+     * the value can only be modified when the SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE == TOD_INTF_DISABLE
      *
      * @type sai_ptp_tod_intf_mode_t
      * @flags CREATE_AND_SET

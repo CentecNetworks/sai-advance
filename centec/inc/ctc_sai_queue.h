@@ -37,7 +37,8 @@ This module defines SAI Queue.
 \t  |  SAI_QUEUE_ATTR_BUFFER_PROFILE_ID                    |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID                 |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_QUEUE_ATTR_PAUSE_STATUS                         |              -                 |
-\t  |  SAI_QUEUE_ATTR_ENABLE_PFC_DLDR                      |              -                 |
+\t  |  SAI_QUEUE_ATTR_ENABLE_PFC_DLDR                      |           CTC7132              |
+\t  |  SAI_QUEUE_ATTR_SERVICE_ID                           |           CTC7132              |
 \b
 \p
  The Queue Stats supported by centec devices:
@@ -93,6 +94,8 @@ This module defines SAI Queue.
 
 
 #define CTC_QOS_BASIC_Q_NUM 8
+#define CTC_QOS_EXT_Q_NUM 8
+
 
 //GG:4 D2:1
 #define CTC_QOS_16Q_MCAST_Q_NUM ((ctcs_get_chip_type(lchip) == CTC_CHIP_GOLDENGATE) ? 4 : 1)
@@ -103,6 +106,7 @@ typedef struct ctc_sai_queue_db_s
     uint32  wred_id;
     uint32  buf_id;
     uint32  sch_id;
+    uint8 pfc_dld_en;
 }ctc_sai_queue_db_t;
 
 
@@ -110,6 +114,8 @@ typedef enum ctc_sai_queue_set_type_e
 {
     CTC_SAI_Q_SET_TYPE_WRED = 0,
     CTC_SAI_Q_SET_TYPE_BUFFER = 1,
+    CTC_SAI_Q_SET_TYPE_WRED_ECN = 2,
+    CTC_SAI_Q_SET_TYPE_DLD = 3,
     CTC_SAI_Q_SET_TYPE_MAX
 }ctc_sai_queue_set_type_t;
 

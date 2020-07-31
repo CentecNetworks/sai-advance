@@ -1293,6 +1293,17 @@ typedef enum _sai_port_attr_t
      * @default false
      */
     SAI_PORT_ATTR_Y1731_MIP_ENABLE,
+
+    /**
+     * @brief MAC address on the port
+     *        this MAC address can be use to identify received Unicast Y.1731 OAM PDU to the port
+     *        also it is used as MACSA when transmit Y.1731 OAM PDU
+     *
+     * @type sai_mac_t
+     * @flags CREATE_AND_SET
+     * @default false
+     */
+    SAI_PORT_ATTR_MAC_ADDRESS,
     
     /**
      * @brief End of attributes
@@ -1873,6 +1884,43 @@ typedef enum _sai_port_stat_t
     SAI_PORT_STAT_OUT_DROP_REASON_RANGE_END = 0x00002fff,
 
 } sai_port_stat_t;
+
+typedef enum _sai_signal_degrade_status_t
+{
+    /** Detect */
+    SAI_PORT_SD_STATUS_DETECT,
+
+    /** Recover */
+    SAI_PORT_SD_STATUS_RECOVER,
+    
+} sai_signal_degrade_status_t;
+
+/**
+ * @brief Defines the signal degrade status of the Port
+ */
+typedef struct _sai_port_sd_notification_t
+{
+    /**
+     * @brief Port id
+     *
+     * @objects SAI_OBJECT_TYPE_PORT
+     */
+    sai_object_id_t port_id;
+
+    /** port sd state */
+    sai_signal_degrade_status_t sd_status;
+
+} sai_port_sd_notification_t;
+
+/**
+ * @brief port signal degrade event notification
+ *
+ * @param[in] count Number of notifications
+ * @param[in] data Array of port sd status
+ */
+typedef void (*sai_signal_degrade_event_notification_fn)(
+        _In_ uint32_t count,
+        _In_ sai_port_sd_notification_t *data);
 
 /**
  * @brief Create port

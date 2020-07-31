@@ -39,8 +39,13 @@ This module defines SAI Next Hop.
 \t  |  SAI_NEXT_HOP_ATTR_LABELSTACK                      |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_NEXT_HOP_ATTR_COUNTER_ID                      |            CTC7132             |
 \t  |  SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_ATTR_MPLS_DECAP_TUNNEL_ID            |            CTC7132             |
 \t  |  SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID          |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TYPE                     |            CTC7132             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE                 |            CTC7132             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TTL_VALUE                |            CTC7132             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_EXP_MODE                 |            CTC7132             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_EXP_VALUE                |            CTC7132             |
+\t  |  SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP|            CTC7132             |
 \b
 
 */
@@ -64,8 +69,15 @@ typedef struct  ctc_sai_next_hop_s
     uint32 dest_vni;
     sai_mac_t tunnel_mac;
     sai_object_id_t counter_obj_id;
-    sai_object_id_t decap_tunnel_id;
+    //sai_object_id_t decap_tunnel_id;
     sai_object_id_t next_level_nexthop_id;
+    uint32 ref_cnt;
+    uint8 outseg_ttl_mode;
+    uint8 outseg_ttl_val;
+    uint8 outseg_exp_mode;
+    uint8 outseg_exp_val;
+    uint8 outseg_type;
+    uint8 tc_color_to_exp_map_id;
 }ctc_sai_next_hop_t;
 
 

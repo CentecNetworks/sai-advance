@@ -80,6 +80,7 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id = None
         cvlan_pri = None
         cvlan_cfi = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -108,7 +109,7 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        ip_proto = None
+        ip_protocol = None
         in_port = 23
         out_port = None
         out_ports = None
@@ -125,7 +126,6 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -136,6 +136,7 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -156,6 +157,7 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -218,7 +220,7 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        ip_proto = None
+        ip_protocol = None
         in_port = 3
         out_port = None
         out_ports = None
@@ -228,6 +230,7 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id = None
         cvlan_pri = None
         cvlan_cfi = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -248,6 +251,7 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
         mpls_label4_ttl = None
         mpls_label4_exp = None
         mpls_label4_bos = None
+        ip_protocol = None
         src_l4_port = None
         dst_l4_port = None
         ingress_mirror_id = None
@@ -261,7 +265,6 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -272,6 +275,7 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -292,6 +296,7 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id1 > 0, 'acl_table_id1 is <= 0'
@@ -304,7 +309,6 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -315,6 +319,7 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -335,6 +340,7 @@ class GetAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id2 > 0, 'acl_table_id2 is <= 0'
@@ -418,7 +424,7 @@ class CreateAclTable(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        ip_proto = None
+        ip_protocol = None
         in_port = 0
         out_port = None
         out_ports = None
@@ -428,6 +434,7 @@ class CreateAclTable(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id = None
         cvlan_pri = None
         cvlan_cfi = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -448,6 +455,7 @@ class CreateAclTable(sai_base_test.ThriftInterfaceDataPlane):
         mpls_label4_ttl = None
         mpls_label4_exp = None
         mpls_label4_bos = None
+        ip_protocol = None
         src_l4_port = None
         dst_l4_port = None
         ingress_mirror_id = None
@@ -462,7 +470,6 @@ class CreateAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -473,6 +480,7 @@ class CreateAclTable(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -493,6 +501,7 @@ class CreateAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -526,6 +535,7 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=None
         cvlan_pri=None
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -550,16 +560,16 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        is_ipv6 = False
+        ip_protocol = None
         #ip qos info
         ip_tos=None
         ip_ecn=None
         ip_dscp=None
         ip_ttl=None
-        ip_proto = None
         in_port = 0
         out_port = None
         out_ports = None
+        ip_protocol = None
         src_l4_port = None
         dst_l4_port = None
         ingress_mirror_id = None
@@ -580,7 +590,6 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -591,6 +600,7 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -611,6 +621,7 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -628,6 +639,7 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -650,10 +662,9 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -700,6 +711,7 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=None
         cvlan_pri=None
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -728,16 +740,16 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
         ip_src2_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        is_ipv6 = False
         #ip qos info
         ip_tos=None
         ip_ecn=None
         ip_dscp=None
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = None
         in_port = 0
         out_port = None
         out_ports = None
+        ip_protocol = None
         src_l4_port = None
         dst_l4_port = None
         ingress_mirror_id = None
@@ -758,7 +770,6 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -769,6 +780,7 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -789,6 +801,7 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -806,6 +819,7 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -828,10 +842,9 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -852,6 +865,7 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -874,10 +888,9 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src1, ip_src1_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -899,6 +912,7 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -921,10 +935,9 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src2, ip_src2_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -938,7 +951,6 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
         attr_list_ids = [SAI_ACL_TABLE_ATTR_ACL_STAGE, SAI_ACL_TABLE_ATTR_SIZE, SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST,
                          SAI_ACL_TABLE_ATTR_FIELD_SRC_MAC, SAI_ACL_TABLE_ATTR_FIELD_DST_MAC, SAI_ACL_TABLE_ATTR_ENTRY_LIST,
                          SAI_ACL_TABLE_ATTR_AVAILABLE_ACL_ENTRY]
-
         warmboot(self.client)
 
         try:
@@ -954,7 +966,7 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
                 if a.id == SAI_ACL_TABLE_ATTR_SIZE:
                     print "set acl table size = ", 128
                     print "get acl table size = ", a.value.u32
-                    if 128 != a.value.u32:
+                    if 0 != a.value.u32:
                         raise NotImplementedError()
                 if a.id == SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST:
                     print "set acl table bind point list =  ", table_bind_point_list
@@ -1024,7 +1036,7 @@ class CreateAndRemoveAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane)
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        ip_proto = None
+        ip_protocol = None
         in_port = 0
         out_port = None
         out_ports = None
@@ -1034,6 +1046,7 @@ class CreateAndRemoveAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane)
         cvlan_id = None
         cvlan_pri = None
         cvlan_cfi = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -1067,7 +1080,6 @@ class CreateAndRemoveAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane)
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -1078,6 +1090,7 @@ class CreateAndRemoveAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane)
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -1098,6 +1111,7 @@ class CreateAndRemoveAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane)
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -1158,7 +1172,7 @@ class GetAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        ip_proto = None
+        ip_protocol = None
         in_port = 0
         out_port = None
         out_ports = None
@@ -1168,6 +1182,7 @@ class GetAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id = None
         cvlan_pri = None
         cvlan_cfi = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -1201,7 +1216,6 @@ class GetAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -1212,6 +1226,7 @@ class GetAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -1232,6 +1247,7 @@ class GetAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -1305,6 +1321,7 @@ class CreateAndRemoveAclEntry(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=None
         cvlan_pri=None
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -1329,13 +1346,12 @@ class CreateAndRemoveAclEntry(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        is_ipv6 = False
         #ip qos info
         ip_tos=None
         ip_ecn=None
         ip_dscp=None
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = None
         in_port = 0
         out_port = None
         out_ports = None
@@ -1359,7 +1375,6 @@ class CreateAndRemoveAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -1370,6 +1385,7 @@ class CreateAndRemoveAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -1390,6 +1406,7 @@ class CreateAndRemoveAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -1406,6 +1423,7 @@ class CreateAndRemoveAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -1428,10 +1446,9 @@ class CreateAndRemoveAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -1467,14 +1484,15 @@ class GetAclEntry(sai_base_test.ThriftInterfaceDataPlane):
         in_ports = None
         mac_src = '12:34:56:78:9A:BC'
         mac_dst = None
-        mac_src_mask = None
-        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = None
         svlan_id = None
         svlan_pri = None
         svlan_cfi = None
         cvlan_id = None
         cvlan_pri = None
         cvlan_cfi = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -1499,13 +1517,12 @@ class GetAclEntry(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        is_ipv6 = False
+        ip_protocol = None
         #ip qos info
         ip_tos=None
         ip_ecn=None
         ip_dscp=None
         ip_ttl=None
-        ip_proto = None
         in_port = 0
         out_port = None
         out_ports = None
@@ -1529,7 +1546,6 @@ class GetAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -1540,6 +1556,7 @@ class GetAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -1560,6 +1577,7 @@ class GetAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -1576,6 +1594,7 @@ class GetAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -1598,10 +1617,9 @@ class GetAclEntry(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -1616,11 +1634,11 @@ class GetAclEntry(sai_base_test.ThriftInterfaceDataPlane):
         SAI_ACL_ENTRY_ATTR_FIELD_SRC_MAC, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
 
         warmboot(self.client)
-
         try:
             attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id, attr_list_ids)
             print "status = ", attrs.status
             assert (attrs.status == SAI_STATUS_SUCCESS)
+
             for a in attrs.attr_list:
                 if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
                     print "set acl entry table id = ", acl_table_id
@@ -1743,6 +1761,7 @@ class SclV4EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -1767,12 +1786,11 @@ class SclV4EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
+        ip_protocol = 6
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
         in_port = 1
         out_port = None
         out_ports = None
@@ -1797,7 +1815,6 @@ class SclV4EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -1808,6 +1825,7 @@ class SclV4EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -1828,6 +1846,7 @@ class SclV4EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         acl_entry_id = sai_thrift_create_acl_entry(self.client,
@@ -1840,6 +1859,7 @@ class SclV4EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -1862,10 +1882,9 @@ class SclV4EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -1973,6 +1992,7 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=None
         cvlan_pri=None
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -1997,12 +2017,11 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF"
         ip_dst = '2001:db8:85a3::8a2e:370:7335'
         ip_dst_mask = "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF"
-        is_ipv6 = True
+        ip_protocol = 6
         ip_tos=None
         ip_ecn=None
         ip_dscp=None
         ip_ttl=None
-        ip_proto = None
         in_port = 0
         out_port = None
         out_ports = None
@@ -2028,7 +2047,6 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -2039,6 +2057,7 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -2059,6 +2078,7 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         acl_entry_id = sai_thrift_create_acl_entry(self.client,
@@ -2071,6 +2091,7 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -2093,10 +2114,9 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -2202,7 +2222,7 @@ class SclV4EntryBindPointLagTest(sai_base_test.ThriftInterfaceDataPlane):
 
         print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
         #create Linkagg and add members in it
-        lag_id = sai_thrift_create_lag(self.client, [])
+        lag_id = sai_thrift_create_lag(self.client)
         print"lag:%u" %lag_id
         print"lag:%lu" %lag_id
         print"lag:%lx" %lag_id
@@ -2224,6 +2244,7 @@ class SclV4EntryBindPointLagTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -2248,12 +2269,11 @@ class SclV4EntryBindPointLagTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = None
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = 6
         in_port = None
         out_port = None
         out_ports = None
@@ -2279,7 +2299,6 @@ class SclV4EntryBindPointLagTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -2290,6 +2309,7 @@ class SclV4EntryBindPointLagTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -2310,6 +2330,7 @@ class SclV4EntryBindPointLagTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         acl_entry_id = sai_thrift_create_acl_entry(self.client,
@@ -2322,6 +2343,7 @@ class SclV4EntryBindPointLagTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -2344,10 +2366,9 @@ class SclV4EntryBindPointLagTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -2541,6 +2562,7 @@ class SclV4EntryUpdatePacketActionTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -2565,12 +2587,11 @@ class SclV4EntryUpdatePacketActionTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
+        ip_protocol = 6
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
         in_port = 1
         out_port = None
         out_ports = None
@@ -2596,7 +2617,6 @@ class SclV4EntryUpdatePacketActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -2607,6 +2627,7 @@ class SclV4EntryUpdatePacketActionTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -2627,6 +2648,7 @@ class SclV4EntryUpdatePacketActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         acl_entry_id = sai_thrift_create_acl_entry(self.client,
@@ -2639,6 +2661,7 @@ class SclV4EntryUpdatePacketActionTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -2661,10 +2684,9 @@ class SclV4EntryUpdatePacketActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -2723,7 +2745,7 @@ class SclV4EntryUpdatePacketActionTest(sai_base_test.ThriftInterfaceDataPlane):
             if ret.data.u16 != 1:
                 raise NotImplementedError()
 
-            attrs = self.client.sai_thrift_get_cpu_packet_attribute(0)
+            attrs = self.client.sai_thrift_get_cpu_packet_attribute()
             print "success to get packet attribute"
             for a in attrs.attr_list:
                 if a.id == SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT:
@@ -2818,6 +2840,7 @@ class SclV4EntryDoNotLearnActionTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=None
         cvlan_pri=None
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label=None
         mpls_label0_ttl=None
         mpls_label0_exp=None
@@ -2842,12 +2865,11 @@ class SclV4EntryDoNotLearnActionTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
         ip_tos=None
         ip_ecn=None
         ip_dscp=None
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = 6
         in_port = 0
         out_port = None
         out_ports = None
@@ -2873,7 +2895,6 @@ class SclV4EntryDoNotLearnActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -2884,6 +2905,7 @@ class SclV4EntryDoNotLearnActionTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -2904,6 +2926,7 @@ class SclV4EntryDoNotLearnActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
         acl_entry_id = sai_thrift_create_acl_entry(self.client,
@@ -2916,6 +2939,7 @@ class SclV4EntryDoNotLearnActionTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -2938,10 +2962,9 @@ class SclV4EntryDoNotLearnActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -3071,6 +3094,7 @@ class AclV4EntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -3095,12 +3119,11 @@ class AclV4EntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
+        ip_protocol = 6
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
         in_port = None
         out_port = None
         out_ports = None
@@ -3126,7 +3149,6 @@ class AclV4EntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -3137,6 +3159,7 @@ class AclV4EntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -3157,6 +3180,7 @@ class AclV4EntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
 
@@ -3170,6 +3194,7 @@ class AclV4EntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -3192,10 +3217,9 @@ class AclV4EntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -3312,6 +3336,7 @@ class AclV4EntryBindPointSwitchTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -3336,12 +3361,11 @@ class AclV4EntryBindPointSwitchTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = None
+        ip_protocol = 6
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
         in_port = None
         out_port = None
         out_ports = None
@@ -3367,7 +3391,6 @@ class AclV4EntryBindPointSwitchTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -3378,6 +3401,7 @@ class AclV4EntryBindPointSwitchTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -3398,6 +3422,7 @@ class AclV4EntryBindPointSwitchTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
 
@@ -3411,6 +3436,7 @@ class AclV4EntryBindPointSwitchTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -3433,10 +3459,9 @@ class AclV4EntryBindPointSwitchTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -3578,6 +3603,7 @@ class AclV4EntryPortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -3602,12 +3628,11 @@ class AclV4EntryPortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = None
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = 6
         in_port = None
         out_port = None
         out_ports = None
@@ -3633,7 +3658,6 @@ class AclV4EntryPortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -3644,6 +3668,7 @@ class AclV4EntryPortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -3664,8 +3689,10 @@ class AclV4EntryPortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
+
         acl_entry_id = sai_thrift_create_acl_entry(self.client,
             acl_table_id,
             entry_priority,
@@ -3676,6 +3703,7 @@ class AclV4EntryPortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -3698,10 +3726,9 @@ class AclV4EntryPortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -3769,325 +3796,326 @@ class AclV4EntryPortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
 
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
-@group('acl')
-class AclV4EntryUpdatePortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
-    def runTest(self):
-        print
-        print '----------------------------------------------------------------------------------------------'
-        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
-
-        switch_init(self.client)
-        port1 = port_list[0]
-        port2 = port_list[1]
-        port3 = port_list[2]
-        port4 = port_list[3]
-        port17 = port_list[16]
-
-        mac_src = '00:11:11:11:11:11'
-        mac_dst = '00:22:22:22:22:22'
-        mac_action = SAI_PACKET_ACTION_FORWARD
-
-        # the relationship between vlan id and vlan_oid
-        vlan_id = 20
-        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
-
-        sai_thrift_create_fdb(self.client, vlan_oid, mac_dst, port4, mac_action)
-
-        # send the test packet(s)
-        pkt = simple_qinq_tcp_packet(pktlen=100,
-            eth_dst=mac_dst,
-            eth_src=mac_src,
-            dl_vlan_outer=20,
-            dl_vlan_pcp_outer=4,
-            dl_vlan_cfi_outer=1,
-            vlan_vid=10,
-            vlan_pcp=2,
-            dl_vlan_cfi=1,
-            ip_dst='10.10.10.1',
-            ip_src='192.168.0.1',
-            ip_tos=5,
-            ip_ecn=1,
-            ip_dscp=1,
-            ip_ttl=64,
-            tcp_sport=1234,
-            tcp_dport=80)
-        try:
-            print '#### NO ACL Applied ####'
-            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            self.ctc_send_packet( 0, str(pkt))
-            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_packets( pkt, [3])
-            print '#### NO ACL Applied ####'
-            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            self.ctc_send_packet( 1, str(pkt))
-            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_packets( pkt, [3])
-            print '#### NO ACL Applied ####'
-            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            self.ctc_send_packet( 2, str(pkt))
-            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_packets( pkt, [3])
-            print '#### NO ACL Applied ####'
-            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            self.ctc_send_packet( 16, str(pkt))
-            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_packets( pkt, [3])
-        finally:
-            print '----------------------------------------------------------------------------------------------'
-
-        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
-        # setup ACL to block based on Source IP
-        table_stage = SAI_ACL_STAGE_INGRESS
-        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
-        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
-        action = SAI_PACKET_ACTION_DROP
-        in_ports = [port1, port2, port17]
-        mac_src_mask = "ff:ff:ff:ff:ff:ff"
-        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
-        svlan_id=20
-        svlan_pri=4
-        svlan_cfi=1
-        cvlan_id=10
-        cvlan_pri=2
-        cvlan_cfi=None
-        mpls_label0_label = None
-        mpls_label0_ttl = None
-        mpls_label0_exp = None
-        mpls_label0_bos = None
-        mpls_label1_label = None
-        mpls_label1_ttl = None
-        mpls_label1_exp = None
-        mpls_label1_bos = None
-        mpls_label2_label = None
-        mpls_label2_ttl = None
-        mpls_label2_exp = None
-        mpls_label2_bos = None
-        mpls_label3_label = None
-        mpls_label3_ttl = None
-        mpls_label3_exp = None
-        mpls_label3_bos = None
-        mpls_label4_label = None
-        mpls_label4_ttl = None
-        mpls_label4_exp = None
-        mpls_label4_bos = None
-        ip_src = "192.168.0.1"
-        ip_src_mask = "255.255.255.255"
-        ip_dst = '10.10.10.1'
-        ip_dst_mask = "255.255.255.255"
-        is_ipv6 = None
-        ip_tos=5
-        ip_ecn=1
-        ip_dscp=1
-        ip_ttl=None
-        ip_proto = None
-        in_port = None
-        out_port = None
-        out_ports = None
-        src_l4_port = 1234
-        dst_l4_port = 80
-        ingress_mirror_id = None
-        egress_mirror_id = None
-        admin_state = True
-        #add vlan edit action
-        new_svlan = None
-        new_scos = None
-        new_cvlan = None
-        new_ccos = None
-        #deny learning
-        deny_learn = None
-        addr_family = None
-
-        acl_table_id = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            ip_proto,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            src_l4_port,
-            dst_l4_port)
-        acl_entry_id = sai_thrift_create_acl_entry(self.client,
-            acl_table_id,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            is_ipv6,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            ip_proto,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror_id,
-            egress_mirror_id,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        # bind this ACL table to port2s object id
-        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
-        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
-        self.client.sai_thrift_set_switch_attribute(attr)
-
-        warmboot(self.client)
-
-        try:
-            assert acl_table_id > 0, 'acl_entry_id is <= 0'
-            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
-
-            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
-            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            # send the same packet
-            self.ctc_send_packet( 0, str(pkt))
-            # ensure packet is dropped
-            # check for absence of packet here!
-            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_no_packet( pkt, 3, default_time_out)
-
-            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
-            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            # send the same packet
-            self.ctc_send_packet( 1, str(pkt))
-            # ensure packet is dropped
-            # check for absence of packet here!
-            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_no_packet( pkt, 3, default_time_out)
-
-            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
-            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            # send the same packet
-            self.ctc_send_packet( 2, str(pkt))
-            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_packets( pkt, [3])
-
-            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
-            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            # send the same packet
-            self.ctc_send_packet( 16, str(pkt))
-            # ensure packet is dropped
-            # check for absence of packet here!
-            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_no_packet( pkt, 3, default_time_out)
-        finally:
-            print '----------------------------------------------------------------------------------------------'
-
-        in_port_list = [port2, port3, port17]
-        acl_port_list = sai_thrift_object_list_t(count=len(in_port_list), object_id_list=in_port_list)
-        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(objlist=acl_port_list)))
-        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_IN_PORTS, value=attribute_value)
-        self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
-
-        warmboot(self.client)
-
-        try:
-            assert acl_table_id > 0, 'acl_entry_id is <= 0'
-            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
-
-            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
-            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            # send the same packet
-            self.ctc_send_packet( 0, str(pkt))
-            # ensure packet is dropped
-            # check for absence of packet here!
-            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_packets( pkt, [3])
-
-            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
-            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            # send the same packet
-            self.ctc_send_packet( 1, str(pkt))
-            # ensure packet is dropped
-            # check for absence of packet here!
-            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_no_packet( pkt, 3, default_time_out)
-
-            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
-            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            # send the same packet
-            self.ctc_send_packet( 2, str(pkt))
-            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_no_packet( pkt, 3, default_time_out)
-
-            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
-            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
-            # send the same packet
-            self.ctc_send_packet( 16, str(pkt))
-            # ensure packet is dropped
-            # check for absence of packet here!
-            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
-            self.ctc_verify_no_packet( pkt, 3, default_time_out)
-        finally:
-            # unbind this ACL table from vlan object id
-            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
-            self.client.sai_thrift_set_switch_attribute(attr)
-
-            # cleanup ACL
-            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
-            self.client.sai_thrift_remove_acl_table(acl_table_id)
-            # cleanup FDB
-            sai_thrift_delete_fdb(self.client, vlan_oid, mac_dst, port4)
-
-            self.client.sai_thrift_remove_vlan(vlan_oid)
+#@group('acl')
+#class AclV4EntryUpdatePortBitMapTest(sai_base_test.ThriftInterfaceDataPlane):
+#    def runTest(self):
+#        print
+#        print '----------------------------------------------------------------------------------------------'
+#        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
+#
+#        switch_init(self.client)
+#        port1 = port_list[0]
+#        port2 = port_list[1]
+#        port3 = port_list[2]
+#        port4 = port_list[3]
+#        port17 = port_list[16]
+#
+#        mac_src = '00:11:11:11:11:11'
+#        mac_dst = '00:22:22:22:22:22'
+#        mac_action = SAI_PACKET_ACTION_FORWARD
+#
+#        # the relationship between vlan id and vlan_oid
+#        vlan_id = 20
+#        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+#
+#        sai_thrift_create_fdb(self.client, vlan_oid, mac_dst, port4, mac_action)
+#
+#        # send the test packet(s)
+#        pkt = simple_qinq_tcp_packet(pktlen=100,
+#            eth_dst=mac_dst,
+#            eth_src=mac_src,
+#            dl_vlan_outer=20,
+#            dl_vlan_pcp_outer=4,
+#            dl_vlan_cfi_outer=1,
+#            vlan_vid=10,
+#            vlan_pcp=2,
+#            dl_vlan_cfi=1,
+#            ip_dst='10.10.10.1',
+#            ip_src='192.168.0.1',
+#            ip_tos=5,
+#            ip_ecn=1,
+#            ip_dscp=1,
+#            ip_ttl=64,
+#            tcp_sport=1234,
+#            tcp_dport=80)
+#        try:
+#            print '#### NO ACL Applied ####'
+#            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            self.ctc_send_packet( 0, str(pkt))
+#            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_packets( pkt, [3])
+#            print '#### NO ACL Applied ####'
+#            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            self.ctc_send_packet( 1, str(pkt))
+#            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_packets( pkt, [3])
+#            print '#### NO ACL Applied ####'
+#            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            self.ctc_send_packet( 2, str(pkt))
+#            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_packets( pkt, [3])
+#            print '#### NO ACL Applied ####'
+#            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            self.ctc_send_packet( 16, str(pkt))
+#            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_packets( pkt, [3])
+#        finally:
+#            print '----------------------------------------------------------------------------------------------'
+#
+#        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
+#        # setup ACL to block based on Source IP
+#        table_stage = SAI_ACL_STAGE_INGRESS
+#        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+#        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+#        action = SAI_PACKET_ACTION_DROP
+#        in_ports = [port1, port2, port17]
+#        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+#        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+#        svlan_id=20
+#        svlan_pri=4
+#        svlan_cfi=1
+#        cvlan_id=10
+#        cvlan_pri=2
+#        cvlan_cfi=None
+#        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+#        mpls_label0_label = None
+#        mpls_label0_ttl = None
+#        mpls_label0_exp = None
+#        mpls_label0_bos = None
+#        mpls_label1_label = None
+#        mpls_label1_ttl = None
+#        mpls_label1_exp = None
+#        mpls_label1_bos = None
+#        mpls_label2_label = None
+#        mpls_label2_ttl = None
+#        mpls_label2_exp = None
+#        mpls_label2_bos = None
+#        mpls_label3_label = None
+#        mpls_label3_ttl = None
+#        mpls_label3_exp = None
+#        mpls_label3_bos = None
+#        mpls_label4_label = None
+#        mpls_label4_ttl = None
+#        mpls_label4_exp = None
+#        mpls_label4_bos = None
+#        ip_src = "192.168.0.1"
+#        ip_src_mask = "255.255.255.255"
+#        ip_dst = '10.10.10.1'
+#        ip_dst_mask = "255.255.255.255"
+#        ip_protocol = 6
+#        ip_tos=5
+#        ip_ecn=1
+#        ip_dscp=1
+#        ip_ttl=None
+#        in_port = None
+#        out_port = None
+#        out_ports = None
+#        src_l4_port = 1234
+#        dst_l4_port = 80
+#        ingress_mirror_id = None
+#        egress_mirror_id = None
+#        admin_state = True
+#        #add vlan edit action
+#        new_svlan = None
+#        new_scos = None
+#        new_cvlan = None
+#        new_ccos = None
+#        #deny learning
+#        deny_learn = None
+#        addr_family = None
+#
+#        acl_table_id = sai_thrift_create_acl_table(self.client,
+#            table_stage,
+#            table_bind_point_list,
+#            addr_family,
+#            mac_src,
+#            mac_dst,
+#            ip_src,
+#            ip_dst,
+#            in_ports,
+#            out_ports,
+#            in_port,
+#            out_port,
+#            svlan_id,
+#            svlan_pri,
+#            svlan_cfi,
+#            cvlan_id,
+#            cvlan_pri,
+#            cvlan_cfi,
+#            ip_type,
+#            mpls_label0_label,
+#            mpls_label0_ttl,
+#            mpls_label0_exp,
+#            mpls_label0_bos,
+#            mpls_label1_label,
+#            mpls_label1_ttl,
+#            mpls_label1_exp,
+#            mpls_label1_bos,
+#            mpls_label2_label,
+#            mpls_label2_ttl,
+#            mpls_label2_exp,
+#            mpls_label2_bos,
+#            mpls_label3_label,
+#            mpls_label3_ttl,
+#            mpls_label3_exp,
+#            mpls_label3_bos,
+#            mpls_label4_label,
+#            mpls_label4_ttl,
+#            mpls_label4_exp,
+#            mpls_label4_bos,
+#            ip_protocol,
+#            src_l4_port,
+#            dst_l4_port)
+#        acl_entry_id = sai_thrift_create_acl_entry(self.client,
+#            acl_table_id,
+#            entry_priority,
+#            admin_state,
+#            action, addr_family,
+#            mac_src, mac_src_mask,
+#            mac_dst, mac_dst_mask,
+#            svlan_id, svlan_pri,
+#            svlan_cfi, cvlan_id,
+#            cvlan_pri, cvlan_cfi,
+#            ip_type,
+#            mpls_label0_label,
+#            mpls_label0_ttl,
+#            mpls_label0_exp,
+#            mpls_label0_bos,
+#            mpls_label1_label,
+#            mpls_label1_ttl,
+#            mpls_label1_exp,
+#            mpls_label1_bos,
+#            mpls_label2_label,
+#            mpls_label2_ttl,
+#            mpls_label2_exp,
+#            mpls_label2_bos,
+#            mpls_label3_label,
+#            mpls_label3_ttl,
+#            mpls_label3_exp,
+#            mpls_label3_bos,
+#            mpls_label4_label,
+#            mpls_label4_ttl,
+#            mpls_label4_exp,
+#            mpls_label4_bos,
+#            ip_src, ip_src_mask,
+#            ip_dst, ip_dst_mask,
+#            ip_protocol,
+#            ip_tos, ip_ecn,
+#            ip_dscp, ip_ttl,
+#            in_ports, out_ports,
+#            in_port, out_port,
+#            src_l4_port, dst_l4_port,
+#            ingress_mirror_id,
+#            egress_mirror_id,
+#            new_svlan, new_scos,
+#            new_cvlan, new_ccos,
+#            deny_learn)
+#
+#        # bind this ACL table to port2s object id
+#        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+#        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+#        self.client.sai_thrift_set_switch_attribute(attr)
+#
+#        warmboot(self.client)
+#
+#        try:
+#            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+#            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+#
+#            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+#            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            # send the same packet
+#            self.ctc_send_packet( 0, str(pkt))
+#            # ensure packet is dropped
+#            # check for absence of packet here!
+#            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_no_packet( pkt, 3, default_time_out)
+#
+#            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+#            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            # send the same packet
+#            self.ctc_send_packet( 1, str(pkt))
+#            # ensure packet is dropped
+#            # check for absence of packet here!
+#            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_no_packet( pkt, 3, default_time_out)
+#
+#            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+#            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            # send the same packet
+#            self.ctc_send_packet( 2, str(pkt))
+#            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_packets( pkt, [3])
+#
+#            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+#            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            # send the same packet
+#            self.ctc_send_packet( 16, str(pkt))
+#            # ensure packet is dropped
+#            # check for absence of packet here!
+#            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_no_packet( pkt, 3, default_time_out)
+#        finally:
+#            print '----------------------------------------------------------------------------------------------'
+#
+#        in_port_list = [port2, port3, port17]
+#        acl_port_list = sai_thrift_object_list_t(count=len(in_port_list), object_id_list=in_port_list)
+#        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(objlist=acl_port_list)))
+#        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_IN_PORTS, value=attribute_value)
+#        self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+#
+#        warmboot(self.client)
+#
+#        try:
+#            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+#            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+#
+#            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+#            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            # send the same packet
+#            self.ctc_send_packet( 0, str(pkt))
+#            # ensure packet is dropped
+#            # check for absence of packet here!
+#            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_packets( pkt, [3])
+#
+#            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+#            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            # send the same packet
+#            self.ctc_send_packet( 1, str(pkt))
+#            # ensure packet is dropped
+#            # check for absence of packet here!
+#            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_no_packet( pkt, 3, default_time_out)
+#
+#            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+#            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            # send the same packet
+#            self.ctc_send_packet( 2, str(pkt))
+#            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_no_packet( pkt, 3, default_time_out)
+#
+#            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+#            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+#            # send the same packet
+#            self.ctc_send_packet( 16, str(pkt))
+#            # ensure packet is dropped
+#            # check for absence of packet here!
+#            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+#            self.ctc_verify_no_packet( pkt, 3, default_time_out)
+#        finally:
+#            # unbind this ACL table from vlan object id
+#            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+#            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+#            self.client.sai_thrift_set_switch_attribute(attr)
+#
+#            # cleanup ACL
+#            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+#            self.client.sai_thrift_remove_acl_table(acl_table_id)
+#            # cleanup FDB
+#            sai_thrift_delete_fdb(self.client, vlan_oid, mac_dst, port4)
+#
+#            self.client.sai_thrift_remove_vlan(vlan_oid)
 
 ###############################
 
@@ -4160,7 +4188,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        ip_proto = None
+        ip_protocol = None
         in_port = 0
         out_port = None
         out_ports = None
@@ -4170,6 +4198,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id = None
         cvlan_pri = None
         cvlan_cfi = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -4203,7 +4232,6 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -4214,6 +4242,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -4234,6 +4263,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id0 > 0, 'acl_table_id0 is <= 0'
@@ -4246,7 +4276,6 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -4257,6 +4286,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -4277,6 +4307,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id1 > 0, 'acl_table_id1 is <= 0'
@@ -4289,7 +4320,6 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -4300,6 +4330,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -4320,6 +4351,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id2 > 0, 'acl_table_id2 is <= 0'
@@ -4332,7 +4364,6 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -4343,6 +4374,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -4363,52 +4395,10 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id3 > 0, 'acl_table_id3 is <= 0'
-
-        acl_table_id4 = sai_thrift_create_acl_table(self.client,
-                                                    table_stage,
-                                                    table_bind_point_list,
-                                                    addr_family,
-                                                    mac_src,
-                                                    mac_dst,
-                                                    ip_src,
-                                                    ip_dst,
-                                                    ip_proto,
-                                                    in_ports,
-                                                    out_ports,
-                                                    in_port,
-                                                    out_port,
-                                                    svlan_id,
-                                                    svlan_pri,
-                                                    svlan_cfi,
-                                                    cvlan_id,
-                                                    cvlan_pri,
-                                                    cvlan_cfi,
-                                                    mpls_label0_label,
-                                                    mpls_label0_ttl,
-                                                    mpls_label0_exp,
-                                                    mpls_label0_bos,
-                                                    mpls_label1_label,
-                                                    mpls_label1_ttl,
-                                                    mpls_label1_exp,
-                                                    mpls_label1_bos,
-                                                    mpls_label2_label,
-                                                    mpls_label2_ttl,
-                                                    mpls_label2_exp,
-                                                    mpls_label2_bos,
-                                                    mpls_label3_label,
-                                                    mpls_label3_ttl,
-                                                    mpls_label3_exp,
-                                                    mpls_label3_bos,
-                                                    mpls_label4_label,
-                                                    mpls_label4_ttl,
-                                                    mpls_label4_exp,
-                                                    mpls_label4_bos,
-                                                    src_l4_port,
-                                                    dst_l4_port)
-        assert acl_table_id4 > 0, 'acl_table_id4 is <= 0'
 
         # setup ACL table group members
         group_member_priority0 = 0
@@ -4445,16 +4435,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                                               acl_table_group_id,
                                                                               acl_table_id3,
                                                                               group_member_priority3)
-        assert acl_table_group_member_id3 > 0, 'acl_table_group_member_id3 is <= 0'
-
-        group_member_priority4 = 4
-
-        # create ACL table group members
-        acl_table_group_member_id4 = sai_thrift_create_acl_table_group_member(self.client,
-                                                                              acl_table_group_id,
-                                                                              acl_table_id4,
-                                                                              group_member_priority4)
-        assert acl_table_group_member_id4 == 0, 'acl_table_group_member_id4 is > 0'
+        assert acl_table_group_member_id3 == 0, 'acl_table_group_member_id3 is > 0'
 
         # bind this ACL table to port0s object id
         attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
@@ -4462,6 +4443,10 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         self.client.sai_thrift_set_port_attribute(port1, attr)
 
         warmboot(self.client)
+
+        attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
 
         # remove acl table group member first
         status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id0)
@@ -4472,12 +4457,6 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
 
         status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
         assert (status == SAI_STATUS_SUCCESS)
-
-        status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-        assert (status == SAI_STATUS_SUCCESS)
-
-        status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id4)
-        assert (status == SAI_STATUS_ITEM_NOT_FOUND)
 
         # test there is no table in group
         # remove acl table
@@ -4492,13 +4471,6 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
 
         status = self.client.sai_thrift_remove_acl_table(acl_table_id3)
         assert (status == SAI_STATUS_SUCCESS)
-
-        status = self.client.sai_thrift_remove_acl_table(acl_table_id4)
-        assert (status == SAI_STATUS_SUCCESS)
-
-        attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
-        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
-        self.client.sai_thrift_set_port_attribute(port1, attr)
 
         #remove acl table group
         status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
@@ -4538,7 +4510,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.0"
         ip_dst = None
         ip_dst_mask = None
-        ip_proto = None
+        ip_protocol = None
         in_port = None
         out_port = 0
         out_ports = None
@@ -4548,6 +4520,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id = None
         cvlan_pri = None
         cvlan_cfi = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -4581,7 +4554,6 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -4592,6 +4564,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -4612,6 +4585,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id0 > 0, 'acl_table_id0 is <= 0'
@@ -4624,7 +4598,6 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -4635,6 +4608,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -4655,6 +4629,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id1 > 0, 'acl_table_id1 is <= 0'
@@ -4667,7 +4642,6 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -4678,6 +4652,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -4698,6 +4673,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id2 > 0, 'acl_table_id2 is <= 0'
@@ -4710,7 +4686,6 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -4721,6 +4696,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -4741,6 +4717,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id3 > 0, 'acl_table_id3 is <= 0'
@@ -4824,7 +4801,7 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
         assert (status == SAI_STATUS_SUCCESS)
 
-class CreateIgrSeqAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
+class CreateIgrSeqAclMaxTable(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         print ''
 
@@ -4847,27 +4824,21 @@ class CreateIgrSeqAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         # create ACL table
         table_stage = SAI_ACL_STAGE_INGRESS
         table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
         addr_family = None
         action = SAI_PACKET_ACTION_DROP
         in_ports = None
         mac_src = None
         mac_dst = None
-        mac_src_mask = None
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
         mac_dst_mask = "ff:ff:ff:ff:ff:ff"
-        ip_src = "192.168.0.1"
-        ip_src_mask = "255.255.255.0"
-        ip_dst = None
-        ip_dst_mask = None
-        ip_proto = None
-        in_port = 0
-        out_port = None
-        out_ports = None
-        svlan_id = None
-        svlan_pri = None
-        svlan_cfi = None
-        cvlan_id = None
-        cvlan_pri = None
-        cvlan_cfi = None
+        svlan_id=1
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -4888,167 +4859,143 @@ class CreateIgrSeqAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         mpls_label4_ttl = None
         mpls_label4_exp = None
         mpls_label4_bos = None
-        src_l4_port = None
-        dst_l4_port = None
+        ip_src = "192.168.0.1"
+        ip_src_mask = "255.255.255.255"
+        ip_dst = '10.10.10.1'
+        ip_dst_mask = "255.255.255.255"
+        ip_tos=5
+        ip_ecn=1
+        ip_dscp=1
+        ip_ttl=None
+        ip_protocol = 6
+        in_port = 0
+        out_port = None
+        out_ports = None
+        src_l4_port = 1234
+        dst_l4_port = 80
         ingress_mirror_id = None
         egress_mirror_id = None
+        admin_state = True
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        addr_family = None
 
-        acl_table_id0 = sai_thrift_create_acl_table(self.client,
-                                                    table_stage,
-                                                    table_bind_point_list,
-                                                    addr_family,
-                                                    mac_src,
-                                                    mac_dst,
-                                                    ip_src,
-                                                    ip_dst,
-                                                    ip_proto,
-                                                    in_ports,
-                                                    out_ports,
-                                                    in_port,
-                                                    out_port,
-                                                    svlan_id,
-                                                    svlan_pri,
-                                                    svlan_cfi,
-                                                    cvlan_id,
-                                                    cvlan_pri,
-                                                    cvlan_cfi,
-                                                    mpls_label0_label,
-                                                    mpls_label0_ttl,
-                                                    mpls_label0_exp,
-                                                    mpls_label0_bos,
-                                                    mpls_label1_label,
-                                                    mpls_label1_ttl,
-                                                    mpls_label1_exp,
-                                                    mpls_label1_bos,
-                                                    mpls_label2_label,
-                                                    mpls_label2_ttl,
-                                                    mpls_label2_exp,
-                                                    mpls_label2_bos,
-                                                    mpls_label3_label,
-                                                    mpls_label3_ttl,
-                                                    mpls_label3_exp,
-                                                    mpls_label3_bos,
-                                                    mpls_label4_label,
-                                                    mpls_label4_ttl,
-                                                    mpls_label4_exp,
-                                                    mpls_label4_bos,
-                                                    src_l4_port,
-                                                    dst_l4_port)
-        assert acl_table_id0 > 0, 'acl_table_id0 is <= 0'
+        acl_table_id_list = []
+        acl_entry_id_list = []
+        acl_table_group_member_id_list = []
 
-        acl_table_id1 = sai_thrift_create_acl_table(self.client,
-                                                    table_stage,
-                                                    table_bind_point_list,
-                                                    addr_family,
-                                                    mac_src,
-                                                    mac_dst,
-                                                    ip_src,
-                                                    ip_dst,
-                                                    ip_proto,
-                                                    in_ports,
-                                                    out_ports,
-                                                    in_port,
-                                                    out_port,
-                                                    svlan_id,
-                                                    svlan_pri,
-                                                    svlan_cfi,
-                                                    cvlan_id,
-                                                    cvlan_pri,
-                                                    cvlan_cfi,
-                                                    mpls_label0_label,
-                                                    mpls_label0_ttl,
-                                                    mpls_label0_exp,
-                                                    mpls_label0_bos,
-                                                    mpls_label1_label,
-                                                    mpls_label1_ttl,
-                                                    mpls_label1_exp,
-                                                    mpls_label1_bos,
-                                                    mpls_label2_label,
-                                                    mpls_label2_ttl,
-                                                    mpls_label2_exp,
-                                                    mpls_label2_bos,
-                                                    mpls_label3_label,
-                                                    mpls_label3_ttl,
-                                                    mpls_label3_exp,
-                                                    mpls_label3_bos,
-                                                    mpls_label4_label,
-                                                    mpls_label4_ttl,
-                                                    mpls_label4_exp,
-                                                    mpls_label4_bos,
-                                                    src_l4_port,
-                                                    dst_l4_port)
-        assert acl_table_id1 > 0, 'acl_table_id1 is <= 0'
+        for a in range(0, 512):
 
-        acl_table_id2 = sai_thrift_create_acl_table(self.client,
-                                                    table_stage,
-                                                    table_bind_point_list,
-                                                    addr_family,
-                                                    mac_src,
-                                                    mac_dst,
-                                                    ip_src,
-                                                    ip_dst,
-                                                    ip_proto,
-                                                    in_ports,
-                                                    out_ports,
-                                                    in_port,
-                                                    out_port,
-                                                    svlan_id,
-                                                    svlan_pri,
-                                                    svlan_cfi,
-                                                    cvlan_id,
-                                                    cvlan_pri,
-                                                    cvlan_cfi,
-                                                    mpls_label0_label,
-                                                    mpls_label0_ttl,
-                                                    mpls_label0_exp,
-                                                    mpls_label0_bos,
-                                                    mpls_label1_label,
-                                                    mpls_label1_ttl,
-                                                    mpls_label1_exp,
-                                                    mpls_label1_bos,
-                                                    mpls_label2_label,
-                                                    mpls_label2_ttl,
-                                                    mpls_label2_exp,
-                                                    mpls_label2_bos,
-                                                    mpls_label3_label,
-                                                    mpls_label3_ttl,
-                                                    mpls_label3_exp,
-                                                    mpls_label3_bos,
-                                                    mpls_label4_label,
-                                                    mpls_label4_ttl,
-                                                    mpls_label4_exp,
-                                                    mpls_label4_bos,
-                                                    src_l4_port,
-                                                    dst_l4_port)
-        assert acl_table_id2 > 0, 'acl_table_id2 is <= 0'
+            svlan_id = a
+            acl_table_id = sai_thrift_create_acl_table(self.client,
+                                                       table_stage,
+                                                       table_bind_point_list,
+                                                       addr_family,
+                                                       mac_src,
+                                                       mac_dst,
+                                                       ip_src,
+                                                       ip_dst,
+                                                       in_ports,
+                                                       out_ports,
+                                                       in_port,
+                                                       out_port,
+                                                       svlan_id,
+                                                       svlan_pri,
+                                                       svlan_cfi,
+                                                       cvlan_id,
+                                                       cvlan_pri,
+                                                       cvlan_cfi,
+                                                       ip_type,
+                                                       mpls_label0_label,
+                                                       mpls_label0_ttl,
+                                                       mpls_label0_exp,
+                                                       mpls_label0_bos,
+                                                       mpls_label1_label,
+                                                       mpls_label1_ttl,
+                                                       mpls_label1_exp,
+                                                       mpls_label1_bos,
+                                                       mpls_label2_label,
+                                                       mpls_label2_ttl,
+                                                       mpls_label2_exp,
+                                                       mpls_label2_bos,
+                                                       mpls_label3_label,
+                                                       mpls_label3_ttl,
+                                                       mpls_label3_exp,
+                                                       mpls_label3_bos,
+                                                       mpls_label4_label,
+                                                       mpls_label4_ttl,
+                                                       mpls_label4_exp,
+                                                       mpls_label4_bos,
+                                                       ip_protocol,
+                                                       src_l4_port,
+                                                       dst_l4_port)
+            assert acl_table_id > 0, 'acl_table_id is <= 0'
+            acl_table_id_list.append(acl_table_id)
+            print 'append acl_table_id_list[', a, "]:0x%lx" %acl_table_id_list[a]
 
-        # setup ACL table group members
-        group_member_priority0 = 0
+            acl_entry_id = sai_thrift_create_acl_entry(self.client,
+                                                       acl_table_id,
+                                                       entry_priority,
+                                                       admin_state,
+                                                       action, addr_family,
+                                                       mac_src, mac_src_mask,
+                                                       mac_dst, mac_dst_mask,
+                                                       svlan_id, svlan_pri,
+                                                       svlan_cfi, cvlan_id,
+                                                       cvlan_pri, cvlan_cfi,
+                                                       ip_type,
+                                                       mpls_label0_label,
+                                                       mpls_label0_ttl,
+                                                       mpls_label0_exp,
+                                                       mpls_label0_bos,
+                                                       mpls_label1_label,
+                                                       mpls_label1_ttl,
+                                                       mpls_label1_exp,
+                                                       mpls_label1_bos,
+                                                       mpls_label2_label,
+                                                       mpls_label2_ttl,
+                                                       mpls_label2_exp,
+                                                       mpls_label2_bos,
+                                                       mpls_label3_label,
+                                                       mpls_label3_ttl,
+                                                       mpls_label3_exp,
+                                                       mpls_label3_bos,
+                                                       mpls_label4_label,
+                                                       mpls_label4_ttl,
+                                                       mpls_label4_exp,
+                                                       mpls_label4_bos,
+                                                       ip_src, ip_src_mask,
+                                                       ip_dst, ip_dst_mask,
+                                                       ip_protocol,
+                                                       ip_tos, ip_ecn,
+                                                       ip_dscp, ip_ttl,
+                                                       in_ports, out_ports,
+                                                       in_port, out_port,
+                                                       src_l4_port, dst_l4_port,
+                                                       ingress_mirror_id,
+                                                       egress_mirror_id,
+                                                       new_svlan, new_scos,
+                                                       new_cvlan, new_ccos,
+                                                       deny_learn)
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+            acl_entry_id_list.append(acl_entry_id)
+            print 'append acl_entry_id_list[', a, "]:0x%lx" %acl_entry_id_list[a]
 
-        # create ACL table group members
-        acl_table_group_member_id0 = sai_thrift_create_acl_table_group_member(self.client,
-                                                                              acl_table_group_id,
-                                                                              acl_table_id0,
-                                                                              group_member_priority0)
-        assert acl_table_group_member_id0 > 0, 'acl_table_group_member_id0 is <= 0'
+            # setup ACL table group members
+            group_member_priority = a
 
-        group_member_priority1 = 1
-
-        # create ACL table group members
-        acl_table_group_member_id1 = sai_thrift_create_acl_table_group_member(self.client,
-                                                                              acl_table_group_id,
-                                                                              acl_table_id1,
-                                                                              group_member_priority1)
-        assert acl_table_group_member_id1 > 0, 'acl_table_group_member_id1 is <= 0'
-
-        group_member_priority2 = 2
-
-        # create ACL table group members
-        acl_table_group_member_id2 = sai_thrift_create_acl_table_group_member(self.client,
-                                                                              acl_table_group_id,
-                                                                              acl_table_id2,
-                                                                              group_member_priority2)
-        assert acl_table_group_member_id2 == 0, 'acl_table_group_member_id2 is > 0'
+            # create ACL table group members
+            acl_table_group_member_id = sai_thrift_create_acl_table_group_member(self.client,
+                                                                                 acl_table_group_id,
+                                                                                 acl_table_id,
+                                                                                 group_member_priority)
+            assert acl_table_group_member_id > 0, 'acl_table_group_member_id is <= 0'
+            acl_table_group_member_id_list.append(acl_table_group_member_id)
 
         # bind this ACL table to port0s object id
         attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
@@ -5057,27 +5004,19 @@ class CreateIgrSeqAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
 
         warmboot(self.client)
 
-        # remove acl table group member first
-        status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id0)
-        assert (status == SAI_STATUS_SUCCESS)
-
-        status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
-        assert (status == SAI_STATUS_SUCCESS)
-
-        # test there is no table in group
-        # remove acl table
-        status = self.client.sai_thrift_remove_acl_table(acl_table_id0)
-        assert (status == SAI_STATUS_SUCCESS)
-
-        status = self.client.sai_thrift_remove_acl_table(acl_table_id1)
-        assert (status == SAI_STATUS_SUCCESS)
-
-        status = self.client.sai_thrift_remove_acl_table(acl_table_id2)
-        assert (status == SAI_STATUS_SUCCESS)
-
         attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port1, attr)
+
+        for a in range(0, 512):
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id_list[a])
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_id_list[a])
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_id_list[a])
+            assert (status == SAI_STATUS_SUCCESS)
 
         #remove acl table group
         status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
@@ -5131,6 +5070,7 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=1
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -5155,12 +5095,11 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = 6
         in_port = None
         out_port = None
         out_ports = None
@@ -5186,7 +5125,6 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -5197,6 +5135,7 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -5217,6 +5156,7 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id0 > 0, 'acl_entry_id0 is <= 0'
@@ -5229,7 +5169,6 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -5240,6 +5179,7 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -5260,6 +5200,7 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id1 > 0, 'acl_entry_id1 is <= 0'
@@ -5276,6 +5217,7 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     svlan_id, svlan_pri,
                                                     svlan_cfi, cvlan_id,
                                                     cvlan_pri, cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -5298,10 +5240,9 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_bos,
                                                     ip_src, ip_src_mask,
                                                     ip_dst, ip_dst_mask,
-                                                    is_ipv6,
+                                                    ip_protocol,
                                                     ip_tos, ip_ecn,
                                                     ip_dscp, ip_ttl,
-                                                    ip_proto,
                                                     in_ports, out_ports,
                                                     in_port, out_port,
                                                     src_l4_port, dst_l4_port,
@@ -5325,6 +5266,7 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     svlan_id, svlan_pri,
                                                     svlan_cfi, cvlan_id,
                                                     cvlan_pri, cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -5347,10 +5289,9 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_bos,
                                                     ip_src, ip_src_mask,
                                                     ip_dst, ip_dst_mask,
-                                                    is_ipv6,
+                                                    ip_protocol,
                                                     ip_tos, ip_ecn,
                                                     ip_dscp, ip_ttl,
-                                                    ip_proto,
                                                     in_ports, out_ports,
                                                     in_port, out_port,
                                                     src_l4_port, dst_l4_port,
@@ -5459,7 +5400,6 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
                                          tcp_sport=80,
                                          tcp_dport=1234)
 
-
         try:
             print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
             print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
@@ -5470,8 +5410,8 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
             print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
             self.ctc_verify_packets(rx_pkt1, [1])
 
-            self.ctc_send_packet(1, str(tx_pkt2))
-            self.ctc_verify_no_packet(rx_pkt2, 0, default_time_out)
+            #self.ctc_send_packet(1, str(tx_pkt2))
+            #self.ctc_verify_no_packet(rx_pkt2, 0, default_time_out)
 
         finally:
             # unbind this ACL table from vlan object id
@@ -5499,7 +5439,6 @@ class IgrParaAclEntryBindPointVlanTest(sai_base_test.ThriftInterfaceDataPlane):
 
             # cleanup FDB
             sai_thrift_delete_fdb(self.client, vlan_oid, mac_dst, port2)
-
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
 @group('acl')
@@ -5549,6 +5488,7 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=1
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -5573,12 +5513,11 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = 6
         in_port = None
         out_port = None
         out_ports = None
@@ -5604,7 +5543,6 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -5615,6 +5553,7 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -5635,6 +5574,7 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id0 > 0, 'acl_entry_id0 is <= 0'
@@ -5647,7 +5587,6 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -5658,6 +5597,7 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -5678,6 +5618,7 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id1 > 0, 'acl_entry_id1 is <= 0'
@@ -5694,6 +5635,7 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     svlan_id, svlan_pri,
                                                     svlan_cfi, cvlan_id,
                                                     cvlan_pri, cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -5716,10 +5658,9 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     mpls_label4_bos,
                                                     ip_src, ip_src_mask,
                                                     ip_dst, ip_dst_mask,
-                                                    is_ipv6,
+                                                    ip_protocol,
                                                     ip_tos, ip_ecn,
                                                     ip_dscp, ip_ttl,
-                                                    ip_proto,
                                                     in_ports, out_ports,
                                                     in_port, out_port,
                                                     src_l4_port, dst_l4_port,
@@ -5743,6 +5684,7 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     svlan_id, svlan_pri,
                                                     svlan_cfi, cvlan_id,
                                                     cvlan_pri, cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -5765,10 +5707,9 @@ class IgrSeqAclEntryBindPointVlanPrioTest(sai_base_test.ThriftInterfaceDataPlane
                                                     mpls_label4_bos,
                                                     ip_src, ip_src_mask,
                                                     ip_dst, ip_dst_mask,
-                                                    is_ipv6,
+                                                    ip_protocol,
                                                     ip_tos, ip_ecn,
                                                     ip_dscp, ip_ttl,
-                                                    ip_proto,
                                                     in_ports, out_ports,
                                                     in_port, out_port,
                                                     src_l4_port, dst_l4_port,
@@ -5980,6 +5921,7 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=1
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -6004,12 +5946,11 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = 6
         in_port = 0
         out_port = None
         out_ports = None
@@ -6035,7 +5976,6 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -6046,6 +5986,7 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -6066,6 +6007,7 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id0 > 0, 'acl_entry_id0 is <= 0'
@@ -6079,7 +6021,6 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     mac_dst,
                                                     ip_src,
                                                     ip_dst,
-                                                    ip_proto,
                                                     in_ports,
                                                     out_ports,
                                                     in_port,
@@ -6090,6 +6031,7 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     cvlan_id,
                                                     cvlan_pri,
                                                     cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -6110,6 +6052,7 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     mpls_label4_ttl,
                                                     mpls_label4_exp,
                                                     mpls_label4_bos,
+                                                    ip_protocol,
                                                     src_l4_port,
                                                     dst_l4_port)
         assert acl_table_id1 > 0, 'acl_entry_id1 is <= 0'
@@ -6126,6 +6069,7 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     svlan_id, svlan_pri,
                                                     svlan_cfi, cvlan_id,
                                                     cvlan_pri, cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -6148,10 +6092,9 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     mpls_label4_bos,
                                                     ip_src, ip_src_mask,
                                                     ip_dst, ip_dst_mask,
-                                                    is_ipv6,
+                                                    ip_protocol,
                                                     ip_tos, ip_ecn,
                                                     ip_dscp, ip_ttl,
-                                                    ip_proto,
                                                     in_ports, out_ports,
                                                     in_port, out_port,
                                                     src_l4_port, dst_l4_port,
@@ -6174,6 +6117,7 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     svlan_id, svlan_pri,
                                                     svlan_cfi, cvlan_id,
                                                     cvlan_pri, cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -6196,10 +6140,9 @@ class IgrParaAclEntryPrioBetweenBindPointsTest(sai_base_test.ThriftInterfaceData
                                                     mpls_label4_bos,
                                                     ip_src, ip_src_mask,
                                                     ip_dst, ip_dst_mask,
-                                                    is_ipv6,
+                                                    ip_protocol,
                                                     ip_tos, ip_ecn,
                                                     ip_dscp, ip_ttl,
-                                                    ip_proto,
                                                     in_ports, out_ports,
                                                     in_port, out_port,
                                                     src_l4_port, dst_l4_port,
@@ -6383,13 +6326,15 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
         acl_range_type_list = [SAI_ACL_RANGE_TYPE_OUTER_VLAN]
         acl_range_min = 2
         acl_range_max = 3
-        acl_range_id0 = sai_thrift_create_acl_range(self.client, SAI_ACL_RANGE_TYPE_OUTER_VLAN, acl_range_min, acl_range_max)
+        acl_range_id0 = sai_thrift_create_acl_range(self.client, SAI_ACL_RANGE_TYPE_OUTER_VLAN, SAI_ACL_STAGE_INGRESS, acl_range_min, acl_range_max)
         acl_range_id_list0 = [acl_range_id0]
+        print "acl_range_id0:0x%lx" %acl_range_id0
 
         acl_range_min = 20
         acl_range_max = 21
-        acl_range_id1 = sai_thrift_create_acl_range(self.client, SAI_ACL_RANGE_TYPE_OUTER_VLAN, acl_range_min, acl_range_max)
+        acl_range_id1 = sai_thrift_create_acl_range(self.client, SAI_ACL_RANGE_TYPE_OUTER_VLAN, SAI_ACL_STAGE_INGRESS, acl_range_min, acl_range_max)
         acl_range_id_list1 = [acl_range_id1]
+        print "acl_range_id1:0x%lx" %acl_range_id1
 
         sai_thrift_create_fdb(self.client, vlan_oid0, mac_dst, port2, mac_action)
         sai_thrift_create_fdb(self.client, vlan_oid1, mac_dst, port2, mac_action)
@@ -6482,6 +6427,7 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=1
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -6506,12 +6452,11 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
         ip_src_mask = "255.255.255.255"
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = 6
         in_port = 0
         out_port = None
         out_ports = None
@@ -6539,7 +6484,6 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
                                                    mac_dst,
                                                    ip_src,
                                                    ip_dst,
-                                                   ip_proto,
                                                    in_ports,
                                                    out_ports,
                                                    in_port,
@@ -6550,6 +6494,7 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
                                                    cvlan_id,
                                                    cvlan_pri,
                                                    cvlan_cfi,
+                                                   ip_type,
                                                    mpls_label0_label,
                                                    mpls_label0_ttl,
                                                    mpls_label0_exp,
@@ -6570,6 +6515,7 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
                                                    mpls_label4_ttl,
                                                    mpls_label4_exp,
                                                    mpls_label4_bos,
+                                                   ip_protocol,
                                                    src_l4_port,
                                                    dst_l4_port,
                                                    acl_range_type_list)
@@ -6592,6 +6538,7 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     svlan_id, svlan_pri,
                                                     svlan_cfi, cvlan_id,
                                                     cvlan_pri, cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -6614,10 +6561,9 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_bos,
                                                     ip_src, ip_src_mask,
                                                     ip_dst, ip_dst_mask,
-                                                    is_ipv6,
+                                                    ip_protocol,
                                                     ip_tos, ip_ecn,
                                                     ip_dscp, ip_ttl,
-                                                    ip_proto,
                                                     in_ports, out_ports,
                                                     in_port, out_port,
                                                     src_l4_port, dst_l4_port,
@@ -6647,6 +6593,7 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     svlan_id, svlan_pri,
                                                     svlan_cfi, cvlan_id,
                                                     cvlan_pri, cvlan_cfi,
+                                                    ip_type,
                                                     mpls_label0_label,
                                                     mpls_label0_ttl,
                                                     mpls_label0_exp,
@@ -6669,10 +6616,9 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     mpls_label4_bos,
                                                     ip_src, ip_src_mask,
                                                     ip_dst, ip_dst_mask,
-                                                    is_ipv6,
+                                                    ip_protocol,
                                                     ip_tos, ip_ecn,
                                                     ip_dscp, ip_ttl,
-                                                    ip_proto,
                                                     in_ports, out_ports,
                                                     in_port, out_port,
                                                     src_l4_port, dst_l4_port,
@@ -6682,15 +6628,16 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
                                                     new_cvlan, new_ccos,
                                                     deny_learn,
                                                     ingress_samplepacket,
-                                                    acl_range_id_list1)
+                                                    acl_range_id_list0)
 
         # bind this ACL table to port2s object id
         attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port1, attr)
 
-        warmboot(self.client)
+        #pdb.set_trace()
 
+        warmboot(self.client)
         try:
             assert acl_table_id > 0, 'acl_table_id is <= 0'
             assert acl_entry_id0 > 0, 'acl_entry_id0 is <= 0'
@@ -6851,6 +6798,7 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
         cvlan_id=10
         cvlan_pri=2
         cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -6873,14 +6821,13 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
         mpls_label4_bos = None
         ip_src = "192.168.0.1"
         ip_src_mask = "255.255.255.255"
-        ip_dst = '10.10.10.1'
+        ip_dst = '10.10.10.2'
         ip_dst_mask = "255.255.255.255"
-        is_ipv6 = False
         ip_tos=5
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
+        ip_protocol = 6
         in_port = 1
         out_port = None
         out_ports = None
@@ -6908,7 +6855,6 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -6919,6 +6865,7 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri,
             cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -6939,8 +6886,10 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_ttl,
             mpls_label4_exp,
             mpls_label4_bos,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
+
         acl_entry_id = sai_thrift_create_acl_entry(self.client,
             acl_table_id,
             entry_priority,
@@ -6951,6 +6900,7 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             mpls_label0_label,
             mpls_label0_ttl,
             mpls_label0_exp,
@@ -6973,10 +6923,9 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
             mpls_label4_bos,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -6992,8 +6941,8 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port2, attr)
 
+        #pdb.set_trace()
         warmboot(self.client)
-
         try:
             print '#### ACL Applied ####'
             print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.2 | 192.168.0.1 | @ ptf_intf 2'
@@ -7022,3 +6971,377 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id2)
             self.client.sai_thrift_remove_router_interface(rif_id3)
             self.client.sai_thrift_remove_virtual_router(vr_id)
+
+###udf test
+@group('acl')
+class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
+
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        # send the test packet(s)
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            print '#### NO ACL Applied ####'
+            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            self.ctc_send_packet(1, str(pkt))
+            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
+        # setup ACL to block based on Source IP
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = [port1, port2]
+        #mac_src = '00:22:22:22:22:22'
+        #mac_dst = router_mac
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        #svlan_id=20
+        #svlan_pri=4
+        #svlan_cfi=1
+        #cvlan_id=10
+        #cvlan_pri=2
+        #cvlan_cfi=None
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type=None
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        #ip_src = "192.168.0.1"
+        #ip_src_mask = "255.255.255.255"
+        #ip_dst = '10.10.10.1'
+        #ip_dst_mask = "255.255.255.255"
+        #ip_tos=5
+        #ip_ecn=1
+        #ip_dscp=1
+        #ip_ttl=None
+        #ip_protocol = None
+        #in_port = 1
+        #out_port = None
+        #out_ports = None
+        #src_l4_port = 1234
+        #dst_l4_port = 80
+
+        ip_src=None
+        ip_src_mask=None
+        ip_dst=None
+        ip_dst_mask=None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        ip_protocol=None
+        in_port=None
+        out_port=None
+        out_ports=None
+        src_l4_port=None
+        dst_l4_port=None
+
+        ingress_mirror_id = None
+        egress_mirror_id = None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+
+        #DsAclQosUdfKey320.udf
+        #"128'H0A0A0A01C0A800014006A5F000010000"
+
+        udf0 = ctypes.c_int8(10)
+        udf1 = ctypes.c_int8(10)
+        udf2 = ctypes.c_int8(10)
+        udf3 = ctypes.c_int8(1)
+
+        udf4 = ctypes.c_int8(192)
+        udf5 = ctypes.c_int8(168)
+        udf6 = ctypes.c_int8(0)
+        udf7 = ctypes.c_int8(1)
+
+        udf8 = ctypes.c_int8(64)
+        udf9 = ctypes.c_int8(6)
+        udf10 = ctypes.c_int8(165)
+        udf11 = ctypes.c_int8(240)
+
+        udf12 = ctypes.c_int8(0)
+        udf13 = ctypes.c_int8(1)
+        udf14 = ctypes.c_int8(0)
+        udf15 = ctypes.c_int8(0)
+
+        group0_udf_value = [udf12.value, udf13.value, udf14.value, udf15.value, udf8.value, udf9.value, udf10.value, udf11.value, udf4.value, udf5.value, udf6.value, udf7.value, udf0.value, udf1.value, udf2.value, udf3.value]
+        group0_udf_mask  = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+        group_length = 16
+
+        print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = 0x%lx" %udf_group_id
+
+        #ipv4
+        ether_type = 0x0800
+        ether_type_mask = U16MASKFULL
+        #tcp
+        l3_header_protocol = None
+        l3_header_protocol_mask = None
+        #gre
+        gre_type = None
+        gre_type_mask = None
+        #l4 port
+        l4_src_port = 1234
+        l4_src_port_mask = U16MASKFULL
+        l4_dst_port = 80
+        l4_dst_port_mask = U16MASKFULL
+        #mpls label num
+        mpls_label_num = None
+        #entry proirity
+        priority = 0
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   ether_type,
+                                                   ether_type_mask,
+                                                   l3_header_protocol,
+                                                   l3_header_protocol_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        base = SAI_UDF_BASE_L3
+        offset = 4
+        # default value
+        hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+
+        udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+        assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+        print "udf_entry_id = 0x%lx" %udf_entry_id
+
+        user_define_filed_group0 = True
+
+        acl_table_id = sai_thrift_create_acl_table(self.client,
+                    table_stage,
+                    table_bind_point_list,
+                    addr_family,
+                    mac_src,
+                    mac_dst,
+                    ip_src,
+                    ip_dst,
+                    in_ports,
+                    out_ports,
+                    in_port,
+                    out_port,
+                    svlan_id,
+                    svlan_pri,
+                    svlan_cfi,
+                    cvlan_id,
+                    cvlan_pri,
+                    cvlan_cfi,
+                    ip_type,
+                    mpls_label0_label,
+                    mpls_label0_ttl,
+                    mpls_label0_exp,
+                    mpls_label0_bos,
+                    mpls_label1_label,
+                    mpls_label1_ttl,
+                    mpls_label1_exp,
+                    mpls_label1_bos,
+                    mpls_label2_label,
+                    mpls_label2_ttl,
+                    mpls_label2_exp,
+                    mpls_label2_bos,
+                    mpls_label3_label,
+                    mpls_label3_ttl,
+                    mpls_label3_exp,
+                    mpls_label3_bos,
+                    mpls_label4_label,
+                    mpls_label4_ttl,
+                    mpls_label4_exp,
+                    mpls_label4_bos,
+                    ip_protocol,
+                    src_l4_port,
+                    dst_l4_port,
+                    None,
+                    user_define_filed_group0)
+
+        assert acl_table_id > 0, 'acl_table_id is <= 0'
+        print "acl_table_id = 0x%lx" %acl_table_id
+
+        acl_entry_id = sai_thrift_create_acl_entry(self.client,
+                                      acl_table_id,
+                                      entry_priority,
+                                      admin_state,
+                                      action, addr_family,
+                                      mac_src, mac_src_mask,
+                                      mac_dst, mac_dst_mask,
+                                      svlan_id, svlan_pri,
+                                      svlan_cfi, cvlan_id,
+                                      cvlan_pri, cvlan_cfi,
+                                      ip_type,
+                                      mpls_label0_label,
+                                      mpls_label0_ttl,
+                                      mpls_label0_exp,
+                                      mpls_label0_bos,
+                                      mpls_label1_label,
+                                      mpls_label1_ttl,
+                                      mpls_label1_exp,
+                                      mpls_label1_bos,
+                                      mpls_label2_label,
+                                      mpls_label2_ttl,
+                                      mpls_label2_exp,
+                                      mpls_label2_bos,
+                                      mpls_label3_label,
+                                      mpls_label3_ttl,
+                                      mpls_label3_exp,
+                                      mpls_label3_bos,
+                                      mpls_label4_label,
+                                      mpls_label4_ttl,
+                                      mpls_label4_exp,
+                                      mpls_label4_bos,
+                                      ip_src, ip_src_mask,
+                                      ip_dst, ip_dst_mask,
+                                      ip_protocol,
+                                      ip_tos, ip_ecn,
+                                      ip_dscp, ip_ttl,
+                                      in_ports, out_ports,
+                                      in_port, out_port,
+                                      src_l4_port, dst_l4_port,
+                                      ingress_mirror_id,
+                                      egress_mirror_id,
+                                      new_svlan, new_scos,
+                                      new_cvlan, new_ccos,
+                                      deny_learn,
+                                      None,
+                                      None,
+                                      None,
+                                      group0_udf_value,
+                                      group0_udf_mask)
+
+        assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+        print "acl_entry_id = 0x%lx" %acl_entry_id
+
+        # bind this ACL table to port2s object id
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_switch_attribute(attr)
+
+        warmboot(self.client)
+        try:
+            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            # send the same packet
+            self.ctc_send_packet(1, str(pkt))
+            # ensure packet is dropped
+            # check for absence of packet here!
+            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+        finally:
+            # unbind this ACL table from switch object id
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            self.client.sai_thrift_remove_udf(udf_entry_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)

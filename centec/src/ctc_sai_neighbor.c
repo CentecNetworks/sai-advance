@@ -1042,8 +1042,8 @@ ctc_sai_neighbor_binding_next_hop(uint8 lchip, sai_object_id_t rif_id, sai_ip_ad
     p_neighbor_nh_node = mem_malloc(MEM_L3IF_MODULE, sizeof(ctc_sai_neighbor_nh_node_t));
     if (NULL == p_neighbor_nh_node)
     {
-        ctc_slist_free(p_neighbor_info->nh_list);
-        p_neighbor_info->nh_list = NULL;
+        //ctc_slist_free(p_neighbor_info->nh_list);
+        //p_neighbor_info->nh_list = NULL;
         return CTC_E_NO_MEMORY;
     }
     p_neighbor_nh_node->next_hop_id = next_hop_id;

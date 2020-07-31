@@ -574,24 +574,6 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_DST_MAC,
 
     /**
-     * @brief Inner Src MAC Address
-     *
-     * @type bool
-     * @flags CREATE_ONLY
-     * @default false
-     */
-    SAI_ACL_TABLE_ATTR_FIELD_INNER_SRC_MAC,
-
-    /**
-     * @brief Inner Dst MAC Address
-     *
-     * @type bool
-     * @flags CREATE_ONLY
-     * @default false
-     */
-    SAI_ACL_TABLE_ATTR_FIELD_INNER_DST_MAC,
-
-    /**
      * @brief Src IPv4 Address
      *
      * @type bool
@@ -979,7 +961,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_LABEL,
 
     /**
-     * @brief Label value for MPLS label on the top
+     * @brief TTL value for MPLS label on the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -988,7 +970,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_TTL,
 
     /**
-     * @brief Label value for MPLS label on the top
+     * @brief EXP value for MPLS label on the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -997,7 +979,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_EXP,
 
     /**
-     * @brief Label value for MPLS label on the top
+     * @brief BOS bit value for MPLS label on the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1015,7 +997,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_LABEL,
 
     /**
-     * @brief Label value for second MPLS label from the top
+     * @brief TTL value for second MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1024,7 +1006,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_TTL,
 
     /**
-     * @brief Label value for second MPLS label from the top
+     * @brief EXP value for second MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1033,7 +1015,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_EXP,
 
     /**
-     * @brief Label value for second MPLS label from the top
+     * @brief BOS bit value for second MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1051,7 +1033,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_LABEL,
 
     /**
-     * @brief Label value for third MPLS label from the top
+     * @brief TTL value for third MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1060,7 +1042,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_TTL,
 
     /**
-     * @brief Label value for third MPLS label from the top
+     * @brief EXP value for third MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1069,7 +1051,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_EXP,
 
     /**
-     * @brief Label value for third MPLS label from the top
+     * @brief BOS bit value for third MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1078,7 +1060,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_BOS,
 
     /**
-     * @brief Label value for forth MPLS label from the top
+     * @brief Label value for fourth MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1087,7 +1069,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL3_LABEL,
 
     /**
-     * @brief Label value for forth MPLS label from the top
+     * @brief TTL value for fourth MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1096,7 +1078,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL3_TTL,
 
     /**
-     * @brief Label value for forth MPLS label from the top
+     * @brief EXP value for fourth MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1105,7 +1087,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL3_EXP,
 
     /**
-     * @brief Label value for forth MPLS label from the top
+     * @brief BOS bit value for fourth MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1123,7 +1105,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL4_LABEL,
 
     /**
-     * @brief Label value for fifth MPLS label from the top
+     * @brief TTL value for fifth MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1132,7 +1114,7 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL4_TTL,
 
     /**
-     * @brief Label value for fifth MPLS label from the top
+     * @brief EXP value for fifth MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
@@ -1141,16 +1123,13 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL4_EXP,
 
     /**
-     * @brief Label value for fifth MPLS label from the top
+     * @brief BOS bit value for fifth MPLS label from the top
      *
      * @type bool
      * @flags CREATE_ONLY
      * @default false
      */
     SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL4_BOS,
-
-
-    /* User Based metadata */
 
     /* User Based metadata [bool] */
 
@@ -2866,6 +2845,14 @@ typedef enum _sai_acl_range_attr_t
 
     /** Custom range base value */
     SAI_ACL_RANGE_ATTR_CUSTOM_RANGE_START = 0x10000000,
+
+    /**
+     * @brief ACL stage
+     *
+     * @type sai_acl_stage_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     */
+    SAI_ACL_RANGE_ATTR_STAGE = SAI_ACL_RANGE_ATTR_CUSTOM_RANGE_START,
 
     /** End of custom range base */
     SAI_ACL_RANGE_ATTR_CUSTOM_RANGE_END

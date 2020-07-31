@@ -40,6 +40,7 @@
 \t  |  SAI_LAG_ATTR_DROP_UNTAGGED                           |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_LAG_ATTR_DROP_TAGGED                             |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_LAG_ATTR_MODE                                    |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM                   |            CTC7132             |
 \b 
 
 \p
@@ -85,10 +86,12 @@ typedef struct ctc_sai_lag_info_s
     uint8 is_binding_rif;
     uint8 is_binding_sub_rif;
     uint16 binding_sub_rif_count;    
-    int32 bind_bridge_port_type; // 0 mean not binded, 1 mean binded port , 2 mean binded sub port
+    int32 bind_bridge_port_type; // 0 mean not binded, 1 mean binded port , 2 mean binded sub port    
     bool drop_tagged;
     bool drop_untagged;
     int32 sub_port_ref_cnt;
+
+    uint16 max_lag_member;
     ctc_sai_lag_member_change_notification_fn cb[CTC_SAI_LAG_MEM_CHANGE_TYPE_MAX];
 }ctc_sai_lag_info_t;
 
@@ -101,6 +104,8 @@ extern sai_status_t
 ctc_sai_lag_binding_rif(sai_object_id_t sai_lag_id, uint8 is_binding, uint8 l3if_type);
 extern sai_status_t
 ctc_sai_lag_register_member_change_cb(uint8 lchip, ctc_sai_lag_mem_change_type_t type, uint32 lag_port, ctc_sai_lag_member_change_notification_fn cb);
+extern sai_status_t
+ctc_sai_lag_remove_member_change_cb(uint8 lchip, ctc_sai_lag_mem_change_type_t type, uint32 lag_port);
 extern sai_status_t
 ctc_sai_lag_notification_all_members_change(uint8 lchip, ctc_sai_lag_mem_change_type_t type, uint32 lag_port, uint32 change);
 extern void

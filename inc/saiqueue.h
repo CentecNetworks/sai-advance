@@ -47,9 +47,12 @@ typedef enum _sai_queue_type_t
     /** H/w Multicast (Broadcast, Unknown unicast, Multicast) Queue */
     SAI_QUEUE_TYPE_MULTICAST = 0x00000002,
 
-    /** Custom range base value */
-    SAI_QUEUE_TYPE_CUSTOM_RANGE_BASE = 0x10000000
+    /** H/w Queue for service */
+    SAI_QUEUE_TYPE_SERVICE,
 
+    /** Custom range base value */
+    SAI_QUEUE_TYPE_CUSTOM_RANGE_BASE = 0x10000000,
+   
 } sai_queue_type_t;
 
 /**
@@ -192,6 +195,17 @@ typedef enum _sai_queue_attr_t
 
     /** Custom range base value */
     SAI_QUEUE_ATTR_CUSTOM_RANGE_START = 0x10000000,
+
+    /**
+     * @brief service Id, if this queue is used for service
+     * if SAI_QUEUE_ATTR_TYPE == SAI_QUEUE_TYPE_SERVICE, this attribute is mandatory
+     * the same service id should used in schedule group, and in bridge port,tunnel port
+     *
+     * @type sai_uint16_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY | KEY
+     * @condition SAI_QUEUE_ATTR_TYPE == SAI_QUEUE_TYPE_SERVICE
+     */
+    SAI_QUEUE_ATTR_SERVICE_ID = SAI_QUEUE_ATTR_CUSTOM_RANGE_START,
 
     /** End of custom range base */
     SAI_QUEUE_ATTR_CUSTOM_RANGE_END

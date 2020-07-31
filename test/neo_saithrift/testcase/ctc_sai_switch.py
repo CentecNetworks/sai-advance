@@ -819,7 +819,7 @@ class func_03_set_and_get_switch_attribute_26_RESTART(sai_base_test.ThriftInterf
     def runTest(self):
 
         switch_init(self.client)
-        warmboot = 0
+        wboot = 1
         type = SAI_SWITCH_RESTART_TYPE_PLANNED
 
         warmboot(self.client)
@@ -832,7 +832,7 @@ class func_03_set_and_get_switch_attribute_26_RESTART(sai_base_test.ThriftInterf
             
                 if attribute.id == SAI_SWITCH_ATTR_RESTART_WARM:
                     sys_logging("### SAI_SWITCH_ATTR_RESTART_WARM = %d ###"  %attribute.value.booldata)
-                    assert ( warmboot == attribute.value.booldata ) 
+                    assert ( wboot == attribute.value.booldata ) 
 
                 if attribute.id == SAI_SWITCH_ATTR_RESTART_TYPE:
                     sys_logging("### SAI_SWITCH_ATTR_RESTART_TYPE = %d ###"  %attribute.value.s32)
@@ -3259,7 +3259,7 @@ class scenario_13_fdb_unicast_miss_packet_action(sai_base_test.ThriftInterfaceDa
             if ret.data.u16 != 1:
                 raise NotImplementedError()
                 
-            attrs = self.client.sai_thrift_get_cpu_packet_attribute(0)
+            attrs = self.client.sai_thrift_get_cpu_packet_attribute()
             sys_logging ("success to get packet attribute")
             for a in attrs.attr_list:
                 if a.id == SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT:
@@ -3350,7 +3350,7 @@ class scenario_14_fdb_multicast_miss_packet_action(sai_base_test.ThriftInterface
             if ret.data.u16 != 1:
                 raise NotImplementedError()
                 
-            attrs = self.client.sai_thrift_get_cpu_packet_attribute(0)
+            attrs = self.client.sai_thrift_get_cpu_packet_attribute()
             sys_logging ("success to get packet attribute")
             for a in attrs.attr_list:
                 if a.id == SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT:
@@ -3442,7 +3442,7 @@ class scenario_15_fdb_broadcast_miss_packet_action(sai_base_test.ThriftInterface
             if ret.data.u16 != 1:
                 raise NotImplementedError()
                 
-            attrs = self.client.sai_thrift_get_cpu_packet_attribute(0)
+            attrs = self.client.sai_thrift_get_cpu_packet_attribute()
             sys_logging ("success to get packet attribute")
             for a in attrs.attr_list:
                 if a.id == SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT:

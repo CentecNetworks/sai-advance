@@ -27,8 +27,6 @@ This module defines SAI Tunnel.
 \t  |  get_tunnel_stats_ext                                     |    CTC8096,CTC7148,CTC7132     |
 \t  |  clear_tunnel_stats                                       |    CTC8096,CTC7148,CTC7132     |
 \t  |  create_tunnel_term_table_entry                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_hostif_trap_group_attribute                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_hostif_trap                                       |    CTC8096,CTC7148,CTC7132     |
 \t  |  remove_tunnel_term_table_entry                           |    CTC8096,CTC7148,CTC7132     |
 \t  |  set_tunnel_term_table_entry_attribute                    |    CTC8096,CTC7148,CTC7132     |
 \t  |  get_tunnel_term_table_entry_attribute                    |    CTC8096,CTC7148,CTC7132     |
@@ -242,6 +240,7 @@ typedef struct ctc_sai_tunnel_s
     uint8         encap_exp_mode;
     uint8         encap_exp_val;
     bool          decap_acl_use_outer;
+    uint32        ref_cnt;
 }ctc_sai_tunnel_t;
 
 typedef struct ctc_sai_tunnel_term_table_entry_s

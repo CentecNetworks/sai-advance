@@ -55,6 +55,8 @@ ctc_sai_oid_get_vlan_member_id(sai_object_id_t oid, uint16_t *vlan_id,uint32_t *
 extern sai_status_t
 ctc_sai_oid_get_vrf_id(sai_object_id_t oid, uint16* vrf_id);
 extern sai_status_t
+ctc_sai_oid_get_vrf_id_u32(sai_object_id_t oid, uint32* vrf_id);
+extern sai_status_t
 ctc_sai_oid_get_l3if_id(sai_object_id_t oid, uint16* l3if_id);
 extern sai_status_t
 ctc_sai_oid_get_nexthop_id(sai_object_id_t oid, uint32* nexthop_id);

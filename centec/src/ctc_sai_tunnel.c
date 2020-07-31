@@ -1299,11 +1299,11 @@ _ctc_sai_tunnel_set_tunnel_property(sai_object_key_t* key, const sai_attribute_t
         CTC_SAI_CTC_ERROR_RETURN(ctcs_nh_get_nh_info(lchip, ctc_object_id.value, &ctc_nh_info));
         nh_mpls_param.nh_para.nh_param_push.eslb_en = attr->value.booldata;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_nh_update_mpls(lchip, ctc_object_id.value, &nh_mpls_param));
-        p_tunnel->encap_cw_en = attr->value.booldata;
+        p_tunnel->encap_esi_label_valid = attr->value.booldata;
     }
     else if(encap_es_update)
     {
-        p_tunnel->encap_cw_en = attr->value.booldata;
+        p_tunnel->encap_esi_label_valid = attr->value.booldata;
     }
     
     if (SAI_TUNNEL_TYPE_IPINIP_GRE == p_tunnel->tunnel_type)
@@ -2005,6 +2005,8 @@ static sai_status_t
 ctc_sai_tunnel_remove_tunnel(
         sai_object_id_t tunnel_id)
 {
+    sai_status_t status = SAI_STATUS_SUCCESS;
+
     ctc_object_id_t ctc_oid;
     ctc_sai_tunnel_t* p_tunnel = NULL;
     uint8 lchip = 0;
@@ -2018,18 +2020,29 @@ ctc_sai_tunnel_remove_tunnel(
     p_tunnel = ctc_sai_db_get_object_property(lchip, tunnel_id);
     if (NULL == p_tunnel)
     {
-        CTC_SAI_DB_UNLOCK(lchip);
-        return SAI_STATUS_INVALID_OBJECT_ID;
+        status = SAI_STATUS_INVALID_OBJECT_ID;
+        goto out;
     }
+    if(0 != p_tunnel->ref_cnt)
+    {
+        status = SAI_STATUS_OBJECT_IN_USE;
+        goto out;
+    }
+    
 
     ctc_sai_db_remove_object_property(lchip, tunnel_id);
     CTC_SAI_DB_UNLOCK(lchip);
 
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_COMMON, p_tunnel->tunnel_id);
-
+    ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_LOGIC_PORT, p_tunnel->logic_port);
+    
     _ctc_sai_tunnel_free_tunnel(p_tunnel);
+    
 
     return SAI_STATUS_SUCCESS;
+out:
+    CTC_SAI_DB_UNLOCK(lchip);
+    return status;
 }
 
 static sai_status_t

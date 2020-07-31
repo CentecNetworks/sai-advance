@@ -84,6 +84,13 @@ static sai_status_t _ctc_sai_lag_create_lag_member( sai_object_id_t     * lag_me
     ctc_sai_get_ctc_object_id(SAI_LAG_MEMBER_ATTR_LAG_ID, lag_id->oid, &ctc_lag_oid);
     ctc_sai_get_ctc_object_id(SAI_LAG_MEMBER_ATTR_PORT_ID, port_id->oid, &ctc_port_oid);
 
+    if (CTC_BMP_ISSET(db_lag->member_ports_bits, CTC_MAP_GPORT_TO_LPORT(ctc_port_oid.value)))
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_LAG, "lag member exist\n");
+        status = SAI_STATUS_ITEM_ALREADY_EXISTS;
+        goto out;
+    }
+
     /* get egress mode */
     status_out = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_LAG_MEMBER_ATTR_EGRESS_DISABLE, &attr1, &index);
 
@@ -156,7 +163,7 @@ static sai_status_t _ctc_sai_lag_create_lag_member( sai_object_id_t     * lag_me
 
     CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_default_vlan(lchip, ctc_port_oid.value, db_lag->vlan_id), status, error2);
     CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, ctc_port_oid.value, CTC_PORT_PROP_DEFAULT_PCP, db_lag->vlan_priority), status, error3);
-    
+
     *lag_member_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG_MEMBER, lchip, 0, (uint16)ctc_lag_oid.value, ctc_port_oid.value);
 
     if (db_lag->is_binding_rif)
@@ -174,7 +181,7 @@ static sai_status_t _ctc_sai_lag_create_lag_member( sai_object_id_t     * lag_me
     _ctc_sai_lag_process_notification_member_change(lchip, ctc_lag_oid.value, ctc_port_oid.value, true);
 
     return SAI_STATUS_SUCCESS;
-    
+
     error4:
     CTC_SAI_LOG_ERROR(SAI_API_LAG, "rollback to error4\n");
     ctcs_port_set_property(lchip, ctc_port_oid.value, CTC_PORT_PROP_DEFAULT_PCP, default_pcp_restore);
@@ -221,6 +228,8 @@ static sai_status_t _ctc_sai_lag_remove_lag_member( sai_object_id_t lag_member_i
     sai_object_id_t lag_oid;
     ctc_sai_lag_info_t*  p_db_lag = NULL;
     sai_status_t status = SAI_STATUS_SUCCESS;
+    uint8 igs_disable;
+    uint8 egs_disable;
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(lag_member_id, &lchip));
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lag_member_id(lag_member_id, &lag_id, &gport));
@@ -244,10 +253,28 @@ static sai_status_t _ctc_sai_lag_remove_lag_member( sai_object_id_t lag_member_i
         ctcs_port_set_scl_property(lchip, gport, &port_scl_property);
     }
     CTC_BMP_UNSET(p_db_lag->member_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
-    CTC_BMP_UNSET(p_db_lag->Egress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
-    CTC_BMP_UNSET(p_db_lag->Ingress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
-
-    CTC_SAI_CTC_ERROR_RETURN( ctcs_linkagg_remove_port(lchip, lag_id, gport));
+    egs_disable = CTC_BMP_ISSET(p_db_lag->Egress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
+    igs_disable = CTC_BMP_ISSET(p_db_lag->Ingress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
+    if (igs_disable && egs_disable)
+    {
+        CTC_BMP_UNSET(p_db_lag->Egress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
+        CTC_BMP_UNSET(p_db_lag->Ingress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
+    }
+    else if (egs_disable)
+    {
+        ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_GPORT, gport);
+        CTC_BMP_UNSET(p_db_lag->Egress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
+    }
+    else if (igs_disable)
+    {
+        ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_GPORT, lag_id);
+        CTC_SAI_CTC_ERROR_RETURN( ctcs_linkagg_remove_port(lchip, (uint8)lag_id, gport));
+        CTC_BMP_UNSET(p_db_lag->Ingress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport));
+    }
+    else
+    {
+        CTC_SAI_CTC_ERROR_RETURN( ctcs_linkagg_remove_port(lchip, (uint8)lag_id, gport));
+    }
     _ctc_sai_lag_process_notification_member_change(lchip, lag_id, gport, false);
 
     return status;
@@ -288,7 +315,7 @@ ctc_sai_lag_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_i
         for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
         {
             if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
-            {                
+            {
                 lag_members[port_num] =  ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG_MEMBER, ctc_object_id.lchip, 0, (uint16)ctc_object_id.value, bit_cnt);
                 port_num++;
             }
@@ -312,14 +339,21 @@ ctc_sai_lag_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_i
         break;
 
     case SAI_LAG_ATTR_INGRESS_ACL:
-        p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND, (void*)(&key->key.object_id));
-        attr->value.oid = *p_bounded_oid;
+        attr->value.oid = SAI_NULL_OBJECT_ID;
+        p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, (void*)(&key->key.object_id));
+        if(NULL != p_bounded_oid)
+        {
+            attr->value.oid = *p_bounded_oid;
+        }
         break;
     case SAI_LAG_ATTR_MODE:
         attr->value.s32 = p_db_lag->lag_mode;
         break;
+    case SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM:
+        attr->value.u16 = p_db_lag->max_lag_member;
+        break;
     default:
-        CTC_SAI_LOG_ERROR(SAI_API_VLAN, "lag attribute not implement\n");
+        CTC_SAI_LOG_ERROR(SAI_API_LAG, "lag attribute not implement\n");
         return  SAI_STATUS_NOT_IMPLEMENTED + attr_idx;
 
     }
@@ -421,9 +455,7 @@ ctc_sai_lag_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         }
         p_db_lag->drop_tagged = attr->value.booldata;
         break;
-    case SAI_LAG_ATTR_MODE:
-        CTC_SAI_LOG_ERROR(SAI_API_LAG, "lag attribute mode create only\n");
-        return SAI_STATUS_INVALID_ATTRIBUTE_0;
+
     default:
         CTC_SAI_LOG_ERROR(SAI_API_VLAN, "lag attribute not implement\n");
         return  SAI_STATUS_NOT_IMPLEMENTED;
@@ -459,7 +491,10 @@ static ctc_sai_attr_fn_entry_t  lag_attr_fn_entries[] =
       ctc_sai_lag_set_info },
       { SAI_LAG_ATTR_MODE,
       ctc_sai_lag_get_info,
-      ctc_sai_lag_set_info },      
+      NULL },
+      { SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM,
+      ctc_sai_lag_get_info,
+      NULL },
       { CTC_SAI_FUNC_ATTR_END_ID,
       NULL,
       NULL }
@@ -484,20 +519,18 @@ ctc_sai_lag_get_lag_member_info(sai_object_key_t *key, sai_attribute_t* attr, ui
     {
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
+    if (FALSE == CTC_BMP_ISSET(p_db_lag->member_ports_bits, CTC_MAP_GPORT_TO_LPORT(ctc_object_id.value)))
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_LAG, "the member not in the lag :%u\n", ctc_object_id.value);
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
     switch(attr->id)
     {
     case SAI_LAG_MEMBER_ATTR_LAG_ID:
         attr->value.oid = lag_oid;
         break;
     case  SAI_LAG_MEMBER_ATTR_PORT_ID:
-        if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, CTC_MAP_GPORT_TO_LPORT(ctc_object_id.value)))
-        {
-            attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, ctc_object_id.lchip, 0, 0, ctc_object_id.value);
-        }
-        else
-        {
-            return SAI_STATUS_ITEM_NOT_FOUND;
-        }
+        attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, ctc_object_id.lchip, 0, 0, ctc_object_id.value);
         break;
 
     case SAI_LAG_MEMBER_ATTR_EGRESS_DISABLE:
@@ -505,11 +538,19 @@ ctc_sai_lag_get_lag_member_info(sai_object_key_t *key, sai_attribute_t* attr, ui
         {
             attr->value.booldata = TRUE;
         }
+        else
+        {
+            attr->value.booldata = FALSE;
+        }
         break;
     case SAI_LAG_MEMBER_ATTR_INGRESS_DISABLE:
         if (CTC_BMP_ISSET(p_db_lag->Ingress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(ctc_object_id.value)))
         {
             attr->value.booldata = TRUE;
+        }
+        else
+        {
+            attr->value.booldata = FALSE;
         }
         break;
     default:
@@ -543,7 +584,7 @@ static sai_status_t ctc_sai_lag_set_lag_member_info(sai_object_key_t *key,  cons
         CTC_SAI_LOG_ERROR(SAI_API_LAG, "lag info wrong\n");
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
-    if (FALSE == CTC_BMP_ISSET(p_db_lag->Egress_disable_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport)))
+    if (FALSE == CTC_BMP_ISSET(p_db_lag->member_ports_bits, CTC_MAP_GPORT_TO_LPORT(gport)))
     {
         CTC_SAI_LOG_ERROR(SAI_API_LAG, "the member not in the lag :%u\n", gport);
         return SAI_STATUS_ITEM_NOT_FOUND;
@@ -577,6 +618,7 @@ static sai_status_t ctc_sai_lag_set_lag_member_info(sai_object_key_t *key,  cons
         case SAI_LAG_MEMBER_ATTR_EGRESS_DISABLE:
             if (TRUE == attr->value.booldata)
             {
+                ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_GPORT, lag_id);
                 CTC_SAI_CTC_ERROR_RETURN( ctcs_linkagg_remove_port(lchip,CTC_MAP_GPORT_TO_LPORT(lag_id), gport));
                 if (!ingress_disable_old)
                 {
@@ -586,6 +628,7 @@ static sai_status_t ctc_sai_lag_set_lag_member_info(sai_object_key_t *key,  cons
             }
             else
             {
+                ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_GPORT, gport);
                 CTC_SAI_CTC_ERROR_RETURN(ctcs_linkagg_add_port(lchip, CTC_MAP_GPORT_TO_LPORT(lag_id), gport));
                 if (ingress_disable_old)
                 {
@@ -729,7 +772,7 @@ sai_status_t ctc_sai_lag_binding_rif(sai_object_id_t sai_lag_id, uint8 is_bindin
         p_db_lag->is_binding_rif = is_binding;
     }
     if(CTC_L3IF_TYPE_SUB_IF == l3if_type)
-    {   
+    {
         /*one port bind multi sub-if*/
         if(is_binding)
         {
@@ -789,12 +832,14 @@ static sai_status_t   ctc_sai_lag_create_lag( sai_object_id_t     * sai_lag_id,
     uint8 lchip = 0;
     sai_status_t status = 0;
     ctc_linkagg_group_t linkagg_grp;
-    uint32 capability[CTC_GLOBAL_CAPABILITY_MAX];
+    //uint32 capability[CTC_GLOBAL_CAPABILITY_MAX];
     uint32 lag_id_tmp = 0;
     ctc_sai_lag_info_t*  p_db_lag = NULL;
     const sai_attribute_value_t *attr = NULL;
     uint32 attr_index = 0;
     uint32 lag_gport = 0;
+    int32 lag_mode = 0;
+    uint16 max_lag_member = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_LAG);
     if (NULL == sai_lag_id)
@@ -804,8 +849,8 @@ static sai_status_t   ctc_sai_lag_create_lag( sai_object_id_t     * sai_lag_id,
     }
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(switch_id, &lchip));
-    sal_memset(capability, 0 , sizeof(capability));
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_global_ctl_get(lchip, CTC_GLOBAL_CHIP_CAPABILITY, capability));
+    //sal_memset(capability, 0 , sizeof(capability));
+    //CTC_SAI_CTC_ERROR_RETURN(ctcs_global_ctl_get(lchip, CTC_GLOBAL_CHIP_CAPABILITY, capability));
     CTC_SAI_DB_LOCK(lchip);
 
     sal_memset(&linkagg_grp, 0, sizeof(linkagg_grp));
@@ -813,40 +858,56 @@ static sai_status_t   ctc_sai_lag_create_lag( sai_object_id_t     * sai_lag_id,
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_LAG_ATTR_MODE, &attr, &attr_index);
     if (SAI_STATUS_SUCCESS == status)
     {
-        switch (attr->s32)
+        lag_mode = attr->s32;
+        switch (lag_mode)
         {
             case SAI_LAG_MODE_STATIC:
                 linkagg_grp.linkagg_mode = CTC_LINKAGG_MODE_STATIC;
-                linkagg_grp.member_num = 255;
+                max_lag_member = 16;
                 break;
             case SAI_LAG_MODE_STATIC_FAILOVER:
                 linkagg_grp.linkagg_mode = CTC_LINKAGG_MODE_STATIC_FAILOVER;
-                linkagg_grp.member_num = 24;
+                max_lag_member = 16;
                 break;
             case SAI_LAG_MODE_RR:
                 linkagg_grp.linkagg_mode = CTC_LINKAGG_MODE_RR;
-                linkagg_grp.member_num = 24;
+                max_lag_member = 16;
                 break;
             case SAI_LAG_MODE_DLB:
                 linkagg_grp.linkagg_mode = CTC_LINKAGG_MODE_DLB;
-                linkagg_grp.member_num = 256;
+                max_lag_member = 32;
                 break;
             case SAI_LAG_MODE_RH:
                 linkagg_grp.linkagg_mode = CTC_LINKAGG_MODE_RESILIENT;
-                linkagg_grp.member_num = 256;
+                max_lag_member = 32;
                 break;
             default:
                 CTC_SAI_LOG_ERROR(SAI_API_LAG, "lag mode not support\n");
-                return  SAI_STATUS_NOT_IMPLEMENTED;
+                status = SAI_STATUS_NOT_IMPLEMENTED;
+                break;
         }
     }
     else
     {
         linkagg_grp.linkagg_mode = CTC_LINKAGG_MODE_STATIC;
-        linkagg_grp.member_num = 255;
+        max_lag_member = 16;
+        lag_mode = SAI_LAG_MODE_STATIC;
     }
-    //linkagg_grp.member_num = capability[CTC_GLOBAL_CAPABILITY_LINKAGG_MEMBER_NUM];
-    linkagg_grp.member_num = 16;
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM, &attr, &attr_index);
+    if (SAI_STATUS_SUCCESS == status)
+    {
+        if(((SAI_LAG_MODE_STATIC==lag_mode)&&(255<attr->u16))||((CTC_LINKAGG_MODE_STATIC_FAILOVER==lag_mode)&&(24<attr->u16))||\
+        ((CTC_LINKAGG_MODE_RR==lag_mode)&&(24<attr->u16))||\
+        ((CTC_LINKAGG_MODE_DLB==lag_mode)&&(32!=attr->u16)&&(64!=attr->u16)&&(128!=attr->u16)&&(256!=attr->u16))||\
+        ((CTC_LINKAGG_MODE_RESILIENT==lag_mode)&&(32!=attr->u16)&&(64!=attr->u16)&&(128!=attr->u16)&&(256!=attr->u16)))
+        {
+            status = SAI_STATUS_INVALID_PARAMETER;
+            goto out;
+        }
+        max_lag_member = attr->u16;
+    }
+    linkagg_grp.member_num = max_lag_member;
     status = ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_LAG, &lag_id_tmp);
     if (status)
     {
@@ -867,10 +928,12 @@ static sai_status_t   ctc_sai_lag_create_lag( sai_object_id_t     * sai_lag_id,
     p_db_lag = mem_malloc(MEM_LINKAGG_MODULE, sizeof(ctc_sai_lag_info_t));
     if (NULL == p_db_lag)
     {
+        status = SAI_STATUS_NO_MEMORY;
         CTC_SAI_LOG_ERROR(SAI_API_LAG, "Failed to allocate lag db entry:%d\n", status);
         goto error1;
     }
     sal_memset(p_db_lag, 0 , sizeof(ctc_sai_lag_info_t));
+    p_db_lag->max_lag_member = max_lag_member;
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_LAG_ATTR_PORT_VLAN_ID, &attr, &attr_index);
     if (SAI_STATUS_SUCCESS == status)
     {
@@ -946,6 +1009,8 @@ static sai_status_t ctc_sai_lag_remove_lag( sai_object_id_t lag_id)
     sai_status_t status = 0;
     ctc_sai_lag_info_t *p_db_lag = NULL ;
     uint32 lag_id_tmp = 0;
+    int8 loop ;
+    int8 lag_in_use = 0;
 
     sal_memset(&ctc_object_id, 0 , sizeof(ctc_object_id));
 
@@ -958,7 +1023,14 @@ static sai_status_t ctc_sai_lag_remove_lag( sai_object_id_t lag_id)
         status = SAI_STATUS_INVALID_OBJECT_ID;
         goto out;
     }
-    if ((p_db_lag->is_binding_rif)||(p_db_lag->is_binding_sub_rif))
+    for (loop = 0; loop < CTC_SAI_LAG_MEM_CHANGE_TYPE_MAX; loop++)
+    {
+        if (NULL != p_db_lag->cb[loop])
+        {
+            lag_in_use++;
+        }
+    }
+    if ((p_db_lag->is_binding_rif)||(p_db_lag->is_binding_sub_rif)||lag_in_use)
     {
         status = SAI_STATUS_OBJECT_IN_USE;
         goto out;
@@ -1252,13 +1324,33 @@ ctc_sai_lag_register_member_change_cb(uint8 lchip, ctc_sai_lag_mem_change_type_t
 
     oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, lag_port);
     p_lag = ctc_sai_db_get_object_property(lchip, oid);
-    if (NULL == p_lag )
+    if (NULL == p_lag)
     {
         CTC_SAI_LOG_ERROR(SAI_API_LAG, "lag info wrong\n");
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
 
     p_lag->cb[type] = cb;
+
+    return SAI_STATUS_SUCCESS;
+}
+
+
+sai_status_t
+ctc_sai_lag_remove_member_change_cb(uint8 lchip, ctc_sai_lag_mem_change_type_t type, uint32 lag_port)
+{
+    sai_object_id_t oid = 0;
+    ctc_sai_lag_info_t* p_lag = NULL;
+
+    oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, lag_port);
+    p_lag = ctc_sai_db_get_object_property(lchip, oid);
+    if (NULL == p_lag )
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_LAG, "lag info wrong\n");
+        return SAI_STATUS_INVALID_OBJECT_ID;
+    }
+
+    p_lag->cb[type] = NULL;
 
     return SAI_STATUS_SUCCESS;
 }

@@ -62,6 +62,7 @@ _ctc_sai_debug_counter_drop_reason_map(uint32 sai_drop_reason, uint8 dir, uint32
 {
     if(DROP_REASON_IN == dir)
     {
+        #if SDK_TM_BRANCH
         switch(sai_drop_reason)
         {
             case SAI_IN_DROP_REASON_SMAC_MULTICAST:
@@ -155,9 +156,103 @@ _ctc_sai_debug_counter_drop_reason_map(uint32 sai_drop_reason, uint8 dir, uint32
                 break;
 
         }
+        #else
+        switch(sai_drop_reason)
+        {
+            case SAI_IN_DROP_REASON_SMAC_MULTICAST:
+            case SAI_IN_DROP_REASON_SMAC_EQUALS_DMAC:    
+                *ctc_drop_reason = CTC_DROP_PKT_ERR;
+                break;
+            case SAI_IN_DROP_REASON_DMAC_RESERVED:    
+                *ctc_drop_reason = CTC_DROP_EXCP;
+                break;
+            case SAI_IN_DROP_REASON_VLAN_TAG_NOT_ALLOWED:    
+            case SAI_IN_DROP_REASON_INGRESS_VLAN_FILTER:    
+                *ctc_drop_reason = CTC_DROP_VLAN_FILTER;
+                break;
+            case SAI_IN_DROP_REASON_INGRESS_STP_FILTER:    
+                *ctc_drop_reason = CTC_DROP_STP_CHK;
+                break;
+            case SAI_IN_DROP_REASON_FDB_UC_DISCARD:    
+                *ctc_drop_reason = CTC_DROP_FWD_ERR;
+                break;
+            case SAI_IN_DROP_REASON_L2_LOOPBACK_FILTER:    
+                *ctc_drop_reason = CTC_DROP_SECURITY_CHK;
+                break;
+            case SAI_IN_DROP_REASON_EXCEEDS_L3_MTU:
+                *ctc_drop_reason = CTC_DROP_MTU_CHK;
+                break;
+            case SAI_IN_DROP_REASON_IP_HEADER_ERROR:
+                *ctc_drop_reason = CTC_DROP_PARSER_ERR;
+                break;
+            case SAI_IN_DROP_REASON_UC_DIP_MC_DMAC:
+                *ctc_drop_reason = CTC_DROP_IP_CHK;
+                break;
+            case SAI_IN_DROP_REASON_DIP_LOOPBACK:
+            case SAI_IN_DROP_REASON_SIP_LOOPBACK:
+            case SAI_IN_DROP_REASON_SIP_MC:
+            case SAI_IN_DROP_REASON_SIP_CLASS_E:    
+            case SAI_IN_DROP_REASON_SIP_UNSPECIFIED:  
+            case SAI_IN_DROP_REASON_MC_DMAC_MISMATCH:    
+                *ctc_drop_reason = CTC_DROP_EXCP;
+                break;
+            case SAI_IN_DROP_REASON_SIP_EQUALS_DIP:
+            case SAI_IN_DROP_REASON_SIP_BC:    
+                *ctc_drop_reason = CTC_DROP_IP_CHK;
+                break;
+            case SAI_IN_DROP_REASON_DIP_LOCAL:
+            case SAI_IN_DROP_REASON_DIP_LINK_LOCAL:
+            case SAI_IN_DROP_REASON_SIP_LINK_LOCAL:
+            case SAI_IN_DROP_REASON_IPV6_MC_SCOPE0:    
+            case SAI_IN_DROP_REASON_IPV6_MC_SCOPE1:    
+                *ctc_drop_reason = CTC_DROP_EXCP;
+                break;
+            case SAI_IN_DROP_REASON_BLACKHOLE_ROUTE:    
+                *ctc_drop_reason = CTC_DROP_FWD_ERR;
+                break;
+            case SAI_IN_DROP_REASON_UNRESOLVED_NEXT_HOP:    
+                *ctc_drop_reason = CTC_DROP_FWD_ERR;
+                break;
+            case SAI_IN_DROP_REASON_ACL_ANY:    
+                *ctc_drop_reason = CTC_DROP_ACL_DENY;
+                break;
+            case SAI_IN_DROP_REASON_L2_ANY:
+            case SAI_IN_DROP_REASON_FDB_MC_DISCARD:
+            case SAI_IN_DROP_REASON_EXCEEDS_L2_MTU:
+            case SAI_IN_DROP_REASON_L3_ANY:    
+            case SAI_IN_DROP_REASON_TTL:
+            case SAI_IN_DROP_REASON_L3_LOOPBACK_FILTER:
+            case SAI_IN_DROP_REASON_NON_ROUTABLE:
+            case SAI_IN_DROP_REASON_NO_L3_HEADER:    
+            case SAI_IN_DROP_REASON_IRIF_DISABLED:
+            case SAI_IN_DROP_REASON_ERIF_DISABLED:
+            case SAI_IN_DROP_REASON_LPM4_MISS:
+            case SAI_IN_DROP_REASON_LPM6_MISS:    
+            case SAI_IN_DROP_REASON_BLACKHOLE_ARP:   
+            case SAI_IN_DROP_REASON_L3_EGRESS_LINK_DOWN:
+            case SAI_IN_DROP_REASON_DECAP_ERROR:
+            case SAI_IN_DROP_REASON_ACL_INGRESS_PORT:    
+            case SAI_IN_DROP_REASON_ACL_INGRESS_LAG:    
+            case SAI_IN_DROP_REASON_ACL_INGRESS_VLAN:    
+            case SAI_IN_DROP_REASON_ACL_INGRESS_RIF:    
+            case SAI_IN_DROP_REASON_ACL_INGRESS_SWITCH:    
+            case SAI_IN_DROP_REASON_ACL_EGRESS_PORT:    
+            case SAI_IN_DROP_REASON_ACL_EGRESS_LAG:    
+            case SAI_IN_DROP_REASON_ACL_EGRESS_VLAN:    
+            case SAI_IN_DROP_REASON_ACL_EGRESS_RIF:    
+            case SAI_IN_DROP_REASON_ACL_EGRESS_SWITCH:   
+                return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                break;
+            default:
+                return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                break;
+
+        }
+        #endif
     }
     else if (DROP_REASON_OUT == dir)
     {
+        #if SDK_TM_BRANCH
         switch(sai_drop_reason)
         {
             case SAI_OUT_DROP_REASON_EGRESS_VLAN_FILTER:    
@@ -172,6 +267,22 @@ _ctc_sai_debug_counter_drop_reason_map(uint32 sai_drop_reason, uint8 dir, uint32
                 return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 break;
         }
+        #else
+        switch(sai_drop_reason)
+        {
+            case SAI_OUT_DROP_REASON_EGRESS_VLAN_FILTER:    
+                *ctc_drop_reason = CTC_DROP_VLAN_FILTER;
+                break;
+            case SAI_OUT_DROP_REASON_L2_ANY:
+            case SAI_OUT_DROP_REASON_L3_ANY:       
+            case SAI_OUT_DROP_REASON_L3_EGRESS_LINK_DOWN:    
+                return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                break;
+            default:
+                return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                break;
+        }
+        #endif
     }
     else
     {

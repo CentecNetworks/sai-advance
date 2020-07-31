@@ -85,9 +85,9 @@ typedef enum _sai_y1731_meg_attr_t
      *
      * @type sai_uint8_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @validonly SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_ETHER or 
+     * @validonly SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_ETHER_VLAN or 
      *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VLAN or
-     *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VSI
+     *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPLS
      */
     SAI_Y1731_MEG_ATTR_LEVEL,
     
@@ -127,7 +127,7 @@ typedef enum _sai_y1731_remote_mep_attr_t
      * @brief Y1731 remote mep id
      *
      * @type sai_uint32_t
-     * @flags CREATE_ONLY
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      */
     SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_ID,
     
@@ -279,7 +279,9 @@ typedef enum _sai_y1731_session_attr_t
      * @type sai_uint32_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @validonly SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_ETHER_VLAN or 
-     *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VLAN
+     *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VLAN or
+     *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPLS or
+     *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPWS
      */
     SAI_Y1731_SESSION_ATTR_VLAN_ID,
     
@@ -288,7 +290,7 @@ typedef enum _sai_y1731_session_attr_t
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @validonly SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VSI 
+     * @validonly SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPLS 
      */
     SAI_Y1731_SESSION_ATTR_BRIDGE_ID,
     
@@ -297,9 +299,9 @@ typedef enum _sai_y1731_session_attr_t
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @validonly SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_ETHER or 
+     * @validonly SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_ETHER_VLAN or 
      *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VLAN or
-     *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VSI
+     *      SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPLS
      */
     SAI_Y1731_SESSION_ATTR_PORT_ID,
     
@@ -335,19 +337,7 @@ typedef enum _sai_y1731_session_attr_t
      * @flags CREATE_AND_SET
      * @default true
      */
-    SAI_Y1731_SESSION_ATTR_CCM_ENABLE,
-    
-    /**
-     * @brief Y1731 session is p2p mode
-     * @if p2p mode is true, only one remote mep is allowed, otherwise multiple remote meps is allowed
-     * @when SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VSI or 
-     * @SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_MPLS_TP, only need p2p mode     
-     *
-     * @type bool
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @default false
-     */
-    //SAI_Y1731_SESSION_ATTR_IS_P2P_MODE,   //need consider
+    SAI_Y1731_SESSION_ATTR_CCM_ENABLE,    
     
     /**
      * @brief Remote MEP list
@@ -407,7 +397,7 @@ typedef enum _sai_y1731_session_attr_t
     /**
      * @brief Y1731 session local RDI set
      *
-     * @type sai_uint8_t
+     * @type bool
      * @flags CREATE_AND_SET
      * @default false
      */

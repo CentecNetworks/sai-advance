@@ -74,40 +74,40 @@
  The ACL Action Type attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                                |   SUPPORT CHIPS LIST   |
-\t  |  SAI_ACL_ACTION_TYPE_REDIRECT                              |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_REDIRECT_LIST                         |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_PACKET_ACTION                         |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_FLOOD                                 |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_COUNTER                               |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_MIRROR_INGRESS                        |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_MIRROR_EGRESS                         |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_POLICER                           |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_DECREMENT_TTL                         |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_TC                                |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_PACKET_COLOR                      |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_INNER_VLAN_ID                     |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_INNER_VLAN_PRI                    |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_OUTER_VLAN_ID                     |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_OUTER_VLAN_PRI                    |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_SRC_MAC                           |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_DST_MAC                           |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_SRC_IP                            |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_DST_IP                            |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_SRC_IPV6                          |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_DST_IPV6                          |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_DSCP                              |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_ECN                               |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_L4_SRC_PORT                       |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_L4_DST_PORT                       |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_INGRESS_SAMPLEPACKET_ENABLE           |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_EGRESS_SAMPLEPACKET_ENABLE            |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_ACL_META_DATA                     |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_EGRESS_BLOCK_PORT_LIST                |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_USER_TRAP_ID                      |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_DO_NOT_LEARN                      |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_DTEL_TAIL_DROP_REPORT_ENABLE          |           -            |
-\t  |  SAI_ACL_ACTION_TYPE_SET_ISOLATION_GROUP                   |           -            |
+\t  |   ATTRIBUTE                                                |       SUPPORT CHIPS LIST       |
+\t  |  SAI_ACL_ACTION_TYPE_REDIRECT                              |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_REDIRECT_LIST                         |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_PACKET_ACTION                         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_FLOOD                                 |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_COUNTER                               |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_MIRROR_INGRESS                        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_MIRROR_EGRESS                         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_POLICER                           |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_DECREMENT_TTL                         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_TC                                |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_PACKET_COLOR                      |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_INNER_VLAN_ID                     |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_INNER_VLAN_PRI                    |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_OUTER_VLAN_ID                     |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_OUTER_VLAN_PRI                    |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_SRC_MAC                           |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_DST_MAC                           |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_SRC_IP                            |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_DST_IP                            |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_SRC_IPV6                          |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_DST_IPV6                          |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_DSCP                              |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_ECN                               |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_L4_SRC_PORT                       |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_L4_DST_PORT                       |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_INGRESS_SAMPLEPACKET_ENABLE           |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_EGRESS_SAMPLEPACKET_ENABLE            |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_ACL_META_DATA                     |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_EGRESS_BLOCK_PORT_LIST                |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_USER_TRAP_ID                      |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_SET_DO_NOT_LEARN                      |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_DTEL_TAIL_DROP_REPORT_ENABLE          |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_SET_ISOLATION_GROUP                   |              -                 |
 \b
 
 \p
@@ -162,7 +162,7 @@
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_IN_PORTS                         |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_OUT_PORTS                        |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_IN_PORT                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_TABLE_ATTR_FIELD_OUT_PORT                         |              -                 |
+\t  |  SAI_ACL_TABLE_ATTR_FIELD_OUT_PORT                         |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_SRC_PORT                         |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_OUTER_VLAN_ID                    |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_OUTER_VLAN_PRI                   |    CTC8096,CTC7148,CTC7132     |
@@ -181,9 +181,9 @@
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_IP_IDENTIFICATION                |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_DSCP                             |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ECN                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_TABLE_ATTR_FIELD_TTL                              |              -                 |
+\t  |  SAI_ACL_TABLE_ATTR_FIELD_TTL                              |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_TOS                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_TABLE_ATTR_FIELD_IP_FLAGS                         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_FIELD_IP_FLAGS                         |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_TCP_FLAGS                        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE                      |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_FRAG                      |    CTC8096,CTC7148,CTC7132     |
@@ -193,9 +193,9 @@
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ICMP_CODE                        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ICMPV6_TYPE                      |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ICMPV6_CODE                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_TABLE_ATTR_FIELD_PACKET_VLAN                      |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_FIELD_PACKET_VLAN                      |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_TUNNEL_VNI                       |              -                 |
-\t  |  SAI_ACL_TABLE_ATTR_FIELD_HAS_VLAN_TAG                     |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_FIELD_HAS_VLAN_TAG                     |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_MACSEC_SCI                       |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_LABEL                |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_TTL                  |    CTC8096,CTC7148,CTC7132     |
@@ -228,7 +228,22 @@
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ROUTE_NPU_META_DST_HIT           |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_BTH_OPCODE                       |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_AETH_SYNDROME                    |              -                 |
-\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN           |              -                 |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN           |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+8         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+9         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+10        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+11        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+12        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+13        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+14        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+15        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX           |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ACL_RANGE_TYPE                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER                 |    CTC8096,CTC7148,CTC7132     |
@@ -236,6 +251,9 @@
 \t  |  SAI_ACL_TABLE_ATTR_ENTRY_LIST                             |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_AVAILABLE_ACL_ENTRY                    |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_AVAILABLE_ACL_COUNTER                  |              -                 |
+\t  |  SAI_ACL_TABLE_ATTR_FIELD_INNER_SRC_MAC                    |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_FIELD_INNER_DST_MAC                    |    CTC8096,CTC7148,CTC7132     |
+
 \b
 
 \p
@@ -259,7 +277,7 @@
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_IN_PORTS                         |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_OUT_PORTS                        |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_ENTRY_ATTR_FIELD_OUT_PORT                         |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_FIELD_OUT_PORT                         |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_SRC_PORT                         |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_OUTER_VLAN_ID                    |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_OUTER_VLAN_PRI                   |    CTC8096,CTC7148,CTC7132     |
@@ -278,9 +296,9 @@
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_IP_IDENTIFICATION                |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_DSCP                             |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ECN                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_ENTRY_ATTR_FIELD_TTL                              |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_FIELD_TTL                              |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_TOS                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_ENTRY_ATTR_FIELD_IP_FLAGS                         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_FIELD_IP_FLAGS                         |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_TCP_FLAGS                        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE                      |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_FRAG                      |    CTC8096,CTC7148,CTC7132     |
@@ -290,10 +308,10 @@
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ICMP_CODE                        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ICMPV6_TYPE                      |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ICMPV6_CODE                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_ENTRY_ATTR_FIELD_PACKET_VLAN                      |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_FIELD_PACKET_VLAN                      |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_TUNNEL_VNI                       |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_HAS_VLAN_TAG                     |              -                 |
-\t  |  SAI_ACL_ENTRY_ATTR_FIELD_MACSEC_SCI                       |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_FIELD_MACSEC_SCI                       |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_LABEL                |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_TTL                  |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_EXP                  |    CTC8096,CTC7148,CTC7132     |
@@ -325,7 +343,22 @@
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ROUTE_NPU_META_DST_HIT           |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_BTH_OPCODE                       |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_AETH_SYNDROME                    |              -                 |
-\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN           |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN           |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+8         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+9         |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+10        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+11        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+12        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+13        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+14        |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+15        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX           |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ACL_RANGE_TYPE                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER                 |    CTC8096,CTC7148,CTC7132     |
@@ -335,10 +368,10 @@
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_FLOOD                           |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_COUNTER                         |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_INGRESS                  |              -                 |
-\t  |  SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_EGRESS                   |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_INGRESS                  |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_EGRESS                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_ENTRY_ATTR_ACTION_DECREMENT_TTL                   |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_DECREMENT_TTL                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_SET_TC                          |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_SET_PACKET_COLOR                |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_SET_INNER_VLAN_ID               |    CTC8096,CTC7148,CTC7132     |
@@ -401,8 +434,8 @@
 \t  |   ATTRIBUTE                                                |       SUPPORT CHIPS LIST       |
 \t  |  SAI_ACL_RANGE_ATTR_TYPE                                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_RANGE_ATTR_LIMIT                                  |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_RANGE_ATTR_STAGE                                  |    CTC8096,CTC7148,CTC7132     |
 \b
-
 */
 
 
@@ -422,16 +455,16 @@
 #define ACL_MAX_FLEX_KEY_COUNT     (SAI_ACL_ENTRY_ATTR_FIELD_END - SAI_ACL_ENTRY_ATTR_FIELD_START + 1)
 #define ACL_MAX_FLEX_ACTION_COUNT  (SAI_ACL_ENTRY_ATTR_ACTION_END - SAI_ACL_ENTRY_ATTR_ACTION_START + 1)
 
-/* ingress acl tcam block 0 used for copp and twamp, block 1~4 used for parallel, block 5~6 used for sequential, block 7 used for blobal switch.
+/* ingress acl tcam block 0 used for twamp, 1 used for hostif, block 2~4 used for parallel, block 5~6 used for sequential, block 7 used for blobal switch.
  * egress acl tcam block 0~2 used for parallel, not support sequential and blobal switch.
  */
-#define ACL_INGRESS_RESERVE_TCAM_BLOCK_NUM   1U
-#define ACL_INGRESS_PARAELL_TCAM_BLOCK_NUM   4U
+#define ACL_INGRESS_RESERVE_TCAM_BLOCK_NUM   2U
+#define ACL_INGRESS_PARAELL_TCAM_BLOCK_NUM   3U
 #define ACL_INGRESS_SEQUENT_TCAM_BLOCK_NUM   2U
 #define ACL_INGRESS_GLOBAL_TCAM_BLOCK_NUM    1U
 
 #define ACL_INGRESS_RESERVE_TCAM_BLOCK_BASE  0U
-#define ACL_INGRESS_PARAELL_TCAM_BLOCK_BASE  1U
+#define ACL_INGRESS_PARAELL_TCAM_BLOCK_BASE  2U
 #define ACL_INGRESS_SEQUENT_TCAM_BLOCK_BASE  5U
 #define ACL_INGRESS_GLOBAL_TCAM_BLOCK_BASE   7U
 
@@ -439,6 +472,10 @@
 #define ACL_EGRESS_SEQUENT_TCAM_BLOCK_NUM    0U
 
 #define ACL_EGRESS_PARAELL_TCAM_BLOCK_BASE   0U
+
+#define ACL_TCAM_LOOKUP_NUM                  8U
+
+#define ACL_VLAN_RANGE_NUM                  64U
 
 /* Common part */
 /* group or table bind point info */
@@ -465,8 +502,8 @@ struct ctc_sai_acl_group_s
     uint8 group_type;
     uint8 bind_point_list;
     uint32 lookup_type;
-    ctc_slist_t *member_list;       /* all the members(table) in the group */
-    ctc_slist_t *bind_points;       /* the group (as bind unit) is bound to these bind points */
+    ctc_slist_t* member_list;       /* all the members(table) in the group */
+    ctc_slist_t* bind_points;       /* the group (as bind unit) is bound to these bind points */
 };
 typedef struct ctc_sai_acl_group_s ctc_sai_acl_group_t;
 
@@ -496,9 +533,9 @@ struct ctc_sai_acl_table_s
     uint32 table_key_bmp[(ACL_MAX_FLEX_KEY_COUNT - 1) / 32 + 1];    /* bit 0 <--> SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6; bit 1 <--> SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6 */
     uint8  range_type_bmp;
 
-    ctc_slist_t *entry_list;                                        /* all entries added to this table */
-    ctc_slist_t *group_list;                                        /* the table is a member of these groups */
-    ctc_slist_t *bind_points;                                       /* the table (as bind unit) is bound to these bind points */
+    ctc_slist_t* entry_list;                                        /* all entries added to this table */
+    ctc_slist_t* group_list;                                        /* the table is a member of these groups */
+    ctc_slist_t* bind_points;                                       /* the table (as bind unit) is bound to these bind points */
 };
 typedef struct ctc_sai_acl_table_s ctc_sai_acl_table_t;
 
@@ -512,8 +549,8 @@ struct ctc_sai_acl_entry_s
     uint8 ctc_mirror_id;
 
     /* key and action attribute list */
-    sai_attribute_t *key_attr_list;
-    sai_attribute_t *action_attr_list;
+    sai_attribute_t* key_attr_list;
+    sai_attribute_t* action_attr_list;
 };
 typedef struct ctc_sai_acl_entry_s ctc_sai_acl_entry_t;
 
@@ -529,6 +566,8 @@ typedef struct ctc_sai_acl_table_group_member_s ctc_sai_acl_table_group_member_t
 /* Range */
 struct ctc_sai_acl_range_s
 {
+    uint8  stage;
+    uint8  group_id;
     uint8  range_type;
     uint32 range_min;
     uint32 range_max;

@@ -43,6 +43,7 @@
 #include "ctc_sai_ptp.h"
 #include "ctc_sai_es.h"
 #include "ctc_sai_synce.h"
+#include "ctc_sai_monitor.h"
 
 extern ctc_sai_db_t* g_sai_db[CTC_SAI_MAX_CHIP_NUM];
 
@@ -830,6 +831,7 @@ sai_api_initialize( uint64_t flags,  const sai_service_method_table_t* services)
     ctc_sai_y1731_api_init();
     ctc_sai_es_api_init();
     ctc_sai_synce_api_init();
+    ctc_sai_monitor_api_init();
 
     g_api_master.api_status = true;
     /*init sai all module*/
@@ -1372,6 +1374,12 @@ sai_dbg_generate_dump(const char *dump_file_name)
         if (CTC_BMP_ISSET(dump_grep_param.api_bmp, SAI_API_ES))
         {
             ctc_sai_es_dump(lchip, p_file, &dump_grep_param);
+        }
+
+        if (CTC_BMP_ISSET(dump_grep_param.api_bmp, SAI_API_MONITOR))
+        {
+            ctc_sai_monitor_buffer_dump(lchip, p_file, &dump_grep_param);
+            ctc_sai_monitor_latency_dump(lchip, p_file, &dump_grep_param);
         }
 
         CTC_SAI_DB_UNLOCK(lchip);

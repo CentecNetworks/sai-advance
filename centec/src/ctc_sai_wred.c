@@ -73,12 +73,27 @@ _ctc_sai_wred_map_attr_to_db(const sai_attribute_t* attr_list, uint32 attr_count
     {
         p_wred->drop_prob[SAI_PACKET_COLOR_RED] = attr_value->u32;
     }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_WRED_ATTR_ECN_GREEN_MAX_THRESHOLD, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        p_wred->ecn_th[SAI_PACKET_COLOR_GREEN] = attr_value->u32;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_WRED_ATTR_ECN_YELLOW_MAX_THRESHOLD, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        p_wred->ecn_th[SAI_PACKET_COLOR_YELLOW] = attr_value->u32;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_WRED_ATTR_ECN_RED_MAX_THRESHOLD, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        p_wred->ecn_th[SAI_PACKET_COLOR_RED] = attr_value->u32;
+    }
 
     return SAI_STATUS_SUCCESS;
 }
 
 static sai_status_t
-_ctc_sai_wred_map_db_to_ctc_drop(ctc_sai_wred_db_t* psai_wred, ctc_qos_drop_t* pctc_drop)
+_ctc_sai_wred_map_db_to_ctc_drop(ctc_sai_wred_db_t* psai_wred, ctc_qos_drop_t* pctc_drop, uint8 is_wred)
 {
     uint32 idx = 0;
     uint8 ctc_idx = 0;
@@ -98,13 +113,21 @@ _ctc_sai_wred_map_db_to_ctc_drop(ctc_sai_wred_db_t* psai_wred, ctc_qos_drop_t* p
             ctc_idx = 0;
         }
 
-        pctc_drop->drop.drop_prob[ctc_idx] = psai_wred->drop_prob[idx] * 31 / 100;//default value is 100%
-        if (!psai_wred->color_en[idx])
+        if(is_wred) 
         {
-            continue;
+            pctc_drop->drop.drop_prob[ctc_idx] = psai_wred->drop_prob[idx] * 31 / 100;//default value is 100%
+            if (!psai_wred->color_en[idx])
+            {
+                continue;
+            }
+            pctc_drop->drop.min_th[ctc_idx] = psai_wred->min_th[idx];
+            pctc_drop->drop.max_th[ctc_idx] = psai_wred->max_th[idx];
+
         }
-        pctc_drop->drop.min_th[ctc_idx] = psai_wred->min_th[idx];
-        pctc_drop->drop.max_th[ctc_idx] = psai_wred->max_th[idx];
+        else
+        {
+            pctc_drop->drop.ecn_th[ctc_idx] = psai_wred->ecn_th[idx];
+        }
     }
 
     return SAI_STATUS_SUCCESS;
@@ -163,6 +186,15 @@ _ctc_sai_wred_get_attr(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr
         case SAI_WRED_ATTR_RED_DROP_PROBABILITY:
             attr->value.u32 = p_wred_db->drop_prob[SAI_PACKET_COLOR_RED];
             break;
+        case SAI_WRED_ATTR_ECN_GREEN_MAX_THRESHOLD:
+            attr->value.u32 = p_wred_db->ecn_th[SAI_PACKET_COLOR_GREEN];
+            break;
+        case SAI_WRED_ATTR_ECN_YELLOW_MAX_THRESHOLD:
+            attr->value.u32 = p_wred_db->ecn_th[SAI_PACKET_COLOR_YELLOW];
+            break;
+        case SAI_WRED_ATTR_ECN_RED_MAX_THRESHOLD:
+            attr->value.u32 = p_wred_db->ecn_th[SAI_PACKET_COLOR_RED];
+            break;
         default:
             CTC_SAI_LOG_ERROR(SAI_API_WRED, "wred attribute not implement\n");
             return SAI_STATUS_NOT_IMPLEMENTED;
@@ -199,10 +231,21 @@ _ctc_sai_wred_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
 
     if (p_wred_db->used_cnt)
     {
-        _ctc_sai_wred_map_db_to_ctc_drop(&wred_db_temp, &ctc_drop);
+        _ctc_sai_wred_map_db_to_ctc_drop(&wred_db_temp, &ctc_drop, 1);
         ctc_drop.drop.mode = CTC_QUEUE_DROP_WRED;
+        ctc_drop.drop.is_coexist = 1;
         queue_param.lchip = lchip;
         queue_param.set_type = CTC_SAI_Q_SET_TYPE_WRED;
+        queue_param.cmp_value = &ctc_oid.value;
+        queue_param.p_value = &ctc_drop;
+        CTC_SAI_ERROR_RETURN(ctc_sai_queue_traverse_set(&queue_param));
+
+        sal_memset(&ctc_drop, 0, sizeof(ctc_drop));
+        _ctc_sai_wred_map_db_to_ctc_drop(&wred_db_temp, &ctc_drop, 0);
+        ctc_drop.drop.mode = CTC_QUEUE_DROP_WTD;
+        ctc_drop.drop.is_coexist = 1;
+        queue_param.lchip = lchip;
+        queue_param.set_type = CTC_SAI_Q_SET_TYPE_WRED_ECN;
         queue_param.cmp_value = &ctc_oid.value;
         queue_param.p_value = &ctc_drop;
         CTC_SAI_ERROR_RETURN(ctc_sai_queue_traverse_set(&queue_param));
@@ -228,6 +271,9 @@ static ctc_sai_attr_fn_entry_t  wred_attr_fn_entries[] =
         {SAI_WRED_ATTR_RED_MAX_THRESHOLD, _ctc_sai_wred_get_attr, _ctc_sai_wred_set_attr},
         {SAI_WRED_ATTR_RED_DROP_PROBABILITY, _ctc_sai_wred_get_attr, _ctc_sai_wred_set_attr},
         {SAI_WRED_ATTR_WEIGHT, NULL, NULL },
+        {SAI_WRED_ATTR_ECN_GREEN_MAX_THRESHOLD, _ctc_sai_wred_get_attr, _ctc_sai_wred_set_attr},
+        {SAI_WRED_ATTR_ECN_YELLOW_MAX_THRESHOLD, _ctc_sai_wred_get_attr, _ctc_sai_wred_set_attr},
+        {SAI_WRED_ATTR_ECN_RED_MAX_THRESHOLD, _ctc_sai_wred_get_attr, _ctc_sai_wred_set_attr},
         {SAI_WRED_ATTR_ECN_MARK_MODE, NULL, NULL },
         { CTC_SAI_FUNC_ATTR_END_ID, NULL, NULL }
 };
@@ -272,19 +318,38 @@ ctc_sai_wred_queue_set_wred(sai_object_id_t queue_id, uint32 wred_id, uint32 old
         && (p_switch->port_queues == 16))
     {
         ctc_drop.queue.queue_id = ctc_oid.value2 + CTC_QOS_BASIC_Q_NUM;
+        ctc_drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
     }
-    else
+    else if (ctc_oid.sub_type == SAI_QUEUE_TYPE_SERVICE)
+    {
+        ctc_drop.queue.queue_id = ctc_oid.value2 & 0x3F;
+        ctc_drop.queue.service_id = (ctc_oid.value2 >> 6);
+        ctc_drop.queue.queue_type = CTC_QUEUE_TYPE_SERVICE_INGRESS;
+    }
+    else 
     {
         ctc_drop.queue.queue_id = ctc_oid.value2;
+        ctc_drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
     }
-    ctc_drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    
     if (enable)
     {
-        ctc_drop.drop.mode = CTC_QUEUE_DROP_WRED;
+        /*update wred */
+        ctc_drop.drop.mode = CTC_QUEUE_DROP_WRED;        
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &ctc_drop));
 
-        _ctc_sai_wred_map_db_to_ctc_drop(p_wred_db, &ctc_drop);
+        _ctc_sai_wred_map_db_to_ctc_drop(p_wred_db, &ctc_drop, 1);
+        ctc_drop.drop.is_coexist = 1;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &ctc_drop));
+
+        /*update ecn */
+        ctc_drop.drop.mode = CTC_QUEUE_DROP_WTD;        
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &ctc_drop));
+
+        _ctc_sai_wred_map_db_to_ctc_drop(p_wred_db, &ctc_drop, 0);
+        ctc_drop.drop.is_coexist = 1;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &ctc_drop));
+        
         p_wred_db->used_cnt++;
 
         if (old_wred_id)
@@ -306,12 +371,20 @@ ctc_sai_wred_queue_set_wred(sai_object_id_t queue_id, uint32 wred_id, uint32 old
     }
     else
     {
-        //set the default wtd value, enable wtd
+        //get wtd value, enable wtd, clear wred cfg
         ctc_drop.drop.mode = CTC_QUEUE_DROP_WTD;
-        ctc_drop.drop.max_th[2] = p_switch->default_wtd_thrd[SAI_PACKET_COLOR_GREEN];
-        ctc_drop.drop.max_th[1] = p_switch->default_wtd_thrd[SAI_PACKET_COLOR_YELLOW];
-        ctc_drop.drop.max_th[0] = p_switch->default_wtd_thrd[SAI_PACKET_COLOR_RED];
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &ctc_drop));
+        ctc_drop.drop.is_coexist = 0;
+
+        ctc_drop.drop.ecn_th[2] = p_switch->default_ecn_thrd[SAI_PACKET_COLOR_GREEN];
+        ctc_drop.drop.ecn_th[1] = p_switch->default_ecn_thrd[SAI_PACKET_COLOR_YELLOW];
+        ctc_drop.drop.ecn_th[0] = p_switch->default_ecn_thrd[SAI_PACKET_COLOR_RED];
+        
+        //ctc_drop.drop.max_th[2] = p_switch->default_wtd_thrd[SAI_PACKET_COLOR_GREEN];
+        //ctc_drop.drop.max_th[1] = p_switch->default_wtd_thrd[SAI_PACKET_COLOR_YELLOW];
+        //ctc_drop.drop.max_th[0] = p_switch->default_wtd_thrd[SAI_PACKET_COLOR_RED];
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &ctc_drop));
+        
         if (p_wred_db->used_cnt)
         {
             p_wred_db->used_cnt--;

@@ -75,6 +75,9 @@
 #include "saies.h"
 #include "saiptp.h"
 #include "saisynce.h"
+#include "sainpm.h"
+#include "saimonitor.h"
+
 
 
 /**
@@ -140,8 +143,9 @@ typedef enum _sai_api_t
     SAI_API_ES               = 45, /**< sai_es_api_t */
     SAI_API_Y1731            = 46, /**< sai_y1731_api_t */
     SAI_API_PTP              = 47, /**< sai_ptp_api_t */
-    SAI_API_SYNCE              = 48, /**< sai_synce_api_t */    
-    SAI_API_MAX              = 49, /**< total number of APIs */
+    SAI_API_SYNCE              = 48, /**< sai_synce_api_t */  
+    SAI_API_MONITOR         =49, /**< sai_monitor_api_t */ 
+    SAI_API_MAX              = 50, /**< total number of APIs */
 } sai_api_t;
 
 /**

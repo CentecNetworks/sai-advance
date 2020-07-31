@@ -185,6 +185,12 @@ typedef enum _sai_udf_match_attr_t
     /** Custom range base value */
     SAI_UDF_MATCH_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
+    SAI_UDF_MATCH_ATTR_CUSTOM_MPLS_LABEL_NUM = SAI_UDF_MATCH_ATTR_CUSTOM_RANGE_START,
+
+    SAI_UDF_MATCH_ATTR_CUSTOM_L4_SRC_PORT,
+
+    SAI_UDF_MATCH_ATTR_CUSTOM_L4_DST_PORT,
+
     /** End of custom range base */
     SAI_UDF_MATCH_ATTR_CUSTOM_RANGE_END
 

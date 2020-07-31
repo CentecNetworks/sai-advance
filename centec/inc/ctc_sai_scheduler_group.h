@@ -32,6 +32,7 @@ This module defines SAI Scheduler Group.
 \t  |  SAI_SCHEDULER_GROUP_ATTR_MAX_CHILDS                  |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_SCHEDULER_GROUP_ATTR_SCHEDULER_PROFILE_ID        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_SCHEDULER_GROUP_ATTR_PARENT_NODE                 |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_SCHEDULER_GROUP_ATTR_SERVICE_ID                  |            CTC7132             |
 \b
 */
 
@@ -45,10 +46,14 @@ This module defines SAI Scheduler Group.
 
 #define CTC_SAI_MAX_SCHED_LEVELS 3
 #define CTC_SAI_SCHED_MAX_GRP_NUM 8
-//#define CTC_SAI_SCHED_ETS_GRP_NUM 2
+#define CTC_SAI_SCHED_ETS_GRP_NUM 3
+#define CTC_SAI_SCHED_SERVICE_GRP_NUM 64
 #define CTC_SAI_SCHED_PORT_GRP_NUM 4
 
 #define CTC_SAI_PORT_SCHED_GROUP_NUM 4
+
+
+
 
 typedef struct  ctc_sai_sched_group_db_s
 {
@@ -58,6 +63,7 @@ typedef struct  ctc_sai_sched_group_db_s
     sai_object_id_t parent_id;
     sai_object_id_t sched_id;
     uint8 max_childs;
+    uint16 service_id;
 }ctc_sai_sched_group_db_t;
 
 sai_status_t
@@ -74,6 +80,9 @@ ctc_sai_scheduler_group_port_get_sched_group_num(sai_object_id_t port_id, sai_at
 
 sai_status_t
 ctc_sai_scheduler_group_queue_set_scheduler(sai_object_id_t queue_id, const sai_attribute_t *attr);
+
+uint16
+ctc_sai_scheduler_group_get_group_index_base(uint8 lchip, uint16 service_id);
 
 void
 ctc_sai_scheduler_group_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t* dump_grep_param);

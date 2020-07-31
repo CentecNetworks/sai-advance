@@ -3,6 +3,8 @@
 #include "ctc_sai_port.h"
 #include "ctc_sai_router_interface.h"
 #include "ctc_sai_qosmap.h"
+#include "ctc_sai_mpls.h"
+#include "ctc_sai_next_hop.h"
 
 //domain = 0, used for switch
 #define QOS_MAP_DOMAIN_ID_START       1
@@ -107,6 +109,209 @@ _ctc_sai_qos_map_port_get_ctc_domain_id(uint8 lchip, uint32 gport, sai_qos_map_t
 }
 
 static sai_status_t
+_ctc_sai_qos_map_mpls_ilm_alloc_domain(uint8 lchip,
+                                    uint32 inseg_label_or_nhid, sai_qos_map_type_t map_type,
+                                    ctc_sai_qos_domain_map_id_t* domain_node,
+                                    bool enable, uint8* new_domain,
+                                    uint8* old_domain, uint8* new_alloc, uint8 is_nh)
+{
+    uint8 domain_idx = 0;
+    uint8 find = 0;
+    uint8 domain_num = QOS_MAP_DOMAIN_NUM_DOT1P;
+    ctc_sai_switch_master_t* p_switch_db = NULL;
+    ctc_sai_qos_domain_map_id_t* domain_switch = NULL;
+    uint8 old_domain_id = 0;
+    uint8 find_idx = 0;
+    uint32 value1 = 0;
+    uint32 value2 = 0;
+    ctc_mpls_property_t mpls_pro;
+    ctc_mpls_ilm_qos_map_t ilm_qos_map;
+    ctc_mpls_nexthop_param_t nh_mpls_param;
+    ctc_nh_info_t ctc_nh_info;
+    ctc_mpls_nexthop_push_param_t* p_push = NULL;
+    ctc_mpls_nexthop_tunnel_param_t mpls_tunnel_param;
+    ctc_mpls_nexthop_tunnel_info_t* p_tunnel_info = NULL;
+
+    *new_alloc = 0;
+
+    sal_memset(&ilm_qos_map, 0, sizeof(ctc_mpls_ilm_qos_map_t));
+    sal_memset(&mpls_pro, 0, sizeof(mpls_pro));
+    sal_memset(&nh_mpls_param, 0, sizeof(nh_mpls_param));
+    sal_memset(&ctc_nh_info, 0, sizeof(ctc_nh_info));
+    sal_memset(&mpls_tunnel_param, 0, sizeof(mpls_tunnel_param));
+
+    CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
+
+    if(!is_nh)
+    {
+        mpls_pro.label = inseg_label_or_nhid;
+        mpls_pro.value = &ilm_qos_map;
+        mpls_pro.property_type = CTC_MPLS_ILM_QOS_MAP;
+        ctcs_mpls_get_ilm_property(lchip, &mpls_pro);
+
+        old_domain_id = ilm_qos_map.exp_domain;
+    }
+    else
+    {
+        ctc_nh_info.p_nh_param = &nh_mpls_param;
+        if(ctcs_nh_get_nh_info(lchip, inseg_label_or_nhid, &ctc_nh_info) == 0)
+        {
+            if(ctc_nh_info.nh_type == CTC_NH_TYPE_MPLS)
+            {
+                if(nh_mpls_param.nh_prop == CTC_MPLS_NH_PUSH_TYPE)
+                {
+                    p_push = (ctc_mpls_nexthop_push_param_t*)&nh_mpls_param.nh_para.nh_param_push;
+                    if(p_push->tunnel_id && !p_push->label_num) //mpls tunnel nh
+                    {
+                        ctcs_nh_get_mpls_tunnel_label(lchip, p_push->tunnel_id, &mpls_tunnel_param);
+                        p_tunnel_info = &mpls_tunnel_param.nh_param;
+                        old_domain_id = p_tunnel_info->tunnel_label[0].exp_domain;
+                    }
+                    else
+                    {
+                        old_domain_id = p_push->push_label[0].exp_domain;
+                    }
+                }            
+            }
+        }
+        else
+        {
+            //nh not exist, consider old_domain_id as 0.
+        }
+
+        
+    }
+        
+    *old_domain = old_domain_id;
+    //free domain on label, so return the default domain id = 0; and it is new alloc
+    switch (map_type)
+    {
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC:
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR:
+            if ((0 == domain_node->tc.exp_to_tc_map_id)
+                && (0 == domain_node->color.exp_to_color_map_id))
+            {
+                *new_domain = 0;
+                if (old_domain_id)
+                {
+                    *new_alloc = 1;
+                }
+                return SAI_STATUS_SUCCESS;
+            }
+            break;
+        case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP:
+            if (0 == domain_node->tc_color.tc_color_to_dot1p_map_id)
+            {
+                *new_domain = 0;
+                if (old_domain_id)
+                {
+                    *new_alloc = 1;
+                }
+                return SAI_STATUS_SUCCESS;
+            }
+            break;
+        default:
+            break;
+    }
+
+    p_switch_db = ctc_sai_get_switch_property(lchip);
+    if (NULL == p_switch_db)
+    {
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
+    if ((map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC)
+        || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR)
+        || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP))
+    {
+        domain_num = QOS_MAP_DOMAIN_NUM_EXP;
+        domain_switch = p_switch_db->qos_domain_exp;
+    }
+    
+    //find twice, the first time to find old used domain; and the second time to find the new unused domain.
+    for (find_idx = 0; find_idx < 2; find_idx++)
+    {
+        for (domain_idx = QOS_MAP_DOMAIN_ID_START; domain_idx < domain_num; domain_idx++)
+        {
+            switch (map_type)
+            {
+                case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC:
+                    value1 = (find_idx == 0) ? domain_node->tc.exp_to_tc_map_id : 0;
+                    value2 = (find_idx == 0) ? domain_node->color.exp_to_color_map_id : 0;
+                    if (((value1 == domain_switch[domain_idx].tc.exp_to_tc_map_id)
+                            && (1 == domain_switch[domain_idx].ref_cnt_tc)
+                            && !domain_switch[domain_idx].color.exp_to_color_map_id
+                            && !value2)
+                    || ((value2 == domain_switch[domain_idx].color.exp_to_color_map_id)
+                            && (1 == domain_switch[domain_idx].ref_cnt_color)
+                            && (0 == domain_switch[domain_idx].tc.exp_to_tc_map_id))
+                    || ((value1 == domain_switch[domain_idx].tc.exp_to_tc_map_id)
+                            && (value2 == domain_switch[domain_idx].color.exp_to_color_map_id)))
+                    {
+                        *new_domain = domain_idx;
+                        find = 1;
+                    }
+                    break;
+                case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR:
+                    value1 = (find_idx == 0) ? domain_node->tc.exp_to_tc_map_id : 0;
+                    value2 = (find_idx == 0) ? domain_node->color.exp_to_color_map_id : 0;
+                    if (((value1 == domain_switch[domain_idx].tc.exp_to_tc_map_id)
+                            && (1 == domain_switch[domain_idx].ref_cnt_tc)
+                            && (0 == domain_switch[domain_idx].color.exp_to_color_map_id))
+                    || ((value2 == domain_switch[domain_idx].color.exp_to_color_map_id)
+                            && (1 == domain_switch[domain_idx].ref_cnt_color)
+                            && !domain_switch[domain_idx].tc.exp_to_tc_map_id
+                            && !value1)
+                    || ((value1 == domain_switch[domain_idx].tc.exp_to_tc_map_id)
+                            && (value2 == domain_switch[domain_idx].color.exp_to_color_map_id)))
+                    {
+                        *new_domain = domain_idx;
+                        find = 1;
+                    }
+                    break;
+                case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP:
+                    value1 = (find_idx == 0) ? domain_node->tc_color.tc_color_to_exp_map_id : 0;
+                    if (value1 == domain_switch[domain_idx].tc_color.tc_color_to_exp_map_id)
+                    {
+                        *new_domain = domain_idx;
+                        find = 1;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            if (find)
+            {
+                if (old_domain_id && (*new_domain != old_domain_id))
+                {
+                    *new_alloc = 1;
+                }
+                return SAI_STATUS_SUCCESS;
+            }
+        }
+    }
+
+    if (!find && !enable)
+    {
+        /*maybe domain X only used for one ilm/nh. so if disable, the ilm/nh also only use the domain*/
+        if (((domain_switch[old_domain_id].ref_cnt_tc == 1)
+            && (domain_switch[old_domain_id].tc.exp_to_tc_map_id == domain_node->tc.exp_to_tc_map_id))
+            || ((domain_switch[old_domain_id].ref_cnt_color == 1)
+            && (domain_switch[old_domain_id].color.exp_to_color_map_id == domain_node->color.exp_to_color_map_id)))
+        {
+            *new_domain = old_domain_id;
+            return SAI_STATUS_SUCCESS;
+        }
+    }
+
+    if (!find)
+    {
+        /*no enough domain*/
+        return SAI_STATUS_FAILURE;
+    }
+    return SAI_STATUS_SUCCESS;
+}
+
+static sai_status_t
 _ctc_sai_qos_map_port_alloc_domain(uint8 lchip,
                                     uint32 gport, sai_qos_map_type_t map_type,
                                     ctc_sai_qos_domain_map_id_t* domain_node,
@@ -171,15 +376,17 @@ _ctc_sai_qos_map_port_alloc_domain(uint8 lchip,
         || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR)
         || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP))
     {
-        domain_num = (CTC_CHIP_DUET2 == ctcs_get_chip_type(lchip)) ? QOS_MAP_DOMAIN_NUM_DSCP : 8;
+        domain_num = (CTC_CHIP_DUET2 <= ctcs_get_chip_type(lchip)) ? QOS_MAP_DOMAIN_NUM_DSCP : 8;
         domain_switch = p_switch_db->qos_domain_dscp;
     }
-    else
+    else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
+        || (map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
+        || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P))
     {
         domain_switch = p_switch_db->qos_domain_dot1p;
     }
 
-    //find twice, the first time to find old used domain; and the second time to find the new unssed domain.
+    //find twice, the first time to find old used domain; and the second time to find the new unused domain.
     for (find_idx = 0; find_idx < 2; find_idx++)
     {
         for (domain_idx = QOS_MAP_DOMAIN_ID_START; domain_idx < domain_num; domain_idx++)
@@ -304,9 +511,17 @@ _ctc_sai_qos_map_set_ctc_domain_map(uint8 lchip, uint32 map_id, uint8 domain_id,
     {
         domain_switch = p_switch_db->qos_domain_dscp;
     }
-    else
+   else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
+        || (map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
+        || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P))
     {
         domain_switch = p_switch_db->qos_domain_dot1p;
+    }
+    else if ((map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC)
+        || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR)
+        || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP))
+    {
+        domain_switch = p_switch_db->qos_domain_exp;
     }
     //domain unset, need not unset again, should return error
     if (!is_set
@@ -376,6 +591,30 @@ _ctc_sai_qos_map_set_ctc_domain_map(uint8 lchip, uint32 map_id, uint8 domain_id,
                     CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_domain_map(lchip, &domain_map));
                 }
                 break;
+            case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC:
+            case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR:
+                domain_map.type = CTC_QOS_DOMAIN_MAP_IGS_EXP_TO_PRI_COLOR;
+                domain_map.hdr_pri.exp = map_list[idx].key.mpls_exp;
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_domain_map(lchip, &domain_map));
+                if (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC)
+                {
+                    domain_map.priority = (is_set ? map_list[idx].value.tc : domain_map.hdr_pri.exp)* QOS_MAP_SAI_TC_TO_CTC_PRI;
+                }
+                else
+                {
+                    if (is_set)
+                    {
+                        QOS_MAP_COLOR_SAI_TO_CTC(map_list[idx].value.color, domain_map.color);
+                    }
+                    else
+                    {
+                        domain_map.color = CTC_QOS_COLOR_GREEN;
+                    }
+                }
+
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_domain_map(lchip, &domain_map));
+                
+                break;
             case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP:
                 domain_map.type = CTC_QOS_DOMAIN_MAP_EGS_PRI_COLOR_TO_DSCP;
                 domain_map.priority = map_list[idx].key.tc * QOS_MAP_SAI_TC_TO_CTC_PRI;
@@ -389,6 +628,13 @@ _ctc_sai_qos_map_set_ctc_domain_map(uint8 lchip, uint32 map_id, uint8 domain_id,
                 domain_map.priority = map_list[idx].key.tc * QOS_MAP_SAI_TC_TO_CTC_PRI;
                 QOS_MAP_COLOR_SAI_TO_CTC(map_list[idx].key.color, domain_map.color);
                 domain_map.hdr_pri.dot1p.cos = is_set ? map_list[idx].value.dot1p : map_list[idx].key.tc;
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_domain_map(lchip, &domain_map));
+                break;
+            case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP:
+                domain_map.type = CTC_QOS_DOMAIN_MAP_EGS_PRI_COLOR_TO_EXP;
+                domain_map.priority = map_list[idx].key.tc * QOS_MAP_SAI_TC_TO_CTC_PRI;
+                QOS_MAP_COLOR_SAI_TO_CTC(map_list[idx].key.color, domain_map.color);
+                domain_map.hdr_pri.exp = is_set ? map_list[idx].value.mpls_exp : map_list[idx].key.tc;
                 CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_domain_map(lchip, &domain_map));
                 break;
             default:
@@ -433,24 +679,35 @@ _ctc_sai_qos_map_domain_set_map_id(uint8 lchip, uint8 domain_id, uint32 map_id, 
     {
         domain_switch = p_switch_db->qos_domain_dscp;
     }
-    else
+    else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
+        || (map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
+        || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P))
     {
         domain_switch = p_switch_db->qos_domain_dot1p;
+    }
+    else if ((map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC)
+        || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR)
+        || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP))
+    {
+        domain_switch = p_switch_db->qos_domain_exp;
     }
     switch (map_type)
     {
         case SAI_QOS_MAP_TYPE_DOT1P_TO_TC:
         case SAI_QOS_MAP_TYPE_DSCP_TO_TC:
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC:
             ref_cnt = &domain_switch[domain_id].ref_cnt_tc;
             map_id_temp = &domain_switch[domain_id].tc.dot1p_to_tc_map_id;
             break;
         case SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR:
         case SAI_QOS_MAP_TYPE_DSCP_TO_COLOR:
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR:
             ref_cnt = &domain_switch[domain_id].ref_cnt_color;
             map_id_temp = &domain_switch[domain_id].color.dot1p_to_color_map_id;
             break;
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP:
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P:
+        case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP:
             ref_cnt = &domain_switch[domain_id].ref_cnt_tc_color;
             map_id_temp = &domain_switch[domain_id].tc_color.tc_color_to_dot1p_map_id;
             break;
@@ -613,9 +870,9 @@ static ctc_sai_attr_fn_entry_t  qos_map_attr_fn_entries[] =
 };
 
 static sai_status_t
-_ctc_sai_qos_map_port_set_domain(uint8 lchip, bool enable, uint32 map_id,
+_ctc_sai_qos_map_set_domain(uint8 lchip, bool enable, uint32 map_id,
                                             sai_qos_map_type_t map_type, ctc_sai_qos_domain_map_id_t* domain_node,
-                                            uint8 domain_id, uint8 old_domain, uint8 is_new_alloc)
+                                            uint8 domain_id, uint8 old_domain, uint8 is_new_alloc, uint32 old_map_id)
 {
     CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
     CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "map_type:%d enable:%d map_id:%d new_domain:%d old_domain:%d new_alloc:%d\n",
@@ -624,7 +881,8 @@ _ctc_sai_qos_map_port_set_domain(uint8 lchip, bool enable, uint32 map_id,
     {
         //if new_domain is first used on gport, need to bind all the map_id to domain
         if ((map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP)
-            || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P))
+            || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P)
+            || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP))
         {
             CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->tc_color.tc_color_to_dot1p_map_id, 1));
         }
@@ -634,12 +892,14 @@ _ctc_sai_qos_map_port_set_domain(uint8 lchip, bool enable, uint32 map_id,
             CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->color.dot1p_to_color_map_id, 1));
         }
         else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
-                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC))
+                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC)
+                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC))
         {
             CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->tc.dot1p_to_tc_map_id, 1));
         }
         else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
-                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR))
+                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR)
+                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR))
         {
             CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->color.dot1p_to_color_map_id, 1));
         }
@@ -653,14 +913,24 @@ _ctc_sai_qos_map_port_set_domain(uint8 lchip, bool enable, uint32 map_id,
     if (is_new_alloc && old_domain)
     {
         if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
-            || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC))
+            || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC)
+            || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC))
         {
             CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, domain_node->color.dot1p_to_color_map_id, 0));
+            if(old_map_id)
+            {
+                CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, old_map_id, 0));
+            }
         }
         else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
-                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR))
+                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR)
+                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR))
         {
             CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, domain_node->tc.dot1p_to_tc_map_id, 0));
+            if(old_map_id)
+            {
+                CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, old_map_id, 0));
+            }
         }
     }
 
@@ -703,6 +973,7 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
     uint32 gport = 0;
     uint8 lchip = 0;
     uint8 chip_type = 0;
+    uint32 old_map_id = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
     CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "port_id:0x%"PRIx64" ctc_map_id:0x%x map_type:%d enable:%d\n",port_oid, map_id, map_type, enable?1:0);
@@ -738,6 +1009,7 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
             domain_node.tc.dot1p_to_tc_map_id = enable ? map_id : 0;
             domain_node.color.dot1p_to_color_map_id = p_port_db->dot1p_to_color_map_id;
             qos_trust = CTC_QOS_TRUST_COS;
+            old_map_id = p_port_db->dot1p_to_tc_map_id;
             break;
         case SAI_QOS_MAP_TYPE_DSCP_TO_TC:
             property = (chip_type < CTC_CHIP_DUET2) ? CTC_PORT_DIR_PROP_QOS_DOMAIN : CTC_PORT_DIR_PROP_QOS_DSCP_DOMAIN;
@@ -746,6 +1018,7 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
             domain_node.tc.dscp_to_tc_map_id = enable ? map_id : 0;
             domain_node.color.dscp_to_color_map_id = p_port_db->dscp_to_color_map_id;
             qos_trust = enable ? CTC_QOS_TRUST_DSCP : CTC_QOS_TRUST_COS;
+            old_map_id = p_port_db->dscp_to_tc_map_id;
             break;
         case SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR:
             property = (chip_type < CTC_CHIP_DUET2) ? CTC_PORT_DIR_PROP_QOS_DOMAIN : CTC_PORT_DIR_PROP_QOS_COS_DOMAIN;
@@ -753,6 +1026,7 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
             domain_node.color.dot1p_to_color_map_id = enable ? map_id : 0;
             domain_node.tc.dot1p_to_tc_map_id = p_port_db->dot1p_to_tc_map_id;
             qos_trust = CTC_QOS_TRUST_COS;
+            old_map_id = p_port_db->dot1p_to_color_map_id;
             break;
         case SAI_QOS_MAP_TYPE_DSCP_TO_COLOR:
             property = (chip_type < CTC_CHIP_DUET2) ? CTC_PORT_DIR_PROP_QOS_DOMAIN : CTC_PORT_DIR_PROP_QOS_DSCP_DOMAIN;
@@ -761,6 +1035,7 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
             domain_node.color.dscp_to_color_map_id = enable ? map_id : 0;
             domain_node.tc.dscp_to_tc_map_id = p_port_db->dscp_to_tc_map_id;
             qos_trust = enable ? CTC_QOS_TRUST_DSCP : CTC_QOS_TRUST_COS;
+            old_map_id = p_port_db->dscp_to_color_map_id;
             break;
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP:
             property = (chip_type < CTC_CHIP_DUET2) ? CTC_PORT_DIR_PROP_QOS_DOMAIN : CTC_PORT_DIR_PROP_QOS_DSCP_DOMAIN;
@@ -782,7 +1057,7 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
                                                             enable, &new_domain,
                                                             &old_domain, &is_new_alloc));
 
-    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_port_set_domain(lchip, enable, map_id, map_type, &domain_node, new_domain, old_domain, is_new_alloc));
+    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_set_domain(lchip, enable, map_id, map_type, &domain_node, new_domain, old_domain, is_new_alloc, old_map_id));
     //set ctc api
     CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, property, dir, new_domain));
     CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_QOS_POLICY, qos_trust));
@@ -949,6 +1224,169 @@ ctc_sai_qos_map_switch_set_default_tc(uint8 lchip, uint8 tc)
     return SAI_STATUS_SUCCESS;
 }
 
+sai_status_t
+ctc_sai_qos_map_mpls_inseg_set_map(const sai_inseg_entry_t* inseg_entry, uint32 pcs_type, uint8 qos_tc,
+    uint32 map_id, sai_qos_map_type_t map_type, bool enable)
+{
+    ctc_sai_qos_map_db_t* p_map_db = NULL;
+    ctc_sai_mpls_t* p_mpls_info = NULL;
+    ctc_sai_qos_domain_map_id_t domain_node;
+    ctc_mpls_property_t mpls_pro;
+    ctc_mpls_ilm_qos_map_t ilm_qos_map;
+    uint8 new_domain = 0;
+    uint8 old_domain = 0;
+    uint8 is_new_alloc = 0;
+    uint8 lchip = 0;
+    uint8 chip_type = 0;
+    uint32 old_map_id = 0;
+
+    CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
+    CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "label:%d pcs_type:%d qos_tc:%d ctc_map_id:0x%x map_type:%d enable:%d\n",
+        inseg_entry->label, pcs_type, qos_tc, map_id, map_type, enable?1:0);
+    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(inseg_entry->switch_id, &lchip));
+
+    chip_type = ctcs_get_chip_type(lchip);
+    sal_memset(&domain_node, 0, sizeof(domain_node));
+    sal_memset(&mpls_pro, 0, sizeof(mpls_pro));
+    sal_memset(&ilm_qos_map, 0, sizeof(ilm_qos_map));
+    
+    p_map_db = ctc_sai_db_get_object_property(lchip, ctc_sai_create_object_id(SAI_OBJECT_TYPE_QOS_MAP, lchip, 0, 0, map_id));
+    if (NULL == p_map_db)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_QOS_MAP, "qos map db not found\n");
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
+    if (p_map_db->map_type != map_type)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_QOS_MAP, "port qos map type not match\n");
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
+    p_mpls_info = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_MPLS, (void*)inseg_entry);
+    if (NULL == p_mpls_info)
+    {
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
+    
+    if(SAI_INSEG_ENTRY_PSC_TYPE_LLSP == pcs_type)
+    {
+        ilm_qos_map.mode = CTC_MPLS_ILM_QOS_MAP_LLSP;
+    }
+    else
+    {
+        ilm_qos_map.mode = CTC_MPLS_ILM_QOS_MAP_ELSP;
+    }
+    
+    ilm_qos_map.priority = qos_tc * QOS_MAP_SAI_TC_TO_CTC_PRI;
+    
+    switch (map_type)
+    {
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC:
+            domain_node.tc.exp_to_tc_map_id = enable ? map_id : 0;            
+            domain_node.color.exp_to_color_map_id = p_mpls_info->exp_to_color_map_id;
+
+            old_map_id = enable ? p_mpls_info->exp_to_tc_map_id : 0;
+            break;
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR:
+            domain_node.color.exp_to_color_map_id = enable ? map_id : 0;
+            domain_node.tc.exp_to_tc_map_id = p_mpls_info->exp_to_tc_map_id;
+
+            old_map_id = enable ? p_mpls_info->exp_to_color_map_id : 0;
+            break;
+        
+        default:
+            return SAI_STATUS_NOT_SUPPORTED;
+    }
+
+    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_mpls_ilm_alloc_domain(lchip, (uint32)inseg_entry->label, map_type,
+                                                            &domain_node,
+                                                            enable, &new_domain,
+                                                            &old_domain, &is_new_alloc, 0));
+
+    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_set_domain(lchip, enable, map_id, map_type, &domain_node, new_domain, old_domain, is_new_alloc, old_map_id));
+
+    ilm_qos_map.exp_domain = new_domain;
+    mpls_pro.label = inseg_entry->label;
+    mpls_pro.property_type = CTC_MPLS_ILM_QOS_MAP;
+    mpls_pro.value = &ilm_qos_map;
+
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_set_ilm_property(lchip, &mpls_pro));
+
+    return SAI_STATUS_SUCCESS;
+
+}
+
+sai_status_t
+ctc_sai_qos_map_mpls_nh_set_map(sai_object_id_t nh_oid, uint32 map_id, sai_qos_map_type_t map_type, bool enable, uint8* ret_domain)
+{
+    ctc_object_id_t ctc_object_id;
+    ctc_sai_qos_map_db_t* p_map_db = NULL;
+    //ctc_sai_next_hop_t* p_next_hop_info = NULL;
+    ctc_sai_qos_domain_map_id_t domain_node;
+
+    uint8 new_domain = 0;
+    uint8 old_domain = 0;
+    uint8 is_new_alloc = 0;
+    uint8 lchip = 0;
+    uint8 chip_type = 0;
+    uint32 old_map_id = 0;
+    uint32 nh_id = 0;
+
+    CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
+    CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "nh_id:0x%"PRIx64" ctc_map_id:0x%x map_type:%d enable:%d\n",
+        nh_oid, map_id, map_type, enable?1:0);
+    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(nh_oid, &lchip));
+
+    chip_type = ctcs_get_chip_type(lchip);
+    sal_memset(&domain_node, 0, sizeof(domain_node));
+    
+    p_map_db = ctc_sai_db_get_object_property(lchip, ctc_sai_create_object_id(SAI_OBJECT_TYPE_QOS_MAP, lchip, 0, 0, map_id));
+    if (NULL == p_map_db)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_QOS_MAP, "qos map db not found\n");
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
+    if (p_map_db->map_type != map_type)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_QOS_MAP, "port qos map type not match\n");
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
+    //p_next_hop_info = ctc_sai_db_get_object_property(lchip, nh_oid);
+    //if (NULL == p_next_hop_info)
+    //{
+    //    return SAI_STATUS_ITEM_NOT_FOUND;
+    //}
+
+
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP, nh_oid, &ctc_object_id);
+    nh_id = ctc_object_id.value;
+
+    switch (map_type)
+    {
+        case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP:
+            domain_node.tc_color.tc_color_to_exp_map_id = enable ? map_id : 0;
+
+            //old_map_id = enable ? p_mpls_info->exp_to_tc_map_id : 0;
+            break;        
+        
+        default:
+            return SAI_STATUS_NOT_SUPPORTED;
+    }
+
+    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_mpls_ilm_alloc_domain(lchip, nh_id, map_type,
+                                                            &domain_node,
+                                                            enable, &new_domain,
+                                                            &old_domain, &is_new_alloc, 1));
+
+    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_set_domain(lchip, enable, map_id, map_type, &domain_node, new_domain, old_domain, is_new_alloc, old_map_id));
+
+    *ret_domain = new_domain;
+    
+    return SAI_STATUS_SUCCESS;
+
+}    
+
 static sai_status_t
 _ctc_sai_qos_map_wb_sync_cb(uint8 lchip, void* key, void* data)
 {
@@ -1071,6 +1509,12 @@ _ctc_sai_qos_map_convert_map_type(sai_qos_map_type_t type)
             return "TC_AND_COLOR_TO_DSCP";
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P:
             return "TC_AND_COLOR_TO_DOT1P";
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC:
+            return "MPLS_EXP_TO_TC";
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR:
+            return "MPLS_EXP_TO_COLOR";
+        case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP:
+            return "TC_AND_COLOR_TO_MPLS_EXP";
         default:
             return "None";
     }
@@ -1099,6 +1543,15 @@ _ctc_sai_qos_map_convert_map_type(sai_qos_map_type_t type)
             break;\
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P:\
             sal_sprintf((str), "tc:%-7d color:%-4d %-10d", (list)->key.tc, (list)->key.color, (list)->value.dot1p);\
+            break;\
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC:\
+            sal_sprintf((str), "%-10d %-10s %-10d", (list)->key.mpls_exp, "-", (list)->value.tc);\
+            break;\
+        case SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR:\
+            sal_sprintf((str), "%-10d %-10s %-10d", (list)->key.mpls_exp, "-", (list)->value.color);\
+            break;\
+        case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP:\
+            sal_sprintf((str), "tc:%-7d color:%-4d %-10d", (list)->key.tc, (list)->key.color, (list)->value.mpls_exp);\
             break;\
         default:\
             sal_sprintf((str), "%s","None");\

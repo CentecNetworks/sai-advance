@@ -44,7 +44,7 @@ port_map_loaded=0
 
 def sys_logging(*args):
     logging.debug(args)
-    print(' '.join(args))
+    print(args)
 
 def hexstr_to_ascii(h):
     list_s = []
@@ -62,7 +62,7 @@ class ThriftInterface(BaseTest):
     def __init__(self, thrift_port=9199, use_pswitch=1):
         unittest.TestCase.__init__(self)
         config["use_pswitch"] = use_pswitch
-        config["thrift_port"] = ptf.config["thirft_port"]    
+        config["thrift_port"] = ptf.config["thirft_port"]
         if 'goldengate' == testutils.test_params_get()['chipname']:
             print "load default_interface_to_front_map_gg.ini"
             config["port_map_file"] = os.path.join(ptf.config['test_dir'], 'default_interface_to_front_map_gg.ini')
@@ -169,7 +169,8 @@ class ThriftInterface(BaseTest):
                 server = self.test_params['server']
             else:
                 server = 'localhost'
-            
+            #demotry
+            #server = '10.10.39.187'
             self.transport = TSocket.TSocket(server, config["thrift_port"])
             self.transport = TTransport.TFramedTransport(self.transport)
             #self.protocol = TJSONProtocol(self.transport)
@@ -236,6 +237,7 @@ class ThriftInterfaceDataPlane(ThriftInterface):
             ThriftInterface.setUp(self)
             self.dataplane = ptf.dataplane_instance
             if self.dataplane != None:
+                #demotry
                 self.dataplane.pxr_start(config)
                 self.dataplane.pxr_capture_start()
                 self.dataplane.flush()
@@ -251,8 +253,9 @@ class ThriftInterfaceDataPlane(ThriftInterface):
             ThriftInterface.tearDown(self)
 
         if config["use_pswitch"] == 1:
+            #demotry
             self.dataplane.pxr_capture_stop()
-            #self.dataplane.pxr_stop()
+            ###self.dataplane.pxr_stop()
             if config["log_dir"] != None:
                 self.dataplane.stop_pcap()
             ThriftInterface.tearDown(self)
@@ -262,7 +265,7 @@ class ThriftInterfaceDataPlane(ThriftInterface):
         sendport = port + 1
         for n in range(count):
             testutils.pxr_send(self,sendport, str(pkt))    
-        time.sleep(2)
+        time.sleep(3)
         testutils.pxr_getPacketBuffer(self)
         return
         
@@ -431,15 +434,63 @@ class ThriftInterfaceDataPlane(ThriftInterface):
         
         return (portindex, pkt)
             
-    def ctc_show_packet(self, port_id, cmpSeq=None):
+    def ctc_show_packet(self, port_id, cmpSeq=None, compare_pkt=None, is_cpu_tx=None):
         time.sleep(5)
         testutils.pxr_getPacketBuffer(self)
         print "get packet on port %d " %(port_id)   
         port = port_id + 1
         srcPkt = self.dataplane.pxr_getPktData(port, cmpSeq)
-        srcPkt = srcPkt[0][0:-9]
-        print "Received Packet: %s \n" %(srcPkt)
+        print "Origin Received Packet (Include CRC) : %s \n" %(srcPkt[-1])
+        srcPkt = srcPkt[-1][0:-9]
+        print "Process Received Packet (NO CRC) : %s \n" %(srcPkt)        
+        if compare_pkt != None:
+            compare_pkt = compare_pkt.encode('hex')
+            print "Compare Packet (Include CRC) : %s \n" %(compare_pkt)
+
+            if is_cpu_tx == None:
+                compare_pkt = compare_pkt[0:-8]
+
+            print "Compare Packet (NO CRC) : %s \n" %(compare_pkt)
+            print "Compare the receive pkt!"
+            result = compare_pkt == srcPkt
+            print "Compare result is: " , result
+            if result==False:
+                self.fail("pkt is not same!\n")
+
+
+    def ctc_show_packet_twamp(self, port_id, compare_pkt, mask_offset=None, mask_len=None):
+    
+        time.sleep(5)
+        cmpSeq=None
         
+        testutils.pxr_getPacketBuffer(self)
+        
+        print "get packet on port %d " %(port_id) 
+        
+        port = port_id + 1
+        
+        srcPkt = self.dataplane.pxr_getPktData(port, cmpSeq)
+        
+        print "Origin Received Packet (Include CRC) : %s \n" %(srcPkt[-1])
+        
+        srcPkt = srcPkt[-1][0:-9]
+        
+        print "Process Received Packet (NO CRC) : %s \n" %(srcPkt)  
+        
+        compare_pkt = compare_pkt.encode('hex')
+        
+        print "Compare Packet (NO CRC) : %s \n" %(compare_pkt)
+
+        if mask_offset != None:
+            srcPkt = srcPkt[0:(mask_offset*2)] + srcPkt[(mask_offset*2+mask_len*2):]        
+            compare_pkt = compare_pkt[0:(mask_offset*2)] + compare_pkt[(mask_offset*2+mask_len*2):] 
+
+        result = compare_pkt == srcPkt
+
+        print "Compare Packet Result is: " , result
+
+        if result==False:
+            self.fail("pkt is not same!\n")        
         
         
                 

@@ -1265,6 +1265,7 @@ class func_06_set_and_get_port_attribute_fn_27_DROP_TAGGED(sai_base_test.ThriftI
 
 
 # should test on board , uml do not work
+'''
 class func_06_set_and_get_port_attribute_fn_28_INTERNAL_LOOPBACK_MODE(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
             
@@ -1308,7 +1309,7 @@ class func_06_set_and_get_port_attribute_fn_28_INTERNAL_LOOPBACK_MODE(sai_base_t
         finally:
             self.client.sai_thrift_remove_port(port_oid) 
 
-
+'''
 # platform bug 110207       
 class func_06_set_and_get_port_attribute_fn_29_FEC_MODE(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -2537,7 +2538,7 @@ class func_06_set_and_get_port_attribute_fn_53_META_DATA(sai_base_test.ThriftInt
 #        lane_list3 = [2]        
 #        list = []
 #
-        warmboot(self.client)
+#        warmboot(self.client)
 #        try:
 #            port_oid1 = sai_thrift_create_port(self.client, front1, speed, lane_list1);
 #            sys_logging("### port_oid1 = %d ###"  %port_oid1)
@@ -2582,6 +2583,11 @@ class func_06_set_and_get_port_attribute_fn_53_META_DATA(sai_base_test.ThriftInt
 #            self.client.sai_thrift_remove_port(port_oid3)             
             
 
+
+
+
+
+'''
 # not support set and get on d2/tm
 # only support set on gg (get interface missing on gg, need to add)
 class func_06_set_and_get_port_attribute_fn_55_EEE_ENABLE(sai_base_test.ThriftInterfaceDataPlane):
@@ -2629,7 +2635,7 @@ class func_06_set_and_get_port_attribute_fn_55_EEE_ENABLE(sai_base_test.ThriftIn
             self.client.sai_thrift_remove_port(port_oid) 
 
 
-
+'''
 
 
 

@@ -43,6 +43,9 @@ This module defines SAI Qosmap.
 \t  |  SAI_QOS_MAP_TYPE_TC_TO_PRIORITY_GROUP                |              -                 |
 \t  |  SAI_QOS_MAP_TYPE_PFC_PRIORITY_TO_PRIORITY_GROUP      |              -                 |
 \t  |  SAI_QOS_MAP_TYPE_PFC_PRIORITY_TO_QUEUE               |              -                 |
+\t  |  SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC                      |           CTC7132              |
+\t  |  SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR                   |           CTC7132              |
+\t  |  SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP            |           CTC7132              |
 \b
 */
 
@@ -77,6 +80,13 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
 
 extern sai_status_t
 ctc_sai_qos_map_switch_set_map(uint8 lchip, uint32 map_id, sai_qos_map_type_t map_type, bool enable);
+
+extern sai_status_t
+ctc_sai_qos_map_mpls_inseg_set_map(const sai_inseg_entry_t* inseg_entry, uint32 pcs_type, uint8 qos_tc,
+    uint32 map_id, sai_qos_map_type_t map_type, bool enable);
+
+extern sai_status_t
+ctc_sai_qos_map_mpls_nh_set_map(sai_object_id_t nh_oid, uint32 map_id, sai_qos_map_type_t map_type, bool enable, uint8* ret_domain);
 
 extern sai_status_t
 ctc_sai_qos_map_switch_set_default_tc(uint8 lchip, uint8 tc);

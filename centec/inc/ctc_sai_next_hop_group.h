@@ -61,6 +61,25 @@
 #include "ctcs_api.h"
 /*don't need include other header files*/
 
+typedef struct  ctc_sai_next_hop_grp_s
+{
+    sai_object_id_t w_nh_oid;/*member nexthop id*/
+    sai_object_id_t p_nh_oid;/*member nexthop id*/
+    sai_object_id_t w_member_oid; /*member oid id*/
+    sai_object_id_t p_member_oid; /*member oid id*/
+    sai_object_id_t counter_oid;
+    uint16        logic_port;
+    uint32 rx_label_primary;
+    uint32 rx_label_standby;
+    uint8 aps_nh_created;
+    ctc_nh_aps_type_t aps_nh_type;
+    uint32 aps_tunnel_id; /*when member is mpls tunnel, use aps tunnel id in Centec SDK */
+}ctc_sai_next_hop_grp_t;
+
+typedef struct  ctc_sai_next_hop_grp_member_s
+{
+    sai_object_id_t nh_grp_oid;/*group nexthop id*/
+}ctc_sai_next_hop_grp_member_t;
 
 extern sai_status_t
 ctc_sai_next_hop_group_api_init();

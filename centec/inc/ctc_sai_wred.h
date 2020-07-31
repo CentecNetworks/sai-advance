@@ -69,6 +69,7 @@ typedef struct ctc_sai_wred_db_s
     uint16   min_th[3];         //refer to sai_packet_color_t
     uint16   max_th[3];         //refer to sai_packet_color_t
     uint16   drop_prob[3];      //refer to sai_packet_color_t
+    uint16   ecn_th[3];         //refer to sai_packet_color_t
     uint16   used_cnt;
 }ctc_sai_wred_db_t;
 

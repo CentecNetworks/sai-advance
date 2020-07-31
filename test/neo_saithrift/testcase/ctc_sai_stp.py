@@ -1278,7 +1278,7 @@ class scenario_05_mstp_instance_egress(sai_base_test.ThriftInterfaceDataPlane):
                 
 
                
-class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_06_vlan_member_is_lag(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
     
         switch_init(self.client)
@@ -1295,7 +1295,7 @@ class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
         mac4 = '00:33:33:33:33:34'
         mac_action = SAI_PACKET_ACTION_FORWARD
         
-        lag_oid = sai_thrift_create_lag(self.client, [])
+        lag_oid = sai_thrift_create_lag(self.client)
         
         lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_oid, port1)
         lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_oid, port2)
@@ -1400,7 +1400,7 @@ class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_remove_lag(self.client, lag_oid)                  
 
             
-class lag_test2(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_07_stp_port_is_lag(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
     
         switch_init(self.client)
@@ -1414,7 +1414,7 @@ class lag_test2(sai_base_test.ThriftInterfaceDataPlane):
         mac2 = '00:22:22:22:22:22'
         mac_action = SAI_PACKET_ACTION_FORWARD
         
-        lag_oid = sai_thrift_create_lag(self.client, [])
+        lag_oid = sai_thrift_create_lag(self.client)
         
         lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_oid, port1)
         lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_oid, port2)
@@ -1509,7 +1509,7 @@ class lag_test2(sai_base_test.ThriftInterfaceDataPlane):
             
             
             
-class lag_test3(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_08_stp_port_is_lag_and_change_lag_member(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
     
         switch_init(self.client)
@@ -1524,7 +1524,7 @@ class lag_test3(sai_base_test.ThriftInterfaceDataPlane):
         mac2 = '00:22:22:22:22:22'
         mac_action = SAI_PACKET_ACTION_FORWARD
         
-        lag_oid = sai_thrift_create_lag(self.client, [])
+        lag_oid = sai_thrift_create_lag(self.client)
         
         lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_oid, port1)
         lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_oid, port2)
@@ -1634,7 +1634,7 @@ class lag_test3(sai_base_test.ThriftInterfaceDataPlane):
 
             
             
-class lag_test4(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_09_mstp_port_is_lag(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
     
         switch_init(self.client)
@@ -1651,7 +1651,7 @@ class lag_test4(sai_base_test.ThriftInterfaceDataPlane):
         mac2 = '00:22:22:22:22:22'
         mac_action = SAI_PACKET_ACTION_FORWARD
         
-        lag_oid = sai_thrift_create_lag(self.client, [])
+        lag_oid = sai_thrift_create_lag(self.client)
         
         lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_oid, port1)
         lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_oid, port2)

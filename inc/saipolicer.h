@@ -199,6 +199,17 @@ typedef enum _sai_policer_attr_t
      * @default empty
      */
     SAI_POLICER_ATTR_ENABLE_COUNTER_PACKET_ACTION_LIST = 0x0000000a,
+    
+    /**
+     * @brief Enable/disable counter
+     *
+     * Default disabled. Modify list needs full new set.
+     *
+     * @type sai_s32_list_t sai_policer_stat_t
+     * @flags CREATE_AND_SET
+     * @default empty
+     */
+    SAI_POLICER_ATTR_ENABLE_COUNTER_LIST,
 
     /**
      * @brief End of attributes

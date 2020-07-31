@@ -185,6 +185,15 @@ typedef enum _sai_lag_attr_t
     /** Custom range base value */
     SAI_LAG_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
+    /** 
+     * @brief Max member of LAG Group could add 
+     *
+     * @type sai_uint16
+     * @flags CREATE
+     * @default value is defined by ASIC makers
+     */
+    SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM,
+
     /** End of custom range base */
     SAI_LAG_ATTR_CUSTOM_RANGE_END
 

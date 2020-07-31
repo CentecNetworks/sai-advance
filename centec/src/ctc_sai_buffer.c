@@ -140,6 +140,7 @@ _ctc_sai_buffer_set_profile_attr(sai_object_key_t *key, const sai_attribute_t* a
         sal_memset(&queue_param, 0, sizeof(queue_param));
 
         ctc_drop.drop.mode = CTC_QUEUE_DROP_WTD;
+        ctc_drop.drop.is_coexist = 1;
         if (p_buf_prof->mode == SAI_BUFFER_PROFILE_THRESHOLD_MODE_STATIC)
         {
             ctc_drop.drop.max_th[0] = p_buf_prof->static_th / CTC_SAI_QOS_BYTES_PER_CELL;//red
@@ -385,6 +386,20 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
         return SAI_STATUS_FAILURE;
     }
 
+    if(ctc_oid.sub_type <= SAI_QUEUE_TYPE_MULTICAST )
+    {
+        drop.queue.gport = gport;
+        drop.queue.queue_id = queue_idx;
+        drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    }
+    else if (ctc_oid.sub_type == SAI_QUEUE_TYPE_SERVICE )
+    {
+        drop.queue.gport = gport;
+        drop.queue.queue_id = ctc_oid.value2 & 0x3F;
+        drop.queue.service_id = (ctc_oid.value2 >> 6);
+        drop.queue.queue_type = CTC_QUEUE_TYPE_SERVICE_INGRESS;
+    }
+
     if (SAI_NULL_OBJECT_ID != attr->value.oid)
     {
         ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_BUFFER_PROFILE, attr->value.oid, &ctc_oid);
@@ -409,6 +424,10 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
         }
         //config wtd, color red/yellow/green
         drop.drop.mode = CTC_QUEUE_DROP_WTD;
+        drop.drop.is_coexist = 1;                
+
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &drop));
+        
         if (p_buf_prof_db->mode == SAI_BUFFER_PROFILE_THRESHOLD_MODE_STATIC)
         {
             drop.drop.max_th[0] = p_buf_prof_db->static_th / CTC_SAI_QOS_BYTES_PER_CELL;//red
@@ -424,9 +443,7 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
             drop.drop.drop_factor[2] = drop.drop.drop_factor[0];
             drop.drop.drop_factor[3] = drop.drop.drop_factor[0];
         }
-        drop.queue.gport = gport;
-        drop.queue.queue_id = queue_idx;
-        drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+        
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &drop));
         if (update_cnt)
         {
@@ -460,14 +477,14 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
             return SAI_STATUS_ITEM_NOT_FOUND;
         }
         drop.drop.mode = CTC_QUEUE_DROP_WTD;
+        drop.drop.is_coexist = 1;
+        
         drop.drop.is_dynamic = 1;
         drop.drop.drop_factor[0] = 0;
         drop.drop.drop_factor[1] = 0;
         drop.drop.drop_factor[2] = 0;
         drop.drop.drop_factor[3] = 0;
-        drop.queue.gport = gport;
-        drop.queue.queue_id = queue_idx;
-        drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &drop));
         if(p_buf_prof_db->ref_cnt)
         {
@@ -491,10 +508,12 @@ ctc_sai_buffer_ingress_pg_set_profile(sai_object_id_t ingress_pg_id, const sai_a
     ctc_object_id_t ctc_oid;
     ctc_sai_ingress_pg_db_t* p_pg_db = NULL;
     ctc_sai_buffer_profile_db_t* p_buf_prof_db = NULL;
+    ctc_port_fc_prop_t fc_prop;
 
     CTC_SAI_LOG_ENTER(SAI_API_BUFFER);
     CTC_SAI_PTR_VALID_CHECK(attr);
     sal_memset(&resrc, 0, sizeof(resrc));
+    sal_memset(&fc_prop, 0, sizeof(fc_prop));
 
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_INGRESS_PRIORITY_GROUP, ingress_pg_id, &ctc_oid);
     lchip = ctc_oid.lchip;
@@ -556,6 +575,13 @@ ctc_sai_buffer_ingress_pg_set_profile(sai_object_id_t ingress_pg_id, const sai_a
                 p_buf_prof_db->ref_cnt--;
             }
         }
+
+        fc_prop.gport = gport;
+        fc_prop.priority_class = index;
+        fc_prop.is_pfc = 1;
+        fc_prop.dir = CTC_BOTH_DIRECTION;
+        fc_prop.enable = 1;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_flow_ctl_en(lchip, &fc_prop));
     }
     else
     {
@@ -575,6 +601,13 @@ ctc_sai_buffer_ingress_pg_set_profile(sai_object_id_t ingress_pg_id, const sai_a
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_resrc(lchip, &resrc));
         p_buf_prof_db->ref_cnt--;
         p_pg_db->buf_prof_id = SAI_NULL_OBJECT_ID;
+
+        fc_prop.gport = gport;
+        fc_prop.priority_class = index;
+        fc_prop.is_pfc = 1;
+        fc_prop.dir = CTC_BOTH_DIRECTION;
+        fc_prop.enable = 0;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_flow_ctl_en(lchip, &fc_prop));
     }
     return SAI_STATUS_SUCCESS;
 }

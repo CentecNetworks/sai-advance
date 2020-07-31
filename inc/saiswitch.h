@@ -1453,19 +1453,7 @@ typedef enum _sai_switch_attr_t
     SAI_SWITCH_ATTR_PACKET_EVENT_NOTIFY,
 
     /**
-     * @brief npm status change notification callback
-     * function passed to the adapter.
-     *
-     * Use sai_npm_session_status_notification_t as notification function.
-     *
-     * @type sai_pointer_t sai_npm_session_status_notification_t
-     * @flags CREATE_AND_SET
-     * @default NULL
-     */
-    SAI_SWITCH_ATTR_TWAMP_STATUS_CHANGE_NOTIFY,
-
-    /**
-     * @brief Max number of NPM session supports
+     * @brief Max number of TWAMP session supports
      *
      * @type sai_uint32_t
      * @flags READ_ONLY
@@ -1881,6 +1869,169 @@ typedef enum _sai_switch_attr_t
      * @flags READ_ONLY
      */
     SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE,
+
+    /**
+     * @brief Apply ECN action for ECT traffic.
+     *        Attribute controls whether do ECN modification when traffic beyond
+     *        the ECN threshold.
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default false
+     */
+    SAI_SWITCH_ATTR_ECN_ACTION_ENABLE,
+
+    /**
+     * @brief buffer monitor notification callback function passed to the adapter.
+     *
+     * Use sai_monitor_buffer_notification_fn as notification function.
+     *
+     * @type sai_pointer_t sai_monitor_buffer_notification_fn
+     * @flags CREATE_AND_SET
+     * @default NULL
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_NOTIFY,
+
+    /**
+     * @brief latency monitor notification callback function passed to the adapter.
+     *
+     * Use sai_monitor_latency_notification_fn as notification function.
+     *
+     * @type sai_pointer_t sai_monitor_latency_notification_fn
+     * @flags CREATE_AND_SET
+     * @default NULL
+     */
+    SAI_SWITCH_ATTR_MONITOR_LATENCY_NOTIFY,
+    
+     /**
+     * @brief  buffer monitor microburst enable
+     *
+     * @type bool
+     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE,
+    
+    /**
+     * @brief define the min threshold of microburst , global control(unit is byte)
+     *
+     * @type sai_uint32_t
+     * @flags MANDATORY_ON_CREATE |CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN,
+
+    /**
+     * @brief define the max threshold of microburst, global control(unit is byte)
+     *
+     * @type  sai_uint32_t
+     * @flags MANDATORY_ON_CREATE |CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX,
+
+    /**
+     * @brief send the packet to cpu when the usage of buffer over the threshold
+     *
+     * @type  bool
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_OVERTHRD_EVENT,
+
+    /**
+     * @brief  set 8 level threshold(unit is ns) for the duration of microburst  
+     *
+     * @type  sai_u32_list_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD,
+     
+     /**
+     * @brief enable the ingress monitor,  global control
+     *
+     * @type  bool
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_PERIODIC_MONITOR_ENABLE,
+
+    /**
+     * @brief enable the egress monitor , global control
+     *
+     * @type  bool
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_PERIODIC_MONITOR_ENABLE,
+
+    /**
+     * @brief enable the egress monitor based on queue , global control
+     *
+     * @type  bool
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_QUEUE_PERIODIC_MONITOR_ENABLE,
+
+    /**
+     * @brief the buffer monitor time interval(ms)
+     *
+     * @type  sai_uint32_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL,
+
+    /**
+     * @brief record max total buffer cnt(unit is byte), and when set the attr,the value can only be 0, indicate clearing watermark
+     * @type  sai_uint32_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK,
+
+    /**
+     * @brief record max total buffer cnt(unit is byte), and when set the attr,the value can only be 0, indicate clearing watermark
+     *
+     * @type  sai_uint32_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK,
+
+     /**
+     * @brief  define the min latency threshold(unit is ns)  
+     *
+     * @type sai_uint32_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN,
+
+    /**
+     * @brief define the max latency threshold (unit is ns)  
+     *
+     * @type sai_uint32_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX,
+
+    /**
+     * @brief  set 8 level threshold(unit is ns)  
+     *
+     * @type  sai_u32_list_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD,
+
+    /**
+     * @brief set the latency monitor scan time interval(ms)
+     *
+     * @type  sai_uint32_t
+     * @flags CREATE_AND_SET
+     */
+    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL,     
+
+    /**
+     * @brief Set signal degrade event notification callback function passed to the adapter.
+     *
+     * Use sai_signal_degrade_event_notification_fn as notification function.
+     *
+     * @type sai_pointer_t sai_signal_degrade_event_notification_fn
+     * @flags CREATE_AND_SET
+     * @default NULL
+     */
+    SAI_SWITCH_ATTR_SIGNAL_DEGRADE_EVENT_NOTIFY,
 
     /**
      * @brief End of attributes

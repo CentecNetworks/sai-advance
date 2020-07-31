@@ -17,25 +17,19 @@ _ctc_sai_policer_map_attr_to_db(const sai_attribute_t* attr_list, uint32 attr_co
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_METER_TYPE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        p_policer->meter_type = attr_value->u32;
+        p_policer->meter_type = attr_value->s32;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_MODE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        p_policer->mode = attr_value->u32;
+        p_policer->mode = attr_value->s32;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_COLOR_SOURCE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        p_policer->color_source = attr_value->u32;
-    }
-
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_CBS, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        p_policer->cbs = attr_value->u64;
+        p_policer->color_source = attr_value->s32;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_CBS, &attr_value, &attr_index);
@@ -65,19 +59,41 @@ _ctc_sai_policer_map_attr_to_db(const sai_attribute_t* attr_list, uint32 attr_co
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_GREEN_PACKET_ACTION, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        p_policer->action[SAI_PACKET_COLOR_GREEN] = attr_value->u32;
+        p_policer->action[SAI_PACKET_COLOR_GREEN] = attr_value->s32;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_YELLOW_PACKET_ACTION, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        p_policer->action[SAI_PACKET_COLOR_YELLOW] = attr_value->u32;
+        p_policer->action[SAI_PACKET_COLOR_YELLOW] = attr_value->s32;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_RED_PACKET_ACTION, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        p_policer->action[SAI_PACKET_COLOR_RED] = attr_value->u32;
+        p_policer->action[SAI_PACKET_COLOR_RED] = attr_value->s32;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_POLICER_ATTR_ENABLE_COUNTER_LIST, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {   
+        if (attr_value->s32list.count == 3)
+        {
+            p_policer->stats_en_id[SAI_PACKET_COLOR_GREEN] = attr_value->s32list.list[0];
+            p_policer->stats_en_id[SAI_PACKET_COLOR_YELLOW] = attr_value->s32list.list[1];
+            p_policer->stats_en_id[SAI_PACKET_COLOR_RED] = attr_value->s32list.list[2];
+
+            p_policer->stats_en = 1;
+        }
+        else if (attr_value->s32list.count == 0) /*disable stats */
+        {
+            p_policer->stats_en = 0;
+        }
+        else
+        {
+            /*error condition */
+        }
+        
     }
 
     return SAI_STATUS_SUCCESS;
@@ -144,7 +160,7 @@ _ctc_sai_policer_db_map_policer(uint8 lchip, ctc_sai_policer_db_t* psai_policer,
         }
         if (psai_policer->action[ii] == SAI_PACKET_ACTION_DROP)
         {
-            if (ctcs_get_chip_type(lchip) == CTC_CHIP_DUET2)
+            if ((ctcs_get_chip_type(lchip) == CTC_CHIP_DUET2) || (ctcs_get_chip_type(lchip) == CTC_CHIP_TSINGMA))
             {
                 pctc_policer->action.flag |= (CTC_QOS_POLICER_ACTION_FLAG_DROP_GREEN << ii);
             }
@@ -157,6 +173,16 @@ _ctc_sai_policer_db_map_policer(uint8 lchip, ctc_sai_policer_db_t* psai_policer,
                 pctc_policer->policer.drop_color = CTC_QOS_COLOR_RED;
             }
         }
+    }
+
+    if(psai_policer->stats_en)
+    {
+        pctc_policer->policer.stats_en = 1;
+        pctc_policer->policer.stats_mode = 0; /*default use color aware stats mode */
+    }
+    else
+    {
+        pctc_policer->policer.stats_en = 0;  /*disable policer counter */
     }
 
     return SAI_STATUS_SUCCESS;
@@ -239,12 +265,22 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
         {
             ctc_policer.dir = CTC_INGRESS;
             ctc_policer.enable = 1;
-            ctc_policer.id.policer_id = p_policer_db->id.entry_id;
+            ctc_policer.id.policer_id = ctc_object_id.value;
             ctc_policer.type = CTC_QOS_POLICER_TYPE_FLOW;
 
             CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
         }
-        else if ((ctcs_get_chip_type(lchip) == CTC_CHIP_DUET2) && (CTC_QOS_POLICER_TYPE_COPP == p_policer_db->type))
+        else if (CTC_QOS_POLICER_TYPE_SERVICE == p_policer_db->type)
+        {
+            ctc_policer.dir = CTC_INGRESS;
+            ctc_policer.enable = 1;
+            ctc_policer.id.policer_id = ctc_object_id.value;
+            ctc_policer.type = CTC_QOS_POLICER_TYPE_SERVICE;
+
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+        }
+        else if (((ctcs_get_chip_type(lchip) == CTC_CHIP_DUET2) || (ctcs_get_chip_type(lchip) == CTC_CHIP_TSINGMA))
+            && (CTC_QOS_POLICER_TYPE_COPP == p_policer_db->type))
         {
             ctc_policer.dir = CTC_INGRESS;
             ctc_policer.id.policer_id = ctc_object_id.value;
@@ -273,15 +309,15 @@ _ctc_sai_policer_get_attr(sai_object_key_t *key, sai_attribute_t* attr, uint32 a
     switch (attr->id)
     {
         case SAI_POLICER_ATTR_METER_TYPE:
-            attr->value.u32 = p_policer_db->meter_type;
+            attr->value.s32 = p_policer_db->meter_type;
             break;
 
         case SAI_POLICER_ATTR_MODE:
-            attr->value.u32 = p_policer_db->mode;
+            attr->value.s32 = p_policer_db->mode;
             break;
 
         case SAI_POLICER_ATTR_COLOR_SOURCE:
-            attr->value.u32 = p_policer_db->color_source;
+            attr->value.s32 = p_policer_db->color_source;
             break;
 
         case SAI_POLICER_ATTR_CBS:
@@ -301,15 +337,28 @@ _ctc_sai_policer_get_attr(sai_object_key_t *key, sai_attribute_t* attr, uint32 a
             break;
 
         case SAI_POLICER_ATTR_GREEN_PACKET_ACTION:
-            attr->value.u32 = p_policer_db->action[SAI_PACKET_COLOR_GREEN];
+            attr->value.s32 = p_policer_db->action[SAI_PACKET_COLOR_GREEN];
             break;
 
         case SAI_POLICER_ATTR_YELLOW_PACKET_ACTION:
-            attr->value.u32 = p_policer_db->action[SAI_PACKET_COLOR_YELLOW];
+            attr->value.s32 = p_policer_db->action[SAI_PACKET_COLOR_YELLOW];
             break;
 
         case SAI_POLICER_ATTR_RED_PACKET_ACTION:
-            attr->value.u32 = p_policer_db->action[SAI_PACKET_COLOR_RED];
+            attr->value.s32 = p_policer_db->action[SAI_PACKET_COLOR_RED];
+            break;
+        case SAI_POLICER_ATTR_ENABLE_COUNTER_LIST:
+            if(p_policer_db->stats_en)
+            {
+                attr->value.s32list.count = 3;
+                attr->value.s32list.list[0] = p_policer_db->stats_en_id[0];
+                attr->value.s32list.list[1] = p_policer_db->stats_en_id[1];
+                attr->value.s32list.list[2] = p_policer_db->stats_en_id[2];
+            }
+            else
+            {
+                attr->value.s32list.count = 0;
+            }
             break;
 
         default:
@@ -357,6 +406,9 @@ static ctc_sai_attr_fn_entry_t  policer_attr_fn_entries[] =
         {SAI_POLICER_ATTR_ENABLE_COUNTER_PACKET_ACTION_LIST,
             NULL,
             NULL},
+        {SAI_POLICER_ATTR_ENABLE_COUNTER_LIST,
+            _ctc_sai_policer_get_attr,
+            _ctc_sai_policer_set_attr},
         { CTC_SAI_FUNC_ATTR_END_ID,
           NULL,
           NULL }
@@ -475,7 +527,6 @@ ctc_sai_policer_port_set_stmctl(uint8 lchip, uint32 gport, uint32 policer_id, ct
             ctc_stmctl.type = CTC_SECURITY_STORM_CTL_UNKNOWN_MCAST;
             CTC_SAI_CTC_ERROR_RETURN(ctcs_storm_ctl_set_cfg(lchip, &ctc_stmctl));
         }
-        p_policer_db->id.port_id = CTC_SAI_POLICER_APPLY_DEFAULT;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -514,7 +565,7 @@ ctc_sai_policer_port_set_policer(uint8 lchip, uint32 gport, uint32 policer_id, b
     {
         if (gport == p_policer_db->id.port_id)
         {
-            if (p_policer_db->type != CTC_QOS_POLICER_TYPE_PORT)
+            if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_PORT)
             {
                 return SAI_STATUS_OBJECT_IN_USE;
             }
@@ -529,7 +580,7 @@ ctc_sai_policer_port_set_policer(uint8 lchip, uint32 gport, uint32 policer_id, b
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
 
         p_policer_db->id.port_id = gport;
-        p_policer_db->type = CTC_QOS_POLICER_TYPE_PORT;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_PORT;
     }
     else
     {
@@ -548,7 +599,7 @@ ctc_sai_policer_port_set_policer(uint8 lchip, uint32 gport, uint32 policer_id, b
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
 
         p_policer_db->id.port_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-        p_policer_db->type = CTC_QOS_POLICER_TYPE_MAX;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -586,7 +637,7 @@ ctc_sai_policer_acl_set_policer(uint8 lchip, uint32 entry_id, uint32 policer_id,
     {
         if (entry_id == p_policer_db->id.entry_id)
         {
-            if (p_policer_db->type != CTC_QOS_POLICER_TYPE_FLOW)
+            if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW)
             {
                 return SAI_STATUS_OBJECT_IN_USE;
             }
@@ -599,7 +650,7 @@ ctc_sai_policer_acl_set_policer(uint8 lchip, uint32 entry_id, uint32 policer_id,
         ctc_policer.enable = 1;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
         p_policer_db->id.entry_id = entry_id;
-        p_policer_db->type = CTC_QOS_POLICER_TYPE_FLOW;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW;
     }
     else
     {
@@ -614,7 +665,7 @@ ctc_sai_policer_acl_set_policer(uint8 lchip, uint32 entry_id, uint32 policer_id,
         ctc_policer.enable = 0;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
         p_policer_db->id.entry_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-        p_policer_db->type = CTC_QOS_POLICER_TYPE_MAX;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -650,18 +701,18 @@ ctc_sai_policer_set_copp_policer(uint8 lchip, uint32 policer_id, bool enable)
     ctc_policer.type = CTC_QOS_POLICER_TYPE_COPP;
     if (enable)//attach copp policer
     {
-        if ((CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.entry_id) || (p_policer_db->type != CTC_QOS_POLICER_TYPE_COPP))
+        if ((CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.entry_id) || (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_COPP))
         {
             return SAI_STATUS_OBJECT_IN_USE;
         }
         CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
         ctc_policer.enable = 1;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-        p_policer_db->type = CTC_QOS_POLICER_TYPE_COPP;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_COPP;
     }
     else
     {
-        if (p_policer_db->type != CTC_QOS_POLICER_TYPE_COPP)
+        if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_COPP)
         {
             CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer type isNot copp!\n");
             return SAI_STATUS_INVALID_PARAMETER;
@@ -669,7 +720,73 @@ ctc_sai_policer_set_copp_policer(uint8 lchip, uint32 policer_id, bool enable)
         ctc_policer.enable = 0;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
         p_policer_db->id.entry_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-        p_policer_db->type = CTC_QOS_POLICER_TYPE_MAX;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
+    }
+
+    return SAI_STATUS_SUCCESS;
+}
+
+//policer_id is alloced by opf, not the object_id
+sai_status_t
+ctc_sai_policer_bridge_service_set_policer(uint8 lchip, uint32 logic_port, uint32 policer_id, bool enable)
+{
+    sai_object_id_t sai_policer_id;
+    ctc_sai_policer_db_t* p_policer_db = NULL;
+    ctc_qos_policer_t  ctc_policer;
+
+    CTC_SAI_LOG_ENTER(SAI_API_POLICER);
+    CTC_SAI_LOG_INFO(SAI_API_POLICER, "logic_port:0x%x  ctc_policer_id:0x%x OP:%s\n",logic_port, policer_id, enable?"SET":"UNSET");
+    sal_memset(&ctc_policer, 0, sizeof(ctc_qos_policer_t));
+
+    sai_policer_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_POLICER, lchip, 0, 0, policer_id);
+    p_policer_db = ctc_sai_db_get_object_property(lchip, sai_policer_id);
+    if (NULL == p_policer_db)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer DB not Found!\n");
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
+    if (p_policer_db->mode == SAI_POLICER_MODE_STORM_CONTROL)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer mode is stormctl!\n");
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
+    ctc_policer.dir = CTC_INGRESS;
+    ctc_policer.id.policer_id = policer_id;
+    ctc_policer.type = CTC_QOS_POLICER_TYPE_FLOW;
+    if (enable) //attach policer on bridge service
+    {
+        if (logic_port == p_policer_db->id.service_id)
+        {
+            if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE)
+            {
+                return SAI_STATUS_OBJECT_IN_USE;
+            }
+        }
+        else if (CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.service_id)
+        {
+            return SAI_STATUS_OBJECT_IN_USE;
+        }
+        CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
+        ctc_policer.enable = 1;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+        p_policer_db->id.service_id = logic_port;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE;
+    }
+    else
+    {
+        if (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.service_id)
+        {
+            return SAI_STATUS_SUCCESS;
+        }
+        if (logic_port != p_policer_db->id.service_id)
+        {
+            return SAI_STATUS_INVALID_PARAMETER;
+        }
+        ctc_policer.enable = 0;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+        p_policer_db->id.service_id = CTC_SAI_POLICER_APPLY_DEFAULT;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -688,7 +805,7 @@ ctc_sai_policer_revert_policer(uint8 lchip, uint32 policer_id)
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
     p_policer_db->id.entry_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-    p_policer_db->type = CTC_QOS_POLICER_TYPE_MAX;
+    p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
 
     return SAI_STATUS_SUCCESS;
 }
@@ -777,7 +894,7 @@ ctc_sai_policer_create_policer_id(
     p_policer_db->action[SAI_PACKET_COLOR_YELLOW] = SAI_PACKET_ACTION_FORWARD;
     p_policer_db->action[SAI_PACKET_COLOR_RED]    = SAI_PACKET_ACTION_FORWARD;
     p_policer_db->id.port_id  = CTC_SAI_POLICER_APPLY_DEFAULT;
-    p_policer_db->type = CTC_QOS_POLICER_TYPE_MAX;
+    p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
 
     _ctc_sai_policer_map_attr_to_db(attr_list, attr_count, p_policer_db);
 
@@ -829,7 +946,7 @@ ctc_sai_policer_remove_policer_id(
         status = SAI_STATUS_ITEM_NOT_FOUND;
         goto error_return;
     }
-    if ((p_policer_db->id.port_id != CTC_SAI_POLICER_APPLY_DEFAULT) || (p_policer_db->type != CTC_QOS_POLICER_TYPE_MAX))
+    if ((p_policer_db->id.port_id != CTC_SAI_POLICER_APPLY_DEFAULT) || (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_MAX))
     {
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Object Id in used!\n");
         status = SAI_STATUS_OBJECT_IN_USE;
@@ -959,12 +1076,23 @@ ctc_sai_policer_get_stats(
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.gport = p_policer_db->id.port_id;
     }
-    else
+    else if (CTC_QOS_POLICER_TYPE_FLOW == p_policer_db->type)
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_FLOW;
         policer_stats.dir = CTC_INGRESS;
-        policer_stats.id.policer_id = p_policer_db->id.entry_id;
+        policer_stats.id.policer_id = ctc_object_id.value;
     }
+    else if (CTC_QOS_POLICER_TYPE_SERVICE == p_policer_db->type)
+    {
+        policer_stats.type = CTC_QOS_POLICER_TYPE_SERVICE;
+        policer_stats.dir = CTC_INGRESS;
+        policer_stats.id.policer_id = ctc_object_id.value;
+    }
+    else
+    {
+        return SAI_STATUS_NOT_SUPPORTED;
+    }
+    
     CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_query_policer_stats(lchip, &policer_stats));
 
     for(attr_idx = 0; attr_idx < number_of_counters; attr_idx++)
@@ -972,28 +1100,28 @@ ctc_sai_policer_get_stats(
         switch(counter_ids[attr_idx])
         {
             case SAI_POLICER_STAT_PACKETS:
-                counters[attr_idx] = policer_stats.stats.confirm_pkts + policer_stats.stats.exceed_pkts + policer_stats.stats.violate_pkts;
+                counters[attr_idx] = policer_stats.stats.confirm_pkts + policer_stats.stats.exceed_pkts + policer_stats.stats.violate_pkts - p_policer_db->green_pkts - p_policer_db->yellow_pkts - p_policer_db->red_pkts;
                 break;
             case SAI_POLICER_STAT_ATTR_BYTES:
-                counters[attr_idx] = policer_stats.stats.confirm_bytes + policer_stats.stats.exceed_bytes + policer_stats.stats.violate_bytes;
+                counters[attr_idx] = policer_stats.stats.confirm_bytes + policer_stats.stats.exceed_bytes + policer_stats.stats.violate_bytes - p_policer_db->green_bytes - p_policer_db->yellow_bytes - p_policer_db->red_bytes;
                 break;
             case SAI_POLICER_STAT_GREEN_PACKETS:
-                counters[attr_idx] = policer_stats.stats.confirm_pkts;
+                counters[attr_idx] = policer_stats.stats.confirm_pkts - p_policer_db->green_pkts;
                 break;
             case SAI_POLICER_STAT_GREEN_BYTES:
-                counters[attr_idx] = policer_stats.stats.confirm_bytes;
+                counters[attr_idx] = policer_stats.stats.confirm_bytes - p_policer_db->green_bytes;
                 break;
             case SAI_POLICER_STAT_YELLOW_PACKETS:
-                counters[attr_idx] = policer_stats.stats.exceed_pkts;
+                counters[attr_idx] = policer_stats.stats.exceed_pkts - p_policer_db->yellow_pkts;
                 break;
             case SAI_POLICER_STAT_YELLOW_BYTES:
-                counters[attr_idx] = policer_stats.stats.exceed_bytes;
+                counters[attr_idx] = policer_stats.stats.exceed_bytes - p_policer_db->yellow_bytes;
                 break;
             case SAI_POLICER_STAT_RED_PACKETS:
-                counters[attr_idx] = policer_stats.stats.violate_pkts;
+                counters[attr_idx] = policer_stats.stats.violate_pkts - p_policer_db->red_pkts;
                 break;
             case SAI_POLICER_STAT_RED_BYTES:
-                counters[attr_idx] = policer_stats.stats.violate_bytes;
+                counters[attr_idx] = policer_stats.stats.violate_bytes - p_policer_db->red_bytes;
                 break;
             default:
                 break;
@@ -1050,12 +1178,23 @@ ctc_sai_policer_get_stats_ext(
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.gport = p_policer_db->id.port_id;
     }
-    else
+    else if (CTC_QOS_POLICER_TYPE_FLOW == p_policer_db->type)
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_FLOW;
         policer_stats.dir = CTC_INGRESS;
-        policer_stats.id.policer_id = p_policer_db->id.entry_id;
+        policer_stats.id.policer_id = ctc_object_id.value;
     }
+    else if (CTC_QOS_POLICER_TYPE_SERVICE == p_policer_db->type)
+    {
+        policer_stats.type = CTC_QOS_POLICER_TYPE_SERVICE;
+        policer_stats.dir = CTC_INGRESS;
+        policer_stats.id.policer_id = ctc_object_id.value;
+    }
+    else
+    {
+        return SAI_STATUS_NOT_SUPPORTED;
+    }
+    
     CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_query_policer_stats(lchip, &policer_stats));
 
     for(attr_idx = 0; attr_idx < number_of_counters; attr_idx++)
@@ -1063,28 +1202,28 @@ ctc_sai_policer_get_stats_ext(
         switch(counter_ids[attr_idx])
         {
             case SAI_POLICER_STAT_PACKETS:
-                counters[attr_idx] = policer_stats.stats.confirm_pkts + policer_stats.stats.exceed_pkts + policer_stats.stats.violate_pkts;
+                counters[attr_idx] = policer_stats.stats.confirm_pkts + policer_stats.stats.exceed_pkts + policer_stats.stats.violate_pkts - p_policer_db->green_pkts - p_policer_db->yellow_pkts - p_policer_db->red_pkts;
                 break;
             case SAI_POLICER_STAT_ATTR_BYTES:
-                counters[attr_idx] = policer_stats.stats.confirm_bytes + policer_stats.stats.exceed_bytes + policer_stats.stats.violate_bytes;
+                counters[attr_idx] = policer_stats.stats.confirm_bytes + policer_stats.stats.exceed_bytes + policer_stats.stats.violate_bytes - p_policer_db->green_bytes - p_policer_db->yellow_bytes - p_policer_db->red_bytes;
                 break;
             case SAI_POLICER_STAT_GREEN_PACKETS:
-                counters[attr_idx] = policer_stats.stats.confirm_pkts;
+                counters[attr_idx] = policer_stats.stats.confirm_pkts - p_policer_db->green_pkts;
                 break;
             case SAI_POLICER_STAT_GREEN_BYTES:
-                counters[attr_idx] = policer_stats.stats.confirm_bytes;
+                counters[attr_idx] = policer_stats.stats.confirm_bytes - p_policer_db->green_bytes;
                 break;
             case SAI_POLICER_STAT_YELLOW_PACKETS:
-                counters[attr_idx] = policer_stats.stats.exceed_pkts;
+                counters[attr_idx] = policer_stats.stats.exceed_pkts - p_policer_db->yellow_pkts;
                 break;
             case SAI_POLICER_STAT_YELLOW_BYTES:
-                counters[attr_idx] = policer_stats.stats.exceed_bytes;
+                counters[attr_idx] = policer_stats.stats.exceed_bytes - p_policer_db->yellow_bytes;
                 break;
             case SAI_POLICER_STAT_RED_PACKETS:
-                counters[attr_idx] = policer_stats.stats.violate_pkts;
+                counters[attr_idx] = policer_stats.stats.violate_pkts - p_policer_db->red_pkts;
                 break;
             case SAI_POLICER_STAT_RED_BYTES:
-                counters[attr_idx] = policer_stats.stats.violate_bytes;
+                counters[attr_idx] = policer_stats.stats.violate_bytes - p_policer_db->red_bytes;
                 break;
             default:
                 break;
@@ -1093,7 +1232,12 @@ ctc_sai_policer_get_stats_ext(
 
     if (SAI_STATS_MODE_READ_AND_CLEAR == mode)
     {
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_clear_policer_stats(lchip, &policer_stats));
+        p_policer_db->green_pkts = policer_stats.stats.confirm_pkts;
+        p_policer_db->green_bytes = policer_stats.stats.confirm_bytes;
+        p_policer_db->yellow_pkts = policer_stats.stats.exceed_pkts;
+        p_policer_db->yellow_bytes = policer_stats.stats.exceed_bytes;
+        p_policer_db->red_pkts = policer_stats.stats.violate_pkts;
+        p_policer_db->red_bytes = policer_stats.stats.violate_bytes;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -1148,13 +1292,30 @@ ctc_sai_policer_clear_stats(
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.gport = p_policer_db->id.port_id;
     }
-    else
+    else if (CTC_QOS_POLICER_TYPE_FLOW == p_policer_db->type)
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_FLOW;
         policer_stats.dir = CTC_INGRESS;
-        policer_stats.id.policer_id = p_policer_db->id.entry_id;
+        policer_stats.id.policer_id = ctc_object_id.value;
     }
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_clear_policer_stats(lchip, &policer_stats));
+    else if (CTC_QOS_POLICER_TYPE_SERVICE == p_policer_db->type)
+    {
+        policer_stats.type = CTC_QOS_POLICER_TYPE_SERVICE;
+        policer_stats.dir = CTC_INGRESS;
+        policer_stats.id.policer_id = ctc_object_id.value;
+    }
+    else
+    {
+        return SAI_STATUS_NOT_SUPPORTED;
+    }
+    
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_query_policer_stats(lchip, &policer_stats));
+    p_policer_db->green_pkts = policer_stats.stats.confirm_pkts;
+    p_policer_db->green_bytes = policer_stats.stats.confirm_bytes;
+    p_policer_db->yellow_pkts = policer_stats.stats.exceed_pkts;
+    p_policer_db->yellow_bytes = policer_stats.stats.exceed_bytes;
+    p_policer_db->red_pkts = policer_stats.stats.violate_pkts;
+    p_policer_db->red_bytes = policer_stats.stats.violate_bytes;
     return SAI_STATUS_SUCCESS;
 }
 

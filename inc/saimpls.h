@@ -32,6 +32,78 @@
  *
  * @{
  */
+typedef enum _sai_inseg_entry_psc_type_t
+{
+    /**
+     * @brief EXP of MPLS label infers both TC and COLOR
+     */
+    SAI_INSEG_ENTRY_PSC_TYPE_ELSP,
+
+    /**
+     * @brief MPLS label infers TC and EXP of MPLS label infers COLOR
+     */
+    SAI_INSEG_ENTRY_PSC_TYPE_LLSP
+} sai_inseg_entry_psc_type_t;
+
+typedef enum _sai_inseg_entry_pop_ttl_mode_t
+{
+    /**
+     * @brief Uniform mode
+     *
+     * TTL of inner header is computed based on TTL of outer header on pop.
+     */
+    SAI_INSEG_ENTRY_POP_TTL_MODE_UNIFORM,
+
+    /**
+     * @brief Pipe mode
+     *
+     * TTL of inner header is left unchanged on pop.
+     */
+    SAI_INSEG_ENTRY_POP_TTL_MODE_PIPE
+} sai_inseg_entry_pop_ttl_mode_t;
+
+typedef enum _sai_inseg_entry_pop_qos_mode_t
+{
+    /**
+     * @brief Uniform mode
+     *
+     * DSCP or EXP of inner header is computed based on TC AND COLOR of outer header on pop.
+     */
+    SAI_INSEG_ENTRY_POP_QOS_MODE_UNIFORM,
+
+    /**
+     * @brief Uniform mode
+     *
+     * DSCP or EXP of inner header is left unchanged on pop.
+     */
+    SAI_INSEG_ENTRY_POP_QOS_MODE_PIPE
+} sai_inseg_entry_pop_qos_mode_t;
+
+/**
+ * @brief MPLS Insegment configured role
+ */
+typedef enum  _sai_inseg_entry_configured_role_t
+{
+    /** MPLS Insegment is primary */
+    SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY,
+
+    /** MPLS Insegment is standby */
+    SAI_INSEG_ENTRY_CONFIGURED_ROLE_STANDBY,
+
+}  sai_inseg_entry_configured_role_t;
+
+/**
+ * @brief MPLS Insegment observed role
+ */
+typedef enum  _sai_inseg_entry_observed_role_t
+{
+    /** MPLS Insegment is active */
+    SAI_INSEG_ENTRY_OBSERVED_ROLE_ACTIVE,
+
+    /** MPLS Insegment is inactive */
+    SAI_INSEG_ENTRY_OBSERVED_ROLE_INACTIVE,
+
+}  sai_inseg_entry_observed_role_t;
 
 /**
  * @brief Attribute Id for SAI in segment
@@ -82,6 +154,78 @@ typedef enum _sai_inseg_entry_attr_t
     SAI_INSEG_ENTRY_ATTR_NEXT_HOP_ID,
 
     /**
+     * @brief Define PSC type for a label.
+     *
+     * Defines how to infer both TC and COLOR
+     *
+     * @type sai_inseg_entry_psc_type_t
+     * @flags CREATE_AND_SET
+     * @default SAI_INSEG_ENTRY_PSC_TYPE_ELSP
+     */
+    SAI_INSEG_ENTRY_ATTR_PSC_TYPE,
+
+    /**
+     * @brief TC for a label.
+     *
+     * Associate TC by a label (override TC provided by QOS MAP)
+     * Mainly used for L-LSP tunnels, where label infers TC and EXP infers COLOR
+     *
+     * @type sai_uint8_t
+     * @flags CREATE_AND_SET
+     * @default 0
+     * @validonly SAI_INSEG_ENTRY_ATTR_PSC_TYPE == SAI_INSEG_ENTRY_PSC_TYPE_LLSP
+     */
+    SAI_INSEG_ENTRY_ATTR_QOS_TC,
+
+    /**
+     * @brief Enable EXP -> TC MAP on label.
+     *
+     * Associate TC by a QOS MAP
+     * Mainly used for E-LSP tunnels, where EXP infers both TC and COLOR
+     * Overrides SAI_SWITCH_ATTR_QOS_MPLS_EXP_TO_TC_MAP and SAI_PORT_ATTR_QOS_MPLS_EXP_TO_TC_MAP
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     * @validonly SAI_INSEG_ENTRY_ATTR_PSC_TYPE == SAI_INSEG_ENTRY_PSC_TYPE_ELSP
+     */
+    SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP,
+
+    /**
+     * @brief Enable EXP -> COLOR MAP on label.
+     *
+     * Associate COLOR by a QOS MAP
+     * Overrides SAI_SWITCH_ATTR_QOS_MPLS_EXP_TO_COLOR_MAP and SAI_PORT_ATTR_QOS_MPLS_EXP_TO_COLOR_MAP
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP,
+
+    /**
+     * @brief Define TTL setting for PHP or POP
+     *
+     * @type sai_inseg_entry_pop_ttl_mode_t
+     * @flags CREATE_AND_SET
+     * @default SAI_INSEG_ENTRY_POP_TTL_MODE_UNIFORM
+     */
+    SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE,
+
+    /**
+     * @brief Define QOS setting for PHP or POP
+     *
+     * @type sai_inseg_entry_pop_qos_mode_t
+     * @flags CREATE_AND_SET
+     * @default SAI_INSEG_ENTRY_POP_QOS_MODE_UNIFORM
+     */
+    SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE,
+
+    /**
      * @brief The tunnel id
      *
      * @type sai_object_id_t
@@ -90,7 +234,47 @@ typedef enum _sai_inseg_entry_attr_t
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
      */
-    SAI_INSEG_ENTRY_ATTR_TUNNEL_ID,
+    SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID,
+    
+    /**
+     * @brief FRR nexthop group
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_ONLY
+     * @objects SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP,
+
+    /**
+     * @brief FRR configured Role in packet receiving direction
+     *
+     * @type sai_inseg_entry_configured_role_t
+     * @flags CREATE_ONLY
+     * @default SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY
+     * @validonly SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
+     */
+    SAI_INSEG_ENTRY_ATTR_FRR_CONFIGURED_ROLE,
+
+    /**
+     * @brief FRR observed Role in packet receiving direction
+     *
+     * @type sai_inseg_entry_observed_role_t
+     * @flags READ_ONLY
+     * @validonly SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
+     */
+    SAI_INSEG_ENTRY_ATTR_FRR_OBSERVED_ROLE,
+    
+    /**
+     * @brief FRR observed Role inactive discard in receiving direction
+     *
+     * @type bool
+     * @flags CREATE_ONLY
+     * @default false
+     * @validonly SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
+     */
+    SAI_INSEG_ENTRY_ATTR_FRR_INACTIVE_RX_DISCARD,
 
     /**
      * @brief End of attributes

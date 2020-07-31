@@ -274,7 +274,8 @@ class fun_07_get_nexthop_group_attribute_count_fn(sai_base_test.ThriftInterfaceD
             nhop_gmember3 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
             nhop_gmember4 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
             
-            nhop_gmember_list = [nhop_gmember3, nhop_gmember2, nhop_gmember1, nhop_gmember4]
+            nhop_gmember_list = [nhop_gmember2, nhop_gmember4, nhop_gmember3, nhop_gmember1]
+            print nhop_gmember_list
 
             sys_logging("======get the nexthop group attribute count and member list again=====")
             attrs = self.client.sai_thrift_get_next_hop_group_attribute(nhop_group1)
@@ -348,9 +349,9 @@ class fun_08_create_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDataPla
             sys_logging("nhop_gmember1 = 0x%x" %nhop_gmember1)
             sys_logging("nhop_gmember2 = 0x%x" %nhop_gmember2)
             sys_logging("nhop_gmember3 = 0x%x" %nhop_gmember3)
-            assert (nhop_gmember1%0x100000000 == 0x2d)
-            assert (nhop_gmember2%0x100000000 == 0x1002d)
-            assert (nhop_gmember3%0x100000000 == 0x2002d)
+            assert (nhop_gmember1%0x100000000 == 0x202d)
+            assert (nhop_gmember2%0x100000000 == 0x1202d)
+            assert (nhop_gmember3%0x100000000 == 0x2202d)
 
         finally:
             sys_logging("======clean up======")
@@ -478,7 +479,7 @@ class fun_10_remove_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDataPla
         warmboot(self.client)
         try:
             sys_logging("======get the nexthop group member attribute======")
-            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(nhop_gmember1)
+            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(nhop_gmember1)
             sys_logging("status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
             sys_logging("======remove the nexthop group member======")
@@ -487,7 +488,7 @@ class fun_10_remove_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDataPla
             assert (status == SAI_STATUS_SUCCESS)
 
             sys_logging("======get the nexthop group member attribute again======")
-            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(nhop_gmember1)
+            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(nhop_gmember1)
             sys_logging("status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
 
@@ -538,7 +539,7 @@ class fun_11_remove_no_exist_nexthop_group_member_fn(sai_base_test.ThriftInterfa
             sys_logging("status = %d" %status)
             assert (status == SAI_STATUS_ITEM_NOT_FOUND)
             sys_logging("======get the nexthop group member attribute======")
-            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(nhop_gmember1)
+            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(nhop_gmember1)
             sys_logging("status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
 
@@ -547,7 +548,7 @@ class fun_11_remove_no_exist_nexthop_group_member_fn(sai_base_test.ThriftInterfa
             sys_logging("status = %d" %status)
             assert (status == SAI_STATUS_ITEM_NOT_FOUND)
             sys_logging("======get the nexthop group member attribute again======")
-            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(nhop_gmember1)
+            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(nhop_gmember1)
             sys_logging("status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
 
@@ -556,7 +557,7 @@ class fun_11_remove_no_exist_nexthop_group_member_fn(sai_base_test.ThriftInterfa
             sys_logging("status = %d" %attrs.status)
             assert (status == SAI_STATUS_SUCCESS)
             sys_logging("======get the nexthop group member attribute again======")
-            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(nhop_gmember1)
+            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(nhop_gmember1)
             sys_logging("status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
 
@@ -601,7 +602,7 @@ class fun_12_get_nexthop_group_member_attribute_fn(sai_base_test.ThriftInterface
         warmboot(self.client)
         try:
             sys_logging("======get the nexthop group member attribute group id and nexthop id======")
-            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(nhop_gmember1)
+            attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(nhop_gmember1)
             sys_logging("status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
             for a in attrs.attr_list:
@@ -686,7 +687,7 @@ class fun_13_bulk_create_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDa
             statuslist = results[1]
             for object_id in object_id_list:
                 sys_logging("0x%x" %object_id)
-                attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id)
+                attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id)
                 assert (attrs.status == SAI_STATUS_SUCCESS)
             for status in statuslist:
                 assert (status == SAI_STATUS_SUCCESS)
@@ -768,13 +769,13 @@ class fun_14_bulk_create_stop_on_error_fn(sai_base_test.ThriftInterfaceDataPlane
                 sys_logging("0x%x" %object_id_list[i])
                 if i >= 8:
                     
-                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id_list[i])
+                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id_list[i])
                     print attrs.status
                     assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)       
                    
                 else:
                     
-                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id_list[i])
+                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id_list[i])
                     print attrs.status
                     assert (attrs.status == SAI_STATUS_SUCCESS)
                     
@@ -854,11 +855,11 @@ class fun_15_bulk_create_ignore_error_fn(sai_base_test.ThriftInterfaceDataPlane)
             for i in range(16):
                 sys_logging("0x%x" %object_id_list[i])
                 if i == 8:
-                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id_list[i])
+                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id_list[i])
                     print attrs.status
                     assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
                 else:
-                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id_list[i])
+                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id_list[i])
                     print attrs.status
                     assert (attrs.status == SAI_STATUS_SUCCESS)
                     
@@ -940,7 +941,7 @@ class fun_16_bulk_remove_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDa
             sys_logging("======get the 16 nexthop group member attribute======")
             for object_id in object_id_list:
                 sys_logging("0x%x" %object_id)
-                attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id)
+                attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id)
                 assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
             
         finally:
@@ -1022,12 +1023,12 @@ class fun_17_bulk_remove_stop_on_error_fn(sai_base_test.ThriftInterfaceDataPlane
             for i in range(16):
                 if i < 8:
                     
-                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id_list[i])
+                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id_list[i])
                     print attrs.status
                     assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
                    
                 else:
-                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id_list[i])
+                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id_list[i])
                     print attrs.status
                     assert (attrs.status == SAI_STATUS_SUCCESS)
             
@@ -1108,12 +1109,12 @@ class fun_18_bulk_remove_ignore_error_fn(sai_base_test.ThriftInterfaceDataPlane)
             object_id_list[8] = member8
             for i in range(16):
                 if i == 8:
-                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id_list[i])
+                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id_list[i])
                     print attrs.status
                     assert (attrs.status == SAI_STATUS_SUCCESS)
 
                 else:
-                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute(object_id_list[i])
+                    attrs = self.client.sai_thrift_get_next_hop_group_member_attribute_ecmp(object_id_list[i])
                     print attrs.status
                     assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
             

@@ -32,19 +32,6 @@
  */
 
 /**
- * @brief SAI TWAMP session state
- */
-typedef enum _sai_twamp_session_state_t
-{
-    /** Session State Active  */
-    SAI_TWAMP_SESSION_STATE_ACTIVE = 0,
-
-    /** Session State Inactive */
-    SAI_TWAMP_SESSION_STATE_INACTIVE
-
-} sai_twamp_session_state_t;
-
-/**
  * @brief SAI TWAMP session authen mode,
  *        there are three modes: unauthenticated, authenticated, and encrypted.
  */
@@ -61,18 +48,6 @@ typedef enum _sai_twamp_session_auth_mode_t
 
 } sai_twamp_session_auth_mode_t;
 
-/**
- * @brief SAI TWAMP direction
- */
-typedef enum _sai_twamp_session_direction_t
-{
-    /** Session enable ingress port  */
-    SAI_TWAMP_SESSION_INGRESS = 0,
-
-    /** Session enable egress port  */
-    SAI_TWAMP_SESSION_EGRESS
-
-} sai_twamp_session_direction_t;
 
 /**
  * @brief SAI TWAMP role
@@ -135,12 +110,14 @@ typedef enum _sai_twamp_session_role_t
 
 
  */
+
+
 typedef enum _sai_twamp_mode_type_t
 {
     /**
      * @brief reflector will record session stats when enabling twamp full moode 
      */
-    SAI_TWAMP_MODE_TWAMP_FULL,
+    SAI_TWAMP_MODE_TWAMP_FULL = 0,
 
     /**
      * @brief reflector not record session stats when enabling twamp light moode 
@@ -148,6 +125,38 @@ typedef enum _sai_twamp_mode_type_t
     SAI_TWAMP_MODE_TWAMP_LIGHT
 
 } sai_twamp_mode_type_t;
+
+
+typedef enum _sai_twamp_pkt_tx_mode_t
+{
+    /**@brief  continunos send twamp test packet  */
+    SAI_TWAMP_TX_MODE_CONTINUOUS = 0,
+
+    /**@brief only send twamp test packet with assign numbers */
+    SAI_TWAMP_TX_MODE_PACKET_NUM,
+
+    /**@brief send twamp test packet with period interval */
+    SAI_TWAMP_TX_MODE_PERIOD
+
+} sai_twamp_pkt_tx_mode_t;
+
+
+
+typedef enum _sai_twamp_timestamp_format_t
+{
+
+    /**
+     * @@brief twamp test packet timestamp format is ntp format, 32 bit second and 32 bit fractional part of seconds
+     */
+    SAI_TWAMP_MODE_TIMESTAMP_FORMAT_NTP = 0,
+    
+    /**
+     * @brief twamp test packet timestamp format is ptp format, 32 bit second and 32 bit nanosecond
+     */
+    SAI_TWAMP_MODE_TIMESTAMP_FORMAT_PTP,
+
+} sai_twamp_timestamp_format_t;
+    
 
 
 /**
@@ -158,12 +167,18 @@ typedef enum _sai_twamp_encapsulation_type_t
     /**
      * @brief IP Encapsulation, L2 header | IP(v4/v6) header | UDP header | Original TWAMP test packet
      */
-    SAI_TWAMP_ENCAPSULATION_TYPE_IP,
+    SAI_TWAMP_ENCAPSULATION_TYPE_IP = 0,
 
     /**
      * @brief L3 VPN Encapsulation, L2 header | MPLS Label List | IP(v4/v6) header | UDP header | Original TWAMP test packet
      */
-    SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN
+    SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI,
+
+    /**
+     * @brief L3 VPN Encapsulation, L2 header | MPLS Label List | IP(v4/v6) header | UDP header | Original TWAMP test packet
+     */
+    SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_NNI,
+    
 
 } sai_twamp_encapsulation_type_t;
 
@@ -178,28 +193,28 @@ typedef enum _sai_twamp_session_attr_t
     SAI_TWAMP_SESSION_ATTR_START,
 
     /**
-     * @brief TWAMP Session type DEMAND/ASYNCHRONOUS
-     *
-     * @type sai_twamp_session_type_t
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @brief TWAMP test port
+     * @type sai_object_id_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY 
+     * @objects SAI_OBJECT_TYPE_PORT
+     * @validonly SAI_TWAMP_SESSION_ATTR_TWAMP_ENCAPSULATION_TYPE == SAI_TWAMP_ENCAPSULATION_TYPE_IP or SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI
      */
-    SAI_TWAMP_SESSION_ATTR_TYPE = SAI_TWAMP_SESSION_ATTR_START,
+    SAI_TWAMP_SESSION_ATTR_TWAMP_PORT = SAI_TWAMP_SESSION_ATTR_START,
 
     /**
-     * @brief TWAMP Port, RX DIR with ingress port, TX DIR with egress port,  when SAI_TWAMP_SESSION_ATTR_HW_LOOKUP_VALID is false
-     *         and depend on SAI_TWAMP_SESSION_ATTR_DIRECTION.
+     * @brief receive port of TWAMP sender and reflector,  enable acl lookup on this port for match test packet to twamp engine.
      *
      * @type sai_object_id_t
-     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_PORT
      */
-    SAI_TWAMP_SESSION_ATTR_PORT,
+    SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT,
 
     /**
-     * @brief TWAMP session direction of sender or receiver.
+     * @brief TWAMP session role of sender or receiver.
      *
      * @type sai_twamp_session_role_t
-     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      */
     SAI_TWAMP_SESSION_ATTR_SESSION_ROLE,
 
@@ -235,25 +250,35 @@ typedef enum _sai_twamp_session_attr_t
      */
     SAI_TWAMP_SESSION_ATTR_DST_IP,
 
-    //SAI_TWAMP_SESSION_ATTR_IPHDR_VERSION,
-
     /**
      * @brief DSCP of Traffic Class
      *
      * @type sai_uint8_t
-     * @flags CREATE_AND_SET
-     * @default 0
+     * @flags CREATE_ONLY
+     * @default 0     
      */
     SAI_TWAMP_SESSION_ATTR_TC,
-
+    
     /**
-     * @brief VPN VRFID (L3 MPLS VPN), when enabling hardware lookup (SAI_TWAMP_SESSION_ATTR_HW_LOOKUP_VALID) with Dest IP. 
+     * @brief IP header TTL
+     *
+     * @type sai_uint8_t
+     * @flags CREATE_ONLY
+     * @default 255
+     * @condition SAI_TWAMP_SESSION_ATTR_SESSION_ROLE == SAI_TWAMP_SESSION_SENDER     
+     */
+    SAI_TWAMP_SESSION_ATTR_TTL,
+    
+    /**
+     * @brief VPN VRFID (L3 MPLS VPN)
      *
      * @type sai_object_id_t
-     * @flags CREATE_AND_SET
+     * @flags CREATE_ONLY
+     * @objects SAI_OBJECT_TYPE_VIRTUAL_ROUTER
      * @default 0
+     * @validonly SAI_TWAMP_SESSION_ATTR_HW_LOOKUP_VALID == true    
      */
-    SAI_TWAMP_SESSION_ATTR_VPN_VIRTUAL_ROUTE,
+    SAI_TWAMP_SESSION_ATTR_VPN_VIRTUAL_ROUTER,
 
     /**
      * @brief Encapsulation type
@@ -269,6 +294,7 @@ typedef enum _sai_twamp_session_attr_t
      * @type booldata
      * @flags CREATE_AND_SET
      * @default false
+     * @condition SAI_TWAMP_SESSION_ATTR_SESSION_ROLE == SAI_TWAMP_SESSION_SENDER     
      */
     SAI_TWAMP_SESSION_ATTR_SESSION_ENABLE_TRANSMIT,
 
@@ -282,26 +308,19 @@ typedef enum _sai_twamp_session_attr_t
     SAI_TWAMP_SESSION_ATTR_HW_LOOKUP_VALID,
 
     /**
-     * @brief payload padding length
+     * @brief twamp packet length
      *
      * @type sai_uint32_t
-     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_TWAMP_SESSION_ATTR_SESSION_ROLE == SAI_TWAMP_SESSION_SENDER     
      */
-    SAI_TWAMP_SESSION_ATTR_PADDING_LENGTH,
-
-    /**
-     * @brief TWAMP Session state
-     *
-     * @type sai_twamp_session_state_t
-     * @flags READ_ONLY
-     */
-    SAI_TWAMP_SESSION_ATTR_STATE,
+    SAI_TWAMP_SESSION_ATTR_PACKET_LENGTH,
 
     /**
      * @brief TWAMP Session mode: unauthenticated, authenticated, and encrypted.
      *
      * @type sai_twamp_session_auth_mode_t
-     * @flags READ_ONLY
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      */
     SAI_TWAMP_SESSION_ATTR_AUTH_MODE,
 
@@ -309,12 +328,49 @@ typedef enum _sai_twamp_session_attr_t
      * @brief TWAMP Session nexthop ID for generating TWAMP test packet
      *
      * @type sai_object_id_t
-     * @flags CREATE_AND_SET
+     * @flags CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_NEXT_HOP
      * @allownull true
-     * @default SAI_NULL_OBJECT_ID
+     * @default SAI_NULL_OBJECT_ID    
      */
     SAI_TWAMP_SESSION_ATTR_NEXT_HOP_ID,
+
+    /**
+     * @brief TWAMP test packet tx rate per Kbps, configuring by TWAMP sender bandwith of Tx port 
+     *
+     * @type sai_uint32_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_TWAMP_SESSION_ATTR_SESSION_ROLE == SAI_TWAMP_SESSION_SENDER     
+     */
+    SAI_TWAMP_SESSION_ATTR_TX_RATE,
+    
+
+    /**
+     * @brief twamp packet tx mode of twamp: CONTINUOUS, PACKET_NUM, PERIOD
+     *
+     * @type sai_twamp_pkt_tx_mode_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_TWAMP_SESSION_ATTR_SESSION_ROLE == SAI_TWAMP_SESSION_SENDER     
+     */
+    SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE,
+
+    /**
+     * @brief TWAMP test packet tx duration per mirco second, timneout of the tx pakcet generation
+     *
+     * @type sai_uint32_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_TWAMP_SESSION_ATTR_SESSION_ROLE == SAI_TWAMP_SESSION_SENDER and SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE == SAI_TWAMP_TX_MODE_CONTINUOUS    
+     */
+    SAI_TWAMP_SESSION_ATTR_TX_PKT_DURATION,
+    
+    /**
+     * @brief TWAMP test packet tx count, configuring by TWAMP send packet count of Tx 
+     *
+     * @type sai_uint32_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_TWAMP_SESSION_ATTR_SESSION_ROLE == SAI_TWAMP_SESSION_SENDER and SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE == SAI_TWAMP_TX_MODE_PACKET_NUM     
+     */
+    SAI_TWAMP_SESSION_ATTR_TX_PKT_CNT,
 
     /**
      * @brief TWAMP test packet tx period, configuring by TWAMP sender period of Tx 
@@ -322,32 +378,9 @@ typedef enum _sai_twamp_session_attr_t
      *
      * @type sai_uint32_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_TWAMP_SESSION_ATTR_SESSION_ROLE == SAI_TWAMP_SESSION_SENDER and SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE == SAI_TWAMP_TX_MODE_PERIOD        
      */
     SAI_TWAMP_SESSION_ATTR_TX_PKT_PERIOD,
-
-    /**
-     * @brief TWAMP test packet tx rate per Kbps, configuring by TWAMP sender bandwith of Tx port 
-     *
-     * @type sai_uint32_t
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     */
-    SAI_TWAMP_SESSION_ATTR_TX_RATE,
-
-    /**
-     * @brief TWAMP test packet tx count, configuring by TWAMP send packet count of Tx 
-     *
-     * @type sai_uint32_t
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     */
-    SAI_TWAMP_SESSION_ATTR_TX_PKT_CNT,
-
-    /**
-     * @brief TWAMP test packet tx duration per mirco second, timneout of the tx pakcet generation
-     *
-     * @type sai_uint64_t
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     */
-    SAI_TWAMP_SESSION_ATTR_TX_PKT_DURATION,
 
     /**
      * @brief twamp mode of twamp: ligit mode and full mode
@@ -356,6 +389,16 @@ typedef enum _sai_twamp_session_attr_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      */
     SAI_TWAMP_SESSION_ATTR_MODE,
+
+    /**
+     * @brief twamp mode of twamp: ligit mode and full mode
+     *
+     * @type sai_twamp_timestamp_format_t
+     * @flags CREATE_ONLY
+     * @default SAI_TWAMP_MODE_TIMESTAMP_FORMAT_NTP
+     */
+    SAI_TWAMP_SESSION_ATTR_TIMESTAMP_FORMAT,
+    
 
     /**
      * @brief End of attributes
@@ -418,19 +461,6 @@ typedef enum _sai_twamp_session_stats_t
     SAI_TWAMP_SESSION_STATS_DURATION_TS
 
 } sai_twamp_session_stats_t;
-
-/**
- * @brief Defines the operational status of the TWAMP session
- */
-typedef struct sai_twamp_session_status_notification_s
-{
-    /** TWAMP Session id */
-    sai_object_id_t twamp_session_id;
-
-    /** TWAMP session state */
-    sai_twamp_session_stats_t session_stats;
-
-} sai_twamp_session_status_notification_t;
 
 
 /**
@@ -499,10 +529,12 @@ typedef sai_status_t (*sai_get_twamp_session_attribute_fn)(
  *
  * @return SAI_STATUS_SUCCESS on success, failure status code on error
  */
+
 typedef sai_status_t (*sai_get_twamp_session_stats_fn)(
         _In_ sai_object_id_t twamp_session_id,
-        _In_ uint32_t stats_count,
-        _Inout_ sai_attribute_t *stats_list);
+        _In_ uint32_t number_of_counters,
+        _In_ const sai_stat_id_t *counter_ids,
+        _Out_ uint64_t *counters);
 
 /**
  * @brief Clear TWAMP session statistics counters.
@@ -516,19 +548,7 @@ typedef sai_status_t (*sai_get_twamp_session_stats_fn)(
 typedef sai_status_t (*sai_clear_twamp_session_stats_fn)(
         _In_ sai_object_id_t twamp_session_id,
         _In_ uint32_t stats_count,
-        _In_ const sai_attribute_t *stats_list);
-
-/**
- * @brief TWAMP session status change notification
- *
- * Passed as a parameter into sai_initialize_switch()
- *
- * @param[in] threshold of notifications
- * @param[in] data Array of TWAMP session status
- */
-typedef void (*sai_twamp_session_status_change_notification_fn)(
-        _In_ uint32_t threshold,
-        _In_ const sai_twamp_session_status_notification_t *data);
+        _In_ const sai_stat_id_t *counter_ids);
 
 /**
  * @brief TWAMP method table retrieved with sai_api_query()

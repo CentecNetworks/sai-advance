@@ -451,6 +451,18 @@ typedef enum _sai_hostif_trap_type_t
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DM,
 
+    /** 
+     * @brief log all packet to cpu when micro burst occur
+     * (default packet action is SAI_PACKET_ACTION_COPY)
+     */
+    SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_MICROBURST_LOG,
+
+    /** 
+     * @brief log packet to cpu when latency over the threshold
+     * (default packet action is SAI_PACKET_ACTION_COPY)
+     */
+    SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_LATENCY_OVERFLOW_LOG,
+
     /**
      * @brief End of trap types
      */

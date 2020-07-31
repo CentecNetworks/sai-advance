@@ -85,6 +85,9 @@ typedef enum _sai_bridge_port_type_t
     /** Bridge tunnel port */
     SAI_BRIDGE_PORT_TYPE_TUNNEL,
 
+    /** Bridge FRR port */
+    SAI_BRIDGE_PORT_TYPE_FRR,
+
 } sai_bridge_port_type_t;
 
 /**
@@ -283,7 +286,49 @@ typedef enum _sai_bridge_port_attr_t
      *   || SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
      */
     SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE,
-    
+
+    /**
+     * @brief FRR nexthop group object ID
+     * 
+     * for VPLS FRR Decapsulation
+     *
+     * @type sai_object_id_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @objects SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+     * @default SAI_NULL_OBJECT_ID
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_FRR
+     */
+    SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP,
+
+    /**
+     * @brief policer id for sub port/tunnel port
+     * 
+     * for VPLS/VPWS
+     * set to NULL means disable policer on bridge port
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_POLICER
+     * @default NULL
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT
+     *   || SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
+     */
+    SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID,
+
+    /**
+     * @brief service id for sub port/tunnel port
+     * 
+     * used for H-QoS, set to service schedule group service id
+     * set to 0 means disable H-QoS on bridge sub port/tunnel port
+     *
+     * @type sai_uint16_t
+     * @flags CREATE_AND_SET
+     * @default 0
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT
+     *   || SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
+     */
+    SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID,
+
     /**
      * @brief End of attributes
      */

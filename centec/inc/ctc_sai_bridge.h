@@ -65,8 +65,11 @@
 \t  |  SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING                           |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING                            |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE                  |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT                   |            CTC7132             |
+\t  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE                  |            CTC7132             |
+\t  |  SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP                                 |            CTC7132             |
+\t  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID                  |            CTC7132             |
+\t  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID                  |            CTC7132             |
 \b
 */
 
@@ -102,6 +105,8 @@ typedef struct ctc_sai_bridge_port_s
     uint64 egs_byte_count;
     uint8 bridge_type;
     uint8 sub_port_or_tunnel_oam_en;
+    uint32 sub_port_or_tunnel_policer_id;
+    uint16 sub_port_or_tunnel_service_id;
     bool ingress_filter;
     bool egress_filter;
     sai_object_id_t isolation_group_oid;
@@ -115,8 +120,7 @@ typedef struct ctc_sai_bridge_port_s
     uint32 vlan_member_bind_bits[128]; // vlan member binded vlanptr 
     uint32 vlan_member_bind_count;
     uint8  vlan_member_tag_mode[4096];
-
-    
+    sai_object_id_t  frr_nhp_grp_id;    
 }
 ctc_sai_bridge_port_t;
 

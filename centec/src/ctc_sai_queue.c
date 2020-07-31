@@ -6,6 +6,7 @@
 #include "ctc_sai_scheduler_group.h"
 #include "ctc_sai_buffer.h"
 #include "ctc_sai_queue.h"
+#include "ctc_sai_port.h"
 
 
 sai_status_t
@@ -45,6 +46,137 @@ error_return:
     return status;
 }
 
+static sai_status_t
+_ctc_sai_queue_set_fcdl_detect(sai_object_id_t queue_id, const sai_attribute_t *attr)
+{
+    uint8 lchip = 0;
+    uint32 gport = 0;
+    uint16  ctc_queue_id = 0;
+    ctc_object_id_t ctc_oid;
+    ctc_qos_resrc_t ctc_resrc;
+    ctc_sai_switch_master_t* p_switch = NULL;
+
+    CTC_SAI_LOG_ENTER(SAI_API_QUEUE);
+    CTC_SAI_PTR_VALID_CHECK(attr);
+    CTC_SAI_LOG_INFO(SAI_API_QUEUE, "Queue oid:0x%"PRIx64"\n", queue_id);
+    sal_memset(&ctc_resrc, 0, sizeof(ctc_resrc));
+    
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_QUEUE, queue_id, &ctc_oid);
+    if ((SAI_QUEUE_TYPE_MULTICAST == ctc_oid.sub_type) || (SAI_QUEUE_TYPE_SERVICE == ctc_oid.sub_type))
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Not Supported Mcast queue type!\n");
+        return SAI_STATUS_NOT_SUPPORTED;
+    }
+    lchip = ctc_oid.lchip;
+    gport = ctc_oid.value;
+    ctc_queue_id = ctc_oid.value2 & 0x3f;
+
+    p_switch = ctc_sai_get_switch_property(lchip);
+
+    ctc_resrc.cfg_type = CTC_QOS_RESRC_CFG_FCDL_DETECT;
+    ctc_resrc.u.fcdl_detect.gport = gport;
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_resrc(lchip, &ctc_resrc));
+
+    if(attr->value.booldata)  //enable
+    {
+        if(ctc_resrc.u.fcdl_detect.enable)
+        {
+            if(CTC_MAX_FCDL_DETECT_NUM == ctc_resrc.u.fcdl_detect.valid_num)
+            {
+                if((ctc_resrc.u.fcdl_detect.priority_class[0] == ctc_queue_id) 
+                    || (ctc_resrc.u.fcdl_detect.priority_class[1] == ctc_queue_id))
+                {
+                    ctc_resrc.u.fcdl_detect.detect_mult = p_switch->pfc_dld_interval[ctc_queue_id];
+                }
+                else
+                {
+                    return SAI_STATUS_INSUFFICIENT_RESOURCES;
+                }
+            }
+            else if(1 == ctc_resrc.u.fcdl_detect.valid_num)
+            {
+                if(ctc_resrc.u.fcdl_detect.priority_class[0] == ctc_queue_id)
+                {
+                    ctc_resrc.u.fcdl_detect.detect_mult = p_switch->pfc_dld_interval[ctc_queue_id];
+                }
+                else
+                {
+                    ctc_resrc.u.fcdl_detect.detect_mult = p_switch->pfc_dld_interval[ctc_queue_id];
+                    ctc_resrc.u.fcdl_detect.priority_class[1] = ctc_queue_id;
+                    ctc_resrc.u.fcdl_detect.valid_num = 2;
+                }
+            }
+        }
+        else
+        {
+            ctc_resrc.u.fcdl_detect.detect_mult = p_switch->pfc_dld_interval[ctc_queue_id];
+            ctc_resrc.u.fcdl_detect.priority_class[0] = ctc_queue_id;
+            ctc_resrc.u.fcdl_detect.valid_num = 1;
+            ctc_resrc.u.fcdl_detect.enable = 1;
+        }
+
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_resrc(lchip, &ctc_resrc));
+
+    }
+    else  //disable
+    {
+        if(ctc_resrc.u.fcdl_detect.enable)
+        {
+            if(CTC_MAX_FCDL_DETECT_NUM == ctc_resrc.u.fcdl_detect.valid_num)
+            {
+                if(ctc_resrc.u.fcdl_detect.priority_class[1] == ctc_queue_id)
+                {
+                    //disable all
+                    ctc_resrc.u.fcdl_detect.enable = 0;
+                    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_resrc(lchip, &ctc_resrc));
+
+                    //enable one queue
+                    ctc_resrc.u.fcdl_detect.enable = 1;
+                    ctc_resrc.u.fcdl_detect.detect_mult = p_switch->pfc_dld_interval[ctc_resrc.u.fcdl_detect.priority_class[0]];
+                    ctc_resrc.u.fcdl_detect.priority_class[1] = 0;
+                    ctc_resrc.u.fcdl_detect.valid_num = 1;
+                    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_resrc(lchip, &ctc_resrc));
+                }
+                else if(ctc_resrc.u.fcdl_detect.priority_class[0] == ctc_queue_id)
+                {
+                    //disable all
+                    ctc_resrc.u.fcdl_detect.enable = 0;
+                    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_resrc(lchip, &ctc_resrc));
+
+                    //enable one queue
+                    ctc_resrc.u.fcdl_detect.enable = 1;
+                    ctc_resrc.u.fcdl_detect.detect_mult = p_switch->pfc_dld_interval[ctc_resrc.u.fcdl_detect.priority_class[1]];
+                    ctc_resrc.u.fcdl_detect.priority_class[0] = ctc_resrc.u.fcdl_detect.priority_class[1];
+                    ctc_resrc.u.fcdl_detect.valid_num = 1;
+                    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_resrc(lchip, &ctc_resrc));
+                }
+                else
+                {
+                    return SAI_STATUS_SUCCESS;
+                }
+                
+            }
+            else if(1 == ctc_resrc.u.fcdl_detect.valid_num)
+            {
+                if(ctc_resrc.u.fcdl_detect.priority_class[0] == ctc_queue_id)
+                {
+                    ctc_resrc.u.fcdl_detect.enable = 0;
+                    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_resrc(lchip, &ctc_resrc));
+                }
+                else
+                {
+                    return SAI_STATUS_SUCCESS;
+                }
+            }
+        }
+        else
+        {
+            return SAI_STATUS_SUCCESS;
+        }
+    }
+    
+    return SAI_STATUS_SUCCESS;    
+}
 
 static sai_status_t
 _ctc_sai_queue_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_queue_traverse_param_t* user_data)
@@ -52,56 +184,132 @@ _ctc_sai_queue_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_queu
     ctc_object_id_t ctc_oid;
     ctc_sai_queue_db_t* p_queue_db = bucket_data->data;
     uint8 lchip = 0;
+    ctc_qos_drop_t  ctc_drop;
+    ctc_qos_drop_t*  p_set_ctc_drop = NULL;
+    ctc_sai_switch_master_t* p_switch = NULL;
+    uint32 idx = 0;
+
+    lchip = user_data->lchip;
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_QUEUE, bucket_data->oid, &ctc_oid);
+    if (lchip != ctc_oid.lchip)
+    {
+        return SAI_STATUS_SUCCESS;
+    }
+        
+    p_switch = ctc_sai_get_switch_property(lchip);
+    if (NULL == p_switch)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Switch DB not found!\n");
+        return SAI_STATUS_FAILURE;
+    }
+    //sal_memcpy(&ctc_drop, user_data->p_value, sizeof(ctc_qos_drop_t));
+    ctc_drop.queue.gport = ctc_oid.value;    
+
+    if ((ctc_oid.sub_type == SAI_QUEUE_TYPE_MULTICAST)
+        && (p_switch->port_queues == 16))
+    {
+        ctc_drop.queue.queue_id = ctc_oid.value2 + CTC_QOS_BASIC_Q_NUM;
+        ctc_drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    }
+    else if (ctc_oid.sub_type == SAI_QUEUE_TYPE_SERVICE)
+    {
+        ctc_drop.queue.queue_id = ctc_oid.value2 & 0x3F;
+        ctc_drop.queue.service_id = (ctc_oid.value2 >> 6);
+        ctc_drop.queue.queue_type = CTC_QUEUE_TYPE_SERVICE_INGRESS;
+    }
+    else
+    {
+        ctc_drop.queue.queue_id = ctc_oid.value2;
+        ctc_drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    }    
 
     switch (user_data->set_type)
     {
         case CTC_SAI_Q_SET_TYPE_WRED:
-        case CTC_SAI_Q_SET_TYPE_BUFFER:
-            if ((user_data->set_type == CTC_SAI_Q_SET_TYPE_WRED) && (*user_data->cmp_value != p_queue_db->wred_id))
+            if (*user_data->cmp_value != p_queue_db->wred_id)
             {
                 return SAI_STATUS_SUCCESS;
             }
+
+            p_set_ctc_drop = (ctc_qos_drop_t*)user_data->p_value;
+            ctc_drop.drop.mode = p_set_ctc_drop->drop.mode;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &ctc_drop));            
+            
+            ctc_drop.drop.is_coexist = p_set_ctc_drop->drop.is_coexist;
+            for(idx = 0; idx < CTC_DROP_PREC_NUM-1; idx++)
+            {                
+                ctc_drop.drop.drop_prob[idx] = p_set_ctc_drop->drop.drop_prob[idx];
+                ctc_drop.drop.min_th[idx] = p_set_ctc_drop->drop.min_th[idx];
+                ctc_drop.drop.max_th[idx] = p_set_ctc_drop->drop.max_th[idx];
+            }
+
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &ctc_drop));
+
+            break;
+
+        case CTC_SAI_Q_SET_TYPE_WRED_ECN:
+            if (*user_data->cmp_value != p_queue_db->wred_id)
+            {
+                return SAI_STATUS_SUCCESS;
+            }
+            p_set_ctc_drop = (ctc_qos_drop_t*)user_data->p_value;
+            ctc_drop.drop.mode = p_set_ctc_drop->drop.mode;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &ctc_drop));
+            
+            ctc_drop.drop.is_coexist = p_set_ctc_drop->drop.is_coexist;
+            for(idx = 0; idx < CTC_DROP_PREC_NUM-1; idx++)
+            {                
+                ctc_drop.drop.ecn_th[idx] = p_set_ctc_drop->drop.ecn_th[idx];
+            }
+
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &ctc_drop));
+
+            break;
+            
+        case CTC_SAI_Q_SET_TYPE_BUFFER:
             if ((user_data->set_type == CTC_SAI_Q_SET_TYPE_BUFFER) && (*user_data->cmp_value != p_queue_db->buf_id))
             {
                 return SAI_STATUS_SUCCESS;
             }
 
-            lchip = user_data->lchip;
-            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_QUEUE, bucket_data->oid, &ctc_oid);
-            if (lchip != ctc_oid.lchip)
-            {
-                return SAI_STATUS_SUCCESS;
+            p_set_ctc_drop = (ctc_qos_drop_t*)user_data->p_value;
+            ctc_drop.drop.mode = p_set_ctc_drop->drop.mode;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &ctc_drop));
+            
+            ctc_drop.drop.is_coexist = p_set_ctc_drop->drop.is_coexist;
+            ctc_drop.drop.is_dynamic = p_set_ctc_drop->drop.is_dynamic;
+            for(idx = 0; idx < CTC_DROP_PREC_NUM; idx++)
+            {                
+                ctc_drop.drop.max_th[idx] = p_set_ctc_drop->drop.max_th[idx];
+                ctc_drop.drop.drop_factor[idx] = p_set_ctc_drop->drop.drop_factor[idx];
             }
-            {
-                ctc_qos_drop_t  ctc_drop;
-                ctc_sai_switch_master_t* p_switch = ctc_sai_get_switch_property(lchip);
-                if (NULL == p_switch)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Switch DB not found!\n");
-                    return SAI_STATUS_FAILURE;
-                }
-                sal_memcpy(&ctc_drop, user_data->p_value, sizeof(ctc_qos_drop_t));
-                ctc_drop.queue.gport = ctc_oid.value;
 
-                if ((ctc_oid.sub_type == SAI_QUEUE_TYPE_MULTICAST)
-                    && (p_switch->port_queues == 16))
-                {
-                    ctc_drop.queue.queue_id = ctc_oid.value2 + CTC_QOS_BASIC_Q_NUM;
-                }
-                else
-                {
-                    ctc_drop.queue.queue_id = ctc_oid.value2;
-                }
-                ctc_drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
-                CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &ctc_drop));
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &ctc_drop));
+            
+            break;
+        case CTC_SAI_Q_SET_TYPE_DLD:
+        {
+            sai_attribute_t attr;
+
+            sal_memset(&attr, 0, sizeof(attr));
+                
+            if(p_queue_db->pfc_dld_en)
+            {
+                attr.id = SAI_QUEUE_ATTR_ENABLE_PFC_DLDR;
+                attr.value.booldata = TRUE;
+                CTC_SAI_ERROR_RETURN(_ctc_sai_queue_set_fcdl_detect(bucket_data->oid, &attr));
             }
             break;
+
+        }
         default:
             return SAI_STATUS_NOT_IMPLEMENTED;
     }
 
     return SAI_STATUS_SUCCESS;
 }
+
+
 
 static sai_status_t
 _ctc_sai_queue_get_attr(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_idx)
@@ -124,7 +332,7 @@ _ctc_sai_queue_get_attr(sai_object_key_t *key, sai_attribute_t* attr, uint32 att
             attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, ctc_oid.value);
             break;
         case SAI_QUEUE_ATTR_INDEX:
-            attr->value.u32 = ctc_oid.value2;
+            attr->value.u32 = ctc_oid.value2 & 0x3F;
             break;
         case SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
             p_queue_db = ctc_sai_db_get_object_property(lchip, queue_id);
@@ -158,6 +366,12 @@ _ctc_sai_queue_get_attr(sai_object_key_t *key, sai_attribute_t* attr, uint32 att
             }
             attr->value.oid = p_queue_db->sch_id ? ctc_sai_create_object_id(SAI_OBJECT_TYPE_SCHEDULER, lchip, 0, 0, p_queue_db->sch_id) : SAI_NULL_OBJECT_ID;
             break;
+        case SAI_QUEUE_ATTR_SERVICE_ID:
+            attr->value.u16 = (ctc_oid.value2 >> 6);
+            break;
+        case SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+             attr->value.booldata = p_queue_db->pfc_dld_en;
+             break;
         default:
             CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "queue attribute not implement\n");
             return SAI_STATUS_NOT_IMPLEMENTED;
@@ -217,6 +431,10 @@ _ctc_sai_queue_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
         case SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
             CTC_SAI_ERROR_RETURN(ctc_sai_scheduler_queue_set_scheduler(queue_id, attr));
             break;
+        case SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+            CTC_SAI_ERROR_RETURN(_ctc_sai_queue_set_fcdl_detect(queue_id, attr));
+            p_queue_db->pfc_dld_en = attr->value.booldata;            
+            break;
         default:
             CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "queue attribute not implement\n");
             return SAI_STATUS_NOT_IMPLEMENTED;
@@ -236,7 +454,8 @@ static ctc_sai_attr_fn_entry_t  queue_attr_fn_entries[] =
         {SAI_QUEUE_ATTR_BUFFER_PROFILE_ID, _ctc_sai_queue_get_attr, _ctc_sai_queue_set_attr},
         {SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, _ctc_sai_queue_get_attr, _ctc_sai_queue_set_attr},
         {SAI_QUEUE_ATTR_PAUSE_STATUS, NULL, NULL},
-        {SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, NULL, NULL},
+        {SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, _ctc_sai_queue_get_attr, _ctc_sai_queue_set_attr},
+        {SAI_QUEUE_ATTR_SERVICE_ID, _ctc_sai_queue_get_attr, NULL},
         { CTC_SAI_FUNC_ATTR_END_ID, NULL, NULL }
 };
 
@@ -282,6 +501,7 @@ ctc_sai_queue_port_get_queue_num(sai_object_id_t port_id, uint32* queue_num)
 {
     uint8 lchip = 0;
     ctc_sai_switch_master_t* p_switch = NULL;
+    ctc_sai_port_db_t* p_port_db = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_QUEUE);
     CTC_SAI_PTR_VALID_CHECK(queue_num);
@@ -299,6 +519,10 @@ ctc_sai_queue_port_get_queue_num(sai_object_id_t port_id, uint32* queue_num)
         //uc + mc
          *queue_num += CTC_QOS_16Q_MCAST_Q_NUM;
     }
+
+    _ctc_sai_port_get_port_db(port_id, &p_port_db);
+    *queue_num += p_port_db->service_id_list->count * CTC_QOS_EXT_Q_NUM;
+    
     return SAI_STATUS_SUCCESS;
 }
 
@@ -307,12 +531,15 @@ ctc_sai_queue_port_get_queue_list(sai_object_id_t port_id, sai_attribute_t* attr
 {
     uint8 lchip = 0;
     ctc_object_id_t ctc_oid;
-    uint8 queue_num = 0;
-    uint8 idx = 0;
+    uint16 queue_num = 0, total_queue_num = 0;
+    uint16 idx = 0, start_idx = 0;
     uint8 queue_type = 0;
     uint8 queue_idx = 0;
-    sai_object_id_t queue_list[16];
+    sai_object_id_t *queue_list = NULL;
     ctc_sai_switch_master_t* p_switch = NULL;
+    ctc_sai_port_db_t* p_port_db = NULL;
+    ctc_slistnode_t *node = NULL;
+    ctc_sai_port_service_id_t *p_service_id_node = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_QUEUE);
     CTC_SAI_PTR_VALID_CHECK(attr);
@@ -326,12 +553,19 @@ ctc_sai_queue_port_get_queue_list(sai_object_id_t port_id, sai_attribute_t* attr
         return SAI_STATUS_FAILURE;
     }
 
+    _ctc_sai_port_get_port_db(port_id, &p_port_db);
+
     queue_num = CTC_QOS_BASIC_Q_NUM;
     if (p_switch->port_queues == 16)
     {
         //uc + mc
          queue_num += CTC_QOS_16Q_MCAST_Q_NUM;
     }
+
+    total_queue_num = queue_num + p_port_db->service_id_list->count * CTC_QOS_EXT_Q_NUM;
+
+    queue_list = (sai_object_id_t*)mem_malloc(MEM_QUEUE_MODULE, sizeof(sai_object_id_t)*total_queue_num);
+    
     for (idx = 0; idx < queue_num; idx++)
     {
         if (p_switch->port_queues == 8)
@@ -351,10 +585,32 @@ ctc_sai_queue_port_get_queue_list(sai_object_id_t port_id, sai_attribute_t* attr
         }
         queue_list[idx] = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, queue_type,queue_idx, ctc_oid.value);
     }
-    CTC_SAI_ERROR_RETURN(ctc_sai_fill_object_list(sizeof(sai_object_id_t), queue_list, queue_num, (void*)(&(attr->value.objlist))));
+    
+    start_idx = queue_num;
+
+    //add service queue
+    
+    queue_num = CTC_QOS_EXT_Q_NUM;
+    CTC_SLIST_LOOP(p_port_db->service_id_list, node)
+    {
+        p_service_id_node = _ctc_container_of(node, ctc_sai_port_service_id_t, node);
+        
+        for (idx = 0; idx < queue_num; idx++)
+        {
+            queue_type = SAI_QUEUE_TYPE_SERVICE;
+            queue_idx = idx;
+            
+            queue_list[start_idx + idx] = 
+                ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, queue_type, (p_service_id_node->service_id << 6) + queue_idx, ctc_oid.value);
+        }
+        start_idx += queue_num;
+    }
+    
+    CTC_SAI_ERROR_RETURN(ctc_sai_fill_object_list(sizeof(sai_object_id_t), queue_list, total_queue_num, (void*)(&(attr->value.objlist))));
+
+    mem_free(queue_list);
     return SAI_STATUS_SUCCESS;
 }
-
 
 #define ________SAI_DUMP________
 
@@ -409,6 +665,7 @@ ctc_sai_queue_create_queue_id(
     uint8  queue_type = 0;
     uint8  sub_index = 0;
     uint32 gport = 0;
+    uint16 service_id = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_QUEUE);
     CTC_SAI_PTR_VALID_CHECK(queue_id);
@@ -425,7 +682,7 @@ ctc_sai_queue_create_queue_id(
     else
     {
         queue_type = attr_value->u32;
-        if (queue_type > SAI_QUEUE_TYPE_MULTICAST)
+        if ((queue_type > SAI_QUEUE_TYPE_MULTICAST) && (queue_type != SAI_QUEUE_TYPE_SERVICE))
         {
             status = SAI_STATUS_INVALID_PARAMETER;
             CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Failed to create queue, invalid type:%d\n", status);
@@ -463,7 +720,21 @@ ctc_sai_queue_create_queue_id(
         sub_index = attr_value->u8;
     }
 
-    queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, queue_type, sub_index, gport);
+    if(queue_type == SAI_QUEUE_TYPE_SERVICE)
+    {
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_QUEUE_ATTR_SERVICE_ID, &attr_value, &attr_index);
+        if (CTC_SAI_ERROR(status))
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Failed to create queue, invalid service id:%d\n", status);
+            goto error_0;
+        }
+        else
+        {
+            service_id = attr_value->u16;
+        }
+    }
+
+    queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, queue_type, (service_id << 6) + sub_index, gport);
 
     key.key.object_id = queue_oid;
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_QUEUE_ATTR_WRED_PROFILE_ID, &attr_value, &attr_index);
@@ -679,12 +950,20 @@ ctc_sai_queue_get_stats(
         && (p_switch->port_queues == 16))
     {
         queue_stats.queue.queue_id = ctc_oid.value2 + CTC_QOS_BASIC_Q_NUM;
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    }
+    else if (ctc_oid.sub_type == SAI_QUEUE_TYPE_SERVICE)
+    {
+        queue_stats.queue.queue_id = ctc_oid.value2 & 0x3F;
+        queue_stats.queue.service_id = (ctc_oid.value2 >> 6);
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_SERVICE_INGRESS;
     }
     else
     {
         queue_stats.queue.queue_id = ctc_oid.value2;
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
     }
-    queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    
     queue_stats.queue.gport = ctc_oid.value;
 
     CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_query_queue_stats(lchip, &queue_stats));
@@ -753,12 +1032,20 @@ ctc_sai_queue_get_stats_ext(
         && (p_switch->port_queues == 16))
     {
         queue_stats.queue.queue_id = ctc_oid.value2 + CTC_QOS_BASIC_Q_NUM;
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    }
+    else if (ctc_oid.sub_type == SAI_QUEUE_TYPE_SERVICE)
+    {
+        queue_stats.queue.queue_id = ctc_oid.value2 & 0x3F;
+        queue_stats.queue.service_id = (ctc_oid.value2 >> 6);
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_SERVICE_INGRESS;
     }
     else
     {
         queue_stats.queue.queue_id = ctc_oid.value2;
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
     }
-    queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    
     queue_stats.queue.gport = ctc_oid.value;
 
     CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_query_queue_stats(lchip, &queue_stats));
@@ -827,12 +1114,20 @@ ctc_sai_queue_clear_stats(
         && (p_switch->port_queues == 16))
     {
         queue_stats.queue.queue_id = ctc_oid.value2 + CTC_QOS_BASIC_Q_NUM;
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    }
+    else if (ctc_oid.sub_type == SAI_QUEUE_TYPE_SERVICE)
+    {
+        queue_stats.queue.queue_id = ctc_oid.value2 & 0x3F;
+        queue_stats.queue.service_id = (ctc_oid.value2 >> 6);
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_SERVICE_INGRESS;
     }
     else
     {
         queue_stats.queue.queue_id = ctc_oid.value2;
+        queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
     }
-    queue_stats.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
+    
     queue_stats.queue.gport = ctc_oid.value;
 
     CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_clear_queue_stats(lchip, &queue_stats));

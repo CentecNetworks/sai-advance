@@ -109,7 +109,7 @@ _ctc_sai_es_get_es_property(sai_object_key_t* key, sai_attribute_t* attr, uint32
     p_es = ctc_sai_db_get_object_property(lchip, key->key.object_id);
     if (NULL == p_es)
     {
-        return SAI_STATUS_INVALID_OBJECT_ID;
+        return SAI_STATUS_ITEM_NOT_FOUND;
     }
     CTC_SAI_LOG_INFO(SAI_API_ES, "object id %"PRIx64" get ES attribute id %d\n", key->key.object_id, attr->id);
 
@@ -189,13 +189,19 @@ ctc_sai_es_create_es(
     ctc_mpls_ilm.pop = 1;
     /* need set logicport for tm1.1 and tm2 */
     ctc_mpls_ilm.esid = p_es->local_es_id;
+    uint8 op=SAI_MPLS_DB_OP_ADD;
 
     CTC_SAI_CTC_ERROR_GOTO(ctcs_mpls_add_ilm(lchip, &ctc_mpls_ilm), status, roll_back_3);
-    
+    CTC_SAI_CTC_ERROR_GOTO(ctc_sai_mpls_db_op(lchip, op, &inseg_entry, &p_mpls_info), status, roll_back_4);
+    p_mpls_info->action = SAI_PACKET_ACTION_FORWARD;
+    p_mpls_info->is_es = true;
+
     CTC_SAI_DB_UNLOCK(lchip);
 
     return SAI_STATUS_SUCCESS;
-    
+
+roll_back_4:
+    ctcs_mpls_del_ilm(lchip, &ctc_mpls_ilm);
 roll_back_3:
     ctc_sai_db_remove_object_property(lchip, *es_id);
 roll_back_2:
@@ -212,45 +218,56 @@ static sai_status_t
 ctc_sai_es_remove_es(
         sai_object_id_t es_id)
 {
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+
     ctc_object_id_t ctc_oid;
     ctc_sai_es_t* p_es = NULL;
     uint8 lchip = 0;
     ctc_chip_device_info_t device_info;
     ctc_mpls_ilm_t ctc_mpls_ilm;
+    sai_inseg_entry_t inseg_entry;
+    sai_object_id_t switch_id;
+    ctc_sai_mpls_t* p_mpls_info = NULL;
 
+        
     sal_memset(&ctc_mpls_ilm,0,sizeof(ctc_mpls_ilm_t));
     CTC_SAI_LOG_ENTER(SAI_API_ES);
     sal_memset(&ctc_oid, 0, sizeof(ctc_object_id_t));
     
 
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ES, es_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
-    
+    CTC_SAI_DB_LOCK(lchip);
     ctcs_chip_get_property(lchip, CTC_CHIP_PROP_DEVICE_INFO, (void*)&device_info);
     if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id != 3) || (CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip)))
     {
-        return SAI_STATUS_NOT_SUPPORTED;
+        
+        status = SAI_STATUS_NOT_SUPPORTED;
+        goto error;
     }
     
     p_es = ctc_sai_db_get_object_property(lchip, es_id);
     if (NULL == p_es)
     {
-        CTC_SAI_DB_UNLOCK(lchip);
-        return SAI_STATUS_INVALID_OBJECT_ID;
+        status = SAI_STATUS_ITEM_NOT_FOUND;
+        goto error;
     }
     if(p_es->ref_cnt != 0)
     {
-        return SAI_STATUS_OBJECT_IN_USE;
+        status = SAI_STATUS_OBJECT_IN_USE;
+        goto error;
     }
 
     ctc_mpls_ilm.label = p_es->esi_label;
     ctc_mpls_ilm.pop = 1;
     /* need set logicport for tm1.1 and tm2 */
     ctc_mpls_ilm.esid = p_es->local_es_id;
-
-    CTC_SAI_ERROR_RETURN(ctcs_mpls_del_ilm(lchip, &ctc_mpls_ilm));
-    
+    inseg_entry.label = p_es->esi_label;
+    switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, lchip);
+    inseg_entry.switch_id = switch_id;
+    ctcs_mpls_del_ilm(lchip, &ctc_mpls_ilm);
+    uint8 op = SAI_MPLS_DB_OP_DEL;
+    ctc_sai_mpls_db_op(lchip, op, &inseg_entry, &p_mpls_info);
     ctc_sai_db_remove_object_property(lchip, es_id);
     CTC_SAI_DB_UNLOCK(lchip);
 
@@ -259,6 +276,11 @@ ctc_sai_es_remove_es(
     _ctc_sai_es_free_es(p_es);
 
     return SAI_STATUS_SUCCESS;
+
+
+error:
+    CTC_SAI_DB_UNLOCK(lchip);
+    return status;
 }
 
 static sai_status_t

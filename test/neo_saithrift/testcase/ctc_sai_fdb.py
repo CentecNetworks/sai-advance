@@ -65,7 +65,7 @@ class func_01_create_fdb_entry_fn_1q(sai_base_test.ThriftInterfaceDataPlane):
             
         warmboot(self.client)
         try:
-
+            pdb.set_trace()
             status = sai_thrift_create_fdb(self.client, vlan_oid, mac2, port2, mac_action)
             assert( SAI_STATUS_SUCCESS == status)
             self.ctc_send_packet(0, str(pkt))
@@ -3051,7 +3051,7 @@ class scenario_21_L2IsolationGroupGetMemberAttributesTest(sai_base_test.ThriftIn
 
 
 
-class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_22_normal_bridge_port_is_lag(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
     
         switch_init(self.client)
@@ -3068,7 +3068,7 @@ class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
         mac4 = '00:33:33:33:33:34'
         mac_action = SAI_PACKET_ACTION_FORWARD
         
-        lag_oid = sai_thrift_create_lag(self.client, [])
+        lag_oid = sai_thrift_create_lag(self.client)
         
         lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_oid, port1)
         lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_oid, port2)
@@ -3188,7 +3188,7 @@ class lag_test1(sai_base_test.ThriftInterfaceDataPlane):
 
 
 
-class lag_test2(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_23_bridge_sub_port_is_lag(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
     
         switch_init(self.client)
@@ -3208,7 +3208,7 @@ class lag_test2(sai_base_test.ThriftInterfaceDataPlane):
 
         bridge_id = sai_thrift_create_bridge(self.client, SAI_BRIDGE_TYPE_1D) 
         
-        lag_oid = sai_thrift_create_lag(self.client, [])
+        lag_oid = sai_thrift_create_lag(self.client)
         
         lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_oid, port1)
         lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_oid, port2)

@@ -90,11 +90,10 @@ _ctc_sai_ptp_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_db_trave
         return SAI_STATUS_SUCCESS;
     }
 
-    CTC_SAI_LOG_DUMP(p_file, "%-4d 0x%-16"PRIx64" %-6d %-6d %-4d %-4d drift_offset flag%-4d type%-4d value%-12d time_offset flag%-4d type%-4d value%-12d clock_offset flag%-4d type%-4d value%-12d %-4d %-4d %-4d %-4d %-4d %-4d\n",
+    CTC_SAI_LOG_DUMP(p_file, "%-4d 0x%-16"PRIx64" %-6d %-6d %-4d %-4d drift_offset flag%-4d value%-12d time_offset flag%-4d  value%-12d %-4d %-4d %-4d %-4d %-4d %-4d\n",
                             *cnt,ptp_domain_id,p_db->enable_type,p_db->device_type,p_db->is_drift_offset,p_db->is_time_offset,
-                            p_db->drift_offset.flag,p_db->drift_offset.type,p_db->drift_offset.value,
-                            p_db->time_offset.flag,p_db->time_offset.type,p_db->time_offset.value,
-                            p_db->clock_offset.flag,p_db->clock_offset.type,p_db->clock_offset.value,
+                            p_db->drift_offset.flag,p_db->drift_offset.value,
+                            p_db->time_offset.flag,p_db->time_offset.value,
                             p_db->tod_format,p_db->tod_enable,p_db->tod_mode,
                             p_db->leap_second,p_db->pps_status,p_db->pps_accuracy);
 
@@ -116,7 +115,6 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     ctc_ptp_tod_intf_cfg_t tod_interface_cfg;    
     ctc_ptp_tod_intf_code_t  tod_interface_code ;   
     ctc_sai_ptp_db_t* p_ptp_db = NULL;
-    uint32 enable_basedon_port;
 
     sal_memset(&ptp_clock_offset, 0, sizeof(ptp_clock_offset));
     sal_memset(&tod_interface_cfg, 0, sizeof(tod_interface_cfg));
@@ -144,45 +142,27 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     switch(attr->id)
     {
     case SAI_PTP_DOMAIN_ATTR_PTP_ENABLE_BASED_TYPE:
-        if (attr->value.s32 == SAI_PTP_ENABLE_BASED_ON_PORT)
-        {
-            enable_basedon_port = 1;
-        }
-        else
-        {
-            enable_basedon_port = 0;
-        }
-        p_ptp_db->enable_type = attr->value.s32;
-        CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_global_property(lchip, CTC_PTP_GLOBAL_PROP_PORT_BASED_PTP_EN, enable_basedon_port));
+       CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:NOT SUPPORT SET!");
         break;
 
     case SAI_PTP_DOMAIN_ATTR_DEVICE_TYPE:
-        p_ptp_db->device_type = attr->value.s32;
-        CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_device_type(lchip,attr->value.s32));
+        CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:NOT SUPPORT SET!");
         break;
-
-    case SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET:
+        
+    case SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_DRIFT_OFFSET:
         CTC_SAI_ERROR_RETURN(_ctc_sai_ptp_mapping_ctc_time_offset(attr->value.timeoffset, &ptp_clock_offset));
-        if (attr->value.timeoffset.type == 0)
-        {
-            CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_adjust_clock_offset(lchip, &ptp_clock_offset));
-            p_ptp_db->is_time_offset = true;
-            sal_memcpy(&(p_ptp_db->time_offset), &(attr->value.timeoffset), sizeof(sai_timeoffset_t));
-        }        
-        else if(attr->value.timeoffset.type == 1 )
-        {
-            CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_clock_drift(lchip, &ptp_clock_offset));
-            p_ptp_db->is_drift_offset = true;
-            sal_memcpy(&(p_ptp_db->drift_offset), &(attr->value.timeoffset), sizeof(sai_timeoffset_t));
-        }
-        else
-        {
-            CTC_SAI_LOG_INFO(SAI_API_PTP, "Failed to set clock offset type, invalid clock_offset_type %d!\n", attr->value.timeoffset.type);
-            return SAI_STATUS_FAILURE;
-        }
-        sal_memcpy(&(p_ptp_db->clock_offset), &(attr->value.timeoffset), sizeof(sai_timeoffset_t));
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_clock_drift(lchip, &ptp_clock_offset));
+        p_ptp_db->is_drift_offset = true;
+        sal_memcpy(&(p_ptp_db->drift_offset), &(attr->value.timeoffset), sizeof(sai_timeoffset_t));
         break;
 
+    case SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_TIME_OFFSET:
+        CTC_SAI_ERROR_RETURN(_ctc_sai_ptp_mapping_ctc_time_offset(attr->value.timeoffset, &ptp_clock_offset));
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_adjust_clock_offset(lchip, &ptp_clock_offset));
+        p_ptp_db->is_time_offset = true;
+        sal_memcpy(&(p_ptp_db->time_offset), &(attr->value.timeoffset), sizeof(sai_timeoffset_t));
+        break;
+        
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_FORMAT_TYPE:
         if (attr->value.s32 != SAI_PTP_TOD_INTERFACE_FORMAT_CCSA_YDT2375)
         {
@@ -195,7 +175,7 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
 
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND:
-        if(p_ptp_db->tod_enable || (p_ptp_db->tod_mode !=2))
+        if(p_ptp_db->tod_enable && (p_ptp_db->tod_mode !=TOD_INTF_DISABLE))
         {
             CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:PLEASE CLOSE THE SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE FIRST!");
             return SAI_STATUS_FAILURE;
@@ -203,7 +183,7 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         else
         {
             p_ptp_db->leap_second = attr->value.s8;
-            tod_interface_code.leap_second = attr->value.s8;
+            tod_interface_code.leap_second = p_ptp_db->leap_second;
             tod_interface_code.pps_status = p_ptp_db->pps_status;
             tod_interface_code.pps_accuracy = p_ptp_db->pps_accuracy;
             CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_tod_intf_tx_code(lchip, &tod_interface_code));
@@ -212,7 +192,7 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS:
-        if(p_ptp_db->tod_enable || (p_ptp_db->tod_mode !=2))
+        if(p_ptp_db->tod_enable && (p_ptp_db->tod_mode !=TOD_INTF_DISABLE))
         {
             CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:PLEASE CLOSE THE SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE FIRST!");
             return SAI_STATUS_FAILURE;
@@ -220,7 +200,7 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         else
         {
             p_ptp_db->pps_status = attr->value.u8;
-            tod_interface_code.leap_second = attr->value.s8;
+            tod_interface_code.leap_second = p_ptp_db->leap_second;
             tod_interface_code.pps_status = p_ptp_db->pps_status;
             tod_interface_code.pps_accuracy = p_ptp_db->pps_accuracy;
             CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_tod_intf_tx_code(lchip, &tod_interface_code));
@@ -228,7 +208,7 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY:
-        if(p_ptp_db->tod_enable || (p_ptp_db->tod_mode !=2))
+        if(p_ptp_db->tod_enable &&  (p_ptp_db->tod_mode !=TOD_INTF_DISABLE))
         {
             CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:PLEASE CLOSE THE SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE FIRST!");
             return SAI_STATUS_FAILURE;
@@ -236,25 +216,27 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         else
         {
             p_ptp_db->pps_accuracy = attr->value.u8;
-            tod_interface_code.leap_second = attr->value.s8;
+            tod_interface_code.leap_second = p_ptp_db->leap_second;
             tod_interface_code.pps_status = p_ptp_db->pps_status;
             tod_interface_code.pps_accuracy = p_ptp_db->pps_accuracy;
             CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_tod_intf_tx_code(lchip, &tod_interface_code));
         }        
         break;
+        
+    case SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK:
+        CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:CAN NOT SET SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK!");
+        return SAI_STATUS_FAILURE;
+        break;
 
+    case SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK:
+        CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:CAN NOT SET SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK!");
+        return SAI_STATUS_FAILURE;
+        break;
+        
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE:
-        if(p_ptp_db->tod_enable)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:PLEASE CLOSE THE SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE FIRST!");
-            return SAI_STATUS_FAILURE;
-        }
-        else
-        {
-            tod_interface_cfg.mode = (uint8)attr->value.s32;  
-            CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_tod_intf(lchip, &tod_interface_cfg));
-            p_ptp_db->tod_mode = attr->value.u8;
-        }
+        tod_interface_cfg.mode = (uint8)attr->value.s32;
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_tod_intf(lchip, &tod_interface_cfg));
+        p_ptp_db->tod_mode = attr->value.s32;
         break;
         
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE:
@@ -269,6 +251,16 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_set_global_property(lchip, CTC_PTP_GLOBAL_PROP_SYNC_OR_TOD_INPUT_SELECT, sync_tod_select));
         p_ptp_db->tod_enable = attr->value.booldata;
         break;
+
+    case SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP:
+        CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:CAN NOT SET SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP!");
+        return SAI_STATUS_FAILURE;
+        break;
+
+    case SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP:
+        CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:CAN NOT SET SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP!");
+        return SAI_STATUS_FAILURE;
+        break;    
 
     }
 
@@ -286,6 +278,9 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     int32 ret = 0;
     ctc_ptp_time_t ts;
     ctc_ptp_capured_ts_t capured_ts;
+    uint32 enable_basedon_port;
+    ctc_ptp_device_type_t device_type;
+    ctc_ptp_tod_intf_code_t  tod_interface_code;
     
     CTC_SAI_LOG_ENTER(SAI_API_PTP);
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, key->key.object_id, &ctc_object_id);
@@ -300,17 +295,30 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     switch(attr->id)
     {
     case SAI_PTP_DOMAIN_ATTR_PTP_ENABLE_BASED_TYPE:
-        attr->value.s32 = p_ptp_db->enable_type;
+        ret = ctcs_ptp_get_global_property(lchip, CTC_PTP_GLOBAL_PROP_PORT_BASED_PTP_EN, &enable_basedon_port);
+        if(enable_basedon_port)
+            {
+                attr->value.s32 = SAI_PTP_ENABLE_BASED_ON_PORT;
+            }
+        else
+            {
+                attr->value.s32 = SAI_PTP_ENABLE_BASED_ON_VLAN;
+            }
         break;
 
     case SAI_PTP_DOMAIN_ATTR_DEVICE_TYPE:
-        attr->value.s32 = p_ptp_db->device_type;
+        ret = ctcs_ptp_get_device_type(lchip, &device_type);
+        attr->value.s32 = device_type;
         break;
 
-    case SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET:
+    case SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_DRIFT_OFFSET:
         sal_memcpy(&(attr->value.timeoffset), &(p_ptp_db->drift_offset), sizeof(sai_timeoffset_t));
         break;
-
+        
+    case SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_TIME_OFFSET:
+        sal_memcpy(&(attr->value.timeoffset), &(p_ptp_db->time_offset), sizeof(sai_timeoffset_t));
+        break;
+        
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_FORMAT_TYPE:
         attr->value.s32 = p_ptp_db->tod_format;
         break;
@@ -320,19 +328,79 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE:
-        attr->value.u8 = (uint8)p_ptp_db->tod_mode;
+        attr->value.s32 = (int32)p_ptp_db->tod_mode;
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND:
-        attr->value.s8 = p_ptp_db->leap_second;
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        {
+            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            attr->value.s8 = tod_interface_code.leap_second;            
+        }
+        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
+        {
+            attr->value.s8 = p_ptp_db->leap_second; 
+        }
+        else
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_PTP, "The tod interface is not enable!\n")
+        }
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS:
-        attr->value.u8 = p_ptp_db->pps_status;
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        {
+            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            attr->value.u8 = tod_interface_code.pps_status;       
+        }
+        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
+        {
+            attr->value.u8 = p_ptp_db->pps_status;
+        }
+        else
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_PTP, "The tod interface is not enable!\n")
+        }
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY:
-        attr->value.u8 = p_ptp_db->pps_accuracy;
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        {
+            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            attr->value.u8 = tod_interface_code.pps_accuracy;       
+        }
+        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
+        {
+            attr->value.u8 = p_ptp_db->pps_accuracy;
+        }
+        else
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_PTP, "The tod interface is not enable!\n")
+        }
+        break;
+
+    case SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK:
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        {
+            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            attr->value.u16 = tod_interface_code.gps_week;   
+        }
+        else
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_PTP, "SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK only support input mode!\n")
+        }
+        break;
+
+    case SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK:
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        {
+            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            attr->value.u32 = tod_interface_code.gps_second_time_of_week; 
+        }
+        else
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_PTP, "SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK only support input mode!\n")
+        }
         break;
         
     case SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP:
@@ -366,7 +434,10 @@ static  ctc_sai_attr_fn_entry_t ptp_attr_fn_entries[] =
       { SAI_PTP_DOMAIN_ATTR_DEVICE_TYPE,
       ctc_sai_ptp_get_info,
       ctc_sai_ptp_set_info},
-      { SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET,
+      { SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_DRIFT_OFFSET,
+      ctc_sai_ptp_get_info,
+      ctc_sai_ptp_set_info},
+      { SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_TIME_OFFSET,
       ctc_sai_ptp_get_info,
       ctc_sai_ptp_set_info},
       { SAI_PTP_DOMAIN_ATTR_TOD_INTF_FORMAT_TYPE,
@@ -388,6 +459,12 @@ static  ctc_sai_attr_fn_entry_t ptp_attr_fn_entries[] =
       ctc_sai_ptp_get_info,
       ctc_sai_ptp_set_info},
       { SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP,
+      ctc_sai_ptp_get_info,
+      NULL},
+      { SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK,
+      ctc_sai_ptp_get_info,
+      NULL},
+      { SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK,
       ctc_sai_ptp_get_info,
       NULL},
       { SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP,
@@ -419,9 +496,9 @@ ctc_sai_ptp_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t *dump
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "PTP");
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "ctc_sai_ptp_db_t");
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "-----------------------------------------------------------------------------------------------------------------------");
-        CTC_SAI_LOG_DUMP(p_file, "%-4s %-18s %-12s %-12s %-18s %-18s %-18s %-18s %-18s %-18s%-18s %-18s %-18s %-18s %-18s\n",\
+        CTC_SAI_LOG_DUMP(p_file, "%-4s %-18s %-12s %-12s %-18s %-18s %-18s %-18s %-18s %-18s %-18s %-18s %-18s %-18s\n",\
             "No.","PTP_Domain_Oid","enable_Type","device_type","is_drift_offset","is_time_offset","drift_offset","time_offset",\
-            "clock_offset","tod_format","tod_enable","tod_mode","leap_second","pps_status","pps_accuracy");
+            "tod_format","tod_enable","tod_mode","leap_second","pps_status","pps_accuracy");
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "-----------------------------------------------------------------------------------------------------------------------");
 
         sai_cb_data.value0 = p_file;
@@ -451,8 +528,12 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     sai_object_key_t key ;
     uint32                   attr_index = 0;
     uint32  sai_ptp_domain_id = 0;
+    uint32 enable_basedon_port;
 
     sal_memset(&tod_interface_code, 0, sizeof(tod_interface_code));
+    tod_interface_code.msg_class = 0x01;
+    tod_interface_code.msg_id= 0x20;
+    tod_interface_code.msg_length = 16;
 
     CTC_SAI_LOG_ENTER(SAI_API_PTP);
     CTC_SAI_PTR_VALID_CHECK(ptp_domain_id);
@@ -461,7 +542,7 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     
     CTC_SAI_DB_LOCK(lchip);
 
-    CTC_SAI_ERROR_RETURN(ctc_sai_db_get_object_property_count(lchip, SAI_OBJECT_TYPE_PTP_DOMAIN, &count));
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_get_object_property_count(lchip, SAI_OBJECT_TYPE_PTP_DOMAIN, &count), status, out);
     if(count)
     {
         CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:ONE PTP DOMAIN HAS BEEN CREATED!ONLY SUPPORT ONE PTP DOMAIN!");
@@ -480,7 +561,15 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_PTP_ENABLE_BASED_TYPE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        CTC_SAI_ERROR_GOTO(ctc_sai_ptp_set_info(&key, &attr_list[attr_index]), status, error2);
+        if (attr_value->s32 == SAI_PTP_ENABLE_BASED_ON_PORT)
+            {
+                enable_basedon_port = 1;
+            }
+            else
+            {
+                enable_basedon_port = 0;
+            }
+        CTC_SAI_ERROR_GOTO (ctcs_ptp_set_global_property(lchip, CTC_PTP_GLOBAL_PROP_PORT_BASED_PTP_EN, enable_basedon_port), status, error2);
     }
     else
     {
@@ -491,7 +580,7 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_DEVICE_TYPE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        CTC_SAI_ERROR_GOTO(ctc_sai_ptp_set_info(&key, &attr_list[attr_index]), status, error2);
+        CTC_SAI_ERROR_GOTO (ctcs_ptp_set_device_type(lchip,attr_value->s32), status, error2);
     }
     else
     {
@@ -499,7 +588,17 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
         goto error2;
     }
 
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET, &attr_value, &attr_index);
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_DRIFT_OFFSET, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        CTC_SAI_ERROR_GOTO(ctc_sai_ptp_set_info(&key, &attr_list[attr_index]), status, error2);
+    }
+    else
+    {
+        status = SAI_STATUS_SUCCESS;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_TIME_OFFSET, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
         CTC_SAI_ERROR_GOTO(ctc_sai_ptp_set_info(&key, &attr_list[attr_index]), status, error2);
@@ -519,21 +618,12 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
         status = SAI_STATUS_SUCCESS;
     }
 
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        CTC_SAI_ERROR_GOTO(ctc_sai_ptp_set_info(&key, &attr_list[attr_index]), status, error2);
-    }
-    else
-    {
-        status = SAI_STATUS_SUCCESS;
-    }
-
-    CTC_SAI_CTC_ERROR_RETURN (ctcs_ptp_get_tod_intf_tx_code(lchip, &tod_interface_code));
+    CTC_SAI_ERROR_GOTO (ctcs_ptp_get_tod_intf_tx_code(lchip, &tod_interface_code), status, error2);
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
         tod_interface_code.leap_second = attr_value->s8;
+        p_ptp_info->leap_second = attr_value->s8;
     }
     else
     {
@@ -543,7 +633,8 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        tod_interface_code.pps_status = attr_value->s8;
+        tod_interface_code.pps_status = attr_value->u8;
+        p_ptp_info->pps_status = attr_value->u8;
     }
     else
     {
@@ -553,14 +644,49 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        tod_interface_code.pps_accuracy= attr_value->s8;
+        tod_interface_code.pps_accuracy= attr_value->u8;
+        p_ptp_info->pps_accuracy = attr_value->u8;
     }
     else
     {
         status = SAI_STATUS_SUCCESS;
     }
 
-    CTC_SAI_CTC_ERROR_GOTO (ctcs_ptp_set_tod_intf_tx_code(lchip, &tod_interface_code), status, error2);
+    CTC_SAI_ERROR_GOTO (ctcs_ptp_set_tod_intf_tx_code(lchip, &tod_interface_code), status, error2);
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:CAN NOT SET SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK!");
+        status =  SAI_STATUS_FAILURE;
+        goto error2;
+    }
+    else
+    {
+        status = SAI_STATUS_SUCCESS;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:CAN NOT SET SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK!");
+        status =  SAI_STATUS_FAILURE;
+        goto error2;
+    }
+    else
+    {
+        status = SAI_STATUS_SUCCESS;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        CTC_SAI_ERROR_GOTO(ctc_sai_ptp_set_info(&key, &attr_list[attr_index]), status, error2);
+    }
+    else
+    {
+        status = SAI_STATUS_SUCCESS;
+    }
     
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
@@ -576,7 +702,8 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     if (status == SAI_STATUS_SUCCESS)
     {
         CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:CAN NOT SET SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP!");
-        return SAI_STATUS_FAILURE;
+        status = SAI_STATUS_FAILURE;
+        goto error2;
     }
     else
     {
@@ -587,7 +714,8 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     if (status == SAI_STATUS_SUCCESS)
     {
         CTC_SAI_LOG_ERROR(SAI_API_PTP, "error:CAN NOT SET SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP!");
-        return SAI_STATUS_FAILURE;
+        status =  SAI_STATUS_FAILURE;
+        goto error2;
     }
     else
     {
@@ -642,7 +770,7 @@ ctc_sai_ptp_remove_ptp_domain( _In_ sai_object_id_t ptp_domain_id)
     p_ptp_db = ctc_sai_db_get_object_property(lchip, ptp_domain_id);    
     if (NULL == p_ptp_db)
     {
-        status = SAI_STATUS_INVALID_OBJECT_ID;
+        status = SAI_STATUS_ITEM_NOT_FOUND;
         goto out;
     }
     CTC_SAI_CTC_ERROR_GOTO (ctcs_ptp_set_global_property(lchip, CTC_PTP_GLOBAL_PROP_PORT_BASED_PTP_EN, 0), status, out);

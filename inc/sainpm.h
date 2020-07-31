@@ -57,21 +57,48 @@ typedef enum _sai_npm_session_role_t
 
 } sai_npm_session_role_t;
 
+typedef enum _sai_npm_session_color_mode_t
+{
+    /** Session enable color-aware mode  */
+    SAI_NPM_SESSION_COLOR_AWARE = 0,
+
+    /** Session enable color-blind mode  */
+    SAI_NPM_SESSION_COLOR_BLIND
+
+} sai_npm_session_color_mode_t;
+
+
+typedef enum sai_npm_pkt_tx_mode_e
+{
+    SAI_NPM_TX_MODE_CONTINUOUS = 0,
+
+    SAI_NPM_TX_MODE_PACKET_NUM,
+
+    SAI_NPM_TX_MODE_PERIOD
+
+} sai_npm_pkt_tx_mode_t;
+
 
 /**
- * @brief SAI NPM type of encapsulation for RFC2544 and RFC1564
+ * @brief SAI NPM type of encapsulation for NPM
  */
 typedef enum _sai_npm_encapsulation_type_t
 {
     /**
-     * @brief IP Encapsulation, L2 header | IP(v4/v6) header | UDP header | Original NPM test packet
+     * @brief IP Encapsulation, L2 header | IP(v4/v6) header | UDP header | Original TWAMP test packet
      */
-    SAI_NPM_ENCAPSULATION_TYPE_IP,
+    SAI_NPM_ENCAPSULATION_TYPE_IP = 0,
 
     /**
-     * @brief L3 VPN Encapsulation, L2 header | MPLS Label List | IP(v4/v6) header | UDP header | Original NPM test packet
+     * @brief L3 VPN Encapsulation, L2 header | MPLS Label List | IP(v4/v6) header | UDP header | Original TWAMP test packet
      */
-    SAI_NPM_ENCAPSULATION_TYPE_L3_MPLS_VPN
+    SAI_NPM_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI,
+
+    /**
+     * @brief L3 VPN Encapsulation, L2 header | MPLS Label List | IP(v4/v6) header | UDP header | Original TWAMP test packet
+     */
+    SAI_NPM_ENCAPSULATION_TYPE_L3_MPLS_VPN_NNI,
+    
 
 } sai_npm_encapsulation_type_t;
 
@@ -86,14 +113,6 @@ typedef enum _sai_npm_session_attr_t
     SAI_NPM_SESSION_ATTR_START,
 
     /**
-     * @brief NPM Session type DEMAND/ASYNCHRONOUS
-     *
-     * @type sai_npm_session_type_t
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     */
-    SAI_NPM_SESSION_ATTR_TYPE = SAI_NPM_SESSION_ATTR_START,
-
-    /**
      * @brief NPM Port, RX DIR with ingress port, TX DIR with egress port,  when SAI_NPM_SESSION_ATTR_HW_LOOKUP_VALID is false
      *         and depend on SAI_NPM_SESSION_ATTR_DIRECTION.
      *
@@ -101,7 +120,25 @@ typedef enum _sai_npm_session_attr_t
      * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
      * @objects SAI_OBJECT_TYPE_PORT
      */
-    SAI_NPM_SESSION_ATTR_PORT,
+    SAI_NPM_SESSION_ATTR_NPM_PORT = SAI_NPM_SESSION_ATTR_START,
+
+    /**
+     * @brief receive port of NPM sender and reflector, including NNI of L3 MPLS VPN and ingress port of RAW IP, for acl match this inport to npm engine.
+     *
+     * @type sai_object_id_t
+     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_PORT
+     */
+    SAI_NPM_SESSION_ATTR_RECEIVE_PORT,
+
+    /**
+     * @brief NPM  RFC 1564 color mode, refer to sai_npm_session_color_mode_t
+     *
+     * @type sai_uint32_t
+     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_PORT
+     */
+    SAI_NPM_SESSION_ATTR_COLOR_MODE,
 
     /**
      * @brief NPM session direction of sender or receiver.
@@ -153,13 +190,23 @@ typedef enum _sai_npm_session_attr_t
     SAI_NPM_SESSION_ATTR_TC,
 
     /**
+     * @brief IP header TTL
+     *
+     * @type sai_uint8_t
+     * @flags CREATE_ONLY
+     * @default 255
+     * @condition SAI_NPM_SESSION_ATTR_SESSION_ROLE == SAI_NPM_SESSION_SENDER     
+     */
+    SAI_NPM_SESSION_ATTR_TTL,
+	
+    /**
      * @brief VPN VRFID (L3 MPLS VPN), when enabling hardware lookup (SAI_NPM_SESSION_ATTR_INWARD_VALID) with Dest IP. 
      *
      * @type sai_object_id_t
      * @flags CREATE_AND_SET
      * @default 0
      */
-    SAI_NPM_SESSION_ATTR_VPN_VIRTUAL_ROUTE,
+    SAI_NPM_SESSION_ATTR_VPN_VIRTUAL_ROUTER,
 
     /**
      * @brief Encapsulation type
@@ -179,13 +226,30 @@ typedef enum _sai_npm_session_attr_t
     SAI_NPM_SESSION_ATTR_SESSION_ENABLE_TRANSMIT,
 
     /**
-     * @brief Inward valid
+     * @brief hardware lookup valid
      *
      * @type bool
      * @flags CREATE_ONLY
      * @default true
      */
-    SAI_NPM_SESSION_ATTR_INWARD_VALID,
+    SAI_NPM_SESSION_ATTR_HW_LOOKUP_VALID,
+
+    /**
+     * @brief npm rfc 2544/1564 packet length, including 64, 128, 512, 1024, 1280, 1518 Byte 
+     *
+     * @type sai_uint32_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_NPM_SESSION_ATTR_SESSION_ROLE == SAI_NPM_SESSION_SENDER     
+     */
+    SAI_NPM_SESSION_ATTR_PACKET_LENGTH,
+	
+    /**
+     * @brief npm packet tx mode of npm: CONTINUOUS, PACKET_NUM, PERIOD
+     *
+     * @type sai_npm_pkt_tx_mode_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     */
+    SAI_NPM_SESSION_ATTR_PKT_TX_MODE,
 
     /**
      * @brief NPM test packet tx period, configuring by NPM sender period of Tx 
@@ -215,18 +279,10 @@ typedef enum _sai_npm_session_attr_t
     /**
      * @brief NPM test packet tx duration per mirco second, timneout of the tx pakcet generation
      *
-     * @type sai_uint64_t
+     * @type sai_uint32_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      */
     SAI_NPM_SESSION_ATTR_TX_PKT_DURATION,
-
-    /**
-     * @brief npm mode of npm: ligit mode and full mode
-     *
-     * @type sai_npm_mode_type_t
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     */
-    SAI_NPM_SESSION_ATTR_MODE,
 
     /**
      * @brief End of attributes
@@ -343,15 +399,17 @@ typedef sai_status_t (*sai_get_npm_session_attribute_fn)(
  *
  * @return SAI_STATUS_SUCCESS on success, failure status code on error
  */
+
 typedef sai_status_t (*sai_get_npm_session_stats_fn)(
         _In_ sai_object_id_t npm_session_id,
-        _In_ uint32_t stats_count,
-        _Inout_ sai_attribute_t *stats_list);
+        _In_ uint32_t number_of_counters,
+        _In_ const sai_stat_id_t *counter_ids,
+        _Out_ uint64_t *counters);
 
 /**
  * @brief Clear NPM session statistics counters.
  *
- * @param[in] npm_session_id NPM session id
+ * @param[in] twamp_session_id NPM session id
  * @param[in] number_of_counters Number of counters in the array
  * @param[in] counter_ids Specifies the array of counter ids
  *
@@ -360,19 +418,7 @@ typedef sai_status_t (*sai_get_npm_session_stats_fn)(
 typedef sai_status_t (*sai_clear_npm_session_stats_fn)(
         _In_ sai_object_id_t npm_session_id,
         _In_ uint32_t stats_count,
-        _In_ const sai_attribute_t *stats_list);
-
-/**
- * @brief NPM session status change notification
- *
- * Passed as a parameter into sai_initialize_switch()
- *
- * @param[in] threshold of notifications
- * @param[in] data Array of NPM session status
- */
-typedef void (*sai_npm_session_status_change_notification_fn)(
-        _In_ uint32_t threshold,
-        _In_ const sai_npm_session_status_notification_t *data);
+        _In_ const sai_stat_id_t *counter_ids);
 
 /**
  * @brief NPM method table retrieved with sai_api_query()

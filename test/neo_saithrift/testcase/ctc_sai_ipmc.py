@@ -2329,7 +2329,7 @@ class scenario_03_v4_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id3)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
-
+'''
 class scenario_04_v4_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -2406,6 +2406,7 @@ class scenario_04_v4_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.ctc_verify_packets( exp_pkt, [1,2])
         finally:
             sys_logging("======clean up======")
+            pdb.set_trace()
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
@@ -2492,6 +2493,21 @@ class scenario_05_v4_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
 
             self.ctc_send_packet( 0, str(pkt))
             self.ctc_verify_packets( exp_pkt, [1,2])
+
+            attr_value = sai_thrift_attribute_value_t(s32=SAI_PACKET_ACTION_DENY)
+            attr = sai_thrift_attribute_t(id=SAI_IPMC_ENTRY_ATTR_PACKET_ACTION, value=attr_value)
+            self.client.sai_thrift_set_ipmc_entry_attribute(ipmc_entry, attr)
+
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_no_packet_any( exp_pkt, [1,2])
+
+            sys_logging("======update action and send packet again======")
+            attr_value = sai_thrift_attribute_value_t(s32=SAI_PACKET_ACTION_FORWARD)
+            attr = sai_thrift_attribute_t(id=SAI_IPMC_ENTRY_ATTR_PACKET_ACTION, value=attr_value)
+            self.client.sai_thrift_set_ipmc_entry_attribute(ipmc_entry, attr)
+
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [1,2])
         finally:
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
@@ -2504,7 +2520,7 @@ class scenario_05_v4_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_router_interface(rif_id3)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
-
+'''
 class scenario_06_v4_XG_update_group_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -2988,6 +3004,7 @@ class scenario_10_v6_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
+'''
 class scenario_11_v6_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -3160,6 +3177,7 @@ class scenario_12_v6_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_router_interface(rif_id3)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
+'''
 
 class scenario_13_v6_XG_update_group_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):

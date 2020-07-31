@@ -47,6 +47,8 @@
 \t  |  SAI_BFD_SESSION_ATTR_TTL                                 |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_SRC_IP_ADDRESS                      |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_DST_IP_ADDRESS                      |        CTC7132         |
+\t  |  SAI_BFD_SESSION_ATTR_SRC_MAC_ADDRESS                     |        CTC7132         |
+\t  |  SAI_BFD_SESSION_ATTR_DST_MAC_ADDRESS                     |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_TUNNEL_TOS                          |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_TUNNEL_TTL                          |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_TUNNEL_SRC_IP_ADDRESS               |        CTC7132         |
@@ -76,7 +78,6 @@
 \t  |  SAI_BFD_SESSION_ATTR_TP_CV_SRC_MEP_ID                    |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID              |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_TP_WITHOUT_GAL                      |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID              |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_NEXT_HOP_ID                         |        CTC7132         |
 \b
 */
@@ -128,7 +129,6 @@ typedef struct ctc_sai_bfd_s
 
     /*micor bfd */
     sai_object_id_t dst_port_oid;
-    uint32 micro_bfd_nh_id;
     sai_mac_t src_mac;
     sai_mac_t dst_mac;
         
@@ -148,6 +148,7 @@ typedef struct ctc_sai_bfd_s
     uint8 cv_en;
     uint8 without_gal;
     sai_object_id_t section_rif_oid;
+    uint8 mep_id_len;
 
     sai_object_id_t nh_tunnel_oid;
     

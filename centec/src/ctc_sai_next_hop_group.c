@@ -14,158 +14,268 @@
 /*sdk include file*/
 #include "ctcs_api.h"
 
-typedef struct  ctc_sai_next_hop_grp_s
-{
-    sai_object_id_t w_nh_oid;/*member nexthop id*/
-    sai_object_id_t p_nh_oid;/*member nexthop id*/
-    sai_object_id_t counter_oid;
-}ctc_sai_next_hop_grp_t;
-
-typedef struct  ctc_sai_next_hop_grp_member_s
-{
-    sai_object_id_t nh_grp_oid;/*group nexthop id*/
-}ctc_sai_next_hop_grp_member_t;
 
 static sai_status_t
-_ctc_sai_next_hop_group_create_aps_nh(uint8 lchip, uint16 aps_group_id, uint32 nh_id,
-                                      sai_object_id_t w_nh_oid, sai_object_id_t p_nh_oid)
+_ctc_sai_next_hop_group_create_aps_nh(uint8 lchip, uint16 aps_group_id, uint32 nh_id)
 {
     sai_status_t           status = SAI_STATUS_SUCCESS;
-    ctc_aps_bridge_group_t aps_group;
-    ctc_object_id_t w_nh;
-    ctc_object_id_t p_nh;
-    ctc_nh_info_t w_nh_info;
-    ctc_nh_info_t p_nh_info;
-    uint32 member_nh_id = 0;
-    ctc_sai_next_hop_t* p_next_hop_info = 0;
+    ctc_aps_bridge_group_t aps_bridge;
 
-    ctc_sai_get_ctc_object_id(SAI_API_NEXT_HOP, w_nh_oid, &w_nh);
-    ctc_sai_get_ctc_object_id(SAI_API_NEXT_HOP, p_nh_oid, &p_nh);
-    if (w_nh.sub_type != p_nh.sub_type)
-    {
-        return  SAI_STATUS_INVALID_PARAMETER;
-    }
+    sal_memset(&aps_bridge, 0, sizeof(ctc_aps_bridge_group_t));
 
-    sal_memset(&aps_group, 0, sizeof(aps_group));
-    sal_memset(&w_nh_info, 0, sizeof(w_nh_info));
-    sal_memset(&p_nh_info, 0, sizeof(p_nh_info));
-    
-    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_nexthop_id(w_nh_oid, &member_nh_id));
-    CTC_SAI_ERROR_RETURN(ctcs_nh_get_nh_info(lchip, member_nh_id, &w_nh_info));
-    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_nexthop_id(p_nh_oid, &member_nh_id));
-    CTC_SAI_ERROR_RETURN(ctcs_nh_get_nh_info(lchip, member_nh_id, &p_nh_info));
+    CTC_SAI_ERROR_RETURN(ctcs_aps_create_aps_bridge_group(lchip, aps_group_id, &aps_bridge));
 
-    aps_group.working_gport = w_nh_info.gport;
-    aps_group.protection_gport = p_nh_info.gport;
-    
-    p_next_hop_info = ctc_sai_db_get_object_property(lchip, w_nh_oid);
-    if (NULL == p_next_hop_info)
-    {
-        return SAI_STATUS_ITEM_NOT_FOUND;
-    }
-    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_l3if_id(p_next_hop_info->rif_id, &aps_group.w_l3if_id));
-
-    p_next_hop_info = ctc_sai_db_get_object_property(lchip, p_nh_oid);
-    if (NULL == p_next_hop_info)
-    {
-        return SAI_STATUS_ITEM_NOT_FOUND;
-    }
-    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_l3if_id(p_next_hop_info->rif_id, &aps_group.p_l3if_id));
-    
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_aps_create_aps_bridge_group(lchip, aps_group_id, &aps_group));
-
-    if (SAI_NEXT_HOP_TYPE_IP == w_nh.sub_type)
-    {
-        ctc_ip_nh_param_t nh_param;
-        sal_memset(&nh_param, 0, sizeof(nh_param));
-        nh_param.aps_en = 1;
-        nh_param.aps_bridge_group_id = aps_group_id;
-        status |= ctc_sai_next_hop_get_arp_id(w_nh_oid, &nh_param.arp_id);
-        status |= ctc_sai_next_hop_get_arp_id(p_nh_oid, &nh_param.p_arp_id);
-        status |= ctcs_nh_add_ipuc(lchip, nh_id, &nh_param);
-        if (CTC_SAI_ERROR(status))
-        {
-            status = ctc_sai_mapping_error_ctc(status);
-            goto error1;
-        }
-    }
-    else if(SAI_NEXT_HOP_TYPE_MPLS == w_nh.sub_type)
-    {
-        ctc_sai_next_hop_t* w_next_hop_info = 0;
-        ctc_sai_next_hop_t* p_next_hop_info = 0;
-        ctc_mpls_nexthop_param_t nh_param;
-
-        w_next_hop_info = ctc_sai_db_get_object_property(lchip, w_nh_oid);
-        if (NULL == w_next_hop_info)
-        {
-            status = SAI_STATUS_ITEM_NOT_FOUND;
-            goto error1;
-        }
-        p_next_hop_info = ctc_sai_db_get_object_property(lchip, p_nh_oid);
-        if (NULL == p_next_hop_info)
-        {
-            status = SAI_STATUS_ITEM_NOT_FOUND;
-            goto error1;
-        }
-        if (w_next_hop_info->label.count != p_next_hop_info->label.count)
-        {
-            status = SAI_STATUS_INVALID_PARAMETER;
-            goto error1;
-        }
-
-        sal_memset(&nh_param, 0, sizeof(nh_param));
-        nh_param.nh_prop = CTC_MPLS_NH_PUSH_TYPE;
-        nh_param.aps_en = 1;
-        nh_param.aps_bridge_group_id = aps_group_id;
-        /* Working PW */
-        nh_param.nh_para.nh_param_push.tunnel_id = w_next_hop_info->ctc_mpls_tunnel_id;
-        nh_param.nh_para.nh_param_push.nh_com.opcode = CTC_MPLS_NH_PUSH_OP_ROUTE;
-        if (3 == w_next_hop_info->label.count)
-        {
-            nh_param.nh_para.nh_param_push.label_num = 1;
-            nh_param.nh_para.nh_param_push.push_label[0].ttl = (w_next_hop_info->label.list[2])&0xFF;
-            nh_param.nh_para.nh_param_push.push_label[0].exp_type = CTC_NH_EXP_SELECT_ASSIGN;
-            nh_param.nh_para.nh_param_push.push_label[0].exp = ((w_next_hop_info->label.list[2]) >> 9)&0x7;
-            nh_param.nh_para.nh_param_push.push_label[0].label = ((w_next_hop_info->label.list[2]) >> 12)&0xFFFFF;
-            CTC_SET_FLAG(nh_param.nh_para.nh_param_push.push_label[0].lable_flag, CTC_MPLS_NH_LABEL_IS_VALID);
-
-        }
-        /* Protection PW */
-        nh_param.nh_p_para.nh_p_param_push.tunnel_id = p_next_hop_info->ctc_mpls_tunnel_id;
-        nh_param.nh_p_para.nh_p_param_push.nh_com.opcode = CTC_MPLS_NH_PUSH_OP_ROUTE;
-        if (p_next_hop_info->label.count > 1)
-        {
-            nh_param.nh_para.nh_param_push.label_num = 1;
-            nh_param.nh_para.nh_param_push.push_label[0].ttl = (p_next_hop_info->label.list[2])&0xFF;
-            nh_param.nh_para.nh_param_push.push_label[0].exp_type = CTC_NH_EXP_SELECT_ASSIGN;
-            nh_param.nh_para.nh_param_push.push_label[0].exp = ((p_next_hop_info->label.list[2]) >> 9)&0x7;
-            nh_param.nh_para.nh_param_push.push_label[0].label = ((p_next_hop_info->label.list[2]) >> 12)&0xFFFFF;
-            CTC_SET_FLAG(nh_param.nh_para.nh_param_push.push_label[0].lable_flag, CTC_MPLS_NH_LABEL_IS_VALID);
-        }
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_mpls(lchip, nh_id, &nh_param), status, error1);
-    }
-
-    return SAI_STATUS_SUCCESS;
-error1:
-    ctcs_aps_destroy_aps_bridge_group(lchip, aps_group_id);
     return status;
 }
 
 static sai_status_t
-_ctc_sai_next_hop_group_remove_aps_nh(uint8 lchip, uint16 aps_group_id, uint32 nh_id, sai_object_id_t nh_oid)
+_ctc_sai_next_hop_group_remove_aps_nh(uint8 lchip, uint16 aps_group_id, uint32 nh_id)
 {
-    ctc_object_id_t nh;
-    ctc_sai_get_ctc_object_id(SAI_API_NEXT_HOP, nh_oid, &nh);
-    if (SAI_NEXT_HOP_TYPE_IP == nh.sub_type)
-    {
-        ctcs_nh_remove_ipuc(lchip, nh_id);
-    }
-    else if (SAI_NEXT_HOP_TYPE_MPLS == nh.sub_type)
-    {
-
-    }
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    
     ctcs_aps_destroy_aps_bridge_group(lchip, aps_group_id);
-    return SAI_STATUS_SUCCESS;
+    
+    return status;
+}
+
+static sai_status_t
+_ctc_sai_next_hop_group_update_aps_nh(uint8 lchip, sai_object_id_t nh_group_id, sai_object_id_t member_nexthop_oid, uint8 role)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    ctc_object_id_t ctc_nh_grp_obj_id, ctc_nh_obj_id;
+    ctc_sai_next_hop_grp_t* p_nh_group_id = NULL;
+    ctc_sai_next_hop_t* p_nh_db = NULL;
+    ctc_sai_next_hop_t* p_nh_tmp = NULL;
+    ctc_nh_aps_param_t p_nh_param;
+    uint32 aps_nh_or_tunnel_id = 0, member_nh_or_tunnel_id = 0;
+    uint8 is_add_rw = 0;
+
+    p_nh_group_id = ctc_sai_db_get_object_property(lchip, nh_group_id);
+    if(NULL == p_nh_group_id)
+    {
+        status = SAI_STATUS_INVALID_OBJECT_ID;
+        return status;
+    }
+    
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, nh_group_id, &ctc_nh_grp_obj_id);
+    sal_memset(&p_nh_param, 0, sizeof(p_nh_param));
+    
+    ctc_nh_obj_id.value = CTC_NH_RESERVED_NHID_FOR_DROP;
+    if(member_nexthop_oid)
+    {
+        is_add_rw = 1;
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP, member_nexthop_oid, &ctc_nh_obj_id);
+
+        p_nh_db = ctc_sai_db_get_object_property(lchip, member_nexthop_oid);
+        if(NULL == p_nh_db)
+        {
+            status = SAI_STATUS_INVALID_OBJECT_ID;
+            return status;
+        }
+    }
+    else
+    {
+        is_add_rw = 0;
+    }
+    
+      
+    //confirm aps type
+    if(CTC_NH_APS_TYPE_MAX == p_nh_group_id->aps_nh_type)
+    {          
+        if(is_add_rw)
+        {
+            if(p_nh_db->ctc_mpls_tunnel_id)
+            {
+                p_nh_param.type = CTC_NH_APS_TYPE_TUNNEL;
+            }
+            else
+            {
+                p_nh_param.type = CTC_NH_APS_TYPE_NH;
+            }
+        }
+    }
+    else
+    {
+        if(is_add_rw)
+        {
+            if((p_nh_db->ctc_mpls_tunnel_id && (p_nh_group_id->aps_nh_type != CTC_NH_APS_TYPE_TUNNEL))
+              || (!p_nh_db->ctc_mpls_tunnel_id && (p_nh_group_id->aps_nh_type != CTC_NH_APS_TYPE_NH)))
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP_GROUP, "member aps type is not equal to group aps type!\n");
+                status = SAI_STATUS_INVALID_OBJECT_ID;
+                return status;        
+            }
+        }
+          
+        p_nh_param.type = p_nh_group_id->aps_nh_type;
+    }
+
+    //aps is created, do update
+    if(p_nh_group_id->aps_nh_created)
+    {
+        if(p_nh_group_id->aps_tunnel_id)
+        {
+            aps_nh_or_tunnel_id = p_nh_group_id->aps_tunnel_id;
+            if(is_add_rw)
+            {
+                member_nh_or_tunnel_id = p_nh_db->ctc_mpls_tunnel_id;
+            }
+            else
+            {
+
+            }
+        
+            if(p_nh_group_id->p_nh_oid)
+            {
+                p_nh_tmp = ctc_sai_db_get_object_property(lchip, p_nh_group_id->p_nh_oid);
+                if(NULL == p_nh_tmp)
+                {
+                    return SAI_STATUS_INVALID_OBJECT_ID;
+                }
+                p_nh_param.p_nhid = p_nh_tmp->ctc_mpls_tunnel_id;
+            }
+            if(p_nh_group_id->w_nh_oid)
+            {
+                p_nh_tmp = ctc_sai_db_get_object_property(lchip, p_nh_group_id->w_nh_oid);
+                if(NULL == p_nh_tmp)
+                {
+                    return SAI_STATUS_INVALID_OBJECT_ID;
+                }
+                p_nh_param.w_nhid = p_nh_tmp->ctc_mpls_tunnel_id;
+            }
+        }
+        else
+        {
+            aps_nh_or_tunnel_id = ctc_nh_grp_obj_id.value;
+            member_nh_or_tunnel_id = ctc_nh_obj_id.value;
+
+            ctc_sai_oid_get_value(p_nh_group_id->w_nh_oid, &p_nh_param.w_nhid);
+            ctc_sai_oid_get_value(p_nh_group_id->p_nh_oid, &p_nh_param.p_nhid);
+        }
+        
+        p_nh_param.aps_group_id = ctc_nh_grp_obj_id.value2;
+        
+
+        if(SAI_NEXT_HOP_GROUP_MEMBER_CONFIGURED_ROLE_PRIMARY == role)
+        {
+            if(is_add_rw)
+            {
+                p_nh_param.w_nhid = member_nh_or_tunnel_id;   
+            
+                //if p nh is NULL, indicate p nh is not set, set to same nh in ASIC
+                if(SAI_NULL_OBJECT_ID == p_nh_group_id->p_nh_oid)
+                {
+                    p_nh_param.p_nhid = member_nh_or_tunnel_id;
+                }
+                CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_update_aps(lchip, aps_nh_or_tunnel_id, &p_nh_param), status, out);
+            }
+            else
+            {
+                if(SAI_NULL_OBJECT_ID != p_nh_group_id->p_nh_oid)
+                {
+                    p_nh_param.w_nhid = p_nh_param.p_nhid;
+
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_update_aps(lchip, aps_nh_or_tunnel_id, &p_nh_param), status, out);
+                }                
+            }
+            
+            p_nh_group_id->w_nh_oid = member_nexthop_oid;
+        }
+        else if(SAI_NEXT_HOP_GROUP_MEMBER_CONFIGURED_ROLE_STANDBY == role)
+        {
+            if(is_add_rw)
+            {
+                p_nh_param.p_nhid = member_nh_or_tunnel_id;
+                //if w nh is NULL, indicate w nh is not set, set to same nh in ASIC
+                if(SAI_NULL_OBJECT_ID == p_nh_group_id->w_nh_oid)
+                {
+                    p_nh_param.w_nhid = member_nh_or_tunnel_id;
+                }
+                CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_update_aps(lchip, aps_nh_or_tunnel_id, &p_nh_param), status, out);
+            }
+            else
+            {
+                if(SAI_NULL_OBJECT_ID != p_nh_group_id->w_nh_oid)
+                {
+                    p_nh_param.p_nhid = p_nh_param.w_nhid;
+
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_update_aps(lchip, aps_nh_or_tunnel_id, &p_nh_param), status, out);
+                }                
+            }
+            p_nh_group_id->p_nh_oid = member_nexthop_oid;
+        }
+
+        //if working & protection nh are both NULL, del aps nh
+        if(( SAI_NULL_OBJECT_ID == p_nh_group_id->w_nh_oid) && ( SAI_NULL_OBJECT_ID == p_nh_group_id->p_nh_oid))
+        {
+            ctcs_nh_remove_aps(lchip, aps_nh_or_tunnel_id, p_nh_group_id->aps_nh_type);
+            p_nh_group_id->aps_nh_created = 0;
+            if(CTC_NH_APS_TYPE_TUNNEL == p_nh_group_id->aps_nh_type)
+            {
+                ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_TUNNEL_ID, p_nh_group_id->aps_tunnel_id);
+                p_nh_group_id->aps_tunnel_id = 0;
+            }
+            p_nh_group_id->aps_nh_type = CTC_NH_APS_TYPE_MAX;
+        }
+    }
+    else //do aps create
+    {        
+        
+        if(p_nh_db->ctc_mpls_tunnel_id)
+        {
+            CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_TUNNEL_ID, &aps_nh_or_tunnel_id));
+            member_nh_or_tunnel_id = p_nh_db->ctc_mpls_tunnel_id;
+        }
+        else
+        {
+            aps_nh_or_tunnel_id = ctc_nh_grp_obj_id.value;
+            member_nh_or_tunnel_id = ctc_nh_obj_id.value;
+        }        
+                
+        p_nh_param.aps_group_id = ctc_nh_grp_obj_id.value2;
+
+        if(SAI_NEXT_HOP_GROUP_MEMBER_CONFIGURED_ROLE_PRIMARY == role)
+        {
+            p_nh_param.w_nhid = member_nh_or_tunnel_id;
+            p_nh_param.p_nhid = member_nh_or_tunnel_id;
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_aps(lchip, aps_nh_or_tunnel_id, &p_nh_param), status, error1);
+            p_nh_group_id->w_nh_oid = member_nexthop_oid;
+            p_nh_group_id->p_nh_oid = SAI_NULL_OBJECT_ID;
+        }
+        else if(SAI_NEXT_HOP_GROUP_MEMBER_CONFIGURED_ROLE_STANDBY == role)
+        {
+            p_nh_param.w_nhid = member_nh_or_tunnel_id;
+            p_nh_param.p_nhid = member_nh_or_tunnel_id;
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_aps(lchip, aps_nh_or_tunnel_id, &p_nh_param), status, error1);
+            p_nh_group_id->w_nh_oid = SAI_NULL_OBJECT_ID;
+            p_nh_group_id->p_nh_oid = member_nexthop_oid;
+        }
+
+        if(p_nh_db->ctc_mpls_tunnel_id)
+        {
+            p_nh_group_id->aps_nh_type = CTC_NH_APS_TYPE_TUNNEL;
+            p_nh_group_id->aps_tunnel_id = aps_nh_or_tunnel_id;
+        }
+        else
+        {
+            p_nh_group_id->aps_nh_type = CTC_NH_APS_TYPE_NH;
+        }
+        
+        p_nh_group_id->aps_nh_created = 1;
+        
+        
+    }
+
+    goto out;
+
+error1:
+    CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP_GROUP, "update aps nh rollback to error1\n");
+    if(p_nh_db->ctc_mpls_tunnel_id)
+    {
+        ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_TUNNEL_ID, aps_nh_or_tunnel_id);
+    }
+out:    
+    return status;
 }
 
 static sai_status_t
@@ -173,22 +283,19 @@ _ctc_sai_next_hop_group_create_member(sai_object_id_t *next_hop_group_member_id,
                                                                     uint32_t attr_count, const sai_attribute_t *attr_list)
 {
     sai_status_t           status = SAI_STATUS_SUCCESS;
-    ctc_sai_next_hop_grp_t* p_next_hop_grp_info = NULL;
-    ctc_sai_next_hop_grp_member_t* p_next_hop_member_info = NULL;
+    uint8 lchip = 0;
     const sai_attribute_value_t *attr_value;
     uint32_t index = 0;
-    ctc_object_id_t ctc_nh_grp_obj_id;
     sai_object_id_t nh_grp_obj_id = 0;
+    ctc_object_id_t ctc_nh_grp_obj_id;
+    ctc_sai_next_hop_grp_t* p_next_hop_grp_info = NULL;
+    ctc_sai_next_hop_grp_member_t* p_next_hop_member_info = NULL;
     sai_object_id_t nh_obj_id = 0;
+    uint32 nh_id = 0;//member nexthop id
     sai_object_id_t nh_grp_member_obj_id = 0;
-    uint32 nh_id = 0;/*member nexthop id*/
     uint32 nh_member_id = 0;
-    uint8 lchip = 0;
-    uint16 aps_group_id = 0 ;
-    uint8 is_working = 0;
-    sai_object_id_t w_nh_oid = 0;
-    sai_object_id_t p_nh_oid = 0;
-
+    sai_object_id_t original_nh_id = 0;
+    uint8 is_working = 1, is_standby = 0, mem_exist = 0;
 
     ctc_sai_oid_get_lchip(switch_id, &lchip);
     status = (ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NEXT_HOP_GROUP_MEMBER_ATTR_NEXT_HOP_GROUP_ID, &attr_value, &index));
@@ -202,7 +309,6 @@ _ctc_sai_next_hop_group_create_member(sai_object_id_t *next_hop_group_member_id,
     {
         return SAI_STATUS_INVALID_PARAMETER;
     }
-
     status = (ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NEXT_HOP_GROUP_MEMBER_ATTR_NEXT_HOP_ID, &attr_value, &index));
     if (CTC_SAI_ERROR(status))
     {
@@ -231,40 +337,48 @@ _ctc_sai_next_hop_group_create_member(sai_object_id_t *next_hop_group_member_id,
         nh_param.nhid[0] = nh_id;
         CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_update_ecmp(lchip, ctc_nh_grp_obj_id.value, &nh_param), status, error2);
     }
-    else
+    if(SAI_NEXT_HOP_GROUP_TYPE_PROTECTION == ctc_nh_grp_obj_id.sub_type)
     {
-        aps_group_id = ctc_nh_grp_obj_id.value2;
         status = (ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NEXT_HOP_GROUP_MEMBER_ATTR_CONFIGURED_ROLE, &attr_value, &index));
         if (CTC_SAI_ERROR(status))
         {
             status = SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
             goto error2;
         }
-        w_nh_oid = p_next_hop_grp_info->w_nh_oid;
-        p_nh_oid = p_next_hop_grp_info->p_nh_oid;
-        if (SAI_NEXT_HOP_GROUP_MEMBER_CONFIGURED_ROLE_PRIMARY == attr_value->s32)
+        is_working = (SAI_NEXT_HOP_GROUP_MEMBER_CONFIGURED_ROLE_PRIMARY == attr_value->s32);
+        is_standby = (SAI_NEXT_HOP_GROUP_MEMBER_CONFIGURED_ROLE_STANDBY == attr_value->s32);
+        mem_exist = is_standby ?  (0 != p_next_hop_grp_info->p_nh_oid) : (0 != p_next_hop_grp_info->w_nh_oid);
+        if(mem_exist)
         {
-            w_nh_oid = nh_obj_id;
-            is_working = 1;
+            status = SAI_STATUS_ITEM_ALREADY_EXISTS;
+            goto error2;
+        }
+        if(is_standby)
+        {
+            original_nh_id = p_next_hop_grp_info->p_nh_oid;
         }
         else
         {
-            p_nh_oid = nh_obj_id;
+            original_nh_id = p_next_hop_grp_info->w_nh_oid;
         }
-        if (w_nh_oid && p_nh_oid)/* w and p are all collected, create hw*/
-        {
-            CTC_SAI_ERROR_GOTO(_ctc_sai_next_hop_group_create_aps_nh(lchip, aps_group_id, ctc_nh_grp_obj_id.value,
-                                                                     w_nh_oid, p_nh_oid), status, error2);
-        }
-        p_next_hop_grp_info->w_nh_oid = w_nh_oid;
-        p_next_hop_grp_info->p_nh_oid = p_nh_oid;
-    }
+        CTC_SAI_CTC_ERROR_GOTO(_ctc_sai_next_hop_group_update_aps_nh(lchip, nh_grp_obj_id, nh_obj_id, is_standby), status, error2);
 
+    }
     nh_grp_member_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP_MEMBER, lchip, is_working, nh_member_id, nh_id);
     CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, nh_grp_member_obj_id, (void*)p_next_hop_member_info), status, error3);
     *next_hop_group_member_id = nh_grp_member_obj_id;
+    if(SAI_NEXT_HOP_GROUP_TYPE_PROTECTION == ctc_nh_grp_obj_id.sub_type)
+    {
+        if(is_standby)
+        {
+            p_next_hop_grp_info->p_member_oid = nh_grp_member_obj_id;
+        }
+        else
+        {
+            p_next_hop_grp_info->w_member_oid = nh_grp_member_obj_id;
+        }
+    }
     goto out;
-
 error3:
     CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP_GROUP, "rollback to error3\n");
     if (SAI_NEXT_HOP_GROUP_TYPE_ECMP == ctc_nh_grp_obj_id.sub_type)
@@ -277,9 +391,9 @@ error3:
         nh_param.nhid[0] = nh_id;
         ctcs_nh_update_ecmp(lchip, ctc_nh_grp_obj_id.value, &nh_param);
     }
-    else if (w_nh_oid && p_nh_oid)
+    if (SAI_NEXT_HOP_GROUP_TYPE_PROTECTION == ctc_nh_grp_obj_id.sub_type)
     {
-        _ctc_sai_next_hop_group_remove_aps_nh(lchip, aps_group_id, ctc_nh_grp_obj_id.value, w_nh_oid);
+        _ctc_sai_next_hop_group_update_aps_nh(lchip, nh_grp_obj_id, original_nh_id, is_standby);
     }
 error2:
     CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP_GROUP, "rollback to error2\n");
@@ -290,7 +404,7 @@ error1:
 out:
     return status;
 }
-
+                                                                    
 static sai_status_t
 _ctc_sai_next_hop_group_remove_member(sai_object_id_t next_hop_group_member_id)
 {
@@ -300,7 +414,7 @@ _ctc_sai_next_hop_group_remove_member(sai_object_id_t next_hop_group_member_id)
     ctc_sai_next_hop_grp_t* p_next_hop_grp_info = NULL;
     ctc_object_id_t ctc_nh_grp_oid;
     ctc_object_id_t ctc_nh_grp_member_oid;
-    sai_object_id_t nh_oid_old;
+    //sai_object_id_t nh_oid_old;
 
     ctc_sai_oid_get_lchip(next_hop_group_member_id, &lchip);
     p_next_hop_member_info = ctc_sai_db_get_object_property(lchip, next_hop_group_member_id);
@@ -332,24 +446,19 @@ _ctc_sai_next_hop_group_remove_member(sai_object_id_t next_hop_group_member_id)
             goto out;
         }
     }
-    else
+    if (SAI_NEXT_HOP_GROUP_TYPE_PROTECTION == ctc_nh_grp_oid.sub_type)
     {
-        if (1 == ctc_nh_grp_member_oid.sub_type)/*working path*/
+        _ctc_sai_next_hop_group_update_aps_nh(lchip, p_next_hop_member_info->nh_grp_oid, 0, !ctc_nh_grp_member_oid.sub_type);
+        if(ctc_nh_grp_member_oid.sub_type)
         {
-        nh_oid_old = p_next_hop_grp_info->w_nh_oid;
-            p_next_hop_grp_info->w_nh_oid = 0;
+            p_next_hop_grp_info->w_member_oid = SAI_NULL_OBJECT_ID;
         }
         else
         {
-            nh_oid_old = p_next_hop_grp_info->p_nh_oid;
-            p_next_hop_grp_info->p_nh_oid = 0;
+            p_next_hop_grp_info->p_member_oid = SAI_NULL_OBJECT_ID;
         }
-        if (0 == (p_next_hop_grp_info->w_nh_oid + p_next_hop_grp_info->p_nh_oid))
-        {
-             _ctc_sai_next_hop_group_remove_aps_nh(lchip, ctc_nh_grp_oid.value2, ctc_nh_grp_oid.value, nh_oid_old);
-        }
-
     }
+    
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP_MEMBER, ctc_nh_grp_member_oid.value2);
     ctc_sai_db_remove_object_property(lchip, next_hop_group_member_id);
     mem_free(p_next_hop_member_info);
@@ -429,7 +538,7 @@ _ctc_sai_next_hop_group_get_grp_attr(sai_object_key_t* key, sai_attribute_t* att
         }
         else
         {
-            return SAI_STATUS_NOT_SUPPORTED;
+            attr->value.oid = SAI_NULL_OBJECT_ID;
         }
     }
     else
@@ -480,11 +589,11 @@ _ctc_sai_next_hop_group_get_grp_attr(sai_object_key_t* key, sai_attribute_t* att
                 attr->value.objlist.count = 0;
                 if (p_next_hop_grp_info->w_nh_oid != 0)
                 {
-                    attr->value.objlist.list[attr->value.objlist.count++] = p_next_hop_grp_info->w_nh_oid;
+                    attr->value.objlist.list[attr->value.objlist.count++] = p_next_hop_grp_info->w_member_oid;
                 }
                 if (p_next_hop_grp_info->p_nh_oid != 0)
                 {
-                    attr->value.objlist.list[attr->value.objlist.count++] = p_next_hop_grp_info->p_nh_oid;
+                    attr->value.objlist.list[attr->value.objlist.count++] = p_next_hop_grp_info->p_member_oid;
                 }
             }
         }
@@ -696,9 +805,17 @@ _ctc_sai_next_hop_group_wb_reload_cb(uint8 lchip, void* key, void* data)
 {
     sai_object_id_t next_hop_group_id = *(sai_object_id_t*)key;
     ctc_object_id_t ctc_object_id;
+    ctc_sai_next_hop_grp_t* p_sai_next_hop_grp_info = (ctc_sai_next_hop_grp_t*)data;
+    
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, next_hop_group_id, &ctc_object_id);
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, ctc_object_id.value));
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_APS, ctc_object_id.value2));
+
+    if(p_sai_next_hop_grp_info->aps_tunnel_id)
+    {
+        CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_TUNNEL_ID, p_sai_next_hop_grp_info->aps_tunnel_id));
+    }
+    
     return SAI_STATUS_SUCCESS;
 }
 
@@ -763,6 +880,9 @@ ctc_sai_next_hop_group_create_nh_grp(sai_object_id_t *next_hop_group_id, sai_obj
     uint32 aps_group_id = 0;
     uint8 group_type = 0;
     uint32 stats_id = 0;
+    ctc_aps_bridge_group_t aps_bridge;
+
+    sal_memset(&aps_bridge, 0, sizeof(ctc_aps_bridge_group_t));
 
     CTC_SAI_LOG_ENTER(SAI_API_NEXT_HOP_GROUP);
     CTC_SAI_PTR_VALID_CHECK(next_hop_group_id);
@@ -792,16 +912,17 @@ ctc_sai_next_hop_group_create_nh_grp(sai_object_id_t *next_hop_group_id, sai_obj
         nh_param.nh_num = 1;
         if(SAI_NULL_OBJECT_ID != counter_oid)
         {
-            CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_create(counter_oid, CTC_SAI_COUNTER_TYPE_ECMP, &stats_id));
+            CTC_SAI_ERROR_GOTO(ctc_sai_counter_id_create(counter_oid, CTC_SAI_COUNTER_TYPE_ECMP, &stats_id),status,error0);
             nh_param.stats_id = stats_id;
         }
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_ecmp(lchip, nh_id, &nh_param), status, error1);
+        CTC_SAI_ERROR_GOTO(ctcs_nh_add_ecmp(lchip, nh_id, &nh_param), status, error1);
         nh_param.upd_type = CTC_NH_ECMP_REMOVE_MEMBER;
         ctcs_nh_update_ecmp(lchip, nh_id, &nh_param);
     }
     else if (SAI_NEXT_HOP_GROUP_TYPE_PROTECTION == group_type)
     {
         CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_APS, &aps_group_id), status, error1);
+        CTC_SAI_ERROR_GOTO(_ctc_sai_next_hop_group_create_aps_nh(lchip, aps_group_id, nh_id), status, error2);        
     }
     else
     {
@@ -814,17 +935,24 @@ ctc_sai_next_hop_group_create_nh_grp(sai_object_id_t *next_hop_group_id, sai_obj
     if (NULL == p_next_hop_grp_info)
     {
         status = SAI_STATUS_NO_MEMORY;
-        goto error2;
+        goto error3;
     }
     sal_memset(p_next_hop_grp_info, 0, sizeof(ctc_sai_next_hop_grp_t));
     p_next_hop_grp_info->counter_oid = counter_oid;
-    CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, nh_grp_obj_id, p_next_hop_grp_info), status, error3);
+    p_next_hop_grp_info->aps_nh_type = CTC_NH_APS_TYPE_MAX;
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, nh_grp_obj_id, p_next_hop_grp_info), status, error4);
     *next_hop_group_id = nh_grp_obj_id;
     goto out;
 
+error4:
+    CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP_GROUP, "rollback to error4\n");
+    mem_free(p_next_hop_grp_info);
 error3:
     CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP_GROUP, "rollback to error3\n");
-    mem_free(p_next_hop_grp_info);
+    if(SAI_NEXT_HOP_GROUP_TYPE_PROTECTION == group_type)
+    {
+        _ctc_sai_next_hop_group_remove_aps_nh(lchip, aps_group_id, nh_id);
+    }    
 error2:
     CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP_GROUP, "rollback to error2\n");
     if (SAI_NEXT_HOP_GROUP_TYPE_ECMP == group_type)
@@ -841,6 +969,7 @@ error1:
     {
         ctc_sai_counter_id_remove(counter_oid, CTC_SAI_COUNTER_TYPE_ECMP);
     }
+error0:
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, nh_id);
 out:
     CTC_SAI_DB_UNLOCK(lchip);
@@ -889,8 +1018,7 @@ ctc_sai_next_hop_group_remove_nh_grp(sai_object_id_t next_hop_group_id)
     }
     else if(SAI_NEXT_HOP_GROUP_TYPE_PROTECTION == ctc_object_id.sub_type)
     {
-        ctcs_nh_remove_ipuc(lchip, ctc_object_id.value);
-        ctcs_aps_destroy_aps_bridge_group(lchip, ctc_object_id.value2);
+        _ctc_sai_next_hop_group_remove_aps_nh(lchip, ctc_object_id.value2, ctc_object_id.value);
         ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_APS, ctc_object_id.value2);
     }
 

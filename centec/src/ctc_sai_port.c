@@ -22,6 +22,15 @@
 /*sdk include file*/
 #include "ctcs_api.h"
 
+typedef struct  ctc_sai_port_wb_s
+{
+    /*key*/
+    sai_object_id_t port_oid;
+    uint32 calc_key_len[0];
+    /*data*/
+    uint16 service_id;
+    
+}ctc_sai_port_wb_t;
 
 
 static sai_status_t
@@ -149,7 +158,19 @@ _ctc_sai_port_get_port_db(sai_object_id_t port_id, ctc_sai_port_db_t** p_port)
         }
         sal_memset(p_port_temp, 0, sizeof(ctc_sai_port_db_t));
         CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, port_id, p_port_temp), status, error_return);
+
+        if(NULL == p_port_temp->service_id_list)
+        {
+            p_port_temp->service_id_list = ctc_slist_new();
+            if (!p_port_temp->service_id_list)
+            {
+                return SAI_STATUS_NO_MEMORY;
+            }
+        }
     }
+
+    
+    
     *p_port = p_port_temp;
     return SAI_STATUS_SUCCESS;
 
@@ -335,6 +356,8 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
     ctc_sai_port_db_t* p_port_db = NULL;
     ctc_port_speed_t speed_mode;
     ctc_chip_device_info_t device_info;
+    mac_addr_t port_mac;
+    sai_object_id_t *p_bounded_oid = NULL;
     
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
 
@@ -828,6 +851,21 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
             return SAI_STATUS_NOT_SUPPORTED;
         }
         break;
+    case SAI_PORT_ATTR_MAC_ADDRESS:
+        sal_memset(&port_mac, 0, sizeof(port_mac));
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_port_mac(lchip, gport, &port_mac));
+        sal_memcpy(&attr->value.mac, &port_mac, sizeof(sai_mac_t));
+        break;
+        
+    case SAI_PORT_ATTR_INGRESS_ACL:
+        p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, (void*)(&key->key.object_id));
+        attr->value.oid = (p_bounded_oid ? *p_bounded_oid : SAI_NULL_OBJECT_ID);
+        break; 
+    case SAI_PORT_ATTR_EGRESS_ACL:
+        p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS, (void*)(&key->key.object_id));
+        attr->value.oid = (p_bounded_oid ? *p_bounded_oid : SAI_NULL_OBJECT_ID);
+        break;  
+        
     default:
         CTC_SAI_LOG_ERROR(SAI_API_PORT, "port attribute not implement\n");
         return  SAI_STATUS_ATTR_NOT_IMPLEMENTED_0+attr_idx;
@@ -862,6 +900,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
     ctc_oam_y1731_prop_t* p_eth_prop = NULL;
     uint8 chip_type = 0;
     ctc_chip_device_info_t device_info;
+    ctc_port_mac_postfix_t post_mac;
     
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(key->key.object_id, &gport));
@@ -1203,6 +1242,12 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
             return SAI_STATUS_NOT_SUPPORTED;
         }
         break;
+    case SAI_PORT_ATTR_MAC_ADDRESS:
+        sal_memset(&post_mac, 0, sizeof(post_mac));
+        CTC_SET_FLAG(post_mac.prefix_type, CTC_PORT_MAC_PREFIX_48BIT);
+        sal_memcpy(&post_mac.port_mac, &attr->value.mac, sizeof(sai_mac_t));
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_port_mac_postfix(lchip, gport, &post_mac));        
+        break;
     default:
         CTC_SAI_LOG_ERROR(SAI_API_PORT, "port attribute not implement\n");
         return  SAI_STATUS_ATTR_NOT_IMPLEMENTED_0;
@@ -1438,7 +1483,7 @@ _ctc_sai_port_set_policer(sai_object_key_t *key, const  sai_attribute_t *attr)
             return SAI_STATUS_ATTR_NOT_IMPLEMENTED_0;
     }
 
-    if (enable && old_policer_id && (old_policer_id != ctc_object_id.value) && need_revert)
+    if (old_policer_id && (old_policer_id != ctc_object_id.value) && need_revert)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_policer_revert_policer(lchip, old_policer_id));
     }
@@ -1451,13 +1496,10 @@ static sai_status_t
 _ctc_sai_port_set_ptp(sai_object_key_t *key, const  sai_attribute_t *attr)
 {
     uint32 gport = 0;
-    uint32 enable_basedon_port = 0;
     uint8  lchip = 0;
-    sai_object_id_t ptp_domain_id;
     ctc_sai_port_db_t* p_port_db = NULL;
     ctc_sai_ptp_db_t* p_ptp_db = NULL;
     ctc_object_id_t ctc_object_id;
-    sai_status_t status = SAI_STATUS_SUCCESS;
     
     CTC_SAI_PTR_VALID_CHECK(key);
     CTC_SAI_PTR_VALID_CHECK(attr);
@@ -1467,16 +1509,7 @@ _ctc_sai_port_set_ptp(sai_object_key_t *key, const  sai_attribute_t *attr)
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(key->key.object_id, &gport));
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
     CTC_SAI_ERROR_RETURN(_ctc_sai_port_get_port_db(key->key.object_id, &p_port_db));
-    ptp_domain_id = attr->value.oid;
-    p_ptp_db = ctc_sai_db_get_object_property(lchip,  ptp_domain_id);
 
-    if (NULL == p_ptp_db  )
-    {
-        CTC_SAI_LOG_ERROR(SAI_API_PORT, "ptp domain not found \n");
-        return SAI_STATUS_ITEM_NOT_FOUND;
-        goto out;
-    }
-       
     switch (attr->id)
     {
         case SAI_PORT_ATTR_PTP_MODE:
@@ -1484,28 +1517,24 @@ _ctc_sai_port_set_ptp(sai_object_key_t *key, const  sai_attribute_t *attr)
             break;
             
         case SAI_PORT_ATTR_PTP_DOMAIN_ID://domain id cannot be 0, and only support create one domain
-            ptp_domain_id = attr->value.oid;
-            if (NULL == p_ptp_db)
+            if(SAI_NULL_OBJECT_ID == attr->value.oid)
             {
-                CTC_SAI_LOG_ERROR(SAI_API_PORT, "ptp domain not found \n");
-                return SAI_STATUS_ITEM_NOT_FOUND;
-                goto out;
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PTP_EN, FALSE)); 
+                p_port_db->ptp_domain_id= 0; 
             }
             else
             {
-                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, attr->value.oid, &ctc_object_id);            
-                p_port_db->ptp_domain_id= ctc_object_id.value; 
-                if (ctc_object_id.value)
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, attr->value.oid, &ctc_object_id); 
+                p_ptp_db = ctc_sai_db_get_object_property(lchip,  attr->value.oid);
+                if ((NULL == p_ptp_db)||(SAI_OBJECT_TYPE_PTP_DOMAIN != ctc_object_id.type))
                 {
-                    enable_basedon_port =1;
+                    CTC_SAI_LOG_ERROR(SAI_API_PORT, "ptp domain not found \n");
+                    return SAI_STATUS_INVALID_PARAMETER;
                 }
-                else
-                {
-                    enable_basedon_port =0;
-                }
-                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PTP_EN, enable_basedon_port));  
-            }
 
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PTP_EN, TRUE));  
+                p_port_db->ptp_domain_id= ctc_object_id.value; 
+            }
             break;
             
         case SAI_PORT_ATTR_PTP_PATH_DELAY:
@@ -1524,12 +1553,7 @@ _ctc_sai_port_set_ptp(sai_object_key_t *key, const  sai_attribute_t *attr)
             break;
     }
 
-    out:
-    if (SAI_STATUS_SUCCESS != status)
-    {
-        CTC_SAI_LOG_ERROR(SAI_API_PORT, "Failed to create ptp domain :%d\n", status);
-    }
-    return status;
+    return SAI_STATUS_SUCCESS;
 
 }
 
@@ -2115,8 +2139,8 @@ static  ctc_sai_attr_fn_entry_t  port_attr_fn_entries[] =
     {SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID,             _ctc_sai_port_get_policer,  _ctc_sai_port_set_policer},
     {SAI_PORT_ATTR_MULTICAST_STORM_CONTROL_POLICER_ID,             _ctc_sai_port_get_policer,  _ctc_sai_port_set_policer},
     {SAI_PORT_ATTR_GLOBAL_FLOW_CONTROL_MODE,                       _ctc_sai_port_get_global_flow_ctl,  _ctc_sai_port_set_global_flow_ctl},
-    {SAI_PORT_ATTR_INGRESS_ACL,                                    NULL,  ctc_sai_acl_bind_point_set},
-    {SAI_PORT_ATTR_EGRESS_ACL,                                     NULL,  NULL},
+    {SAI_PORT_ATTR_INGRESS_ACL,                                    ctc_sai_port_get_basic_info,  ctc_sai_acl_bind_point_set},
+    {SAI_PORT_ATTR_EGRESS_ACL,                                     ctc_sai_port_get_basic_info,  ctc_sai_acl_bind_point_set},
     {SAI_PORT_ATTR_INGRESS_MIRROR_SESSION,                         _ctc_sai_port_get_mirror,  _ctc_sai_port_set_mirror},
     {SAI_PORT_ATTR_EGRESS_MIRROR_SESSION,                          _ctc_sai_port_get_mirror,  _ctc_sai_port_set_mirror},
     {SAI_PORT_ATTR_INGRESS_SAMPLEPACKET_ENABLE,                    _ctc_sai_port_get_samplepacket, _ctc_sai_port_set_samplepacket},
@@ -2164,9 +2188,9 @@ static  ctc_sai_attr_fn_entry_t  port_attr_fn_entries[] =
     {SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY,                     _ctc_sai_port_get_ptp,  _ctc_sai_port_set_ptp},
     {SAI_PORT_ATTR_PTP_PATH_DELAY,                                 _ctc_sai_port_get_ptp,  _ctc_sai_port_set_ptp},
     {SAI_PORT_ATTR_PTP_DOMAIN_ID,                                  _ctc_sai_port_get_ptp,  _ctc_sai_port_set_ptp},
+    {SAI_PORT_ATTR_MAC_ADDRESS,                                    ctc_sai_port_get_basic_info,  ctc_sai_port_set_basic_info},
     {CTC_SAI_FUNC_ATTR_END_ID,                                     NULL,NULL}
 };
-
 
 static sai_status_t
 ctc_sai_port_key_to_str( sai_object_id_t port_id,  char *key_str)
@@ -2184,6 +2208,115 @@ ctc_sai_port_key_to_str( sai_object_id_t port_id,  char *key_str)
 
      return SAI_STATUS_SUCCESS;
 }
+
+#define ________WARMBOOT________
+
+static sai_status_t
+_ctc_sai_port_wb_sync_cb(uint8 lchip, void* key, void* data)
+{
+    sai_status_t status = SAI_STATUS_SUCCESS;
+    sai_status_t ret = 0;
+    ctc_wb_data_t wb_data;
+    sai_object_id_t port_oid = *(sai_object_id_t*)key;
+    uint32  max_entry_cnt = 0;
+    ctc_sai_port_db_t* p_port_db = (ctc_sai_port_db_t*)data;
+    ctc_sai_port_wb_t port_wb;
+    ctc_slistnode_t *service_node = NULL;
+    ctc_sai_port_service_id_t *p_service_node = NULL;
+    uint32 offset = 0;
+
+    sal_memset(&port_wb, 0, sizeof(ctc_sai_port_wb_t));
+
+    CTC_WB_ALLOC_BUFFER(&wb_data.buffer);
+    if (NULL == wb_data.buffer)
+    {
+        return SAI_STATUS_NO_MEMORY;
+    }
+    sal_memset(wb_data.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
+    CTC_WB_INIT_DATA_T((&wb_data), ctc_sai_port_wb_t, CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_PORT);
+    max_entry_cnt = CTC_WB_DATA_BUFFER_LENGTH / (wb_data.key_len + wb_data.data_len);
+    
+    CTC_SLIST_LOOP(p_port_db->service_id_list, service_node)
+    {
+        offset = wb_data.valid_cnt * (wb_data.key_len + wb_data.data_len);
+        p_service_node = (ctc_sai_port_service_id_t*)service_node;
+        port_wb.port_oid = port_oid;
+        port_wb.service_id = p_service_node->service_id;
+        
+        sal_memcpy((uint8*)wb_data.buffer + offset, &port_wb, (wb_data.key_len + wb_data.data_len));
+
+        if (++wb_data.valid_cnt == max_entry_cnt)
+        {
+            CTC_SAI_CTC_ERROR_GOTO(ctc_wb_add_entry(&wb_data), status, out);
+            wb_data.valid_cnt = 0;
+        }
+    }
+    if (wb_data.valid_cnt)
+    {
+        CTC_SAI_CTC_ERROR_GOTO(ctc_wb_add_entry(&wb_data), status, out);
+    }
+
+
+done:
+out:
+    CTC_WB_FREE_BUFFER(wb_data.buffer);
+
+    return status;
+}
+
+static sai_status_t
+_ctc_sai_port_wb_reload_cb1(uint8 lchip)
+{
+    uint16 entry_cnt = 0;
+    uint32 offset = 0;
+    sai_status_t ret = SAI_STATUS_SUCCESS;
+    ctc_wb_query_t wb_query;
+    ctc_sai_port_db_t* p_port_db = NULL;
+    ctc_sai_port_wb_t port_wb;
+    ctc_sai_port_service_id_t *p_service_node = NULL;
+
+    sal_memset(&port_wb, 0, sizeof(ctc_sai_port_wb_t));
+
+    sal_memset(&wb_query, 0, sizeof(wb_query));
+    wb_query.buffer = mem_malloc(MEM_SYSTEM_MODULE,  CTC_WB_DATA_BUFFER_LENGTH);
+    if (NULL == wb_query.buffer)
+    {
+        return CTC_E_NO_MEMORY;
+    }
+
+    sal_memset(wb_query.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
+
+    CTC_WB_INIT_QUERY_T((&wb_query), ctc_sai_port_wb_t, CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_PORT);
+    CTC_WB_QUERY_ENTRY_BEGIN((&wb_query));
+        offset = entry_cnt * (wb_query.key_len + wb_query.data_len);
+        entry_cnt++;
+        sal_memcpy(&port_wb, (uint8*)(wb_query.buffer) + offset,  sizeof(ctc_sai_port_wb_t));
+        p_port_db = ctc_sai_db_get_object_property(lchip, port_wb.port_oid);
+        if (!p_port_db)
+        {
+            continue;
+        }
+
+        p_service_node = mem_malloc(MEM_SYSTEM_MODULE, sizeof(ctc_sai_port_service_id_t));
+        if (!p_service_node)
+        {
+            continue;
+        }
+        p_service_node->service_id = port_wb.service_id;
+
+        ctc_slist_add_tail(p_port_db->service_id_list, &(p_service_node->node));
+    CTC_WB_QUERY_ENTRY_END((&wb_query));
+
+done:
+    if (wb_query.buffer)
+    {
+        mem_free(wb_query.buffer);
+    }
+
+    return ret;
+ }
+
+
 #define ________SAI_DUMP________
 
 static sai_status_t
@@ -2462,6 +2595,13 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
             goto out;
         }
     }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PORT_ATTR_MAC_ADDRESS, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        sai_object_key_t key = { .key.object_id = *port_id };
+        CTC_SAI_CTC_ERROR_GOTO(ctc_sai_port_set_basic_info(&key, &attr_list[attr_index]), status, out);
+    }
     
     status = SAI_STATUS_SUCCESS;
     goto out;
@@ -2537,6 +2677,18 @@ ctc_sai_port_remove_port( sai_object_id_t port_id)
     {
         attr.id = SAI_PORT_ATTR_MULTICAST_STORM_CONTROL_POLICER_ID;
         _ctc_sai_port_set_policer(&key, &attr);
+    }
+
+    if (p_port_db && p_port_db->service_id_list)
+    {
+        if(p_port_db->service_id_list->count)
+        {
+            status = SAI_STATUS_OBJECT_IN_USE;
+        }
+        else
+        {
+            mem_free(p_port_db->service_id_list);
+        }
     }
 
     if (p_port_db)
@@ -3660,8 +3812,9 @@ ctc_sai_port_db_init(uint8 lchip)
     sal_memset(&wb_info, 0, sizeof(wb_info));
     wb_info.version = SYS_WB_VERSION_PORT;
     wb_info.data_len = sizeof(ctc_sai_port_db_t);
-    wb_info.wb_sync_cb = NULL;
+    wb_info.wb_sync_cb = _ctc_sai_port_wb_sync_cb;
     wb_info.wb_reload_cb = NULL;
+    wb_info.wb_reload_cb1 = _ctc_sai_port_wb_reload_cb1;
     ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_PORT, (void*)(&wb_info));
 
     if (0 == SDK_WORK_PLATFORM)   // actual borad 

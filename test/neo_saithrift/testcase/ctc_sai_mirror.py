@@ -1167,6 +1167,8 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
             None, None, None,
             None)
 
+        
+            
         pkt = simple_qinq_tcp_packet(pktlen=100,
             eth_dst=mac_dst,
             eth_src=mac_src,
@@ -1208,7 +1210,8 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
         ip_ecn=1
         ip_dscp=1
         ip_ttl=None
-        ip_proto = None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_protocol = 6
         in_port = None
         out_port = None
         out_ports = None
@@ -1234,7 +1237,6 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
             mac_dst,
             ip_src,
             ip_dst,
-            ip_proto,
             in_ports,
             out_ports,
             in_port,
@@ -1245,8 +1247,10 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
             cvlan_id,
             cvlan_pri, 
             cvlan_cfi,
+            ip_type,
             None,None,None,None,None,None,None,None,None,None,
             None,None,None,None,None,None,None,None,None,None,
+            ip_protocol,
             src_l4_port,
             dst_l4_port)
 
@@ -1261,14 +1265,14 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
             svlan_id, svlan_pri,
             svlan_cfi, cvlan_id,
             cvlan_pri, cvlan_cfi,
+            ip_type,
             None,None,None,None,None,None,None,None,None,None,
             None,None,None,None,None,None,None,None,None,None,
             ip_src, ip_src_mask,
             ip_dst, ip_dst_mask,
-            is_ipv6,
+            ip_protocol,
             ip_tos, ip_ecn,
             ip_dscp, ip_ttl,
-            ip_proto,
             in_ports, out_ports,
             in_port, out_port,
             src_l4_port, dst_l4_port,
@@ -1282,6 +1286,11 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
         attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
         self.client.sai_thrift_set_vlan_attribute(vlan_oid, attr)
         self.client.sai_thrift_clear_cpu_packet_info()
+        #pdb.set_trace()
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(enable = True, parameter = sai_thrift_acl_parameter_t(objlist=sai_thrift_object_list_t(count=1,object_id_list=[ingress_localmirror_id]))))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_INGRESS, value=attribute_value)
+        self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+        
         warmboot(self.client)
 
         try:

@@ -154,8 +154,7 @@ _ctc_sai_fdb_mapping_l2_addr(const sai_fdb_entry_t* fdb_entry,
         {
             p_l2_addr->gport = port->logic_port;
 
-            //if ((SAI_BRIDGE_PORT_TYPE_TUNNEL == port->port_type) && !CTC_SAI_ERROR(endport_status))
-            if (SAI_BRIDGE_PORT_TYPE_TUNNEL == port->port_type)
+            if ((SAI_BRIDGE_PORT_TYPE_TUNNEL == port->port_type) && !CTC_SAI_ERROR(endport_status))
             {
                 uint32 tunnel_nh_id = 0;
                 CTC_SAI_ERROR_RETURN(ctc_sai_next_hop_get_tunnel_nh(port->tunnel_id, &attr_value_endport->ipaddr, &tunnel_nh_id));

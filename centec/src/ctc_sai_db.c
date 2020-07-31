@@ -157,7 +157,11 @@ _ctc_sai_db_entry_mapping_key(ctc_sai_db_entry_type_t type, void* key, ctc_sai_e
     {
         sal_memcpy(&(entry_property->key.hardware_id), key, sizeof(uint64));
     }
-    else if (CTC_SAI_DB_ENTRY_TYPE_ACL_BIND == type)
+    else if (CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS == type)
+    {
+        sal_memcpy(&(entry_property->key.oid), key, sizeof(sai_object_id_t));
+    }
+    else if (CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS == type)
     {
         sal_memcpy(&(entry_property->key.oid), key, sizeof(sai_object_id_t));
     }
@@ -288,7 +292,11 @@ ctc_sai_db_entry_unmapping_key(uint8 lchip, ctc_sai_db_entry_type_t type, ctc_sa
     {
         sal_memcpy(key, &(entry_property->key.hardware_id), sizeof(uint64));
     }
-    else if (CTC_SAI_DB_ENTRY_TYPE_ACL_BIND == type)
+    else if (CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS == type)
+    {
+        sal_memcpy(key, &(entry_property->key.oid), sizeof(sai_object_id_t));
+    }
+    else if (CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS == type)
     {
         sal_memcpy(key, &(entry_property->key.oid), sizeof(sai_object_id_t));
     }
@@ -370,7 +378,7 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 0, 0xFFFF);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_APS;
-    ctc_opf_init_offset(&opf, 0, CTC_GLOBAL_CAPABILITY_APS_GROUP_NUM);
+    ctc_opf_init_offset(&opf, 0, capability[CTC_GLOBAL_CAPABILITY_APS_GROUP_NUM]);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_POLICER;
     ctc_opf_init_offset(&opf, 1, 0xFFFF);
@@ -402,8 +410,12 @@ _ctc_sai_db_init_id(uint8 lchip)
     opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_GROUP_MEMBER_INDEX;
     ctc_opf_init_offset(&opf, 1, 1024);
 
-    opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_RANGE_INDEX;
-    ctc_opf_init_offset(&opf, 1, 12);/* CTC SDK totally only support 12 */
+    /* CTC SDK totally only support 12 tiem for port or packet length */
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_PORT_RANGE_INDEX;
+    ctc_opf_init_offset(&opf, 1, 12);
+
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_VLAN_RANGE_INDEX;
+    ctc_opf_init_offset(&opf, 32, 63);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_COUNTER_INDEX;
     ctc_opf_init_offset(&opf, 1, 1024);
@@ -446,7 +458,7 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 1, 4096);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_TWAMP;
-    ctc_opf_init_offset(&opf, 1, 8);
+    ctc_opf_init_offset(&opf, 0, 7);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_Y1731_MEG;
     ctc_opf_init_offset(&opf, 1, 4096);
@@ -465,6 +477,15 @@ _ctc_sai_db_init_id(uint8 lchip)
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_SYNCE;
     ctc_opf_init_offset(&opf, 1, 2);
+
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_MATCH;
+    ctc_opf_init_offset(&opf, 0, 16);
+
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_ENTRY;
+    ctc_opf_init_offset(&opf, 0, 16);
+
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_GROUP;
+    ctc_opf_init_offset(&opf, 0, 16);
 
     return SAI_STATUS_SUCCESS;
 }
@@ -534,6 +555,24 @@ ctc_sai_db_free_id(uint8 lchip, ctc_sai_db_id_type_t type, uint32 id)
     opf.pool_type = type;
     opf.pool_index = lchip;
     status = ctc_opf_free_offset(&opf, 1, id);
+    return ctc_sai_mapping_error_ctc(status);
+}
+
+sai_status_t
+ctc_sai_db_opf_get_count(uint8 lchip, ctc_sai_db_id_type_t type, uint32* count)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    ctc_opf_t opf;
+    uint32 forward_bound = 0;
+    uint32 reverse_bound = 0;
+
+    SAI_DB_INIT_CHECK();
+    sal_memset(&opf, 0 , sizeof(opf));
+    opf.pool_type = type;
+    opf.pool_index = lchip;
+    status = ctc_opf_get_bound(&opf, &forward_bound, &reverse_bound);
+    *count = forward_bound;
+
     return ctc_sai_mapping_error_ctc(status);
 }
 

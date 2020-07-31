@@ -150,9 +150,6 @@ typedef struct _sai_timeoffset_t
     /**the value for offset time, the unit is ns */    
     uint32_t value;
     
-    /**offset for time offset or drift offset, 0 indicates it is time offset, 1 indicates it is drift offset   */
-    uint8_t type;
-    
 } sai_timeoffset_t;
 
 /**
@@ -299,9 +296,17 @@ typedef enum _sai_object_type_t
     SAI_OBJECT_TYPE_Y1731_REMOTE_MEP         = 92,
     SAI_OBJECT_TYPE_PTP_DOMAIN = 93,
     SAI_OBJECT_TYPE_SYNCE = 94,
-    SAI_OBJECT_TYPE_MAX                      = 95,
+    SAI_OBJECT_TYPE_MONITOR_BUFFER = 95,
+    SAI_OBJECT_TYPE_MONITOR_LATENCY = 96,
+    SAI_OBJECT_TYPE_MAX                      = 97,
 
 } sai_object_type_t;
+
+typedef struct _sai_bool_list_t
+{
+    uint32_t count;
+    bool *list;
+} sai_bool_list_t;
 
 typedef struct _sai_u8_list_t
 {
@@ -638,11 +643,11 @@ typedef enum _sai_packet_color_t
  *
  * @par Examples:
  *
- * dot1p/DSCP/EXP --> TC
- * dot1p/DSCP/EXP --> Color
- * dot1p/DSCP/EXP --> TC + Color
- * TC --> dot1p/DSCP/EXP.
- * TC + color --> dot1p/DSCP/EXP.
+ * dot1p/DSCP/MPLS_EXP --> TC
+ * dot1p/DSCP/MPLS_EXP --> Color
+ * dot1p/DSCP/MPLS_EXP --> TC + Color
+ * TC --> dot1p/DSCP/MPLS_EXP.
+ * TC + color --> dot1p/DSCP/MPLS_EXP.
  * TC --> Egress Queue.
  * EXP --> TC
  * EXP --> Color
@@ -958,6 +963,41 @@ typedef struct _sai_port_eye_values_list_t
 } sai_port_eye_values_list_t;
 
 /**
+ * @brief Enum defining MPLS out segment type
+ */
+typedef enum _sai_outseg_type_t
+{
+    /** Out segment of ingress node, label stack depth is at least one */
+    SAI_OUTSEG_TYPE_PUSH,
+
+    /** Out segment of intermediate node, label stack depth is one */
+    SAI_OUTSEG_TYPE_SWAP,
+
+} sai_outseg_type_t;
+
+/**
+ * @brief Enum defining TTL mode for MPLS out segment
+ */
+typedef enum _sai_outseg_ttl_mode_t
+{
+    SAI_OUTSEG_TTL_MODE_UNIFORM,
+
+    SAI_OUTSEG_TTL_MODE_PIPE,
+
+} sai_outseg_ttl_mode_t;
+
+/**
+ * @brief Enum defining MPLS EXP mode for MPLS out segment
+ */
+typedef enum _sai_outseg_exp_mode_t
+{
+    SAI_OUTSEG_EXP_MODE_UNIFORM,
+
+    SAI_OUTSEG_EXP_MODE_PIPE,
+
+} sai_outseg_exp_mode_t;
+
+/**
  * @brief Data Type
  *
  * To use enum values as attribute value is sai_int32_t s32
@@ -1024,6 +1064,9 @@ typedef union _sai_attribute_value_t
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_OBJECT_LIST */
     sai_object_list_t objlist;
 
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_BOOL_LIST */
+    sai_bool_list_t boollist;
+    
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_UINT8_LIST */
     sai_u8_list_t u8list;
 

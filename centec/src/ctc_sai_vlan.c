@@ -92,7 +92,6 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     ctc_security_learn_limit_t learn_limit;
     ctc_sai_vlan_user_t *p_db_vlan;
     ctc_sai_ptp_db_t* p_ptp_db = NULL;
-    sai_object_id_t ptp_domain_id;
     uint16 vlan_id = 0;
     uint16 vlan_ptr = 0;
     uint8 lchip = 0;
@@ -103,7 +102,6 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     ctc_stats_statsid_t stats_statsid_in;
     ctc_stats_statsid_t stats_statsid_eg;
     sai_status_t status = 0;
-    uint32 enable_basedon_vlan = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_VLAN);
     ctc_sai_oid_get_lchip(key->key.object_id, &lchip);
@@ -254,29 +252,25 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         }
         break;
     case SAI_VLAN_ATTR_PTP_DOMAIN_ID:           // the value cannnot be 0
-        ptp_domain_id = attr->value.oid;
-        p_ptp_db = ctc_sai_db_get_object_property(lchip,  ptp_domain_id);
-        if (NULL == p_ptp_db)
+        if(SAI_NULL_OBJECT_ID == attr->value.oid)
         {
-            CTC_SAI_LOG_ERROR(SAI_API_VLAN, "ptp domain not found \n");
-            return SAI_STATUS_ITEM_NOT_FOUND;
-            goto out;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_set_property(lchip, vlan_ptr, CTC_VLAN_PROP_PTP_EN, FALSE)); 
+            p_db_vlan->ptp_domain_id= 0; 
         }
         else
         {
-            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, attr->value.oid, &ctc_object_id1);
-            p_db_vlan->ptp_domain_id= ctc_object_id1.value;                
-            if (ctc_object_id1.value)
+            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, attr->value.oid, &ctc_object_id1); 
+            p_ptp_db = ctc_sai_db_get_object_property(lchip,  attr->value.oid);
+            if ((NULL == p_ptp_db)||(SAI_OBJECT_TYPE_PTP_DOMAIN != ctc_object_id1.type))
             {
-                enable_basedon_vlan =1;
+                CTC_SAI_LOG_ERROR(SAI_API_PORT, "ptp domain not found \n");
+                return SAI_STATUS_INVALID_PARAMETER;
             }
-            else
-            {
-                enable_basedon_vlan =0;
-            }
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_set_property(lchip, vlan_ptr, CTC_VLAN_PROP_PTP_EN, enable_basedon_vlan));
+
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_set_property(lchip, vlan_ptr, CTC_VLAN_PROP_PTP_EN, TRUE));  
+            p_db_vlan->ptp_domain_id= ctc_object_id1.value; 
         }
-        break;        
+        break;
   
     default:
         CTC_SAI_LOG_ERROR(SAI_API_VLAN, "vlan attribute not implement\n");
@@ -286,11 +280,6 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
 
     return  SAI_STATUS_SUCCESS;
 
-    out:
-        if (SAI_STATUS_SUCCESS != status)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_PORT, "Failed to create ptp domain :%d\n", status);
-        }
     error2:
         ctcs_stats_destroy_statsid(lchip, stats_statsid_eg.stats_id);
     error1:
@@ -319,6 +308,7 @@ ctc_sai_vlan_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_
     uint8 gchip = 0;
     uint32 gport = 0;
     uint32 ctc_ptp_domain_id = 0;
+    sai_object_id_t *p_bounded_oid = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_VLAN);
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_VLAN, key->key.object_id, &ctc_object_id);
@@ -333,6 +323,15 @@ ctc_sai_vlan_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_
     vlan_ptr =  p_db_vlan->user_vlanptr;
     switch(attr->id)
     {
+
+    case SAI_VLAN_ATTR_INGRESS_ACL:
+        p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, (void*)(&key->key.object_id));
+        attr->value.oid = (p_bounded_oid ? *p_bounded_oid : SAI_NULL_OBJECT_ID);
+        break; 
+    case SAI_VLAN_ATTR_EGRESS_ACL:
+        p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS, (void*)(&key->key.object_id));
+        attr->value.oid = (p_bounded_oid ? *p_bounded_oid : SAI_NULL_OBJECT_ID);
+        break;        
     case SAI_VLAN_ATTR_VLAN_ID:
         attr->value.u16 = p_db_vlan->vlan_id;
         break;
@@ -423,7 +422,6 @@ ctc_sai_vlan_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_
     case SAI_VLAN_ATTR_PTP_DOMAIN_ID:           // the value cannnot be 0
         ctc_ptp_domain_id = p_db_vlan->ptp_domain_id;
         attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, lchip, 0, 0, ctc_ptp_domain_id);
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_set_property(lchip, vlan_ptr, CTC_VLAN_PROP_PTP_EN, attr->value.u32));    
     default:
         CTC_SAI_LOG_ERROR(SAI_API_VLAN, "vlan attribute not implement\n");
         return  SAI_STATUS_NOT_IMPLEMENTED + attr_idx;
@@ -529,10 +527,10 @@ static ctc_sai_attr_fn_entry_t  vlan_attr_fn_entries[] =
       ctc_sai_vlan_get_info,
       ctc_sai_vlan_set_info},
     { SAI_VLAN_ATTR_INGRESS_ACL,
-      NULL,
+      ctc_sai_vlan_get_info,
       ctc_sai_acl_bind_point_set},
     { SAI_VLAN_ATTR_EGRESS_ACL,
-      NULL,
+      ctc_sai_vlan_get_info,
       ctc_sai_acl_bind_point_set},
     { SAI_VLAN_ATTR_META_DATA,
       ctc_sai_vlan_get_info,
