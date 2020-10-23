@@ -16,9 +16,10 @@
  *
  ***************************************************************/
 #include "sal.h"
-#include "dal.h"
-#include "ctc_error.h"
+#include "api/include/ctc_api.h"
 #include "ctc_sai_app_cfg_chip_profile.h"
+#include "ctc_app.h"
+//#include "ctc_app_isr.h"
 #include "ctc_sai_app_cfg_parse.h"
 
 /***************************************************************
@@ -73,6 +74,17 @@ _do_parser_ipuc(ctc_app_parse_file_t* p_file, ctc_ipuc_global_cfg_t* p_ipuc_info
         p_ipuc_info->use_hash8= (uint8)val;
     }
 
+    if (!ctc_app_parse_file(p_file, "IPUC_PREFIX64_MODE", NULL, &val, &entry_num))
+    {
+        p_ipuc_info->prefix64_mode = (uint8)val;
+    }
+
+
+    if (!ctc_app_parse_file(p_file, "IPUC_HOST_USE_LPM", NULL, &val, &entry_num))
+    {
+        p_ipuc_info->host_use_lpm = (uint8)val;
+    }
+
     return CTC_E_NONE;
 }
 
@@ -113,6 +125,11 @@ _do_parser(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chip_info)
     if (!ctc_app_parse_file(p_file, "Interrupt_mode", NULL, &val, &entry_num))
     {
         p_chip_info->interrupt_mode = (uint8)val;
+    }
+
+    if (!ctc_app_parse_file(p_file, "IRQ", NULL, &val, &entry_num))
+    {
+        p_chip_info->irq = (uint32)val;
     }
 
     if (!ctc_app_parse_file(p_file, "FTM Profile", NULL, &val, &entry_num))
@@ -272,6 +289,11 @@ _do_parser(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chip_info)
         p_chip_info->tcam_scan_en = (uint8)val;
     }
 
+    if (!ctc_app_parse_file(p_file, "SDB_EN", NULL, &val, &entry_num))
+    {
+        p_chip_info->sdb_en = (uint8)val;
+    }
+
     if (!ctc_app_parse_file(p_file, "QOS_POLICER_NUM", NULL, &val, &entry_num))
     {
         p_chip_info->policer_num = (uint16)val;
@@ -280,6 +302,11 @@ _do_parser(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chip_info)
     if (!ctc_app_parse_file(p_file, "QOS_PORT_QUEUE_NUM", NULL, &val, &entry_num))
     {
         p_chip_info->queue_num_per_network_port = (uint16)val;
+    }
+
+    if (!ctc_app_parse_file(p_file, "QOS_QUEUE_MODE", NULL, &val, &entry_num))
+    {
+        p_chip_info->queue_num_per_network_port = (val)?16:8;
     }
 
     if (!ctc_app_parse_file(p_file, "QOS_PORT_EXT_QUEUE_NUM", NULL, &val, &entry_num))
@@ -305,6 +332,31 @@ _do_parser(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chip_info)
     if (!ctc_app_parse_file(p_file, "QOS_EGRESS_VLAN_POLICER_NUM", NULL, &val, &entry_num))
     {
         p_chip_info->egress_vlan_policer_num = (uint16)val;
+    }
+
+    if (!ctc_app_parse_file(p_file, "QOS_INGRESS_MACRO_POLICER_NUM", NULL, &val, &entry_num))
+    {
+        p_chip_info->igs_macro_policer_num = (uint16)val;
+    }
+
+    if (!ctc_app_parse_file(p_file, "QOS_EGRESS_MACRO_POLICER_NUM", NULL, &val, &entry_num))
+    {
+        p_chip_info->egs_macro_policer_num = (uint16)val;
+    }
+
+    if (!ctc_app_parse_file(p_file, "QOS_POLICER_MERGE_MODE", NULL, &val, &entry_num))
+    {
+        p_chip_info->policer_merge_mode = (uint8)val;
+    }
+
+    if (!ctc_app_parse_file(p_file, "QOS_POLICER_SVC_MODE", NULL, &val, &entry_num))
+    {
+        p_chip_info->policer_svc_mode = (uint8)val;
+    }
+
+    if (!ctc_app_parse_file(p_file, "QOS_SERVICE_QUEUE_MODE", NULL, &val, &entry_num))
+    {
+        p_chip_info->service_queue_mode = (uint8)val;
     }
 
     if(!ctc_app_parse_file(p_file, "FABRIC MODE", NULL, &val, &entry_num))
@@ -337,6 +389,30 @@ _do_parser(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chip_info)
         p_chip_info->cut_through_bitmap = (uint32)val;
     }
 
+    if(!ctc_app_parse_file(p_file, "ALPM_CPU_MASK", NULL, &val, &entry_num))
+    {
+        p_chip_info->alpm_affinity_mask = (uint64)val;
+    }
+
+    if(!ctc_app_parse_file(p_file, "NORMAL_CPU_MASK", NULL, &val, &entry_num))
+    {
+        p_chip_info->normal_affinity_mask = (uint64)val;
+    }
+
+    if(!ctc_app_parse_file(p_file, "STACKING_LEARN_MODE", NULL, &val, &entry_num))
+    {
+        p_chip_info->stacking_learning_mode = (uint8)val;
+    }
+
+    if(!ctc_app_parse_file(p_file, "H_ECMP_EN", NULL, &val, &entry_num))
+    {
+        p_chip_info->h_ecmp_en = (uint64)val;
+    }
+
+    if(!ctc_app_parse_file(p_file, "LB_HASH_MODE", NULL, &val, &entry_num))
+    {
+        p_chip_info->lb_hash_mode = (uint8)val;
+    }
     return CTC_E_NONE;
 }
 
@@ -557,6 +633,45 @@ _do_parser_module_init(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chi
         }
     }
 
+    val = 0;
+    if (!ctc_app_parse_file(p_file, "SRV6_SUPPORT", NULL, &val, &entry_num))
+    {
+        if(val)
+        {
+            CTC_SET_FLAG(p_chip_info->init_flag, CTC_INIT_MODULE_SRV6);
+        }
+        else
+        {
+            CTC_UNSET_FLAG(p_chip_info->init_flag, CTC_INIT_MODULE_SRV6);
+        }
+    }
+
+    val = 0;
+    if (!ctc_app_parse_file(p_file, "DTEL_SUPPORT", NULL, &val, &entry_num))
+    {
+        if(val)
+        {
+            CTC_SET_FLAG(p_chip_info->init_flag, CTC_INIT_MODULE_DTEL);
+        }
+        else
+        {
+            CTC_UNSET_FLAG(p_chip_info->init_flag, CTC_INIT_MODULE_DTEL);
+        }
+    }
+
+    val = 0;
+    if (!ctc_app_parse_file(p_file, "SCOAM_SUPPORT", NULL, &val, &entry_num))
+    {
+        if (val)
+        {
+            CTC_SET_FLAG(p_chip_info->init_flag, CTC_INIT_MODULE_SC_OAM);
+        }
+        else
+        {
+            CTC_UNSET_FLAG(p_chip_info->init_flag, CTC_INIT_MODULE_SC_OAM);
+        }
+    }
+
     return CTC_E_NONE;
 }
 
@@ -574,11 +689,6 @@ ctc_app_get_chip_profile(uint8* fname,
     ctc_app_parse_file_t file;
 
     ret = CTC_E_NONE;
-
-    if (NULL == fname)
-    {
-        goto SET_DEF_CONFIG;
-    }
 
     /* check whether has this file at /mnt/flash/  */
     sal_memset(filepath, 0, sizeof(filepath));
@@ -604,13 +714,13 @@ ctc_app_get_chip_profile(uint8* fname,
         goto SET_DEF_CONFIG;
     }
 
-    _do_parser_module_init(&file, p_chip_info);
+    CTC_ERROR_RETURN(_do_parser_module_init(&file, p_chip_info));
 
-    _do_parser(&file, p_chip_info);
+    CTC_ERROR_RETURN(_do_parser(&file, p_chip_info));
 
-    _do_parser_ipuc(&file, p_init_config->p_ipuc_cfg);
+    CTC_ERROR_RETURN(_do_parser_ipuc(&file, p_init_config->p_ipuc_cfg));
 
-    ctc_app_parse_close_file(&file);
+    CTC_ERROR_RETURN(ctc_app_parse_close_file(&file));
 
     return ret;
 
@@ -620,6 +730,7 @@ SET_DEF_CONFIG:
     p_chip_info->gchip[0] = 0;
     p_chip_info->port_phy_mapping_en = 0;
     p_chip_info->interrupt_mode = 0;
+    p_chip_info->irq           = 0;
     p_chip_info->profile_type = 0;
     p_chip_info->nh_dedit_mode = 0;
     p_chip_info->ext_nexthop_num = 16384;
@@ -650,7 +761,156 @@ SET_DEF_CONFIG:
     p_chip_info->lag_gb_gg_interconnect_en = 0;
     p_chip_info->ingress_vlan_policer_num = 0;
     p_chip_info->egress_vlan_policer_num = 0;
+    p_chip_info->igs_macro_policer_num = 0;
+    p_chip_info->egs_macro_policer_num = 0;
+    p_chip_info->policer_merge_mode = 0;
+    p_chip_info->policer_svc_mode = 0;
 
     return CTC_E_NONE;
+}
+
+
+/*type: 0-mdio, 1-phy address*/
+STATIC int32
+_ctc_app_get_phy_map(uint8* fname, uint8 type, uint32* result)
+{
+    int32 ret;
+    ctc_app_parse_file_t file;
+    uint8 entry_num = 0;
+
+
+    CTC_PTR_VALID_CHECK(fname);
+
+    ret = ctc_app_parse_open_file((const char*)fname, &file);
+    if(ret != CTC_E_NONE)
+    {
+        return ret;
+    }
+
+    entry_num = CTC_MAX_PHY_PORT;
+
+    if (0 == type)
+    {
+        ret = ctc_app_parse_file(&file, "PHY_MAPPING_ITEM", "PHY_ADDR", result, &entry_num);
+    }
+    else if (1 == type)
+    {
+        ret = ctc_app_parse_file(&file, "PHY_MAPPING_ITEM", "MDIO_BUS", result, &entry_num);
+    }
+    else
+    {
+        ret = ctc_app_parse_file(&file, "PHY_MAPPING_ITEM", "API_PORT", result, &entry_num);
+    }
+
+    ctc_app_parse_close_file(&file);
+
+    return CTC_E_NONE;
+}
+
+int32
+ctc_app_set_phy_mapping(uint8* fname, ctc_init_cfg_t * p_init_config, ctc_init_chip_info_t* p_chip_info)
+{
+    uint16 index = 0;
+    uint32* tmp_gport = NULL;
+    uint32* tmp_phy = NULL;
+    uint32* tmp_mdio = NULL;
+    uint8 gchip = 0;
+    uint16 lport = 0;
+    uint8 lchip = 0;
+    int32 ret = CTC_E_NONE;
+
+    /* init */
+
+    tmp_gport = (uint32*)mem_malloc(MEM_APP_MODULE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
+    tmp_phy = (uint32*)mem_malloc(MEM_APP_MODULE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
+    tmp_mdio = (uint32*)mem_malloc(MEM_APP_MODULE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
+    if ((NULL == tmp_gport) || (NULL == tmp_phy) || (NULL == tmp_mdio))
+    {
+        ret = CTC_E_NO_MEMORY;
+        goto error;
+    }
+    sal_memset(tmp_gport, CTC_MAX_UINT8_VALUE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
+    sal_memset(tmp_phy, CTC_MAX_UINT8_VALUE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
+    sal_memset(tmp_mdio, CTC_MAX_UINT8_VALUE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
+
+    for (index = 0; index < p_chip_info->local_chip_num; ++ index)
+    {
+        p_init_config->phy_mapping_para[index] =
+                (ctc_chip_phy_mapping_para_t*)mem_malloc(MEM_APP_MODULE, sizeof(ctc_chip_phy_mapping_para_t));
+        if (NULL == p_init_config->phy_mapping_para[index])
+        {
+            for (index = 0; index < p_chip_info->local_chip_num; ++ index)
+            {
+                if (p_init_config->phy_mapping_para[index])
+                {
+                    mem_free(p_init_config->phy_mapping_para[index]);
+                    p_init_config->phy_mapping_para[index] = NULL;
+                }
+            }
+            ret = CTC_E_NO_MEMORY;
+            goto error;
+        }
+        sal_memset(p_init_config->phy_mapping_para[index], CTC_MAX_UINT8_VALUE, sizeof(ctc_chip_phy_mapping_para_t));
+    }
+
+    /*Get port phy mdio mapping*/
+    if (p_chip_info->port_phy_mapping_en)
+    {
+        ret = _ctc_app_get_phy_map(fname, 0, tmp_phy);
+        if (CTC_E_NONE != ret)
+        {
+            goto error;
+        }
+        ret = _ctc_app_get_phy_map(fname, 1, tmp_mdio);
+        if (CTC_E_NONE != ret)
+        {
+            goto error;
+        }
+        ret = _ctc_app_get_phy_map(fname, 2, tmp_gport);
+        if (CTC_E_NONE != ret)
+        {
+            goto error;
+        }
+
+        /*Get port phy address mapping*/
+
+        for (index = 0; index < MAX_PORT_NUM_PER_CHIP * p_chip_info->local_chip_num; index++)
+        {
+            if (0xFF != tmp_gport[index])
+            {
+                gchip = CTC_MAP_GPORT_TO_GCHIP(tmp_gport[index]);
+                lport = CTC_MAP_GPORT_TO_LPORT(tmp_gport[index]);
+
+                for (lchip = 0; lchip < p_chip_info->local_chip_num; ++ lchip)
+                {
+                    if (gchip == p_chip_info->gchip[lchip])
+                    {
+                        break;
+                    }
+                }
+
+                if (lchip < p_chip_info->local_chip_num)
+                {
+                    p_init_config->phy_mapping_para[lchip]->port_mdio_mapping_tbl[lport] = tmp_mdio[index];
+                    p_init_config->phy_mapping_para[lchip]->port_phy_mapping_tbl[lport] = tmp_phy[index];
+                }
+            }
+        }
+    }
+error:
+    if (tmp_gport)
+    {
+        mem_free(tmp_gport);
+    }
+    if (tmp_phy)
+    {
+        mem_free(tmp_phy);
+    }
+
+    if (tmp_mdio)
+    {
+        mem_free(tmp_mdio);
+    }
+    return ret;
 }
 

@@ -1206,9 +1206,9 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
         ip_dst = '10.10.10.1'
         ip_dst_mask = "255.255.255.255"
         is_ipv6 = False
-        ip_tos=5
-        ip_ecn=1
-        ip_dscp=1
+        ip_tos=None 
+        ip_ecn=None
+        ip_dscp=None
         ip_ttl=None
         ip_type = SAI_ACL_IP_TYPE_IPV4ANY
         ip_protocol = 6

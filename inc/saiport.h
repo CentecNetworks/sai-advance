@@ -1215,14 +1215,32 @@ typedef enum _sai_port_attr_t
      * @flags CREATE_AND_SET
      * @default SAI_PORT_PTP_MODE_NONE
      */
-    SAI_PORT_ATTR_PTP_MODE,
+    SAI_PORT_ATTR_PTP_MODE,    
+
+    /**
+     * @brief Serdes object ID for the port
+     *
+     * @type sai_object_id_t
+     * @flags READ_ONLY
+     * @objects SAI_OBJECT_TYPE_PORT_SERDES
+     * @default internal
+     */
+    SAI_PORT_ATTR_PORT_SERDES_ID,    
+    
+    /**
+     * @brief End of attributes
+     */
+    SAI_PORT_ATTR_END,
+
+    /** Custom range base value */
+    SAI_PORT_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
      * @brief ingress asymmetry value
      * @type sai_uint64_t
      * @flags CREATE_AND_SET
      */
-    SAI_PORT_ATTR_PTP_INGRESS_ASYMMETRY_DELAY,
+    SAI_PORT_ATTR_PTP_INGRESS_ASYMMETRY_DELAY = SAI_PORT_ATTR_CUSTOM_RANGE_START,
 
     /**
      * @brief egress asymmetry value
@@ -1236,7 +1254,7 @@ typedef enum _sai_port_attr_t
      * @type sai_uint64_t
      * @flags CREATE_AND_SET
      */
-    SAI_PORT_ATTR_PTP_PATH_DELAY ,
+    SAI_PORT_ATTR_PTP_PATH_DELAY,
 
     /**
      * @brief set port domain id, and so far, only one domain is supported ,and domain ID cannot be 0.
@@ -1244,17 +1262,7 @@ typedef enum _sai_port_attr_t
      * @flags CREATE_AND_SET
      * @default 1
      */
-    SAI_PORT_ATTR_PTP_DOMAIN_ID ,
-
-    /**
-     * @brief Serdes object ID for the port
-     *
-     * @type sai_object_id_t
-     * @flags READ_ONLY
-     * @objects SAI_OBJECT_TYPE_PORT_SERDES
-     * @default internal
-     */
-    SAI_PORT_ATTR_PORT_SERDES_ID,
+    SAI_PORT_ATTR_PTP_DOMAIN_ID,
 
     /**
      * @brief Ethernet Segment for the port
@@ -1304,14 +1312,6 @@ typedef enum _sai_port_attr_t
      * @default false
      */
     SAI_PORT_ATTR_MAC_ADDRESS,
-    
-    /**
-     * @brief End of attributes
-     */
-    SAI_PORT_ATTR_END,
-
-    /** Custom range base value */
-    SAI_PORT_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /** End of custom range base */
     SAI_PORT_ATTR_CUSTOM_RANGE_END

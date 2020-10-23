@@ -1052,6 +1052,9 @@ _ctc_sai_tunnel_get_tunnel_property(sai_object_key_t* key, sai_attribute_t* attr
             }
             attr->value.booldata = p_tunnel->encap_esi_label_valid;
             break;
+        case SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE:
+            attr->value.booldata = p_tunnel->split_horizon_valid;
+            break;
         case SAI_TUNNEL_ATTR_DECAP_EXP_MODE:
             attr->value.u8 = p_tunnel->decap_exp_mode;
             break;
@@ -1090,6 +1093,7 @@ _ctc_sai_tunnel_set_tunnel_property(sai_object_key_t* key, const sai_attribute_t
     ctc_nh_info_t ctc_nh_info;
     ctc_object_id_t ctc_object_id;
     ctc_chip_device_info_t device_info;
+    uint8 split_horizon_update = 0;
     
     sal_memset(&ctc_mpls_ilm,0,sizeof(ctc_mpls_ilm_t));
     sal_memset(&nh_mpls_param,0,sizeof(ctc_mpls_nexthop_param_t));
@@ -1178,6 +1182,18 @@ _ctc_sai_tunnel_set_tunnel_property(sai_object_key_t* key, const sai_attribute_t
             }
             encap_es_update = 1;
             break;
+        case SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE:
+            if(SAI_TUNNEL_TYPE_MPLS_L2 != p_tunnel->tunnel_type)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_TUNNEL, "Tunnel cfg %d not valid\n", attr->id);
+                status = SAI_STATUS_INVALID_ATTRIBUTE_0;
+                break;
+            }
+            else
+            {
+                split_horizon_update = 1;
+            }
+            break;
         case SAI_TUNNEL_ATTR_DECAP_ACL_USE_OUTER_HDR_INFO:
             if(p_tunnel->decap_acl_use_outer == attr->value.booldata)
             {
@@ -1229,6 +1245,26 @@ _ctc_sai_tunnel_set_tunnel_property(sai_object_key_t* key, const sai_attribute_t
         p_tunnel->decap_esi_label_valid = attr->value.booldata;
     }
 
+    if(split_horizon_update && (0 != p_tunnel->inseg_label))
+    {
+        ctc_mpls_ilm.label = p_tunnel->inseg_label;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_get_ilm(lchip, invalid_nh_id, &ctc_mpls_ilm));
+        if(attr->value.booldata)
+        {
+            ctc_mpls_ilm.logic_port_type = 1;
+        }
+        else
+        {
+            ctc_mpls_ilm.logic_port_type = 0;
+        }
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_update_ilm(lchip, &ctc_mpls_ilm));
+        p_tunnel->split_horizon_valid = attr->value.booldata;
+    }
+    else if(split_horizon_update)
+    {
+        p_tunnel->split_horizon_valid = attr->value.booldata;
+    }
+    
     if(acl_use_outer_update)
     {
         if((SAI_TUNNEL_TYPE_MPLS_L2 == p_tunnel->tunnel_type || SAI_TUNNEL_TYPE_MPLS == p_tunnel->tunnel_type) && (0 != p_tunnel->inseg_label))
@@ -1346,6 +1382,7 @@ static ctc_sai_attr_fn_entry_t tunnel_attr_fn_entries[] = {
     {SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_TAGGED_VLAN, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
+    {SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_DECAP_EXP_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
     {SAI_TUNNEL_ATTR_ENCAP_EXP_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
     {SAI_TUNNEL_ATTR_ENCAP_EXP_VAL, _ctc_sai_tunnel_get_tunnel_property, NULL},
@@ -1798,6 +1835,30 @@ ctc_sai_tunnel_create_tunnel(
         {
             p_tunnel->encap_esi_label_valid = attr_val->booldata;
         }
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE, &attr_val, &attr_idx);
+        if (!CTC_SAI_ERROR(status))
+        {
+            p_tunnel->split_horizon_valid = attr_val->booldata;
+        }
+        else
+        {
+            p_tunnel->split_horizon_valid = true;
+        }		
+		status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_DECAP_EXP_MODE, &attr_val, &attr_idx);
+		if (!CTC_SAI_ERROR(status))
+		{
+			p_tunnel->decap_exp_mode = attr_val->u8;
+		}
+		status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_ENCAP_EXP_MODE, &attr_val, &attr_idx);
+		if (!CTC_SAI_ERROR(status))
+		{
+			p_tunnel->encap_exp_mode = attr_val->u8;
+		}
+		status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_ENCAP_EXP_VAL, &attr_val, &attr_idx);
+		if (!CTC_SAI_ERROR(status))
+		{
+			p_tunnel->encap_exp_val = attr_val->u8;
+		}
     }
     else if(SAI_TUNNEL_TYPE_MPLS == p_tunnel->tunnel_type)
     {

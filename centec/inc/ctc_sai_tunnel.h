@@ -106,18 +106,19 @@ This module defines SAI Tunnel.
 \t  |  SAI_TUNNEL_ATTR_DECAP_TTL_MODE                           |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_TUNNEL_ATTR_DECAP_DSCP_MODE                          |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_TUNNEL_ATTR_TERM_TABLE_ENTRY_LIST                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_ENCAP_NEXTHOP_ID                         |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_DECAP_MPLS_PW_MODE                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_MODE                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_DECAP_MPLS_PW_WITH_CW                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_WITH_CW                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_TAGGED_VLAN                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID                    |            CTC7132             |
-\t  |  SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID                    |            CTC7132             |
-\t  |  SAI_TUNNEL_ATTR_DECAP_EXP_MODE                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_ENCAP_EXP_MODE                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_ENCAP_EXP_VAL                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_TUNNEL_ATTR_DECAP_ACL_USE_OUTER_HDR_INFO             |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_ENCAP_NEXTHOP_ID                         |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_DECAP_MPLS_PW_MODE                       |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_MODE                       |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_DECAP_MPLS_PW_WITH_CW                    |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_WITH_CW                    |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_TAGGED_VLAN                |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID                    |            CTC7132             |
+\e  |  SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID                    |            CTC7132             |
+\e  |  SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE               |            CTC7132             |
+\e  |  SAI_TUNNEL_ATTR_DECAP_EXP_MODE                           |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_ENCAP_EXP_MODE                           |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_ENCAP_EXP_VAL                            |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_TUNNEL_ATTR_DECAP_ACL_USE_OUTER_HDR_INFO             |    CTC8096,CTC7148,CTC7132     |
 \b
  The Tunnel term table entry type supported by centec devices:
 \p
@@ -240,6 +241,7 @@ typedef struct ctc_sai_tunnel_s
     uint8         encap_exp_mode;
     uint8         encap_exp_val;
     bool          decap_acl_use_outer;
+    bool          split_horizon_valid;
     uint32        ref_cnt;
 }ctc_sai_tunnel_t;
 

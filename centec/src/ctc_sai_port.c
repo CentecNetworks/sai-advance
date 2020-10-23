@@ -29,7 +29,7 @@ typedef struct  ctc_sai_port_wb_s
     uint32 calc_key_len[0];
     /*data*/
     uint16 service_id;
-    
+
 }ctc_sai_port_wb_t;
 
 
@@ -169,8 +169,8 @@ _ctc_sai_port_get_port_db(sai_object_id_t port_id, ctc_sai_port_db_t** p_port)
         }
     }
 
-    
-    
+
+
     *p_port = p_port_temp;
     return SAI_STATUS_SUCCESS;
 
@@ -358,7 +358,8 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
     ctc_chip_device_info_t device_info;
     mac_addr_t port_mac;
     sai_object_id_t *p_bounded_oid = NULL;
-    
+    ctc_acl_property_t acl_prop;
+
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(key->key.object_id, &gport));
@@ -413,23 +414,36 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
     case SAI_PORT_ATTR_SPEED:
         CTC_SAI_ATTR_ERROR_RETURN(ctcs_port_get_speed(lchip, gport, (ctc_port_speed_t*)&value32), attr_idx);
         CTC_SAI_ATTR_ERROR_RETURN(_ctc_sai_port_mapping_sai_speed(value32, &attr->value.u32), attr_idx);
-
+        /* SYSTEM MODIFIED KCAO for UML force to 1G, SAI merge 20200824 */
+        if (1 == SDK_WORK_PLATFORM)
+        {
+            attr->value.u32 = CTC_SAI_PORT_SPEED_1G;
+        }
         break;
     case SAI_PORT_ATTR_AUTO_NEG_MODE:
         CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_property(lchip, gport, CTC_PORT_PROP_AUTO_NEG_EN, &mode));
         attr->value.booldata  =  (bool)mode;
         break;
     case SAI_PORT_ATTR_ADMIN_STATE:
-        CTC_SAI_ATTR_ERROR_RETURN(ctcs_port_get_mac_en(lchip,gport, &attr->value.booldata), attr_idx);
+        /* SYSTEM MODIFIED, duet2 & tsingma SONIC, 20200227, SAI merge 20200824*/
+        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type))
+        {
+            CTC_SAI_ATTR_ERROR_RETURN(ctcs_port_get_property(lchip, gport, CTC_PORT_PROP_PHY_EN, &value), attr_idx);
+            attr->value.booldata = value ? 1 : 0;
+        }
+        else
+        {
+            CTC_SAI_ATTR_ERROR_RETURN(ctcs_port_get_mac_en(lchip,gport, &attr->value.booldata), attr_idx);
+        }
         break;
 
     case SAI_PORT_ATTR_PORT_VLAN_ID:
         CTC_SAI_ATTR_ERROR_RETURN(ctcs_port_get_default_vlan(lchip, gport, &attr->value.u16), attr_idx);
         break;
     case SAI_PORT_ATTR_HW_LANE_LIST:
-        /*SYSTEM MODIFIED by jqiu, Bug51934, Sonic does't support multiport map to one serdes lane. In order to support 
+        /*SYSTEM MODIFIED by jqiu, Bug51934, Sonic does't support multiport map to one serdes lane. In order to support
            Qsgmii port, ctc use mac_id instead of serdes lane.*/
-#if 0        
+#if 0
         sal_memset(&serdes_port, 0, sizeof(serdes_port));
         CTC_SAI_ATTR_ERROR_RETURN(ctcs_port_get_capability(lchip, gport, CTC_PORT_CAP_TYPE_SERDES_INFO, &serdes_port), attr_idx);
         if (CTC_CHIP_DUET2 == chip_type)
@@ -491,6 +505,12 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
                     CTC_SAI_ATTR_ERROR_RETURN(_ctc_sai_port_mapping_sai_speed(loop, &speed), attr_idx);
                     speeds[num++] = speed;
                 }
+            }
+            /* SYSTEM MODIFIED KCAO for UML force support 1G/10G SAI merge 20200824 */
+            if (1 == SDK_WORK_PLATFORM)
+            {
+                speeds[num++] = CTC_SAI_PORT_SPEED_1G;
+                speeds[num++] = CTC_SAI_PORT_SPEED_10G;
             }
         }
         CTC_SAI_ERROR_RETURN(ctc_sai_fill_object_list(sizeof(uint32), speeds, num, &attr->value.u32list));
@@ -579,7 +599,7 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
         CTC_SAI_ATTR_ERROR_RETURN(ctcs_port_get_capability(lchip, gport, CTC_PORT_CAP_TYPE_SERDES_INFO, &serdes_port), attr_idx);
         lb_param.serdes_id = serdes_port.serdes_id_array[0];
         lb_param.mode = 0;
-        
+
         CTC_SAI_ATTR_ERROR_RETURN(ctcs_chip_get_property(lchip, CTC_CHIP_PROP_SERDES_LOOPBACK, (void*)&lb_param), attr_idx);
         if (0 == lb_param.enable)
         {
@@ -628,22 +648,22 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
         attr->value.booldata = (bool)value;
         break;
     case SAI_PORT_ATTR_QOS_NUMBER_OF_QUEUES:
-        CTC_SAI_ERROR_RETURN(ctc_sai_queue_port_get_queue_num(key->key.object_id, &attr->value.u32));
+        CTC_SAI_ATTR_ERROR_RETURN(ctc_sai_queue_port_get_queue_num(key->key.object_id, &attr->value.u32), attr_idx);
         break;
     case SAI_PORT_ATTR_QOS_QUEUE_LIST:
-        CTC_SAI_ERROR_RETURN(ctc_sai_queue_port_get_queue_list(key->key.object_id, attr));
+        CTC_SAI_ATTR_ERROR_RETURN(ctc_sai_queue_port_get_queue_list(key->key.object_id, attr), attr_idx);
         break;
     case SAI_PORT_ATTR_NUMBER_OF_INGRESS_PRIORITY_GROUPS:
-        CTC_SAI_ERROR_RETURN(ctc_sai_buffer_port_get_ingress_pg_num(key->key.object_id, attr));
+        CTC_SAI_ATTR_ERROR_RETURN(ctc_sai_buffer_port_get_ingress_pg_num(key->key.object_id, attr), attr_idx);
         break;
     case SAI_PORT_ATTR_INGRESS_PRIORITY_GROUP_LIST:
-        CTC_SAI_ERROR_RETURN(ctc_sai_buffer_port_get_ingress_pg_list(key->key.object_id, attr));
+        CTC_SAI_ATTR_ERROR_RETURN(ctc_sai_buffer_port_get_ingress_pg_list(key->key.object_id, attr), attr_idx);
         break;
     case SAI_PORT_ATTR_QOS_NUMBER_OF_SCHEDULER_GROUPS:
-        CTC_SAI_ERROR_RETURN(ctc_sai_scheduler_group_port_get_sched_group_num(key->key.object_id, attr));
+        CTC_SAI_ATTR_ERROR_RETURN(ctc_sai_scheduler_group_port_get_sched_group_num(key->key.object_id, attr), attr_idx);
         break;
     case SAI_PORT_ATTR_QOS_SCHEDULER_GROUP_LIST:
-        CTC_SAI_ERROR_RETURN(ctc_sai_scheduler_group_port_get_sched_group_list(key->key.object_id, attr));
+        CTC_SAI_ATTR_ERROR_RETURN(ctc_sai_scheduler_group_port_get_sched_group_list(key->key.object_id, attr), attr_idx);
         break;
     case SAI_PORT_ATTR_QOS_SCHEDULER_PROFILE_ID:
         {
@@ -691,7 +711,7 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
             if (SAI_PORT_PRIORITY_FLOW_CONTROL_MODE_COMBINED == p_port_db->flow_ctl_mode)
             {
                 return SAI_STATUS_INVALID_PARAMETER;
-            }            
+            }
             for (loop = 0; loop < 8; loop++)
             {
                 fc_prop.enable = 0;
@@ -715,7 +735,7 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
             if (SAI_PORT_PRIORITY_FLOW_CONTROL_MODE_COMBINED == p_port_db->flow_ctl_mode)
             {
                 return SAI_STATUS_INVALID_PARAMETER;
-            }             
+            }
             for (loop = 0; loop < 8; loop++)
             {
                 fc_prop.enable = 0;
@@ -729,10 +749,12 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
         }
         break;
     case SAI_PORT_ATTR_META_DATA:
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_0, CTC_INGRESS, &value));
-        attr->value.u32 = CTC_SAI_META_DATA_CTC_TO_SAI(value);
+        sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
+        acl_prop.direction = CTC_INGRESS;
+        acl_prop.acl_priority = 0;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_acl_property(lchip, gport, &acl_prop));
+        attr->value.u32 = CTC_SAI_META_DATA_CTC_TO_SAI(acl_prop.class_id);
         break;
-
     case SAI_PORT_ATTR_EGRESS_BLOCK_PORT_LIST:
         sal_memset(&port_isolation, 0, sizeof(port_isolation));
         port_isolation.gport = gport;
@@ -856,16 +878,16 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
         CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_port_mac(lchip, gport, &port_mac));
         sal_memcpy(&attr->value.mac, &port_mac, sizeof(sai_mac_t));
         break;
-        
+
     case SAI_PORT_ATTR_INGRESS_ACL:
         p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, (void*)(&key->key.object_id));
         attr->value.oid = (p_bounded_oid ? *p_bounded_oid : SAI_NULL_OBJECT_ID);
-        break; 
+        break;
     case SAI_PORT_ATTR_EGRESS_ACL:
         p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS, (void*)(&key->key.object_id));
         attr->value.oid = (p_bounded_oid ? *p_bounded_oid : SAI_NULL_OBJECT_ID);
-        break;  
-        
+        break;
+
     default:
         CTC_SAI_LOG_ERROR(SAI_API_PORT, "port attribute not implement\n");
         return  SAI_STATUS_ATTR_NOT_IMPLEMENTED_0+attr_idx;
@@ -873,6 +895,11 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
     }
     return SAI_STATUS_SUCCESS;
 }
+
+/* SAI merge 20200824 */
+extern int32 sys_usw_peri_get_phy_register_exist(uint8 lchip, uint16 lport);
+extern int32 sys_usw_peri_get_phy_id(uint8 lchip, uint16 lport, uint32* phy_id);
+extern int32 sys_usw_peri_set_phy_prop(uint8 lchip, uint16 lport, uint16 type, uint32 value);
 
 static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const sai_attribute_t *attr)
 {
@@ -889,19 +916,23 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
     uint32 index = 0;
     uint32 gport_temp = 0;
     uint16 lport = 0;
+    uint8  i = 0;
     uint8  index_tmp1 = 0;
     uint8  index_tmp2 = 0;
+    uint8  ingress_acl_num = 8;
+    uint8  egress_acl_num = 3;
     sai_object_id_t port_oid = 0;
     ctc_sai_port_db_t* p_port_db = NULL;
     ctc_port_isolation_t port_isolation;
     ctc_sai_es_t* p_es = NULL;
-    ctc_sai_es_t* p_es_old= NULL;    
+    ctc_sai_es_t* p_es_old= NULL;
     ctc_oam_property_t oam_prop;
     ctc_oam_y1731_prop_t* p_eth_prop = NULL;
     uint8 chip_type = 0;
     ctc_chip_device_info_t device_info;
     ctc_port_mac_postfix_t post_mac;
-    
+    ctc_acl_property_t acl_prop;
+
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(key->key.object_id, &gport));
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
@@ -912,8 +943,56 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
     switch(attr->id)
     {
     case SAI_PORT_ATTR_SPEED:
+        /* SYSTEM MODIFIED KCAO for UML not support set speed SAI merge 20200824*/
+        if (0 != SDK_WORK_PLATFORM)
+        {
+            break;
+        }
+
         CTC_SAI_ERROR_RETURN(_ctc_sai_port_mapping_ctc_speed_mode(attr->value.u32, &speed_mode));
-        CTC_SAI_CTC_ERROR_RETURN (ctcs_port_set_speed(lchip, gport, speed_mode));
+        /*SAI merge 20200824 */
+        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type))
+        {
+            uint32 phy_id = 0;
+            ctc_port_if_mode_t if_mode;
+            ctc_port_if_type_t if_type = CTC_PORT_IF_NONE;
+            sys_usw_peri_get_phy_id(lchip, CTC_MAP_GPORT_TO_LPORT(gport), &phy_id);
+            if ((CTC_E_NONE == sys_usw_peri_get_phy_register_exist(lchip, CTC_MAP_GPORT_TO_LPORT(gport))) && (phy_id != CTC_CHIP_PHY_NULL_PHY_ID))
+            {
+                CTC_SAI_ERROR_RETURN(sys_usw_peri_set_phy_prop(lchip, CTC_MAP_GPORT_TO_LPORT(gport), CTC_PORT_PROP_SPEED, speed_mode));
+                CTC_SAI_ERROR_RETURN(ctcs_port_set_speed(lchip, gport, speed_mode));
+            }
+            else
+            {
+                if(speed_mode  == CTC_PORT_SPEED_10G)
+                    if_type = CTC_PORT_IF_XFI;
+                else if(speed_mode  == CTC_PORT_SPEED_1G)
+                    if_type = CTC_PORT_IF_SGMII;
+                else if(speed_mode  == CTC_PORT_SPEED_25G)
+                    if_type = CTC_PORT_IF_CR;
+                else if(speed_mode  == CTC_PORT_SPEED_40G)
+                    if_type = CTC_PORT_IF_CR4;
+                else if(speed_mode  == CTC_PORT_SPEED_100G)
+                    if_type = CTC_PORT_IF_CR4;
+                else if(speed_mode  == CTC_PORT_SPEED_50G)
+                    if_type = CTC_PORT_IF_CR2;
+                else if ((speed_mode  == CTC_PORT_SPEED_100M) && (CTC_CHIP_TSINGMA == chip_type))
+                    if_type = CTC_PORT_IF_FX;
+
+                if_mode.speed = speed_mode;
+                if_mode.interface_type = if_type;
+                CTC_SAI_ERROR_RETURN(ctcs_port_set_interface_mode(lchip, gport, &if_mode));
+
+                if(speed_mode == CTC_PORT_SPEED_1G)
+                {
+                    CTC_SAI_ERROR_RETURN(ctcs_port_set_speed(lchip, gport, CTC_PORT_SPEED_1G));
+                }
+            }
+        }
+        else
+        {
+            CTC_SAI_ERROR_RETURN(ctcs_port_set_speed(lchip, gport, speed_mode));
+        }
         break;
 
     case SAI_PORT_ATTR_AUTO_NEG_MODE:
@@ -925,7 +1004,20 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         break;
 
     case SAI_PORT_ATTR_ADMIN_STATE:
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_mac_en(lchip, gport, attr->value.booldata));
+        /* SYSTEM MODIFIED For duet2 & tsingma SONIC, 20200227 SAI merge 20200824*/
+        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type))
+        {
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PHY_EN, attr->value.booldata?1:0));
+        }
+        else
+        {
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_mac_en(lchip, gport, attr->value.booldata?1:0));
+        }
+
+        if (1 == SDK_WORK_PLATFORM)
+        {
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_port_en(lchip, gport, attr->value.booldata?1:0));
+        }
         break;
 
     case SAI_PORT_ATTR_DEFAULT_VLAN_PRIORITY:
@@ -935,7 +1027,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         if (CTC_SAI_ERROR(status))
         {
             CTC_SAI_LOG_ERROR(SAI_API_PORT, "error:set default vlan priority error:%u", status);
-            
+
             return status;
         }
         break;
@@ -958,11 +1050,11 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         }
 
         lb_param.mode = 0;
-        
+
         CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_capability(lchip, gport, CTC_PORT_CAP_TYPE_SERDES_INFO, &serdes_port));
         for (num = 0; num < serdes_port.serdes_num; num++)
         {
-            lb_param.serdes_id = serdes_port.serdes_id_array[num];    
+            lb_param.serdes_id = serdes_port.serdes_id_array[num];
             CTC_SAI_CTC_ERROR_RETURN(ctcs_chip_set_property(lchip, CTC_CHIP_PROP_SERDES_LOOPBACK, (void*)&lb_param));
         }
         break;
@@ -983,9 +1075,9 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
             enable = 1;
             value = CTC_PORT_FEC_TYPE_RS;
         }
-        
+
         if (CTC_CHIP_GOLDENGATE == ctcs_get_chip_type(lchip))
-        {        
+        {
             if (value == CTC_PORT_FEC_TYPE_RS)
             {
                 return SAI_STATUS_INVALID_PARAMETER;
@@ -1008,6 +1100,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         break;
     case SAI_PORT_ATTR_UPDATE_DSCP:
         CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_REPLACE_DSCP_EN, (uint32)attr->value.booldata));
+        #if 0
         {
             if (CTC_CHIP_DUET2 == ctcs_get_chip_type(lchip) || CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
             {
@@ -1024,6 +1117,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
                 CTC_SAI_ERROR_RETURN(ctc_sai_router_interface_traverse_set(&rif_param));
             }
         }
+        #endif
         break;
     case SAI_PORT_ATTR_QOS_SCHEDULER_PROFILE_ID:
         {
@@ -1112,10 +1206,43 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         }
         break;
     case SAI_PORT_ATTR_META_DATA:
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_0, CTC_INGRESS, CTC_SAI_META_DATA_SAI_TO_CTC(attr->value.u32)));
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_1, CTC_INGRESS, CTC_SAI_META_DATA_SAI_TO_CTC(attr->value.u32)));
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_2, CTC_INGRESS, CTC_SAI_META_DATA_SAI_TO_CTC(attr->value.u32)));
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_3, CTC_INGRESS, CTC_SAI_META_DATA_SAI_TO_CTC(attr->value.u32)));
+        if (chip_type == CTC_CHIP_TSINGMA)
+        {
+            ingress_acl_num = 8;
+            egress_acl_num = 3;
+        }
+
+        for (i = 0; i < ingress_acl_num; i++)
+        {
+            sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
+            acl_prop.direction = CTC_INGRESS;
+            acl_prop.acl_priority = i;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_acl_property(lchip, gport, &acl_prop));
+            if (0 == acl_prop.acl_en)
+            {
+                acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
+            }
+            acl_prop.acl_en = 1;
+            acl_prop.acl_priority = i;
+            acl_prop.class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr->value.u32);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_acl_property(lchip, gport, &acl_prop));
+        }
+
+        for (i = 0; i < egress_acl_num; i++)
+        {
+            sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
+            acl_prop.direction = CTC_EGRESS;
+            acl_prop.acl_priority = i;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_acl_property(lchip, gport, &acl_prop));
+            if (0 == acl_prop.acl_en)
+            {
+                acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
+            }
+            acl_prop.acl_en = 1;
+            acl_prop.acl_priority = i;
+            acl_prop.class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr->value.u32);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_acl_property(lchip, gport, &acl_prop));
+        }
         break;
     case SAI_PORT_ATTR_EGRESS_BLOCK_PORT_LIST:
         sal_memset(&port_isolation, 0, sizeof(port_isolation));
@@ -1151,7 +1278,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
                 {
                     return SAI_STATUS_INVALID_OBJECT_ID;
                 }
-                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, attr->value.oid, &ctc_object_id); 
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, attr->value.oid, &ctc_object_id);
                 port_restriction.isolated_id = ctc_object_id.value;
             }
             port_restriction.mode = CTC_PORT_RESTRICTION_PORT_ISOLATION;
@@ -1179,8 +1306,8 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
                 CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_ESID, (uint32)p_es->local_es_id));
                 CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_ESLB, (uint32)p_es->esi_label));
                 /* need add port-label mapping on tm1.1 and tm2 */
-                
-                
+
+
                 if(SAI_NULL_OBJECT_ID != p_port_db->ethernet_segment)
                 {
                     //old es ref_cnt--
@@ -1202,7 +1329,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
             {
                 return SAI_STATUS_INVALID_PARAMETER;
             }
-        }        
+        }
         break;
     case SAI_PORT_ATTR_Y1731_ENABLE:
         sal_memset(&oam_prop, 0, sizeof(ctc_oam_property_t));
@@ -1246,7 +1373,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         sal_memset(&post_mac, 0, sizeof(post_mac));
         CTC_SET_FLAG(post_mac.prefix_type, CTC_PORT_MAC_PREFIX_48BIT);
         sal_memcpy(&post_mac.port_mac, &attr->value.mac, sizeof(sai_mac_t));
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_port_mac_postfix(lchip, gport, &post_mac));        
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_port_mac_postfix(lchip, gport, &post_mac));
         break;
     default:
         CTC_SAI_LOG_ERROR(SAI_API_PORT, "port attribute not implement\n");
@@ -1500,7 +1627,7 @@ _ctc_sai_port_set_ptp(sai_object_key_t *key, const  sai_attribute_t *attr)
     ctc_sai_port_db_t* p_port_db = NULL;
     ctc_sai_ptp_db_t* p_ptp_db = NULL;
     ctc_object_id_t ctc_object_id;
-    
+
     CTC_SAI_PTR_VALID_CHECK(key);
     CTC_SAI_PTR_VALID_CHECK(attr);
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
@@ -1515,16 +1642,16 @@ _ctc_sai_port_set_ptp(sai_object_key_t *key, const  sai_attribute_t *attr)
         case SAI_PORT_ATTR_PTP_MODE:
             p_port_db->ptp_mode = attr->value.s32;
             break;
-            
+
         case SAI_PORT_ATTR_PTP_DOMAIN_ID://domain id cannot be 0, and only support create one domain
             if(SAI_NULL_OBJECT_ID == attr->value.oid)
             {
-                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PTP_EN, FALSE)); 
-                p_port_db->ptp_domain_id= 0; 
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PTP_EN, FALSE));
+                p_port_db->ptp_domain_id= 0;
             }
             else
             {
-                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, attr->value.oid, &ctc_object_id); 
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, attr->value.oid, &ctc_object_id);
                 p_ptp_db = ctc_sai_db_get_object_property(lchip,  attr->value.oid);
                 if ((NULL == p_ptp_db)||(SAI_OBJECT_TYPE_PTP_DOMAIN != ctc_object_id.type))
                 {
@@ -1532,11 +1659,11 @@ _ctc_sai_port_set_ptp(sai_object_key_t *key, const  sai_attribute_t *attr)
                     return SAI_STATUS_INVALID_PARAMETER;
                 }
 
-                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PTP_EN, TRUE));  
-                p_port_db->ptp_domain_id= ctc_object_id.value; 
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PTP_EN, TRUE));
+                p_port_db->ptp_domain_id= ctc_object_id.value;
             }
             break;
-            
+
         case SAI_PORT_ATTR_PTP_PATH_DELAY:
             p_port_db->ptp_path_delay= attr->value.u64;
             CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_set_adjust_delay(lchip, gport, CTC_PTP_ADJUST_DELAY_PATH_DELAY, attr->value.u64));
@@ -1566,7 +1693,7 @@ _ctc_sai_port_get_ptp(sai_object_key_t *key, sai_attribute_t *attr, uint32 attr_
     uint32 ctc_ptp_domain_id = 0;
     ctc_sai_port_db_t* p_port_db = NULL;
 
-    
+
     CTC_SAI_PTR_VALID_CHECK(key);
     CTC_SAI_PTR_VALID_CHECK(attr);
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
@@ -1577,7 +1704,7 @@ _ctc_sai_port_get_ptp(sai_object_key_t *key, sai_attribute_t *attr, uint32 attr_
 
     attr->value.oid = SAI_NULL_OBJECT_ID;
     p_port_db = ctc_sai_db_get_object_property(lchip, key->key.object_id);
-    
+
     if (NULL == p_port_db)
     {
         return SAI_STATUS_SUCCESS;
@@ -1588,12 +1715,12 @@ _ctc_sai_port_get_ptp(sai_object_key_t *key, sai_attribute_t *attr, uint32 attr_
         case SAI_PORT_ATTR_PTP_MODE:
             attr->value.s32 = p_port_db->ptp_mode;
             break;
-            
+
         case SAI_PORT_ATTR_PTP_DOMAIN_ID://domain id cannot be 0
             ctc_ptp_domain_id = p_port_db->ptp_domain_id;
             attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, lchip, 0, 0, ctc_ptp_domain_id);
             break;
-            
+
         case SAI_PORT_ATTR_PTP_PATH_DELAY:
             attr->value.u64 = p_port_db->ptp_path_delay;
             break;
@@ -1642,9 +1769,9 @@ _ctc_sai_port_get_mirror(sai_object_key_t *key, sai_attribute_t *attr, uint32 at
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(key->key.object_id, &gport));
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
-    
+
     CTC_SAI_ERROR_RETURN(ctc_sai_mirror_get_port_mirr(lchip, gport, attr));
-    
+
     return SAI_STATUS_SUCCESS;
 }
 
@@ -1668,7 +1795,8 @@ _ctc_sai_port_get_policer(sai_object_key_t *key, sai_attribute_t *attr, uint32 a
     p_port_db = ctc_sai_db_get_object_property(lchip, key->key.object_id);
     if (NULL == p_port_db)
     {
-        return SAI_STATUS_ITEM_NOT_FOUND;
+	    /* SAI merge 20200824 */
+        return SAI_STATUS_SUCCESS;
     }
 
     switch (attr->id)
@@ -1888,7 +2016,8 @@ _ctc_sai_port_get_qos_map(sai_object_key_t *key, sai_attribute_t *attr, uint32 a
     p_port_db = ctc_sai_db_get_object_property(lchip, key->key.object_id);
     if (NULL == p_port_db)
     {
-        return SAI_STATUS_ITEM_NOT_FOUND;
+	    /* SAI merge 20200824 */
+        return SAI_STATUS_SUCCESS;
     }
 
     switch (attr->id)
@@ -2111,8 +2240,8 @@ static  ctc_sai_attr_fn_entry_t  port_attr_fn_entries[] =
     {SAI_PORT_ATTR_REMOTE_ADVERTISED_OUI_CODE,                     NULL,  NULL},
     {SAI_PORT_ATTR_NUMBER_OF_INGRESS_PRIORITY_GROUPS,              ctc_sai_port_get_basic_info,  NULL},
     {SAI_PORT_ATTR_INGRESS_PRIORITY_GROUP_LIST,                    ctc_sai_port_get_basic_info,  NULL},
-    {SAI_PORT_ATTR_EYE_VALUES,                                     NULL,  NULL},  
-    {SAI_PORT_ATTR_OPER_SPEED,                                     ctc_sai_port_get_basic_info,  NULL},    
+    {SAI_PORT_ATTR_EYE_VALUES,                                     NULL,  NULL},
+    {SAI_PORT_ATTR_OPER_SPEED,                                     ctc_sai_port_get_basic_info,  NULL},
     {SAI_PORT_ATTR_HW_LANE_LIST,                                   ctc_sai_port_get_basic_info,  NULL},
     {SAI_PORT_ATTR_SPEED,                                          ctc_sai_port_get_basic_info,  ctc_sai_port_set_basic_info},
     {SAI_PORT_ATTR_FULL_DUPLEX_MODE,                               ctc_sai_port_get_basic_info,  NULL},
@@ -2180,7 +2309,7 @@ static  ctc_sai_attr_fn_entry_t  port_attr_fn_entries[] =
     {SAI_PORT_ATTR_LINK_TRAINING_ENABLE,                           NULL,  NULL},
     {SAI_PORT_ATTR_PORT_SERDES_ID,                                 NULL,  NULL},
     {SAI_PORT_ATTR_ES,                                             ctc_sai_port_get_basic_info,  ctc_sai_port_set_basic_info},
-    {SAI_PORT_ATTR_PTP_MODE,                                       _ctc_sai_port_get_ptp,  _ctc_sai_port_set_ptp},    
+    {SAI_PORT_ATTR_PTP_MODE,                                       _ctc_sai_port_get_ptp,  _ctc_sai_port_set_ptp},
     {SAI_PORT_ATTR_Y1731_ENABLE,                                   ctc_sai_port_get_basic_info,  ctc_sai_port_set_basic_info},
     {SAI_PORT_ATTR_Y1731_LM_ENABLE,                                ctc_sai_port_get_basic_info,  ctc_sai_port_set_basic_info},
     {SAI_PORT_ATTR_Y1731_MIP_ENABLE,                               ctc_sai_port_get_basic_info,  ctc_sai_port_set_basic_info},
@@ -2235,14 +2364,14 @@ _ctc_sai_port_wb_sync_cb(uint8 lchip, void* key, void* data)
     sal_memset(wb_data.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
     CTC_WB_INIT_DATA_T((&wb_data), ctc_sai_port_wb_t, CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_PORT);
     max_entry_cnt = CTC_WB_DATA_BUFFER_LENGTH / (wb_data.key_len + wb_data.data_len);
-    
+
     CTC_SLIST_LOOP(p_port_db->service_id_list, service_node)
     {
         offset = wb_data.valid_cnt * (wb_data.key_len + wb_data.data_len);
         p_service_node = (ctc_sai_port_service_id_t*)service_node;
         port_wb.port_oid = port_oid;
         port_wb.service_id = p_service_node->service_id;
-        
+
         sal_memcpy((uint8*)wb_data.buffer + offset, &port_wb, (wb_data.key_len + wb_data.data_len));
 
         if (++wb_data.valid_cnt == max_entry_cnt)
@@ -2263,6 +2392,22 @@ out:
 
     return status;
 }
+
+static sai_status_t
+_ctc_sai_port_wb_reload_cb(uint8 lchip, void* key, void* data)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    ctc_sai_port_db_t *p_port_db = (ctc_sai_port_db_t *)data;
+
+    p_port_db->service_id_list = ctc_slist_new();
+    if (!p_port_db->service_id_list)
+    {
+        return SAI_STATUS_NO_MEMORY;
+    }
+
+    return status;
+}    
+
 
 static sai_status_t
 _ctc_sai_port_wb_reload_cb1(uint8 lchip)
@@ -2351,10 +2496,10 @@ _ctc_sai_port_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_db_trav
     CTC_SAI_LOG_DUMP(p_file, "tc_color_to_dscp_map_id   :0x%08x     sched_id                 :0x%08x\n",
         ctc_port_cur.tc_color_to_dscp_map_id, ctc_port_cur.sched_id);
     CTC_SAI_LOG_DUMP(p_file, "ingress_samplepacket_id   :0x%016"PRIx64"                      egress_samplepacket_id   :0x%016"PRIx64"\n",
-        ctc_port_cur.ingress_samplepacket_id, ctc_port_cur.egress_samplepacket_id);  
+        ctc_port_cur.ingress_samplepacket_id, ctc_port_cur.egress_samplepacket_id);
     CTC_SAI_LOG_DUMP(p_file, "sched_id                :0x%08x\n",     ctc_port_cur.sched_id);
-    CTC_SAI_LOG_DUMP(p_file, "flow_ctl_mode  :0x%08x\n",    ctc_port_cur.flow_ctl_mode);  
-    CTC_SAI_LOG_DUMP(p_file, "ethernet_segment  :0x%016"PRIx64"\n", ctc_port_cur.ethernet_segment);     
+    CTC_SAI_LOG_DUMP(p_file, "flow_ctl_mode  :0x%08x\n",    ctc_port_cur.flow_ctl_mode);
+    CTC_SAI_LOG_DUMP(p_file, "ethernet_segment  :0x%016"PRIx64"\n", ctc_port_cur.ethernet_segment);
     CTC_SAI_LOG_DUMP(p_file, "%s\n", "-----------------------------------------------------------------------------------------------------------------------");
 
 
@@ -2399,17 +2544,23 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
 	/*SYSTEM MODIFIED by jqiu, bug http://10.10.25.13/show_bug.cgi?id=51934, start*/
     uint32 mac_id = 0;
     //ctc_port_serdes_info_t serdes_port ;
-	/*SYSTEM MODIFIED by jqiu, bug http://10.10.25.13/show_bug.cgi?id=51934, end*/	
+	/*SYSTEM MODIFIED by jqiu, bug http://10.10.25.13/show_bug.cgi?id=51934, end*/
     ctc_port_speed_t speed_mode = 0;
     const sai_attribute_value_t *attr_value = NULL;
     uint32                   attr_index = 0;
+    uint8 i = 0;
     uint8 gchip = 0;
     uint8 lchip = 0;
+    uint8 ingress_acl_num = 0;
+    uint8 egress_acl_num = 0;
     ctc_sai_port_db_t* p_port_db = NULL;
     uint32 mtu_size = 0;
     uint32 gport = 0;
+    uint8 chip_type = 0;
     ctc_sai_es_t* p_es = NULL;
     ctc_port_serdes_info_t serdes_port;
+    ctc_acl_property_t  acl_prop;
+
     sal_memset(&serdes_port, 0, sizeof(serdes_port));
 
     CTC_SAI_PTR_VALID_CHECK(port_id);
@@ -2419,7 +2570,7 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(switch_id, &lchip));
 
     CTC_SAI_DB_LOCK(lchip);
-    
+
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PORT_ATTR_HW_LANE_LIST, &lanes_list, &lane_index);
     if (CTC_SAI_ERROR(status))
     {
@@ -2451,16 +2602,16 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
     ctcs_get_gchip_id(lchip, &gchip);
     for (num = 0; num < local_panel_ports.count; num++)
     {
-	/*SYSTEM MODIFIED by jqiu, bug http://10.10.25.13/show_bug.cgi?id=51934, start*/	
+	/*SYSTEM MODIFIED by jqiu, bug http://10.10.25.13/show_bug.cgi?id=51934, start*/
         //sal_memset(&serdes_port, 0, sizeof(serdes_port));
         gport = CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[num]);
-        /*Bug51934, Sonic does't support multi port map to one serdes lane. In order to support 
+        /*Bug51934, Sonic does't support multi port map to one serdes lane. In order to support
            Qsgmii port, ctc use mac_id instead of serdes lane.*/
-        //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_get_capability(lchip, gport, CTC_PORT_CAP_TYPE_SERDES_INFO, &serdes_port), status, out);        
+        //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_get_capability(lchip, gport, CTC_PORT_CAP_TYPE_SERDES_INFO, &serdes_port), status, out);
         //if (serdes_port.serdes_id_array[0] == lanes_list->u32list.list[0])
         CTC_SAI_CTC_ERROR_GOTO(ctcs_port_get_capability(lchip, gport, CTC_PORT_CAP_TYPE_MAC_ID, &mac_id), status, out);
         if (mac_id == lanes_list->u32list.list[0])
-	/*SYSTEM MODIFIED by jqiu, bug http://10.10.25.13/show_bug.cgi?id=51934, end*/		
+	/*SYSTEM MODIFIED by jqiu, bug http://10.10.25.13/show_bug.cgi?id=51934, end*/
         {
             *port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, gport);
             break;
@@ -2471,12 +2622,57 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
 
     CTC_SAI_ERROR_GOTO(_ctc_sai_port_mapping_ctc_speed_mode(port_speed->u32, &speed_mode), status, out);
 
-    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_get_capability(lchip, gport, CTC_PORT_CAP_TYPE_SERDES_INFO, (void*)&serdes_port), status, out);
-
-    if (serdes_port.serdes_mode != CTC_CHIP_SERDES_XFI_MODE)
+    /*BEGIN: SYSTEM MODIFIED For tsingma 24X2C 100GE port, 20200227*/ /* SAI merge 20200824 */
+    chip_type = ctcs_get_chip_type(lchip);
+    if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type))
     {
+        uint32 phy_id = 0;
+        ctc_port_if_mode_t if_mode;
+        ctc_port_if_type_t if_type = CTC_PORT_IF_NONE;
+
+        sys_usw_peri_get_phy_id(lchip, CTC_MAP_GPORT_TO_LPORT(gport), &phy_id);
+        CTC_SAI_LOG_ERROR(SAI_API_PORT, "set port speed. chiptype:%u gport:0x%x, phy_id:%u, speed_mode:%u\n", chip_type, gport, phy_id, speed_mode);
+        if ((CTC_E_NONE == sys_usw_peri_get_phy_register_exist(lchip, CTC_MAP_GPORT_TO_LPORT(gport))) && (phy_id != CTC_CHIP_PHY_NULL_PHY_ID))
+        {
+            CTC_SAI_ERROR_RETURN(sys_usw_peri_set_phy_prop(lchip, CTC_MAP_GPORT_TO_LPORT(gport), CTC_PORT_PROP_SPEED, speed_mode));
+            CTC_SAI_ERROR_RETURN(ctcs_port_set_speed(lchip, gport, speed_mode));
+        }
+        else
+        {
+            if(speed_mode  == CTC_PORT_SPEED_10G)
+                if_type = CTC_PORT_IF_XFI;
+            else if(speed_mode  == CTC_PORT_SPEED_1G)
+                if_type = CTC_PORT_IF_SGMII;
+            else if(speed_mode  == CTC_PORT_SPEED_25G)
+                if_type = CTC_PORT_IF_CR;
+            else if(speed_mode  == CTC_PORT_SPEED_40G)
+                if_type = CTC_PORT_IF_CR4;
+            else if(speed_mode  == CTC_PORT_SPEED_100G)
+                if_type = CTC_PORT_IF_CR4;
+            else if(speed_mode  == CTC_PORT_SPEED_50G)
+                if_type = CTC_PORT_IF_CR2;
+            else if ((speed_mode  == CTC_PORT_SPEED_100M) && (CTC_CHIP_TSINGMA == chip_type))
+                if_type = CTC_PORT_IF_FX;
+
+            if_mode.speed = speed_mode;
+            if_mode.interface_type = if_type;
+            CTC_SAI_ERROR_RETURN(ctcs_port_set_interface_mode(lchip, gport, &if_mode));
+
+            if(speed_mode == CTC_PORT_SPEED_1G)
+            {
+                CTC_SAI_ERROR_RETURN(ctcs_port_set_speed(lchip, gport, CTC_PORT_SPEED_1G));
+            }
+        }
+    }
+    else
+	{
+    //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_get_capability(lchip, gport, CTC_PORT_CAP_TYPE_SERDES_INFO, (void*)&serdes_port), status, out);
+
+    //if (serdes_port.serdes_mode != CTC_CHIP_SERDES_XFI_MODE)
+    //{
         CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_speed(lchip, gport, speed_mode), status, out);
     }
+    /*END: SYSTEM MODIFIED For tsingma 24X2C 100GE port, 20200227*/ /* SAI merge 20200824 END*/
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PORT_ATTR_FEC_MODE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
@@ -2564,10 +2760,43 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PORT_ATTR_META_DATA, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_0, CTC_INGRESS, CTC_SAI_META_DATA_SAI_TO_CTC(attr_value->u32)), status, out);
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_1, CTC_INGRESS, CTC_SAI_META_DATA_SAI_TO_CTC(attr_value->u32)), status, out);
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_2, CTC_INGRESS, CTC_SAI_META_DATA_SAI_TO_CTC(attr_value->u32)), status, out);
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_ACL_CLASSID_3, CTC_INGRESS, CTC_SAI_META_DATA_SAI_TO_CTC(attr_value->u32)), status, out);
+        if (CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+        {
+            ingress_acl_num = 8;
+            egress_acl_num = 3;
+        }
+
+        for (i = 0; i < ingress_acl_num; i++)
+        {
+            sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
+            acl_prop.direction = CTC_INGRESS;
+            acl_prop.acl_priority = i;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_acl_property(lchip, gport, &acl_prop));
+            if (0 == acl_prop.acl_en)
+            {
+                acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
+            }
+            acl_prop.acl_en = 1;
+            acl_prop.acl_priority = i;
+            acl_prop.class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr_list[attr_index].value.u32);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_acl_property(lchip, gport, &acl_prop));
+        }
+
+        for (i = 0; i < egress_acl_num; i++)
+        {
+            sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
+            acl_prop.direction = CTC_EGRESS;
+            acl_prop.acl_priority = i;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_acl_property(lchip, gport, &acl_prop));
+            if (0 == acl_prop.acl_en)
+            {
+                acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
+            }
+            acl_prop.acl_en = 1;
+            acl_prop.acl_priority = i;
+            acl_prop.class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr_list[attr_index].value.u32);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_acl_property(lchip, gport, &acl_prop));
+        }
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PORT_ATTR_ISOLATION_GROUP, &attr_value, &attr_index);
@@ -2580,7 +2809,7 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PORT_ATTR_ES, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        
+
         p_es = ctc_sai_db_get_object_property(lchip, attr_value->oid);
         if(NULL != p_es)
         {
@@ -2602,7 +2831,7 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
         sai_object_key_t key = { .key.object_id = *port_id };
         CTC_SAI_CTC_ERROR_GOTO(ctc_sai_port_set_basic_info(&key, &attr_list[attr_index]), status, out);
     }
-    
+
     status = SAI_STATUS_SUCCESS;
     goto out;
 
@@ -2611,7 +2840,7 @@ out:
     if (SAI_STATUS_SUCCESS != status)
     {
         CTC_SAI_LOG_ERROR(SAI_API_PORT, "Failed to create port:%d\n", status);
-    }    
+    }
     return status;
 }
 
@@ -2636,14 +2865,14 @@ ctc_sai_port_remove_port( sai_object_id_t port_id)
     sai_attribute_t  attr;
     uint8 lchip = 0;
     sai_status_t status = SAI_STATUS_SUCCESS;
-    
+
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, port_id, &ctc_object_id);
-    
+
     if (ctc_object_id.type != SAI_OBJECT_TYPE_PORT)
     {
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
-    
+
     lchip= ctc_object_id.lchip;
     CTC_SAI_DB_LOCK(lchip);
 
@@ -2657,7 +2886,7 @@ ctc_sai_port_remove_port( sai_object_id_t port_id)
         status = SAI_STATUS_ITEM_NOT_FOUND;
         goto out;
     }
-    
+
     if (p_port_db && p_port_db->policer_id)
     {
         attr.id = SAI_PORT_ATTR_POLICER_ID;
@@ -2791,7 +3020,7 @@ error_return:
     if (SAI_STATUS_SUCCESS != status)
     {
         CTC_SAI_LOG_ERROR(SAI_API_PORT, "Failed to get port attr:%d, status:%d\n", attr_list[loop].id, status);
-    }    
+    }
     return status;
 }
 
@@ -2827,21 +3056,21 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
     CTC_SAI_PTR_VALID_CHECK(counters);
 
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
-    
+
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, port_id, &ctc_object_id);
-    
+
     sal_memset(&p_stats, 0, sizeof(p_stats));
     sal_memset(&p_stats_out, 0, sizeof(p_stats_out));
 
     p_stats.stats_mode = CTC_STATS_MODE_DETAIL;
     p_stats_out.stats_mode = CTC_STATS_MODE_DETAIL;
-    
+
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_mac_stats(ctc_object_id.lchip, ctc_object_id.value, CTC_INGRESS, &p_stats), status, out);
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_mac_stats(ctc_object_id.lchip, ctc_object_id.value, CTC_EGRESS, &p_stats_out), status, out);
-            
+
     for (index = 0; index < number_of_counters; index ++ )
     {
-        if(counter_ids[index] < SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE) 
+        if(counter_ids[index] < SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE)
         {
             switch(counter_ids[index])
             {
@@ -2868,8 +3097,8 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
                 case SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.bytes_1519_to_2047;
                     break;
-               
-                    
+
+
                 case SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS:
                     counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.bytes_64;
                     break;
@@ -2891,7 +3120,7 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
                 case SAI_PORT_STAT_ETHER_OUT_PKTS_1519_TO_2047_OCTETS:
                     counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.bytes_1519_to_2047;
                     break;
-                
+
 
                 case SAI_PORT_STAT_ETHER_STATS_PKTS_64_OCTETS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.bytes_64 + p_stats_out.u.stats_detail.stats.tx_stats.bytes_64;
@@ -2916,21 +3145,21 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
                     break;
 
 
-                    
+
                 case SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_oversize_pkts;
-                    break;           
+                    break;
                 case SAI_PORT_STAT_ETHER_STATS_TX_NO_ERRORS:
                     counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_ucast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_bcast_pkts;
                     break;
                 case SAI_PORT_STAT_ETHER_STATS_RX_NO_ERRORS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_ucast_pkts + p_stats.u.stats_detail.stats.rx_stats.good_mcast_pkts + p_stats.u.stats_detail.stats.rx_stats.good_bcast_pkts;
                     break;
-                
 
 
-                    
-                case SAI_PORT_STAT_IF_IN_OCTETS:                
+
+
+                case SAI_PORT_STAT_IF_IN_OCTETS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_63_bytes + \
                                               p_stats.u.stats_detail.stats.rx_stats.bad_63_bytes + \
                                               p_stats.u.stats_detail.stats.rx_stats.bytes_64 + \
@@ -2941,7 +3170,7 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
                                               p_stats.u.stats_detail.stats.rx_stats.bytes_1024_to_1518 + \
                                               p_stats.u.stats_detail.stats.rx_stats.bytes_1519_to_2047 + \
                                               p_stats.u.stats_detail.stats.rx_stats.good_jumbo_bytes + \
-                                              p_stats.u.stats_detail.stats.rx_stats.bad_jumbo_bytes;          
+                                              p_stats.u.stats_detail.stats.rx_stats.bad_jumbo_bytes;
                     break;
                 case SAI_PORT_STAT_IF_IN_UCAST_PKTS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_ucast_pkts;
@@ -2958,7 +3187,7 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
                                               p_stats.u.stats_detail.stats.rx_stats.pkts_1519_to_2047 + \
                                               p_stats.u.stats_detail.stats.rx_stats.good_jumbo_bytes + \
                                               p_stats.u.stats_detail.stats.rx_stats.bad_jumbo_bytes - \
-                                              p_stats.u.stats_detail.stats.rx_stats.good_ucast_pkts;          
+                                              p_stats.u.stats_detail.stats.rx_stats.good_ucast_pkts;
                     break;
                 case SAI_PORT_STAT_IF_IN_ERRORS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.fcs_error_pkts + p_stats.u.stats_detail.stats.rx_stats.mac_overrun_pkts;
@@ -2986,10 +3215,10 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
                                                 p_stats_out.u.stats_detail.stats.tx_stats.bytes_512_to_1023 + \
                                                 p_stats_out.u.stats_detail.stats.tx_stats.bytes_1024_to_1518 + \
                                                 p_stats_out.u.stats_detail.stats.tx_stats.bytes_1519_to_2047 + \
-                                                p_stats_out.u.stats_detail.stats.tx_stats.jumbo_bytes;          
+                                                p_stats_out.u.stats_detail.stats.tx_stats.jumbo_bytes;
                     break;
                 case SAI_PORT_STAT_IF_OUT_UCAST_PKTS:
-                    counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_ucast_pkts;               
+                    counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_ucast_pkts;
                     break;
                 case SAI_PORT_STAT_IF_OUT_NON_UCAST_PKTS:
                     counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.pkts_63 + \
@@ -3007,22 +3236,22 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
                     counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.fcs_error_pkts;
                     break;
                 case SAI_PORT_STAT_IF_OUT_MULTICAST_PKTS:
-                    counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts;                
+                    counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts;
                     break;
                 case SAI_PORT_STAT_IF_OUT_BROADCAST_PKTS:
-                    counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_bcast_pkts; 
+                    counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_bcast_pkts;
                     break;
 
 
                 case SAI_PORT_STAT_ETHER_STATS_DROP_EVENTS:
-                    counters[index] = p_stats.u.stats_detail.stats.rx_stats.mac_overrun_pkts;    
-                    break; 
-                case SAI_PORT_STAT_PAUSE_RX_PKTS:
-                    counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_normal_pause_pkts + p_stats.u.stats_detail.stats.rx_stats.good_pfc_pause_pkts;                  
+                    counters[index] = p_stats.u.stats_detail.stats.rx_stats.mac_overrun_pkts;
                     break;
-            
+                case SAI_PORT_STAT_PAUSE_RX_PKTS:
+                    counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_normal_pause_pkts + p_stats.u.stats_detail.stats.rx_stats.good_pfc_pause_pkts;
+                    break;
+
                 case SAI_PORT_STAT_ETHER_STATS_MULTICAST_PKTS:
-                    counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_mcast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts;             
+                    counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_mcast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts;
                     break;
                 case SAI_PORT_STAT_ETHER_STATS_BROADCAST_PKTS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_bcast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_bcast_pkts;
@@ -3050,7 +3279,7 @@ ctc_sai_port_get_port_stats( sai_object_id_t        port_id,
                                               p_stats_out.u.stats_detail.stats.tx_stats.bytes_512_to_1023 + \
                                               p_stats_out.u.stats_detail.stats.tx_stats.bytes_1024_to_1518 + \
                                               p_stats_out.u.stats_detail.stats.tx_stats.bytes_1519_to_2047 + \
-                                              p_stats_out.u.stats_detail.stats.tx_stats.jumbo_bytes;          
+                                              p_stats_out.u.stats_detail.stats.tx_stats.jumbo_bytes;
                     break;
                 case SAI_PORT_STAT_ETHER_STATS_PKTS:
                     counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_63_pkts + \
@@ -3126,23 +3355,25 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
     p_stats.stats_mode = CTC_STATS_MODE_DETAIL;
     p_stats_out.stats_mode = CTC_STATS_MODE_DETAIL;
 
-    if (SAI_STATS_MODE_READ_AND_CLEAR == mode)
-    {
-        status = SAI_STATUS_NOT_SUPPORTED;
-        goto out;
-    }
+    
 
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_mac_stats(ctc_object_id.lchip, ctc_object_id.value, CTC_INGRESS, &p_stats), status, out);
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_mac_stats(ctc_object_id.lchip, ctc_object_id.value, CTC_EGRESS, &p_stats_out), status, out);
 
-    
+
     for (index = 0; index < number_of_counters; index ++ )
     {
-        if(counter_ids[index] < SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE) 
+        if(counter_ids[index] < SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE)
         {
+            if (SAI_STATS_MODE_READ_AND_CLEAR == mode)
+            {
+                status = SAI_STATUS_NOT_SUPPORTED;
+                goto out;
+            }
+            
             switch(counter_ids[index])
             {
-            
+
             case SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.bytes_64;
                 break;
@@ -3164,8 +3395,8 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
             case SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.bytes_1519_to_2047;
                 break;
-            
-                
+
+
             case SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS:
                 counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.bytes_64;
                 break;
@@ -3187,8 +3418,8 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
             case SAI_PORT_STAT_ETHER_OUT_PKTS_1519_TO_2047_OCTETS:
                 counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.bytes_1519_to_2047;
                 break;
-            
-            
+
+
             case SAI_PORT_STAT_ETHER_STATS_PKTS_64_OCTETS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.bytes_64 + p_stats_out.u.stats_detail.stats.tx_stats.bytes_64;
                 break;
@@ -3210,23 +3441,23 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
             case SAI_PORT_STAT_ETHER_STATS_PKTS_1519_TO_2047_OCTETS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.bytes_1519_to_2047 + p_stats_out.u.stats_detail.stats.tx_stats.bytes_1519_to_2047;
                 break;
-            
-            
-                
+
+
+
             case SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_oversize_pkts;
-                break;           
+                break;
             case SAI_PORT_STAT_ETHER_STATS_TX_NO_ERRORS:
                 counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_ucast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_bcast_pkts;
                 break;
             case SAI_PORT_STAT_ETHER_STATS_RX_NO_ERRORS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_ucast_pkts + p_stats.u.stats_detail.stats.rx_stats.good_mcast_pkts + p_stats.u.stats_detail.stats.rx_stats.good_bcast_pkts;
                 break;
-            
-            
-            
-                
-            case SAI_PORT_STAT_IF_IN_OCTETS:                
+
+
+
+
+            case SAI_PORT_STAT_IF_IN_OCTETS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_63_bytes + \
                                           p_stats.u.stats_detail.stats.rx_stats.bad_63_bytes + \
                                           p_stats.u.stats_detail.stats.rx_stats.bytes_64 + \
@@ -3237,7 +3468,7 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
                                           p_stats.u.stats_detail.stats.rx_stats.bytes_1024_to_1518 + \
                                           p_stats.u.stats_detail.stats.rx_stats.bytes_1519_to_2047 + \
                                           p_stats.u.stats_detail.stats.rx_stats.good_jumbo_bytes + \
-                                          p_stats.u.stats_detail.stats.rx_stats.bad_jumbo_bytes;          
+                                          p_stats.u.stats_detail.stats.rx_stats.bad_jumbo_bytes;
                 break;
             case SAI_PORT_STAT_IF_IN_UCAST_PKTS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_ucast_pkts;
@@ -3254,7 +3485,7 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
                                           p_stats.u.stats_detail.stats.rx_stats.pkts_1519_to_2047 + \
                                           p_stats.u.stats_detail.stats.rx_stats.good_jumbo_bytes + \
                                           p_stats.u.stats_detail.stats.rx_stats.bad_jumbo_bytes - \
-                                          p_stats.u.stats_detail.stats.rx_stats.good_ucast_pkts;          
+                                          p_stats.u.stats_detail.stats.rx_stats.good_ucast_pkts;
                 break;
             case SAI_PORT_STAT_IF_IN_ERRORS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.fcs_error_pkts + p_stats.u.stats_detail.stats.rx_stats.mac_overrun_pkts;
@@ -3268,11 +3499,11 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
             case SAI_PORT_STAT_IF_IN_BROADCAST_PKTS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_bcast_pkts;
                 break;
-            
-            
-            
-            
-            
+
+
+
+
+
             case SAI_PORT_STAT_IF_OUT_OCTETS:
                 counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.bytes_63 + \
                                             p_stats_out.u.stats_detail.stats.tx_stats.bytes_64 + \
@@ -3282,10 +3513,10 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
                                             p_stats_out.u.stats_detail.stats.tx_stats.bytes_512_to_1023 + \
                                             p_stats_out.u.stats_detail.stats.tx_stats.bytes_1024_to_1518 + \
                                             p_stats_out.u.stats_detail.stats.tx_stats.bytes_1519_to_2047 + \
-                                            p_stats_out.u.stats_detail.stats.tx_stats.jumbo_bytes;          
+                                            p_stats_out.u.stats_detail.stats.tx_stats.jumbo_bytes;
                 break;
             case SAI_PORT_STAT_IF_OUT_UCAST_PKTS:
-                counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_ucast_pkts;               
+                counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_ucast_pkts;
                 break;
             case SAI_PORT_STAT_IF_OUT_NON_UCAST_PKTS:
                 counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.pkts_63 + \
@@ -3297,28 +3528,28 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
                                             p_stats_out.u.stats_detail.stats.tx_stats.pkts_1024_to_1518 + \
                                             p_stats_out.u.stats_detail.stats.tx_stats.pkts_1519_to_2047 + \
                                             p_stats_out.u.stats_detail.stats.tx_stats.jumbo_pkts - \
-                                            p_stats_out.u.stats_detail.stats.tx_stats.good_ucast_pkts;             
+                                            p_stats_out.u.stats_detail.stats.tx_stats.good_ucast_pkts;
                 break;
             case SAI_PORT_STAT_IF_OUT_ERRORS:
                 counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.fcs_error_pkts;
                 break;
             case SAI_PORT_STAT_IF_OUT_MULTICAST_PKTS:
-                counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts;                
+                counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts;
                 break;
             case SAI_PORT_STAT_IF_OUT_BROADCAST_PKTS:
-                counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_bcast_pkts; 
+                counters[index] = p_stats_out.u.stats_detail.stats.tx_stats.good_bcast_pkts;
                 break;
-            
-            
+
+
             case SAI_PORT_STAT_ETHER_STATS_DROP_EVENTS:
-                counters[index] = p_stats.u.stats_detail.stats.rx_stats.mac_overrun_pkts;    
-                break; 
-            case SAI_PORT_STAT_PAUSE_RX_PKTS:
-                counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_normal_pause_pkts + p_stats.u.stats_detail.stats.rx_stats.good_pfc_pause_pkts;                  
+                counters[index] = p_stats.u.stats_detail.stats.rx_stats.mac_overrun_pkts;
                 break;
-            
+            case SAI_PORT_STAT_PAUSE_RX_PKTS:
+                counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_normal_pause_pkts + p_stats.u.stats_detail.stats.rx_stats.good_pfc_pause_pkts;
+                break;
+
             case SAI_PORT_STAT_ETHER_STATS_MULTICAST_PKTS:
-                counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_mcast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts;             
+                counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_mcast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_mcast_pkts;
                 break;
             case SAI_PORT_STAT_ETHER_STATS_BROADCAST_PKTS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_bcast_pkts + p_stats_out.u.stats_detail.stats.tx_stats.good_bcast_pkts;
@@ -3346,7 +3577,7 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
                                           p_stats_out.u.stats_detail.stats.tx_stats.bytes_512_to_1023 + \
                                           p_stats_out.u.stats_detail.stats.tx_stats.bytes_1024_to_1518 + \
                                           p_stats_out.u.stats_detail.stats.tx_stats.bytes_1519_to_2047 + \
-                                          p_stats_out.u.stats_detail.stats.tx_stats.jumbo_bytes;          
+                                          p_stats_out.u.stats_detail.stats.tx_stats.jumbo_bytes;
                 break;
             case SAI_PORT_STAT_ETHER_STATS_PKTS:
                 counters[index] = p_stats.u.stats_detail.stats.rx_stats.good_63_pkts + \
@@ -3384,7 +3615,7 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
         {
             return SAI_STATUS_NOT_SUPPORTED;
         }
-        
+
     }
 /*
     if (SAI_STATS_MODE_READ_AND_CLEAR == mode)
@@ -3433,7 +3664,7 @@ ctc_sai_port_clear_port_stats( sai_object_id_t        port_id,
     CTC_SAI_PTR_VALID_CHECK(counter_ids);
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, port_id, &ctc_object_id);
-    
+
     for (index = 0; index < number_of_counters; index ++ )
     {
         if (SAI_PORT_STAT_IF_IN_OCTETS == counter_ids[index] )
@@ -3484,7 +3715,7 @@ ctc_sai_port_clear_port_all_stats( sai_object_id_t port_id)
 
     CTC_SAI_LOG_ENTER(SAI_API_PORT);
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, port_id, &ctc_object_id);
-    
+
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_clear_mac_stats(ctc_object_id.lchip, ctc_object_id.value, CTC_STATS_MAC_STATS_RX), status, out);
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_clear_mac_stats(ctc_object_id.lchip, ctc_object_id.value, CTC_STATS_MAC_STATS_TX), status, out);
 
@@ -3634,7 +3865,7 @@ ctc_sai_port_clear_port_pool_stats( sai_object_id_t             port_pool_id,
 static sai_status_t
 ctc_sai_port_create_port_serdes(sai_object_id_t *port_serdes_id, sai_object_id_t switch_id, uint32_t attr_count, const sai_attribute_t *attr_list)
 {
-    return SAI_STATUS_NOT_IMPLEMENTED;    
+    return SAI_STATUS_NOT_IMPLEMENTED;
 }
 
 
@@ -3646,10 +3877,10 @@ ctc_sai_port_create_port_serdes(sai_object_id_t *port_serdes_id, sai_object_id_t
  *
  * @return #SAI_STATUS_SUCCESS on success, failure status code on error
  */
-static sai_status_t 
+static sai_status_t
 ctc_sai_port_remove_port_serdes(sai_object_id_t port_serdes_id)
 {
-    return SAI_STATUS_NOT_IMPLEMENTED;    
+    return SAI_STATUS_NOT_IMPLEMENTED;
 }
 
 
@@ -3661,10 +3892,10 @@ ctc_sai_port_remove_port_serdes(sai_object_id_t port_serdes_id)
  *
  * @return #SAI_STATUS_SUCCESS on success, failure status code on error
  */
-static sai_status_t 
+static sai_status_t
 ctc_sai_port_set_port_serdes_attribute(sai_object_id_t port_serdes_id, const sai_attribute_t *attr)
 {
-    return SAI_STATUS_NOT_IMPLEMENTED;    
+    return SAI_STATUS_NOT_IMPLEMENTED;
 }
 
 
@@ -3677,10 +3908,10 @@ ctc_sai_port_set_port_serdes_attribute(sai_object_id_t port_serdes_id, const sai
  *
  * @return #SAI_STATUS_SUCCESS on success, failure status code on error
  */
-static sai_status_t 
+static sai_status_t
 ctc_sai_port_get_port_serdes_attribute(sai_object_id_t port_serdes_id, uint32_t attr_count, sai_attribute_t *attr_list)
 {
-    return SAI_STATUS_NOT_IMPLEMENTED;    
+    return SAI_STATUS_NOT_IMPLEMENTED;
 }
 
 
@@ -3702,10 +3933,10 @@ const sai_port_api_t g_ctc_sai_port_api = {
     ctc_sai_port_get_port_pool_stats,
     ctc_sai_port_get_port_pool_stats_ext,
     ctc_sai_port_clear_port_pool_stats,
-    ctc_sai_port_create_port_serdes,         
-    ctc_sai_port_remove_port_serdes,         
-    ctc_sai_port_set_port_serdes_attribute,  
-    ctc_sai_port_get_port_serdes_attribute     
+    ctc_sai_port_create_port_serdes,
+    ctc_sai_port_remove_port_serdes,
+    ctc_sai_port_set_port_serdes_attribute,
+    ctc_sai_port_get_port_serdes_attribute
 };
 
 
@@ -3716,6 +3947,8 @@ ctc_sai_port_api_init()
 
     return SAI_STATUS_SUCCESS;
 }
+
+extern int32 sys_usw_chip_check_active(uint8 lchip);
 
 void
 _ctc_sai_port_polling_thread(void *data)
@@ -3744,14 +3977,20 @@ _ctc_sai_port_polling_thread(void *data)
     while(true)
     {
         CTC_SAI_DB_LOCK(lchip);
+        //chip active check
+        if(sys_usw_chip_check_active(lchip) < 0)
+        {
+            return;
+        }
+        
         if (p_switch_master->port_state_change_cb)
         {
             for(port_idx = 0; port_idx < local_panel_ports.count; port_idx++)
             {
                 gport = CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]);
                 ctcs_port_get_mac_link_up(lchip, gport, &link_status);
-                
-                if (1 == SDK_WORK_PLATFORM)  // UML link_status is by port_en 
+
+                if (1 == SDK_WORK_PLATFORM)  // UML link_status is by port_en
                 {
                     link_status = 0;
                     ctcs_port_get_port_en(lchip, gport, &link_status);
@@ -3760,7 +3999,7 @@ _ctc_sai_port_polling_thread(void *data)
                 if(link_status != p_switch_master->lport_link_status[CTC_MAP_GPORT_TO_LPORT(gport)])
                 {
                     p_switch_master->lport_link_status[CTC_MAP_GPORT_TO_LPORT(gport)] = link_status;
-                    
+
                     if (link_status)
                     {
                         CTC_SAI_LOG_NOTICE(SAI_API_PORT, "gport 0x%04X Link Up, Port is enabled! \n", gport);
@@ -3773,7 +4012,7 @@ _ctc_sai_port_polling_thread(void *data)
                         sai_object_id_t bridge_port_id;
                         sai_attribute_t attr_list;
                         sai_object_id_t switch_id;
-                        
+
                         CTC_SAI_LOG_NOTICE(SAI_API_PORT, "gport 0x%04X Link Down, Port is disabled, please do port enable when linkup again! \n", gport);
                         port_state_event.port_state = SAI_PORT_OPER_STATUS_DOWN;
                         ctcs_port_set_port_en(lchip, gport, 0);
@@ -3789,7 +4028,7 @@ _ctc_sai_port_polling_thread(void *data)
                         attr_list.value.oid = bridge_port_id;
                         ctc_sai_fdb_flush_fdb(switch_id, 1, &attr_list);
                     }
-                    
+
                     port_state_event.port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, gport);
                     p_switch_master->port_state_change_cb(1, &port_state_event);
                 }
@@ -3813,20 +4052,22 @@ ctc_sai_port_db_init(uint8 lchip)
     wb_info.version = SYS_WB_VERSION_PORT;
     wb_info.data_len = sizeof(ctc_sai_port_db_t);
     wb_info.wb_sync_cb = _ctc_sai_port_wb_sync_cb;
-    wb_info.wb_reload_cb = NULL;
+    wb_info.wb_reload_cb = _ctc_sai_port_wb_reload_cb;
     wb_info.wb_reload_cb1 = _ctc_sai_port_wb_reload_cb1;
     ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_PORT, (void*)(&wb_info));
 
-    if (0 == SDK_WORK_PLATFORM)   // actual borad 
+    CTC_SAI_WARMBOOT_STATUS_CHECK(lchip);
+
+    //if (0 == SDK_WORK_PLATFORM)   // actual borad
     {
         sal_memset(&local_panel_ports, 0, sizeof(ctc_global_panel_ports_t));
         ctcs_get_gchip_id(lchip, &gchip);
         ctcs_global_ctl_get(lchip, CTC_GLOBAL_PANEL_PORTS, (void*)&local_panel_ports);
-        
+
         for(port_idx = 0; port_idx < local_panel_ports.count; port_idx++)
         {
             gport = CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]);
-            ctcs_port_set_port_en(lchip, gport, 0);
+            ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PORT_EN, 0);
         }
 
         p_switch_master = ctc_sai_get_switch_property(lchip);
@@ -3834,7 +4075,7 @@ ctc_sai_port_db_init(uint8 lchip)
         {
             return SAI_STATUS_FAILURE;
         }
-        
+
         sal_task_create(&p_switch_master->port_polling_task, "saiPollingThread", SAL_DEF_TASK_STACK_SIZE, 0,
             _ctc_sai_port_polling_thread, (void*)(uintptr)lchip);
     }
@@ -3856,6 +4097,25 @@ ctc_sai_port_db_deinit(uint8 lchip)
         }
         sal_task_destroy(p_switch_master->port_polling_task);
     }
+
+    return SAI_STATUS_SUCCESS;
+}
+
+/*SYSTEM MODIFIED by yoush for warm-reboot in 2020-08-12*/ /* SAI merge 20200824 */
+sai_status_t
+ctc_sai_port_db_run(uint8 lchip)
+{
+    ctc_sai_switch_master_t* p_switch_master = NULL;
+        
+    p_switch_master = ctc_sai_get_switch_property(lchip);
+    if (NULL == p_switch_master)
+    {
+        return SAI_STATUS_FAILURE;
+    }
+    
+    p_switch_master->port_polling_task = NULL;
+    sal_task_create(&p_switch_master->port_polling_task, "saiPollingThread", SAL_DEF_TASK_STACK_SIZE, 0,
+                    _ctc_sai_port_polling_thread, (void*)(uintptr)lchip);
 
     return SAI_STATUS_SUCCESS;
 }

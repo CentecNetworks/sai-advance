@@ -63,6 +63,9 @@ typedef enum _sai_policer_mode_t
     /** Storm control mode. Single Rate Two color CIR, CBS, G and R */
     SAI_POLICER_MODE_STORM_CONTROL = 0x00000002,
 
+    /** RFC 4115, Two Rate Three color marker, CIR, CBS, PIR and PBS, G, Y and R */
+    SAI_POLICER_MODE_ENHANCED_TR_TCM = 0x00000003,
+
     /** Custom range base value */
     SAI_POLICER_MODE_CUSTOM_RANGE_BASE = 0x10000000
 

@@ -49,7 +49,7 @@ typedef struct  ctc_sai_neighbor_s
 {
     sai_mac_t               dest_mac;
     sai_packet_action_t     action;
-    uint32                  ref_cnt;/* only for SAI_NEXT_HOP_TYPE_IP*/
+    uint32                  ref_cnt;/* only for SAI_NEXT_HOP_TYPE_IP and SAI_NEXT_HOP_TYPE_MPLS*/
     uint32                  nh_id;/* only for SAI_NEXT_HOP_TYPE_IP*/
     uint32                  gport;
     uint16                  arp_id;
@@ -66,7 +66,7 @@ ctc_sai_neighbor_db_init(uint8 lchip);
 extern sai_status_t
 ctc_sai_neighbor_db_deinit(uint8 lchip);
 extern sai_status_t
-ctc_sai_neighbor_alloc_ipuc_nexthop(uint8 lchip, sai_object_id_t rif_id, sai_ip_address_t* ip_address, uint32* nh_id);
+ctc_sai_neighbor_alloc_ipuc_nexthop(uint8 lchip, sai_object_id_t rif_id, sai_ip_address_t* ip_address, uint32 nh_id);
 extern sai_status_t
 ctc_sai_neighbor_free_ipuc_nexthop(uint8 lchip, sai_object_id_t rif_id, sai_ip_address_t* ip_address, uint32 nh_id);
 extern sai_status_t

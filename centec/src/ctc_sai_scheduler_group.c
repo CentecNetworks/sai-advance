@@ -8,7 +8,7 @@
 
 
 #define CTC_SAI_SCHED_LEVEL_CHILDS(level)\
-        ((level == 0) ?  CTC_SAI_SCHED_PORT_GRP_NUM : ((level == 1) ? CTC_SAI_SCHED_SERVICE_GRP_NUM : CTC_SAI_SCHED_MAX_GRP_NUM))
+        ((level == 0) ?  CTC_SAI_SCHED_PORT_GRP_NUM : ((level == 1) ? (CTC_SAI_SCHED_SERVICE_GRP_NUM*CTC_SAI_SCHED_NODE_IN_EXT_GROUP_TM+CTC_SAI_SCHED_MAX_GRP_NUM) : CTC_SAI_SCHED_MAX_GRP_NUM))
 
 #define CTC_SAI_SCHED_LEVEL_GROUPS(level)\
         ((level == 0) ?  1 : ((level == 1) ? CTC_SAI_SCHED_PORT_GRP_NUM : ((level == 2)? CTC_SAI_SCHED_MAX_GRP_NUM : CTC_SAI_SCHED_MAX_GRP_NUM)))
@@ -21,6 +21,18 @@
 
 #define CTC_SAI_MAX_SERVICE_NUM_TM 384
 #define CTC_SAI_MAX_SERVICE_NUM_DEAFULT 384
+
+
+typedef struct  ctc_sai_scheduler_group_wb_s
+{
+    /*key*/
+    sai_object_id_t scheduler_group;
+    uint32 index;
+    uint32 calc_key_len[0];
+    /*data*/
+    sai_object_id_t child_id;
+    
+}ctc_sai_scheduler_group_wb_t;
 
 
 sai_status_t
@@ -92,11 +104,13 @@ _ctc_sai_scheduler_group_get_free_group_index(uint8 lchip, uint32 gport, uint8 l
 static sai_status_t
 _ctc_sai_scheduler_group_add_or_del_child(uint8 lchip, sai_object_id_t parent_id, sai_object_id_t child_id, bool is_add)
 {
-    uint8 ii = 0;
     ctc_object_id_t ctc_parent_oid;
     ctc_object_id_t ctc_child_oid;
     sai_object_type_t obj_type = SAI_OBJECT_TYPE_NULL;
     ctc_sai_sched_group_db_t* p_sched_group = NULL;
+    ctc_sai_sched_group_child_id_t *child_id_node = NULL;
+    ctc_sai_sched_group_child_id_t *po = NULL;
+    ctc_slistnode_t               *node = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_SCHEDULER_GROUP);
     CTC_SAI_LOG_INFO(SAI_API_SCHEDULER_GROUP, "lchip:%d parent:0x%"PRIx64" child:0x%"PRIx64" op:%s",lchip,parent_id,child_id,is_add?"Add":"Del");
@@ -118,13 +132,16 @@ _ctc_sai_scheduler_group_add_or_del_child(uint8 lchip, sai_object_id_t parent_id
                 CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER_GROUP, "Parent Node Not Found, oid:0x"PRIx64"!", parent_id);
                 return SAI_STATUS_ITEM_NOT_FOUND;
             }
-            for (ii = 0; ii < p_sched_group->child_cnt; ii++)
+            
+            CTC_SLIST_LOOP(p_sched_group->child_list_head, node)
             {
-                if (p_sched_group->child_list[ii] == child_id)
+                po = _ctc_container_of(node, ctc_sai_sched_group_child_id_t, node);
+                if (child_id == po->child_id)
                 {
                     return SAI_STATUS_SUCCESS;
-                }
+                }  
             }
+
             if (p_sched_group->child_cnt >= p_sched_group->max_childs)
             {
                 CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER_GROUP, "Parent Child Exceed! child count:%d", p_sched_group->child_cnt);
@@ -140,7 +157,15 @@ _ctc_sai_scheduler_group_add_or_del_child(uint8 lchip, sai_object_id_t parent_id
                 return SAI_STATUS_INVALID_PARAMETER;
             }
 
-            p_sched_group->child_list[p_sched_group->child_cnt++] = child_id;
+            child_id_node = mem_malloc(MEM_SYSTEM_MODULE, sizeof(ctc_sai_sched_group_child_id_t));
+            if (!child_id_node)
+            {
+                return SAI_STATUS_NO_MEMORY;
+            }
+            child_id_node->child_id = child_id;
+            ctc_slist_add_tail(p_sched_group->child_list_head, &(child_id_node->node));
+            p_sched_group->child_cnt++;
+
         }
         else if (SAI_OBJECT_TYPE_PORT == obj_type)
         {
@@ -160,18 +185,19 @@ _ctc_sai_scheduler_group_add_or_del_child(uint8 lchip, sai_object_id_t parent_id
             {
                 return SAI_STATUS_SUCCESS;
             }
-            for (ii = 0; ii < p_sched_group->child_cnt; ii++)
+
+            CTC_SLIST_LOOP(p_sched_group->child_list_head, node)
             {
-                if (p_sched_group->child_list[ii] == child_id)
+                po = _ctc_container_of(node, ctc_sai_sched_group_child_id_t, node);
+                if (po->child_id == child_id)
                 {
                     break;
                 }
             }
-            if (ii != p_sched_group->child_cnt)
-            {
-                p_sched_group->child_cnt--;
-                sal_memcpy(&p_sched_group->child_list[ii], &p_sched_group->child_list[p_sched_group->child_cnt], sizeof(sai_object_id_t));
-            }
+            ctc_slist_delete_node(p_sched_group->child_list_head, node);
+            p_sched_group->child_cnt--;
+            mem_free(po);
+
         }
         else if (SAI_OBJECT_TYPE_PORT == obj_type)
         {
@@ -251,12 +277,13 @@ _ctc_sai_scheduler_group_set_attr(sai_object_key_t *key, const sai_attribute_t* 
 {
     uint8 lchip = 0;
     uint8 queue_idx = 0;
-    bool is_add = TRUE;
     ctc_object_id_t ctc_object_id;
     sai_object_id_t queue_oid;
     ctc_sai_queue_db_t* p_queue_db = NULL;
     sai_object_id_t sched_group_id = key->key.object_id;
-    sai_object_id_t parent_oid = attr->value.oid;
+    sai_object_id_t new_parent_oid;
+    sai_object_id_t old_parent_oid;
+    ctc_object_id_t ctc_new_parent_oid;
     ctc_sai_sched_group_db_t* p_sched_group = NULL;
     sai_object_id_t port_id;
     ctc_sai_port_db_t* p_port_db = NULL;
@@ -279,13 +306,41 @@ _ctc_sai_scheduler_group_set_attr(sai_object_key_t *key, const sai_attribute_t* 
             CTC_SAI_ERROR_RETURN(ctc_sai_scheduler_group_set_scheduler(sched_group_id, attr));
             break;
         case SAI_SCHEDULER_GROUP_ATTR_PARENT_NODE:
-            if (SAI_NULL_OBJECT_ID == attr->value.oid)
+            if (ctc_object_id.type != SAI_OBJECT_TYPE_SCHEDULER_GROUP)
             {
-                parent_oid = p_sched_group->parent_id;
-                is_add = FALSE;
+                CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER_GROUP, "Invalid Parent group oid Type!");
+                return SAI_STATUS_INVALID_PARAMETER;
             }
-            CTC_SAI_ERROR_RETURN(_ctc_sai_scheduler_group_add_or_del_child(lchip, parent_oid, sched_group_id, is_add));
-            p_sched_group->parent_id = is_add ? parent_oid : SAI_NULL_OBJECT_ID;
+            old_parent_oid = p_sched_group->parent_id;
+            new_parent_oid = attr->value.oid;
+            if (new_parent_oid)
+            {
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_SCHEDULER_GROUP, attr->value.oid, &ctc_new_parent_oid);
+                if (lchip != ctc_new_parent_oid.lchip)
+                {
+                    CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER_GROUP, "Scheduler group lchip[%d] not match to parent group lchip[%d]!", lchip, ctc_new_parent_oid.lchip);
+                    return SAI_STATUS_INVALID_PARAMETER;
+                }
+                if (ctc_object_id.value != ctc_new_parent_oid.value)
+                {
+                    CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER_GROUP, "Scheduler group  port[0x%x] not match to parent group port[0x%x]!", ctc_object_id.value, ctc_new_parent_oid.value);
+                    return SAI_STATUS_INVALID_PARAMETER;
+                }
+            }
+            
+            if (old_parent_oid==new_parent_oid)
+            {
+                return SAI_STATUS_SUCCESS;
+            }
+            if (old_parent_oid)
+            {
+                CTC_SAI_ERROR_RETURN(_ctc_sai_scheduler_group_add_or_del_child(lchip, old_parent_oid, sched_group_id, FALSE));
+            }
+            if(new_parent_oid)
+            {
+                CTC_SAI_ERROR_RETURN(_ctc_sai_scheduler_group_add_or_del_child(lchip, new_parent_oid, sched_group_id, TRUE));
+            }
+            p_sched_group->parent_id = attr->value.oid;
 
             //update from basic queue
             for (queue_idx = 0; queue_idx < CTC_QOS_BASIC_Q_NUM; queue_idx++)
@@ -306,7 +361,7 @@ _ctc_sai_scheduler_group_set_attr(sai_object_key_t *key, const sai_attribute_t* 
 
             //update from ext queue
             port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, ctc_object_id.value);
-            _ctc_sai_port_get_port_db(port_id, &p_port_db);
+            CTC_SAI_ERROR_RETURN(_ctc_sai_port_get_port_db(port_id, &p_port_db));
             
             CTC_SLIST_LOOP(p_port_db->service_id_list, node)
             {
@@ -339,6 +394,10 @@ _ctc_sai_scheduler_group_get_attr(sai_object_key_t *key, sai_attribute_t* attr, 
     ctc_object_id_t ctc_object_id;
     ctc_sai_sched_group_db_t* p_sched_group = NULL;
     sai_object_id_t sched_group_id = key->key.object_id;
+    ctc_sai_sched_group_child_id_t *po = NULL;
+    ctc_slistnode_t               *node = NULL;
+    uint16 output_cnt = 0;
+    sai_object_id_t *child_oid = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_SCHEDULER_GROUP);
     CTC_ERROR_RETURN(ctc_sai_oid_get_lchip(sched_group_id, &lchip));
@@ -357,7 +416,26 @@ _ctc_sai_scheduler_group_get_attr(sai_object_key_t *key, sai_attribute_t* attr, 
             attr->value.u32 = p_sched_group->child_cnt;
             break;
         case SAI_SCHEDULER_GROUP_ATTR_CHILD_LIST:
-            CTC_SAI_ERROR_RETURN(ctc_sai_fill_object_list(sizeof(sai_object_id_t), (void*)p_sched_group->child_list, p_sched_group->child_cnt, (void*)(&(attr->value.objlist))));
+            child_oid = mem_malloc(MEM_SYSTEM_MODULE, attr->value.objlist.count * sizeof(sai_object_id_t));
+            if (!child_oid)
+            {
+                return SAI_STATUS_NO_MEMORY;
+            }
+            CTC_SLIST_LOOP(p_sched_group->child_list_head, node)
+            {
+                po = _ctc_container_of(node, ctc_sai_sched_group_child_id_t, node);
+                if (output_cnt < attr->value.objlist.count)
+                {
+                    child_oid[output_cnt++] = po->child_id;
+                }
+                else
+                {
+                    mem_free(child_oid);
+                    return SAI_STATUS_BUFFER_OVERFLOW;
+                }
+            }
+            CTC_SAI_ERROR_RETURN(ctc_sai_fill_object_list(sizeof(sai_object_id_t), child_oid, p_sched_group->child_cnt, (void*)(&(attr->value.objlist))));
+            mem_free(child_oid);
             break;
         case SAI_SCHEDULER_GROUP_ATTR_PORT_ID:
             attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, ctc_object_id.value);
@@ -769,7 +847,7 @@ _ctc_sai_sched_group_create_service_group(uint8 lchip, uint32 gport, uint16 serv
     
     //update port db
     port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, gport);
-    _ctc_sai_port_get_port_db(port_id, &p_port_db);
+    CTC_SAI_ERROR_RETURN(_ctc_sai_port_get_port_db(port_id, &p_port_db));
 
     /* add service id into port service id list */
     CTC_SLIST_LOOP(p_port_db->service_id_list, node)
@@ -847,7 +925,7 @@ _ctc_sai_sched_group_destroy_service_group(uint8 lchip, uint32 gport, uint16 ser
 
     //update port db
     port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, gport);
-    _ctc_sai_port_get_port_db(port_id, &p_port_db);
+    CTC_SAI_ERROR_RETURN(_ctc_sai_port_get_port_db(port_id, &p_port_db));
     
     /* del from service list */
     CTC_SLIST_LOOP(p_port_db->service_id_list, node)
@@ -985,7 +1063,7 @@ ctc_sai_scheduler_group_port_get_sched_group_list(sai_object_id_t port_id, sai_a
     uint8 level = 0;
     uint8 index = 0;
     sai_object_id_t sai_oid;
-    sai_object_id_t sched_group_oid[20];
+    sai_object_id_t sched_group_oid[600];
     ctc_sai_sched_group_db_t* p_sched_group_db = NULL;
     uint16 service_id = 0, group_index_base = 0, max_service_id = 0;
 
@@ -1067,6 +1145,10 @@ ctc_sai_scheduler_group_queue_set_scheduler(sai_object_id_t queue_id, const sai_
             }
             CTC_SAI_ERROR_RETURN(_ctc_sai_sched_group_apply_queue_to_group(queue_id, attr->value.oid, TRUE));
             CTC_SAI_ERROR_RETURN(_ctc_sai_scheduler_group_add_or_del_child(lchip, attr->value.oid, queue_id, TRUE));
+            if((p_queue_db->sch_grp)&&(attr->value.oid != p_queue_db->sch_grp))
+            {
+                CTC_SAI_ERROR_RETURN(_ctc_sai_scheduler_group_add_or_del_child(lchip, p_queue_db->sch_grp, queue_id, FALSE));
+            }
         }
         else if (ctc_oid.type == SAI_OBJECT_TYPE_PORT)
         {//do nothing
@@ -1114,6 +1196,8 @@ _ctc_sai_scheduler_group_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_
     sal_file_t                  p_file   = (sal_file_t)p_cb_data->value0;
     uint32*                     cnt      = (uint32 *)(p_cb_data->value1);
     uint32 ii = 0;
+    ctc_sai_sched_group_child_id_t *po = NULL;
+    ctc_slistnode_t               *node = NULL;
 
     if (p_dump->key.key.object_id && (sched_group_id != p_dump->key.key.object_id))
     {/*Dump some DB by the given oid*/
@@ -1121,14 +1205,30 @@ _ctc_sai_scheduler_group_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_
     }
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_SCHEDULER_GROUP, sched_group_id, &ctc_oid);
 
-    CTC_SAI_LOG_DUMP(p_file, "%-4d 0x%-16"PRIx64" 0x%.4x %-5d %-5d %-7d 0x%-16"PRIx64" 0x%-16"PRIx64" %-6d %-5d 0x%-16"PRIx64"\n",
+    CTC_SAI_LOG_DUMP(p_file, "%-4d 0x%-16"PRIx64" 0x%.4x %-5d %-5d %-7d 0x%-16"PRIx64" 0x%-16"PRIx64" %-6d %-5d",
         *cnt,sched_group_id,ctc_oid.value, ctc_oid.value2, ctc_oid.sub_type, p_db->max_childs,p_db->parent_id,p_db->sched_id,
-        p_db->child_type, p_db->child_cnt, p_db->child_cnt ? p_db->child_list[ii] : 0);
+        p_db->child_type, p_db->child_cnt);
 
-    for (ii = 1; ii < p_db->child_cnt; ii++)
+    if (!p_db->child_list_head)
     {
-        CTC_SAI_LOG_DUMP(p_file, "%-101s 0x%-16"PRIx64"","", p_db->child_list[ii]);
-        CTC_SAI_LOG_DUMP(p_file, "\n");
+        CTC_SAI_LOG_DUMP(p_file," 0x%-16d\n", p_db->child_cnt);
+    }
+    else
+    {
+        CTC_SLIST_LOOP(p_db->child_list_head, node)
+        {
+            po = _ctc_container_of(node, ctc_sai_sched_group_child_id_t, node);
+            if (ii == 0)
+            {
+                CTC_SAI_LOG_DUMP(p_file," 0x%-16"PRIx64"\n", p_db->child_cnt ? po->child_id : 0);
+            }
+            else
+            {
+                CTC_SAI_LOG_DUMP(p_file, "%-101s 0x%-16"PRIx64"","", po->child_id);
+                CTC_SAI_LOG_DUMP(p_file, "\n");
+            }
+            ii++;
+        }
     }
     (*cnt)++;
     return SAI_STATUS_SUCCESS;
@@ -1163,6 +1263,129 @@ ctc_sai_scheduler_group_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_p
                                                 (hash_traversal_fn)_ctc_sai_scheduler_group_dump_print_cb, (void*)(&sai_cb_data));
     }
     CTC_SAI_LOG_DUMP(p_file, "\n");
+}
+
+
+#define ________WARMBOOT________
+
+static sai_status_t
+_ctc_sai_scheduler_group_wb_sync_cb(uint8 lchip, void* key, void* data)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    int32 ret = 0;
+    sai_object_id_t scheduler_group = *(sai_object_id_t*)key;
+    ctc_sai_sched_group_db_t *p_sched_group_db = (ctc_sai_sched_group_db_t *)data;
+    ctc_sai_sched_group_child_id_t *po = NULL;
+    ctc_slistnode_t               *node = NULL;
+    ctc_sai_scheduler_group_wb_t wb_scheduler_group_data = {0};
+    ctc_wb_data_t wb_data;
+    uint16  max_entry_cnt = 0;
+    uint32 index = 0;
+    uint32 offset = 0;
+
+    CTC_WB_ALLOC_BUFFER(&wb_data.buffer);
+    if (NULL == wb_data.buffer)
+    {
+        return SAI_STATUS_NO_MEMORY;
+    }
+    sal_memset(wb_data.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
+    CTC_WB_INIT_DATA_T((&wb_data), ctc_sai_scheduler_group_wb_t, CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_SCHEDULER_GROUP_CHILD_LIST);
+    max_entry_cnt = CTC_WB_DATA_BUFFER_LENGTH / (wb_data.key_len + wb_data.data_len);
+
+    CTC_SLIST_LOOP(p_sched_group_db->child_list_head, node)
+    {
+        po = _ctc_container_of(node, ctc_sai_sched_group_child_id_t, node);
+
+        offset = wb_data.valid_cnt * (wb_data.key_len + wb_data.data_len);
+        wb_scheduler_group_data.scheduler_group = scheduler_group;
+        wb_scheduler_group_data.child_id = po->child_id;
+        wb_scheduler_group_data.index = index++;
+        sal_memcpy((uint8*)wb_data.buffer + offset, &wb_scheduler_group_data, (wb_data.key_len + wb_data.data_len));
+        if (++wb_data.valid_cnt == max_entry_cnt)
+        {
+            CTC_SAI_CTC_ERROR_GOTO(ctc_wb_add_entry(&wb_data), status, out);
+            wb_data.valid_cnt = 0;
+        }
+    }
+    if (wb_data.valid_cnt)
+    {
+        CTC_SAI_CTC_ERROR_GOTO(ctc_wb_add_entry(&wb_data), status, out);
+    }
+
+    return SAI_STATUS_SUCCESS;
+
+done:
+out:
+    if (wb_data.buffer)
+    {
+        CTC_WB_FREE_BUFFER(wb_data.buffer);
+    }
+
+    return status;
+}
+
+
+static sai_status_t
+_ctc_sai_scheduler_group_wb_reload_cb(uint8 lchip, void* key, void* data)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    ctc_sai_sched_group_db_t *p_sched_group_db = (ctc_sai_sched_group_db_t *)data;
+
+    p_sched_group_db->child_list_head = ctc_slist_new();
+    if (!p_sched_group_db->child_list_head)
+    {
+        return SAI_STATUS_NO_MEMORY;
+    }
+
+    return status;
+}    
+
+static sai_status_t
+_ctc_sai_scheduler_group_wb_reload_cb1(uint8 lchip)
+{
+    sai_status_t           ret = SAI_STATUS_SUCCESS;
+    ctc_sai_sched_group_db_t *p_sched_group_db = NULL;
+    ctc_sai_scheduler_group_wb_t wb_scheduler_group_data = {0};
+    ctc_sai_sched_group_child_id_t *child_id_node = NULL;
+    ctc_wb_query_t wb_query;
+    uint16 entry_cnt = 0;
+    uint32 offset = 0;
+
+    sal_memset(&wb_query, 0, sizeof(wb_query));
+    wb_query.buffer = mem_malloc(MEM_SYSTEM_MODULE,  CTC_WB_DATA_BUFFER_LENGTH);
+    if (NULL == wb_query.buffer)
+    {
+        return CTC_E_NO_MEMORY;
+    }
+    sal_memset(wb_query.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
+
+    CTC_WB_INIT_QUERY_T((&wb_query), ctc_sai_scheduler_group_wb_t, CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_SCHEDULER_GROUP_CHILD_LIST);
+    CTC_WB_QUERY_ENTRY_BEGIN((&wb_query));
+        offset = entry_cnt * (wb_query.key_len + wb_query.data_len);
+        entry_cnt++;
+        sal_memcpy(&wb_scheduler_group_data, (uint8*)(wb_query.buffer) + offset,  sizeof(ctc_sai_scheduler_group_wb_t));
+        p_sched_group_db = ctc_sai_db_get_object_property(lchip, wb_scheduler_group_data.scheduler_group);
+        if (!p_sched_group_db)
+        {
+            continue;
+        }
+
+        child_id_node = mem_malloc(MEM_SYSTEM_MODULE, sizeof(ctc_sai_sched_group_child_id_t));
+        if (!child_id_node)
+        {
+            continue;
+        }
+        child_id_node->child_id = wb_scheduler_group_data.child_id;
+        ctc_slist_add_tail(p_sched_group_db->child_list_head, &(child_id_node->node));
+    CTC_WB_QUERY_ENTRY_END((&wb_query));
+
+done:
+    if (wb_query.buffer)
+    {
+        mem_free(wb_query.buffer);
+    }
+
+    return ret;
 }
 
 
@@ -1300,7 +1523,13 @@ ctc_sai_scheduler_group_create_group_id(
 
     sched_group_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SCHEDULER_GROUP, lchip, level, group_index, gport);
     CTC_SAI_ERROR_GOTO(_ctc_sai_scheduler_group_get_db(sched_group_oid, &p_sched_group_db), status, error_1);
-    CTC_SAI_ERROR_GOTO(_ctc_sai_scheduler_group_add_or_del_child(lchip, parent_oid, sched_group_oid, TRUE), status, error_2);
+    p_sched_group_db->child_list_head = ctc_slist_new();
+    if (!p_sched_group_db->child_list_head)
+    {
+        status = SAI_STATUS_NO_MEMORY;
+        goto error_2;
+    }
+    CTC_SAI_ERROR_GOTO(_ctc_sai_scheduler_group_add_or_del_child(lchip, parent_oid, sched_group_oid, TRUE), status, error_3);
     p_sched_group_db->max_childs = max_childs;
     p_sched_group_db->parent_id = parent_oid;
     p_sched_group_db->sched_id = sched_oid;
@@ -1308,7 +1537,10 @@ ctc_sai_scheduler_group_create_group_id(
     *scheduler_group_id = sched_group_oid;
     CTC_SAI_DB_UNLOCK(lchip);
     return SAI_STATUS_SUCCESS;
-    
+
+error_3:
+    CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER_GROUP, "rollback to error3\n");
+    ctc_slist_free(p_sched_group_db->child_list_head);
 error_2:
     CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER_GROUP, "rollback to error2\n");
     mem_free(p_sched_group_db);
@@ -1330,6 +1562,10 @@ ctc_sai_scheduler_group_remove_group_id(
     sai_status_t status = SAI_STATUS_SUCCESS;
     uint8 lchip = 0;
     uint16 service_id = 0;
+    sai_object_key_t key;
+    sai_attribute_t attr;
+    ctc_sai_sched_group_child_id_t *po = NULL;
+    ctc_slistnode_t               *node;
 
     CTC_SAI_LOG_ENTER(SAI_API_SCHEDULER_GROUP);
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, scheduler_group_id, &ctc_object_id);
@@ -1347,10 +1583,31 @@ ctc_sai_scheduler_group_remove_group_id(
         status = SAI_STATUS_ITEM_NOT_FOUND;
         goto error_return;
     }
-    service_id = p_sched_group_db->service_id;
-    CTC_SAI_ERROR_GOTO(_ctc_sai_scheduler_group_add_or_del_child(lchip, p_sched_group_db->parent_id, scheduler_group_id, FALSE), status, error_return);
 
-    
+    key.key.object_id = scheduler_group_id;
+    if (p_sched_group_db->sched_id)
+    {
+        attr.id = SAI_SCHEDULER_GROUP_ATTR_SCHEDULER_PROFILE_ID;
+        attr.value.oid = SAI_NULL_OBJECT_ID;
+        _ctc_sai_scheduler_group_set_attr(&key, &attr);
+    }
+    service_id = p_sched_group_db->service_id;
+    if (p_sched_group_db->parent_id)
+    {
+        CTC_SAI_ERROR_GOTO(_ctc_sai_scheduler_group_add_or_del_child(lchip, p_sched_group_db->parent_id, scheduler_group_id, FALSE), status, error_return);
+    }
+
+    CTC_SLIST_LOOP(p_sched_group_db->child_list_head, node)
+    {
+        po = _ctc_container_of(node, ctc_sai_sched_group_child_id_t, node);
+        if (po)
+        {
+            status = SAI_STATUS_OBJECT_IN_USE;
+            goto error_return;
+        }  
+    }
+    ctc_slist_free(p_sched_group_db->child_list_head);
+
     mem_free(p_sched_group_db);
     ctc_sai_db_remove_object_property(lchip, scheduler_group_id);
 
@@ -1459,8 +1716,9 @@ ctc_sai_scheduler_group_db_init(uint8 lchip)
     sal_memset(&wb_info, 0, sizeof(wb_info));
     wb_info.version = SYS_WB_VERSION_SCHEDULERGROUP;
     wb_info.data_len = sizeof(ctc_sai_sched_group_db_t);
-    wb_info.wb_sync_cb = NULL;
-    wb_info.wb_reload_cb = NULL;
+    wb_info.wb_sync_cb = _ctc_sai_scheduler_group_wb_sync_cb;
+    wb_info.wb_reload_cb = _ctc_sai_scheduler_group_wb_reload_cb;
+    wb_info.wb_reload_cb1 = _ctc_sai_scheduler_group_wb_reload_cb1;
     ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_SCHEDULER_GROUP, (void*)(&wb_info));
     return SAI_STATUS_SUCCESS;
 }

@@ -469,6 +469,7 @@ typedef enum _sai_bfd_session_attr_t
 
     /**
      * @brief BFD Session state
+     * could be set to admin down
      *
      * @type sai_bfd_session_state_t
      * @flags READ_ONLY
@@ -523,6 +524,22 @@ typedef enum _sai_bfd_session_attr_t
      * @flags READ_ONLY
      */
     SAI_BFD_SESSION_ATTR_REMOTE_MULTIPLIER,
+    
+    /**
+     * @brief End of attributes
+     */
+    SAI_BFD_SESSION_ATTR_END,
+
+    /** Custom range base value */
+    SAI_BFD_SESSION_ATTR_CUSTOM_RANGE_START = 0x10000000,
+
+    /**
+     * @brief BFD Session remote state
+     *
+     * @type sai_bfd_session_state_t
+     * @flags READ_ONLY
+     */
+    SAI_BFD_SESSION_ATTR_REMOTE_STATE = SAI_BFD_SESSION_ATTR_CUSTOM_RANGE_START,
     
     /**
      * @brief MPLS encapsulated BFD type
@@ -627,12 +644,38 @@ typedef enum _sai_bfd_session_attr_t
     SAI_BFD_SESSION_ATTR_NEXT_HOP_ID,
 
     /**
-     * @brief End of attributes
+     * @brief The hw protection next hop group id
+     *  set to SAI_OBJECT_TYPE_NEXT_HOP_GROUP, only for SAI_NEXT_HOP_GROUP_TYPE_PROTECTION
+     *  used for hardware protection switch
+     *  set to SAI_NULL_OBJECT_ID to disable hw protection
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
      */
-    SAI_BFD_SESSION_ATTR_END,
+    SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID,
 
-    /** Custom range base value */
-    SAI_BFD_SESSION_ATTR_CUSTOM_RANGE_START = 0x10000000,
+    /**
+     * @brief indicate the path bfd session monitored is protecting path or working path
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @validonly SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID != SAI_NULL_OBJECT_ID
+     * @default 0
+     */
+    SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH,
+
+    /**
+     * @brief indicate the bfd session hw protection is enabled or not
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @validonly SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID != SAI_NULL_OBJECT_ID
+     * @default 0
+     */
+    SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN,
 
     /** End of custom range base */
     SAI_BFD_SESSION_ATTR_CUSTOM_RANGE_END

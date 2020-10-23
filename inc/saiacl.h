@@ -1321,9 +1321,18 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
+     * @brief interface id defined
+     *
+     * @type bool
+     * @flags CREATE_ONLY
+     * @default false
+     */
+    SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID = SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_START,
+
+    /**
      * @brief End of Custom range base
      */
-    SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_END
+    SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_END = SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID,
 
 } sai_acl_table_attr_t;
 
@@ -1837,34 +1846,34 @@ typedef enum _sai_acl_entry_attr_t
      *
      * @type sai_acl_field_data_t sai_uint32_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_LABEL,
 
     /**
-     * @brief Label value for MPLS label on the top
+     * @brief TTL value for MPLS label on the top
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_TTL,
 
     /**
-     * @brief Label value for MPLS label on the top
+     * @brief EXP value for MPLS label on the top (3 bits)
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_EXP,
 
     /**
-     * @brief Label value for MPLS label on the top
+     * @brief BOS bit value for MPLS label on the top
      *
      * @type sai_acl_field_data_t bool
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_BOS,
 
@@ -1873,21 +1882,21 @@ typedef enum _sai_acl_entry_attr_t
      *
      * @type sai_acl_field_data_t sai_uint32_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_LABEL,
 
     /**
-     * @brief Label value for second MPLS label from the top
+     * @brief TTL value for second MPLS label from the top
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_TTL,
 
     /**
-     * @brief Label value for second MPLS label from the top
+     * @brief EXP value for second MPLS label from the top (3 bits)
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
@@ -1896,11 +1905,11 @@ typedef enum _sai_acl_entry_attr_t
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_EXP,
 
     /**
-     * @brief Label value for second MPLS label from the top
+     * @brief BOS bit value for second MPLS label from the top
      *
      * @type sai_acl_field_data_t bool
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_BOS,
 
@@ -1909,70 +1918,70 @@ typedef enum _sai_acl_entry_attr_t
      *
      * @type sai_acl_field_data_t sai_uint32_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL2_LABEL,
 
     /**
-     * @brief Label value for third MPLS label from the top
+     * @brief TTL value for third MPLS label from the top
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL2_TTL,
 
     /**
-     * @brief Label value for third MPLS label from the top
+     * @brief EXP value for third MPLS label on the top (3 bits)
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL2_EXP,
 
     /**
-     * @brief Label value for third MPLS label from the top
+     * @brief BOS bit value for third MPLS label from the top
      *
      * @type sai_acl_field_data_t bool
-     * @flags CREATE_ONLY
-     * @default disable
+     * @flags CREATE_AND_SET
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL2_BOS,
 
     /**
-     * @brief Label value for forth MPLS label from the top
+     * @brief Label value for fourth MPLS label from the top
      *
      * @type sai_acl_field_data_t sai_uint32_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL3_LABEL,
 
     /**
-     * @brief Label value for forth MPLS label from the top
+     * @brief TTL value for fourth MPLS label from the top
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL3_TTL,
 
     /**
-     * @brief Label value for forth MPLS label from the top
+     * @brief EXP value for fourth MPLS label on the top (3 bits)
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL3_EXP,
 
     /**
-     * @brief Label value for forth MPLS label from the top
+     * @brief BOS bit value for fourth MPLS label from the top
      *
      * @type sai_acl_field_data_t bool
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL3_BOS,
 
@@ -1981,34 +1990,34 @@ typedef enum _sai_acl_entry_attr_t
      *
      * @type sai_acl_field_data_t sai_uint32_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL4_LABEL,
 
     /**
-     * @brief Label value for fifth MPLS label from the top
+     * @brief TTL value for fifth MPLS label from the top
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL4_TTL,
 
     /**
-     * @brief Label value for fifth MPLS label from the top
+     * @brief EXP value for fifth MPLS label on the top (3 bits)
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL4_EXP,
 
     /**
-     * @brief Label value for fifth MPLS label from the top
+     * @brief BOS bit value for fifth MPLS label from the top
      *
      * @type sai_acl_field_data_t bool
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL4_BOS,
 
@@ -2701,6 +2710,15 @@ typedef enum _sai_acl_entry_attr_t
 
     /** Custom range base value */
     SAI_ACL_ENTRY_ATTR_CUSTOM_RANGE_START = 0x10000000,
+
+    /**
+     * @brief interface id defined
+     *
+     * @type sai_u16_t interface id
+     * @flags CREATE_ONLY
+     * @default empty
+     */
+    SAI_ACL_ENTRY_ATTR_FIELD_INTERFACE_ID,
 
     /** End of custom range base */
     SAI_ACL_ENTRY_ATTR_CUSTOM_RANGE_END

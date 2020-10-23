@@ -91,7 +91,6 @@ typedef enum _sai_udf_attr_t
      *
      * @type sai_uint16_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @isvlan false
      */
     SAI_UDF_ATTR_OFFSET,
 
@@ -185,10 +184,39 @@ typedef enum _sai_udf_match_attr_t
     /** Custom range base value */
     SAI_UDF_MATCH_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
+    /**
+     * @brief UDF MPLS label number match rule
+     *
+     * Default to None
+     *
+     * @type sai_acl_field_data_t sai_uint8_t
+     * @flags CREATE_ONLY
+     * @default 0
+     */
     SAI_UDF_MATCH_ATTR_CUSTOM_MPLS_LABEL_NUM = SAI_UDF_MATCH_ATTR_CUSTOM_RANGE_START,
 
+    /**
+     * @brief UDF L4 src port match rule
+     *
+     * Default to None
+     *
+     * @type sai_acl_field_data_t sai_uint16_t
+     * @flags CREATE_ONLY
+     * @isvlan false
+     * @default 0
+     */
     SAI_UDF_MATCH_ATTR_CUSTOM_L4_SRC_PORT,
 
+    /**
+     * @brief UDF L4 dest port match rule
+     *
+     * Default to None
+     *
+     * @type sai_acl_field_data_t sai_uint16_t
+     * @flags CREATE_ONLY
+     * @isvlan false
+     * @default 0
+     */
     SAI_UDF_MATCH_ATTR_CUSTOM_L4_DST_PORT,
 
     /** End of custom range base */

@@ -211,6 +211,19 @@ typedef enum _sai_monitor_latency_monitor_attr_t
 #define SAI_MONITOR_LATENCY_THRD_LEVEL 8 
 #define SAI_MONITOR_MICROBURST_THRD_LEVEL 8 
 
+/**
+@brief  monitor event state
+*/
+typedef enum _sai_monitor_event_state_e
+{
+    SAI_MONITOR_EVENT_STATE_CLEAR,   /* monitor event clear */
+    SAI_MONITOR_EVENT_STATE_OCCUR    /* monitor event occur */
+
+} sai_monitor_event_state_e;
+
+/*! This typedef defines the bool datatype which takes the values 
+true and false.*/
+typedef enum {False = 0, True = 1} Mon_boolean;
 
 /**
 @brief  micro burst event
@@ -233,7 +246,7 @@ struct sai_monitor_buffer_event_s
     uint32_t buffer_monitor_event_total_cnt;
     uint32_t buffer_monitor_event_port_unicast_cnt;
     uint32_t buffer_monitor_event_port_multicast_cnt;
-    uint8_t buffer_monitor_event_stats;
+    uint8_t buffer_monitor_event_state;
 };
 typedef struct sai_monitor_buffer_event_s sai_monitor_buffer_event_t;
 
@@ -254,12 +267,9 @@ struct sai_monitor_buffer_stats_s
 {
     /*buffer monitor stats messager*/
     sai_object_id_t buffer_monitor_stats_port;
-    sai_object_id_t buffer_monitor_stats_queue;
     /*sai_buffer_monitor_stats_direction_t*/
     uint32_t buffer_monitor_stats_direction;
     uint32_t buffer_monitor_stats_port_cnt;
-    uint32_t buffer_monitor_stats_queue_cnt;
-    uint8_t buffer_monitor_event_stats;
 };
 typedef struct sai_monitor_buffer_stats_s sai_monitor_buffer_stats_t;
 

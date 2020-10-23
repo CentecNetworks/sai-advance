@@ -165,9 +165,15 @@ typedef enum _sai_next_hop_group_member_attr_t
     /**
      * @brief Next hop id
      *
+     * Use SAI_OBJECT_TYPE_NEXT_HOP when used in MPLS protecting,
+     * use SAI_OBJECT_TYPE_BRIDGE_PORT when used in normal layer 2 forwarding protecting. 
+     *
+     * SAI_OBJECT_TYPE_BRIDGE_PORT is only available when SAI_NEXT_HOP_GROUP_ATTR_TYPE is 
+     * SAI_NEXT_HOP_GROUP_TYPE_PROTECTION
+     *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @objects SAI_OBJECT_TYPE_NEXT_HOP
+     * @objects SAI_OBJECT_TYPE_NEXT_HOP, SAI_OBJECT_TYPE_BRIDGE_PORT
      */
     SAI_NEXT_HOP_GROUP_MEMBER_ATTR_NEXT_HOP_ID,
 

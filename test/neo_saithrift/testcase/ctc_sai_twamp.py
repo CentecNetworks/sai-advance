@@ -35,7 +35,7 @@ class func_01_create_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -65,7 +65,7 @@ class func_01_create_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -108,8 +108,10 @@ class func_01_create_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane):
             twamp_session_oid = sai_thrift_create_twamp_session_sender(self.client, receive_port_oid, udp_src_port, udp_dst_port, addr_family, src_ip, dst_ip, tc, vrf_oid, encap_type, enable_transmit, hw_lookup, pkt_len, mode, tx_mode, tx_rate,  tx_period, tx_pkt_cnt, tx_pkt_duration, test_port_oid )
             sys_logging("###twamp_session_oid = %d###" %twamp_session_oid)          
             assert (twamp_session_oid != SAI_NULL_OBJECT_ID)
-            
+
+            #pdb.set_trace()
             self.ctc_show_packet(2)
+
             #time.sleep(5)
             
         finally:
@@ -135,7 +137,7 @@ class func_02_create_same_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlan
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -165,7 +167,7 @@ class func_02_create_same_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlan
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -242,7 +244,7 @@ class func_03_create_multi_twamp_session_fn(sai_base_test.ThriftInterfaceDataPla
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -272,7 +274,7 @@ class func_03_create_multi_twamp_session_fn(sai_base_test.ThriftInterfaceDataPla
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -343,6 +345,7 @@ class func_03_create_multi_twamp_session_fn(sai_base_test.ThriftInterfaceDataPla
             self.client.sai_thrift_remove_router_interface(rif_id1) 
             self.client.sai_thrift_remove_router_interface(rif_id2)
 
+
 class func_04_create_max_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -350,7 +353,7 @@ class func_04_create_max_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -380,7 +383,7 @@ class func_04_create_max_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -456,6 +459,7 @@ class func_04_create_max_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane
             sys_logging("###twamp_session_oid = %d###" %twamp_session_oid_5)          
             assert (twamp_session_oid_5 == SAI_NULL_OBJECT_ID)            
             #time.sleep(5)
+
             
         finally:
         
@@ -483,7 +487,7 @@ class func_05_remove_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -513,7 +517,7 @@ class func_05_remove_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -587,7 +591,7 @@ class func_06_remove_not_exist_twamp_session_fn (sai_base_test.ThriftInterfaceDa
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -617,7 +621,7 @@ class func_06_remove_not_exist_twamp_session_fn (sai_base_test.ThriftInterfaceDa
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -696,7 +700,7 @@ class func_07_set_and_get_twamp_session_attr_fn(sai_base_test.ThriftInterfaceDat
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -726,7 +730,7 @@ class func_07_set_and_get_twamp_session_attr_fn(sai_base_test.ThriftInterfaceDat
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -784,9 +788,12 @@ class func_07_set_and_get_twamp_session_attr_fn(sai_base_test.ThriftInterfaceDat
                     assert (a.value.oid == test_port_oid)
                     
                 if a.id == SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT:
-                    sys_logging("get SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT = %d" %a.value.oid)
-                    assert (a.value.oid == receive_port_oid)
-
+                    sys_logging("get SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT count= %d" %a.value.objlist.count)
+                    assert (a.value.objlist.count == len(receive_port_oid))   
+                    for b in a.value.objlist.object_id_list:
+                        sys_logging("###SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT = %d ###" %b)
+                        assert (b in receive_port_oid)  
+                    
                 if a.id == SAI_TWAMP_SESSION_ATTR_SESSION_ROLE:
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_SESSION_ROLE = %d" %a.value.s32)
                     assert (a.value.s32 == SAI_TWAMP_SESSION_SENDER)
@@ -917,7 +924,7 @@ class func_08_get_and_clear_twamp_session_stats_fn(sai_base_test.ThriftInterface
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -947,7 +954,7 @@ class func_08_get_and_clear_twamp_session_stats_fn(sai_base_test.ThriftInterface
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -1028,10 +1035,13 @@ class func_08_get_and_clear_twamp_session_stats_fn(sai_base_test.ThriftInterface
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
 
-            #self.ctc_show_packet_twamp(2,str(pkt1))            
-            self.ctc_show_packet_twamp(2,str(pkt1),40,2) 
+            
+
+            self.ctc_show_packet_twamp(2,str(pkt1))            
+            #self.ctc_show_packet_twamp(2,str(pkt1),40,2) 
 
             warmboot(self.client)
         
@@ -1073,7 +1083,9 @@ class func_08_get_and_clear_twamp_session_stats_fn(sai_base_test.ThriftInterface
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             self.ctc_send_packet( 1, str(pkt2))
             # sdk cli check show npm session 0 stats flex 
@@ -1173,7 +1185,7 @@ class scenario_01_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPlane):
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -1203,7 +1215,7 @@ class scenario_01_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPlane):
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -1284,9 +1296,9 @@ class scenario_01_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPlane):
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
-
-            #self.ctc_verify_no_packet(pkt1, 2) 
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+ 
 
             attrs = self.client.sai_thrift_get_twamp_attribute(twamp_session_oid)
             sys_logging("get attr status = %d" %attrs.status)
@@ -1333,8 +1345,8 @@ class scenario_01_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPlane):
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_SESSION_ENABLE_TRANSMIT = %d" %a.value.booldata)
                     assert (a.value.booldata == enable_transmit)
                     
-            #self.ctc_show_packet_twamp(2,str(pkt1))            
-            self.ctc_show_packet_twamp(2,str(pkt1),40,2) 
+            self.ctc_show_packet_twamp(2,str(pkt1))            
+            #self.ctc_show_packet_twamp(2,str(pkt1),40,2) 
 
             warmboot(self.client)
         
@@ -1376,7 +1388,9 @@ class scenario_01_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPlane):
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             self.ctc_send_packet( 1, str(pkt2))
             # sdk cli check show npm session 0 stats flex 
@@ -1439,7 +1453,7 @@ class scenario_02_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDataPlan
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]       
         udp_src_port = 1111        
         udp_dst_port = 2222
@@ -1462,7 +1476,7 @@ class scenario_02_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDataPlan
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -1545,7 +1559,9 @@ class scenario_02_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDataPlan
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             Sequence_Number = hexstr_to_ascii('00000001')
             Timestamp = hexstr_to_ascii('0000000000445678')
@@ -1583,7 +1599,9 @@ class scenario_02_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDataPlan
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             self.ctc_send_packet(1, str(pkt1))
             self.ctc_verify_packets(pkt2, [2]) 
@@ -1613,7 +1631,7 @@ class scenario_03_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
         switch_init(self.client)
 
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -1654,7 +1672,7 @@ class scenario_03_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
         sai_thrift_create_neighbor(self.client, addr_family, rif_id0, dst_ip0, dmac0)
         nhop0 = sai_thrift_create_nhop(self.client, addr_family, dst_ip0, rif_id0)
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         dst_ip1 = '40.40.40.40'   
         dmac1 = '00:00:00:00:00:02'         
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, dst_ip1, dmac1)
@@ -1735,11 +1753,13 @@ class scenario_03_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             pkt1 = str(pkt1)[14:]
                           
-            mpls1 = [{'label':lsp_label,'tc':0,'ttl':254,'s':0}, {'label':pw_label,'tc':0,'ttl':254,'s':1}]   
+            mpls1 = [{'label':lsp_label,'tc':0,'ttl':32,'s':0}, {'label':pw_label,'tc':0,'ttl':254,'s':1}]   
                                                
             pkt2 = simple_mpls_packet(pktlen=pkt_len + 8 - 4,
                                     eth_dst=macda,
@@ -1748,7 +1768,7 @@ class scenario_03_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                                     mpls_tags= mpls1,
                                     inner_frame = pkt1) 
                                     
-            #self.ctc_show_packet_twamp(2,str(pkt2))                    
+            self.ctc_show_packet_twamp(2,str(pkt2))                    
 
             warmboot(self.client)
         
@@ -1779,7 +1799,7 @@ class scenario_03_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                           dl_vlan_enable=False,
                           ip_src=ipsa,
                           ip_dst=ipda,
-                          ip_tos=0,
+                          ip_tos=28,
                           ip_ecn=None,
                           ip_dscp=None,
                           ip_ttl=253,
@@ -1790,7 +1810,9 @@ class scenario_03_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             pkt3 = str(pkt3)[14:]
                           
@@ -1880,7 +1902,7 @@ class scenario_04_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
         switch_init(self.client)
 
         test_port_oid = port_list[0]     
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]        
         udp_src_port = 1111        
         udp_dst_port = 2222
@@ -1915,7 +1937,7 @@ class scenario_04_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
         sai_thrift_create_neighbor(self.client, addr_family, rif_id0, dst_ip0, dmac0)
         nhop0 = sai_thrift_create_nhop(self.client, addr_family, dst_ip0, rif_id0)
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         dst_ip1 = '30.30.30.30'   
         dmac1 = '00:00:00:00:00:02'         
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, dst_ip1, dmac1)
@@ -2000,11 +2022,13 @@ class scenario_04_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             pkt1 = str(pkt1)[14:]
                           
-            mpls1 = [{'label':lsp_label_r,'tc':0,'ttl':254,'s':0}, {'label':pw_label_r,'tc':0,'ttl':254,'s':1}]   
+            mpls1 = [{'label':lsp_label_r,'tc':0,'ttl':32,'s':0}, {'label':pw_label_r,'tc':0,'ttl':254,'s':1}]   
                                                
             pkt2 = simple_mpls_packet(pktlen=pkt_len + 8 - 4,
                                     eth_dst=macda,
@@ -2049,7 +2073,9 @@ class scenario_04_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             pkt3 = str(pkt3)[14:]
                           
@@ -2107,7 +2133,7 @@ class scenario_05_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
         switch_init(self.client)
 
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -2148,7 +2174,7 @@ class scenario_05_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
         sai_thrift_create_neighbor(self.client, addr_family, rif_id0, dst_ip0, dmac0)
         nhop0 = sai_thrift_create_nhop(self.client, addr_family, dst_ip0, rif_id0)
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         dst_ip1 = '40.40.40.40'   
         dmac1 = '00:00:00:00:00:02'         
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, dst_ip1, dmac1)
@@ -2229,11 +2255,13 @@ class scenario_05_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             pkt1 = str(pkt1)[14:]
                           
-            mpls1 = [{'label':lsp_label,'tc':0,'ttl':254,'s':0}, {'label':pw_label,'tc':0,'ttl':254,'s':1}]   
+            mpls1 = [{'label':lsp_label,'tc':0,'ttl':32,'s':0}, {'label':pw_label,'tc':0,'ttl':254,'s':1}]   
                                                
             pkt2 = simple_mpls_packet(pktlen=pkt_len + 8 - 4,
                                     eth_dst=macda,
@@ -2242,7 +2270,7 @@ class scenario_05_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                                     mpls_tags= mpls1,
                                     inner_frame = pkt1) 
                                     
-            #self.ctc_show_packet_twamp(2,str(pkt2))                    
+            self.ctc_show_packet_twamp(2,str(pkt2))                    
 
             warmboot(self.client)
         
@@ -2273,7 +2301,7 @@ class scenario_05_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                           dl_vlan_enable=False,
                           ip_src=ipsa,
                           ip_dst=ipda,
-                          ip_tos=0,
+                          ip_tos=28,
                           ip_ecn=None,
                           ip_dscp=None,
                           ip_ttl=253,
@@ -2284,7 +2312,9 @@ class scenario_05_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             pkt3 = str(pkt3)[14:]
                           
@@ -2378,7 +2408,7 @@ class scenario_06_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
         switch_init(self.client)
 
         test_port_oid = port_list[0]      
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]        
         udp_src_port = 1111        
         udp_dst_port = 2222
@@ -2413,7 +2443,7 @@ class scenario_06_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
         sai_thrift_create_neighbor(self.client, addr_family, rif_id0, dst_ip0, dmac0)
         nhop0 = sai_thrift_create_nhop(self.client, addr_family, dst_ip0, rif_id0)
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         dst_ip1 = '30.30.30.30'   
         dmac1 = '00:00:00:00:00:02'         
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, dst_ip1, dmac1)
@@ -2498,7 +2528,9 @@ class scenario_06_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             pkt1 = str(pkt1)[14:]
                           
@@ -2547,7 +2579,9 @@ class scenario_06_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             pkt3 = str(pkt3)[14:]
                           
@@ -2605,7 +2639,7 @@ class scenario_08_ipv6_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -2636,7 +2670,7 @@ class scenario_08_ipv6_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -2678,6 +2712,7 @@ class scenario_08_ipv6_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
             twamp_session_oid = sai_thrift_create_twamp_session_sender(self.client, receive_port_oid, udp_src_port, udp_dst_port, addr_family, src_ip, dst_ip, tc, vrf_oid, encap_type, enable_transmit, hw_lookup, pkt_len, mode, tx_mode, tx_rate,  tx_period, tx_pkt_cnt, tx_pkt_duration, test_port_oid )
             sys_logging("###twamp_session_oid = %d###" %twamp_session_oid)          
             assert (twamp_session_oid != SAI_NULL_OBJECT_ID)
+            #pdb.set_trace()
 
             sys_logging(" step 3 check the send packet ")
             
@@ -2714,10 +2749,12 @@ class scenario_08_ipv6_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
 
-            #self.ctc_show_packet_twamp(2,str(pkt1))            
-            self.ctc_show_packet_twamp(2,str(pkt1),60,2) 
+
+            self.ctc_show_packet_twamp(2,str(pkt1))            
+            #self.ctc_show_packet_twamp(2,str(pkt1),60,2) 
 
             warmboot(self.client)
         
@@ -2756,7 +2793,9 @@ class scenario_08_ipv6_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             self.ctc_send_packet( 1, str(pkt2))
             # sdk cli check show npm session 0 stats flex 
@@ -2823,7 +2862,7 @@ class scenario_09_ipv6_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDat
         switch_init(self.client)
         
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]       
         udp_src_port = 1111        
         udp_dst_port = 2222
@@ -2849,7 +2888,7 @@ class scenario_09_ipv6_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDat
         rif_id0 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, test_port_oid, 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id0)        
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, send_port_oid, 0, v4_enabled, v6_enabled, mac)
@@ -2929,7 +2968,9 @@ class scenario_09_ipv6_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDat
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             Sequence_Number = hexstr_to_ascii('00000001')
             Timestamp = hexstr_to_ascii('0000000000445678')
@@ -2964,7 +3005,9 @@ class scenario_09_ipv6_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDat
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             self.ctc_send_packet(1, str(pkt1))
             self.ctc_verify_packets(pkt2, [2]) 
@@ -2992,7 +3035,7 @@ class scenario_10_ipv6_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
         switch_init(self.client)
 
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -3034,7 +3077,7 @@ class scenario_10_ipv6_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
         sai_thrift_create_neighbor(self.client, addr_family, rif_id0, dst_ip0, dmac0)
         nhop0 = sai_thrift_create_nhop(self.client, addr_family, dst_ip0, rif_id0)
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         dst_ip1 = '2001:40:3:3:3:3:3:3'   
         dmac1 = '00:00:00:00:00:02'         
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, dst_ip1, dmac1)
@@ -3112,11 +3155,13 @@ class scenario_10_ipv6_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             pkt1 = str(pkt1)[14:]
                           
-            mpls1 = [{'label':lsp_label,'tc':0,'ttl':254,'s':0}, {'label':pw_label,'tc':0,'ttl':254,'s':1}]   
+            mpls1 = [{'label':lsp_label,'tc':0,'ttl':32,'s':0}, {'label':pw_label,'tc':0,'ttl':254,'s':1}]   
                                                
             pkt2 = simple_mpls_packet(pktlen=pkt_len + 8 - 4,
                                     eth_dst=macda,
@@ -3125,7 +3170,7 @@ class scenario_10_ipv6_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                                     mpls_tags= mpls1,
                                     inner_frame = pkt1) 
                                     
-            #self.ctc_show_packet_twamp(2,str(pkt2))                    
+            self.ctc_show_packet_twamp(2,str(pkt2))                    
 
             warmboot(self.client)
         
@@ -3156,7 +3201,7 @@ class scenario_10_ipv6_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                           dl_vlan_enable=False,
                           ipv6_src=ipsa,
                           ipv6_dst=ipda,
-                          ipv6_tc=0,
+                          ipv6_tc=28,
                           ipv6_ecn=None,
                           ipv6_dscp=None,
                           ipv6_hlim=253,
@@ -3164,7 +3209,9 @@ class scenario_10_ipv6_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             pkt3 = str(pkt3)[14:]
                           
@@ -3256,7 +3303,7 @@ class scenario_11_ipv6_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
         switch_init(self.client)
 
         test_port_oid = port_list[0]       
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]        
         udp_src_port = 1111        
         udp_dst_port = 2222
@@ -3292,7 +3339,7 @@ class scenario_11_ipv6_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
         sai_thrift_create_neighbor(self.client, addr_family, rif_id0, dst_ip0, dmac0)
         nhop0 = sai_thrift_create_nhop(self.client, addr_family, dst_ip0, rif_id0)
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         dst_ip1 = '2001:30:3:3:3:3:3:3'   
         dmac1 = '00:00:00:00:00:02'         
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, dst_ip1, dmac1)
@@ -3374,7 +3421,9 @@ class scenario_11_ipv6_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             pkt1 = str(pkt1)[14:]
                           
@@ -3420,7 +3469,9 @@ class scenario_11_ipv6_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             pkt3 = str(pkt3)[14:]
                           
@@ -3477,7 +3528,7 @@ class scenario_12_ipv6_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
         switch_init(self.client)
 
         test_port_oid = port_list[0]
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]
         
         udp_src_port = 1111        
@@ -3519,7 +3570,7 @@ class scenario_12_ipv6_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
         sai_thrift_create_neighbor(self.client, addr_family, rif_id0, dst_ip0, dmac0)
         nhop0 = sai_thrift_create_nhop(self.client, addr_family, dst_ip0, rif_id0)
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         dst_ip1 = '2001:40:3:3:3:3:3:3'  
         dmac1 = '00:00:00:00:00:02'         
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, dst_ip1, dmac1)
@@ -3597,11 +3648,13 @@ class scenario_12_ipv6_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             pkt1 = str(pkt1)[14:]
                           
-            mpls1 = [{'label':lsp_label,'tc':0,'ttl':254,'s':0}, {'label':pw_label,'tc':0,'ttl':254,'s':1}]   
+            mpls1 = [{'label':lsp_label,'tc':0,'ttl':32,'s':0}, {'label':pw_label,'tc':0,'ttl':254,'s':1}]   
                                                
             pkt2 = simple_mpls_packet(pktlen=pkt_len + 8 - 4,
                                     eth_dst=macda,
@@ -3610,7 +3663,7 @@ class scenario_12_ipv6_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                                     mpls_tags= mpls1,
                                     inner_frame = pkt1) 
                                     
-            #self.ctc_show_packet_twamp(2,str(pkt2))                    
+            self.ctc_show_packet_twamp(2,str(pkt2))                    
 
             warmboot(self.client)
         
@@ -3641,7 +3694,7 @@ class scenario_12_ipv6_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                           dl_vlan_enable=False,
                           ipv6_src=ipsa,
                           ipv6_dst=ipda,
-                          ipv6_tc=0,
+                          ipv6_tc=28,
                           ipv6_ecn=None,
                           ipv6_dscp=None,
                           ipv6_hlim=253,
@@ -3649,7 +3702,9 @@ class scenario_12_ipv6_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             pkt3 = str(pkt3)[14:]
                           
@@ -3742,7 +3797,7 @@ class scenario_13_ipv6_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
         switch_init(self.client)
 
         test_port_oid = port_list[0]     
-        receive_port_oid = port_list[1]
+        receive_port_oid = [port_list[0],port_list[1],port_list[2]]
         send_port_oid = port_list[2]        
         udp_src_port = 1111        
         udp_dst_port = 2222
@@ -3778,7 +3833,7 @@ class scenario_13_ipv6_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
         sai_thrift_create_neighbor(self.client, addr_family, rif_id0, dst_ip0, dmac0)
         nhop0 = sai_thrift_create_nhop(self.client, addr_family, dst_ip0, rif_id0)
         
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, receive_port_oid, 0, v4_enabled, v6_enabled, mac)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port_list[1], 0, v4_enabled, v6_enabled, mac)
         dst_ip1 = '2001:30:3:3:3:3:3:3'   
         dmac1 = '00:00:00:00:00:02'         
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, dst_ip1, dmac1)
@@ -3860,11 +3915,13 @@ class scenario_13_ipv6_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
                           
             pkt1 = str(pkt1)[14:]
                           
-            mpls1 = [{'label':lsp_label_r,'tc':0,'ttl':254,'s':0}, {'label':pw_label_r,'tc':0,'ttl':254,'s':1}]   
+            mpls1 = [{'label':lsp_label_r,'tc':0,'ttl':32,'s':0}, {'label':pw_label_r,'tc':0,'ttl':254,'s':1}]   
                                                
             pkt2 = simple_mpls_packet(pktlen=pkt_len + 8 - 4,
                                     eth_dst=macda,
@@ -3906,11 +3963,13 @@ class scenario_13_ipv6_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
                           udp_sport=src_port,
                           udp_dport=dst_port,
                           with_udp_chksum=True,
-                          udp_payload=Twamp_test_pkt)
+                          udp_payload=Twamp_test_pkt,
+                          pattern_type=1)
+
 
             pkt3 = str(pkt3)[14:]
                           
-            mpls2 = [{'label':lsp_label,'tc':0,'ttl':253,'s':0}, {'label':pw_label,'tc':0,'ttl':253,'s':1}]   
+            mpls2 = [{'label':lsp_label,'tc':0,'ttl':32,'s':0}, {'label':pw_label,'tc':0,'ttl':253,'s':1}]   
                                                
             pkt4 = simple_mpls_packet(pktlen=pkt_len + 8 - 4,
                                     eth_dst=macda,
@@ -3921,81 +3980,6 @@ class scenario_13_ipv6_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
                                     
             self.ctc_send_packet(1, str(pkt2))
             self.ctc_verify_packets(pkt4, [2])  
-            '''
-            pdb.set_trace()
-            counter_ids = [SAI_TWAMP_SESSION_STATS_RX_PACKETS, SAI_TWAMP_SESSION_STATS_RX_BYTE, SAI_TWAMP_SESSION_STATS_TX_PACKETS, SAI_TWAMP_SESSION_STATS_TX_BYTE, SAI_TWAMP_SESSION_STATS_DROP_PACKETS,SAI_TWAMP_SESSION_STATS_MAX_LATENCY,SAI_TWAMP_SESSION_STATS_MIN_LATENCY,SAI_TWAMP_SESSION_STATS_AVG_LATENCY,SAI_TWAMP_SESSION_STATS_MAX_JITTER,SAI_TWAMP_SESSION_STATS_MIN_JITTER,SAI_TWAMP_SESSION_STATS_AVG_JITTER,SAI_TWAMP_SESSION_STATS_FIRST_TS,SAI_TWAMP_SESSION_STATS_LAST_TS,SAI_TWAMP_SESSION_STATS_DURATION_TS]
-            
-            list1 = self.client.sai_thrift_get_twamp_session_stats(twamp_session_oid, counter_ids, 14) 
-            
-            sys_logging("###list1[0]= %d###" %list1[0])
-            sys_logging("###list1[1]= %d###" %list1[1])
-            sys_logging("###list1[2]= %d###" %list1[2])
-            sys_logging("###list1[3]= %d###" %list1[3])
-            sys_logging("###list1[4]= %d###" %list1[4])
-            sys_logging("###list1[5]= %d###" %list1[5])
-            sys_logging("###list1[6]= %d###" %list1[6])
-            sys_logging("###list1[7]= %d###" %list1[7])
-            sys_logging("###list1[8]= %d###" %list1[8])
-            sys_logging("###list1[9]= %d###" %list1[9])
-            sys_logging("###list1[10]= %d###" %list1[10])
-            sys_logging("###list1[11]= %d###" %list1[11])
-            sys_logging("###list1[12]= %d###" %list1[12])
-            sys_logging("###list1[13]= %d###" %list1[13])
-            
-            assert (list1[0] == 1)
-            assert (list1[1] == 256) 
-            assert (list1[2] == 0)
-            assert (list1[3] == 0)
-            assert (list1[4] == 0)
-            assert (list1[5] == 0)
-            assert (list1[6] == 0)
-            assert (list1[7] == 0)
-            assert (list1[8] == 0)
-            assert (list1[9] == 0)
-            assert (list1[10] == 0)
-            assert (list1[11] == 3430008)
-            assert (list1[12] == 3430008)
-            assert (list1[13] == 0)
-
-
-            status = self.client.sai_thrift_clear_twamp_session_stats(twamp_session_oid, counter_ids, 14)
-            sys_logging("###clear twamp stats status = %d###" %status)          
-            assert (status == SAI_STATUS_SUCCESS)            
-            
-            counter_ids = [SAI_TWAMP_SESSION_STATS_RX_PACKETS, SAI_TWAMP_SESSION_STATS_RX_BYTE, SAI_TWAMP_SESSION_STATS_TX_PACKETS, SAI_TWAMP_SESSION_STATS_TX_BYTE, SAI_TWAMP_SESSION_STATS_DROP_PACKETS,SAI_TWAMP_SESSION_STATS_MAX_LATENCY,SAI_TWAMP_SESSION_STATS_MIN_LATENCY,SAI_TWAMP_SESSION_STATS_AVG_LATENCY,SAI_TWAMP_SESSION_STATS_MAX_JITTER,SAI_TWAMP_SESSION_STATS_MIN_JITTER,SAI_TWAMP_SESSION_STATS_AVG_JITTER,SAI_TWAMP_SESSION_STATS_FIRST_TS,SAI_TWAMP_SESSION_STATS_LAST_TS,SAI_TWAMP_SESSION_STATS_DURATION_TS]
-            
-            list1 = self.client.sai_thrift_get_twamp_session_stats(twamp_session_oid, counter_ids, 14) 
-            
-            sys_logging("###list1[0]= %d###" %list1[0])
-            sys_logging("###list1[1]= %d###" %list1[1])
-            sys_logging("###list1[2]= %d###" %list1[2])
-            sys_logging("###list1[3]= %d###" %list1[3])
-            sys_logging("###list1[4]= %d###" %list1[4])
-            sys_logging("###list1[5]= %d###" %list1[5])
-            sys_logging("###list1[6]= %d###" %list1[6])
-            sys_logging("###list1[7]= %d###" %list1[7])
-            sys_logging("###list1[8]= %d###" %list1[8])
-            sys_logging("###list1[9]= %d###" %list1[9])
-            sys_logging("###list1[10]= %d###" %list1[10])
-            sys_logging("###list1[11]= %d###" %list1[11])
-            sys_logging("###list1[12]= %d###" %list1[12])
-            sys_logging("###list1[13]= %d###" %list1[13])
-            
-            assert (list1[0] == 0)
-            assert (list1[1] == 0)
-            assert (list1[2] == 0)
-            assert (list1[3] == 0)
-            assert (list1[4] == 0)
-            assert (list1[5] == 0)
-            assert (list1[6] == 0)
-            assert (list1[7] == 0)
-            assert (list1[8] == 0)
-            assert (list1[9] == 0)
-            assert (list1[10] == 0)
-            assert (list1[11] == 0)
-            assert (list1[12] == 0)
-            assert (list1[13] == 0)
-            '''
 
         finally:
         

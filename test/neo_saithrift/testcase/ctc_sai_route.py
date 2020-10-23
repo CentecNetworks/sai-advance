@@ -1498,7 +1498,6 @@ class fun_22_bulk_set_route_attr_fn_3(sai_base_test.ThriftInterfaceDataPlane):
                 sys_logging("creat counter_id = 0x%x" %counter_id)
                 attr_value = sai_thrift_attribute_value_t(oid=counter_id)
                 attr = sai_thrift_attribute_t(id=SAI_ROUTE_ENTRY_ATTR_COUNTER_ID, value=attr_value)
-                self.client.sai_thrift_set_route_attribute(route, attr)
                 counter_id_list.append(counter_id)
                 attr_list.append(attr)
             status = self.client.sai_thrift_set_routes_attribute(routes, attr_list, mode)
@@ -2071,10 +2070,10 @@ class scenario_02_v6_route_dest_ip_match_test(sai_base_test.ThriftInterfaceDataP
                                 ipv6_hlim=63)
         warmboot(self.client)
         try:
-            sys_logging("======send dst ip(v4) hit packet======")
+            sys_logging("======send dst ip(v6) hit packet======")
             self.ctc_send_packet( 2, str(pkt1))
             self.ctc_verify_packets( exp_pkt1, [0])
-            sys_logging("======send dst ip(v4) not hit packet======")
+            sys_logging("======send dst ip(v6) not hit packet======")
             self.ctc_send_packet( 2, str(pkt2))
             self.ctc_verify_no_packet( exp_pkt2, 0)
    
@@ -2491,6 +2490,7 @@ class scenario_07_v4_route_phy_to_phy_test(sai_base_test.ThriftInterfaceDataPlan
         sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
         nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id2)
         sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
+        
 
         pkt = simple_tcp_packet(eth_dst=router_mac,
                                 eth_src='00:22:22:22:22:22',
@@ -2997,7 +2997,7 @@ class scenario_13_v4_route_phy_to_bridge_test(sai_base_test.ThriftInterfaceDataP
         sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
         nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id2)
         sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
-
+        #pdb.set_trace()
    
         pkt = simple_tcp_packet(eth_dst=router_mac,
                                 eth_src='00:22:22:22:22:22',
@@ -3036,6 +3036,9 @@ class scenario_13_v4_route_phy_to_bridge_test(sai_base_test.ThriftInterfaceDataP
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan(vlan_oid)
+
+
+
 
 class scenario_14_v6_route_phy_to_bridge_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -3121,7 +3124,6 @@ class scenario_15_v4_route_vlan_to_phy_test(sai_base_test.ThriftInterfaceDataPla
 
         vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
-        
         vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
         
         rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_VLAN, 0, vlan_oid, v4_enabled, v6_enabled, mac)
@@ -5041,4 +5043,221 @@ class scenario_40_v6_stress_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
             self.client.sai_thrift_remove_virtual_router(vr_id)
+
+
+class route_shake_update_nexthop_attribute_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        vlan_id = 30
+        mac = ''
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_addr2 = '10.10.10.2'
+        ip_addr3 = '10.10.10.3'
+        ip_addr4 = '10.10.10.4'
+        ip_addr1_subnet = '10.10.10.0'
+        ip_addr2_subnet = '10.10.20.0'
+        ip_addr3_subnet = '10.10.30.0'
+        ip_mask1 = '255.255.255.0'
+        dmac1 = '00:11:22:33:44:55'
+        dmac2 = '00:11:22:33:44:56'
+        dmac3 = '00:11:22:33:44:57'
+        dmac4 = '00:11:22:33:44:58'
+        
+
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        
+        bridge_id = sai_thrift_create_bridge(self.client, SAI_BRIDGE_TYPE_1D)
+        sai_thrift_vlan_remove_ports(self.client, switch.default_vlan.oid, [port2])
+        bport1_id = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id)
+        sai_thrift_create_fdb_bport(self.client, bridge_id, dmac1, bport1_id, SAI_PACKET_ACTION_FORWARD)
+        
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_BRIDGE, 0, 0, v4_enabled, v6_enabled, mac)
+        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+        rif_id4 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+        bridge_rif_bp = sai_thrift_create_bridge_rif_port(self.client, bridge_id, rif_id2)
+        
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id3, ip_addr2, dmac2)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id3, ip_addr3, dmac3)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id4, ip_addr4, dmac4)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id2)
+        nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif_id3)
+        nhop3 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif_id3)
+        nhop4 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif_id3)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr2_subnet, ip_mask1, nhop2)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr3_subnet, ip_mask1, nhop3)
+
+
+
+        
+        
+   
+        pkt = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        exp_pkt = simple_tcp_packet(
+                                eth_dst=dmac1,
+                                eth_src=router_mac,
+                                dl_vlan_enable=True,
+                                vlan_vid=30,
+                                ip_dst='10.10.10.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63,
+                                pktlen=104)
+
+
+        pkt2 = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.20.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        exp_pkt2 = simple_tcp_packet(
+                                eth_dst=dmac2,
+                                eth_src=router_mac,
+                                ip_dst='10.10.20.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)
+
+        exp_pkt2_2 = simple_tcp_packet(
+                                eth_dst=dmac3,
+                                eth_src=router_mac,
+                                ip_dst='10.10.20.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)
+
+        pkt3 = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.30.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        exp_pkt3 = simple_tcp_packet(
+                                eth_dst=dmac2,
+                                eth_src=router_mac,
+                                ip_dst='10.10.30.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)
+
+        exp_pkt3_2 = simple_tcp_packet(
+                                eth_dst=dmac4,
+                                eth_src=router_mac,
+                                ip_dst='10.10.30.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)
+
+
+        warmboot(self.client)
+        try:
+            sys_logging("======port type rif send dest ip hit v4 packet to bridge type rif======")
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [1])
+
+            self.ctc_send_packet( 0, str(pkt2))
+            self.ctc_verify_packets( exp_pkt2, [2])
+
+            self.ctc_send_packet( 0, str(pkt3))
+            self.ctc_verify_packets( exp_pkt3, [2])
+
+
+            
+            sys_logging('=====set bridge type rif bind nexthop attribute,and return not support=====')
+            attr_value = sai_thrift_attribute_value_t(oid=rif_id3)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_ROUTER_INTERFACE_ID, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(nhop1, attr)
+            print 'set bridge type rif nhop status = %d' %status
+            
+            addr = sai_thrift_ip_t(ip4=ip_addr2)
+            ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=addr)
+            attr_value = sai_thrift_attribute_value_t(ipaddr=ipaddr)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_IP, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(nhop1, attr)
+            print 'set bridge type rif nhop status = %d' %status
+
+
+
+            sys_logging('=====set port type rif bind nexthop attribute,and return success=====')
+            addr = sai_thrift_ip_t(ip4=ip_addr3)
+            ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=addr)
+            attr_value = sai_thrift_attribute_value_t(ipaddr=ipaddr)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_IP, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(nhop2, attr)
+            print 'set port type rif nhop status = %d' %status
+
+
+            sys_logging('=====set port type rif bind nexthop attribute,and return success=====')
+            attr_value = sai_thrift_attribute_value_t(oid=rif_id4)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_ROUTER_INTERFACE_ID, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(nhop3, attr)
+            print 'set port type rif nhop status = %d' %status
+            
+            addr = sai_thrift_ip_t(ip4=ip_addr4)
+            ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=addr)
+            attr_value = sai_thrift_attribute_value_t(ipaddr=ipaddr)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_IP, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(nhop3, attr)
+            print 'set port type rif nhop status = %d' %status
+
+
+
+            attr_value = sai_thrift_attribute_value_t(oid=rif_id2)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_ROUTER_INTERFACE_ID, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(nhop4, attr)
+            print 'set bridge type rif nhop status = %d' %status
+
+
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [1])
+
+            self.ctc_send_packet( 0, str(pkt2))
+            self.ctc_verify_packets( exp_pkt2_2, [2])
+
+            self.ctc_send_packet( 0, str(pkt3))
+            self.ctc_verify_packets( exp_pkt3_2, [3])
+
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr2_subnet, ip_mask1, nhop2)
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr3_subnet, ip_mask1, nhop3)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop2)
+            self.client.sai_thrift_remove_next_hop(nhop3)
+            self.client.sai_thrift_remove_next_hop(nhop4)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id3, ip_addr2, dmac1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id3, ip_addr3, dmac1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id4, ip_addr4, dmac1)
+            self.client.sai_thrift_remove_bridge_port(bridge_rif_bp)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_router_interface(rif_id3)
+            self.client.sai_thrift_remove_router_interface(rif_id4)
+            sai_thrift_delete_fdb(self.client, bridge_id, dmac1, bport1_id)
+            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            self.client.sai_thrift_remove_bridge(bridge_id)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+
+
+
 

@@ -76,6 +76,7 @@
 \b
 \t  |   ATTRIBUTE                                                |       SUPPORT CHIPS LIST       |
 \t  |  SAI_ACL_ACTION_TYPE_REDIRECT                              |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_ENDPOINT_IP                           |              -                 |
 \t  |  SAI_ACL_ACTION_TYPE_REDIRECT_LIST                         |              -                 |
 \t  |  SAI_ACL_ACTION_TYPE_PACKET_ACTION                         |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ACTION_TYPE_FLOOD                                 |              -                 |
@@ -106,8 +107,21 @@
 \t  |  SAI_ACL_ACTION_TYPE_EGRESS_BLOCK_PORT_LIST                |              -                 |
 \t  |  SAI_ACL_ACTION_TYPE_SET_USER_TRAP_ID                      |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ACTION_TYPE_SET_DO_NOT_LEARN                      |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ACTION_TYPE_ACL_DTEL_FLOW_OP                      |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_DTEL_INT_SESSION                      |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_DTEL_DROP_REPORT_ENABLE               |              -                 |
 \t  |  SAI_ACL_ACTION_TYPE_DTEL_TAIL_DROP_REPORT_ENABLE          |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_DTEL_FLOW_SAMPLE_PERCENT              |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_DTEL_REPORT_ALL_PACKETS               |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_NO_NAT                                |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_INT_INSERT                            |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_INT_DELETE                            |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_INT_REPORT_FLOW                       |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_INT_REPORT_DROPS                      |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_INT_REPORT_TAIL_DROPS                 |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_TAM_INT_OBJECT                        |              -                 |
 \t  |  SAI_ACL_ACTION_TYPE_SET_ISOLATION_GROUP                   |              -                 |
+\t  |  SAI_ACL_ACTION_TYPE_MACSEC_FLOW                           |              -                 |
 \b
 
 \p
@@ -222,7 +236,7 @@
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_NEIGHBOR_DST_USER_META           |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_PORT_USER_META                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_VLAN_USER_META                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_TABLE_ATTR_FIELD_ACL_USER_META                    |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_TABLE_ATTR_FIELD_ACL_USER_META                    |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_FDB_NPU_META_DST_HIT             |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_NEIGHBOR_NPU_META_DST_HIT        |              -                 |
 \t  |  SAI_ACL_TABLE_ATTR_FIELD_ROUTE_NPU_META_DST_HIT           |              -                 |
@@ -251,9 +265,7 @@
 \t  |  SAI_ACL_TABLE_ATTR_ENTRY_LIST                             |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_AVAILABLE_ACL_ENTRY                    |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_TABLE_ATTR_AVAILABLE_ACL_COUNTER                  |              -                 |
-\t  |  SAI_ACL_TABLE_ATTR_FIELD_INNER_SRC_MAC                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_TABLE_ATTR_FIELD_INNER_DST_MAC                    |    CTC8096,CTC7148,CTC7132     |
-
+\e  |  SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID                     |            CTC7132             |
 \b
 
 \p
@@ -362,6 +374,8 @@
 \t  |  SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX           |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_ACL_RANGE_TYPE                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER                 |    CTC8096,CTC7148,CTC7132     |
+\t  |  SAI_ACL_ENTRY_ATTR_FIELD_TAM_INT_TYPE                     |              -                 |
+\e  |  SAI_ACL_ENTRY_ATTR_FIELD_INTERFACE_ID                     |            CTC7132             |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT                        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_ENDPOINT_IP                     |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT_LIST                   |              -                 |
@@ -397,10 +411,18 @@
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_ACL_DTEL_FLOW_OP                |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_DTEL_INT_SESSION                |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_DTEL_DROP_REPORT_ENABLE         |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_DTEL_TAIL_DROP_REPORT_ENABLE    |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_DTEL_FLOW_SAMPLE_PERCENT        |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_DTEL_REPORT_ALL_PACKETS         |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_NO_NAT                          |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_INT_INSERT                      |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_INT_DELETE                      |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_INT_REPORT_FLOW                 |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_INT_REPORT_DROPS                |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_INT_REPORT_TAIL_DROPS           |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_TAM_INT_OBJECT                  |              -                 |
 \t  |  SAI_ACL_ENTRY_ATTR_ACTION_SET_ISOLATION_GROUP             |              -                 |
-\t  |  SAI_ACL_ENTRY_ATTR_ACTION_DTEL_TAIL_DROP_REPORT_ENABLE    |              -                 |
+\t  |  SAI_ACL_ENTRY_ATTR_ACTION_MACSEC_FLOW                     |              -                 |
 \b
 
 \p
@@ -434,7 +456,7 @@
 \t  |   ATTRIBUTE                                                |       SUPPORT CHIPS LIST       |
 \t  |  SAI_ACL_RANGE_ATTR_TYPE                                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ACL_RANGE_ATTR_LIMIT                                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_ACL_RANGE_ATTR_STAGE                                  |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_ACL_RANGE_ATTR_STAGE                                  |            CTC7132             |
 \b
 */
 
@@ -452,8 +474,8 @@
 #define ACL_MIN_ENTRY_PRIORITY     1
 #define ACL_MAX_ENTRY_PRIORITY     65535
 #define ACL_DEFAULT_ENTRY_PRIORITY 1
-#define ACL_MAX_FLEX_KEY_COUNT     (SAI_ACL_ENTRY_ATTR_FIELD_END - SAI_ACL_ENTRY_ATTR_FIELD_START + 1)
-#define ACL_MAX_FLEX_ACTION_COUNT  (SAI_ACL_ENTRY_ATTR_ACTION_END - SAI_ACL_ENTRY_ATTR_ACTION_START + 1)
+#define SAI_ACL_KEY_ATTR_NUM       ((SAI_ACL_TABLE_ATTR_FIELD_END - SAI_ACL_TABLE_ATTR_FIELD_START + 1) + (SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_END - SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_START + 1))
+#define SAI_ACL_ACTION_ATTR_NUM    (SAI_ACL_ENTRY_ATTR_ACTION_END - SAI_ACL_ENTRY_ATTR_ACTION_START + 1)
 
 /* ingress acl tcam block 0 used for twamp, 1 used for hostif, block 2~4 used for parallel, block 5~6 used for sequential, block 7 used for blobal switch.
  * egress acl tcam block 0~2 used for parallel, not support sequential and blobal switch.
@@ -530,8 +552,9 @@ struct ctc_sai_acl_table_s
     uint32 table_size;
     uint32 lookup_type;
     uint32 created_entry_count;
-    uint32 table_key_bmp[(ACL_MAX_FLEX_KEY_COUNT - 1) / 32 + 1];    /* bit 0 <--> SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6; bit 1 <--> SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6 */
+    uint32 table_key_bmp[(SAI_ACL_KEY_ATTR_NUM-1)/32 + 1];          /* bit 0 <--> SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6; bit 1 <--> SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6 */
     uint8  range_type_bmp;
+    sai_object_id_t counter_id;
 
     ctc_slist_t* entry_list;                                        /* all entries added to this table */
     ctc_slist_t* group_list;                                        /* the table is a member of these groups */
@@ -581,8 +604,8 @@ struct ctc_sai_acl_counter_s
     sai_object_id_t table_id;
     bool enable_pkt_cnt;
     bool enable_byte_cnt;
-    uint32 acl_stats_id; /*ctc sdk stats id*/
-    uint32 ref_cnt;     /* to record how many sai entry(s) use this acl counter object id */
+    uint32 stats_id;         /* sai sdk stats id*/
+    uint32 ref_cnt;          /* to record how many sai entry(s) use this acl counter object id */
 };
 typedef struct ctc_sai_acl_counter_s ctc_sai_acl_counter_t;
 
@@ -603,6 +626,9 @@ ctc_sai_acl_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t *dump
 
 extern sai_status_t
 ctc_sai_acl_set_mirror_sample_rate(uint8 lchip,sai_object_id_t mirror_oid);
+
+extern sai_status_t
+ctc_sai_acl_init_resource(uint8 lchip);
 
 #endif /*_CTC_SAI_ACL_H*/
 

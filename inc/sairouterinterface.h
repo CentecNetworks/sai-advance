@@ -275,7 +275,7 @@ typedef enum _sai_router_interface_attr_t
      * @flags CREATE_AND_SET
      * @default 0
      */
-    SAI_ROUTER_INTERFACE_ATTR_NAT_ZONE_ID,
+    SAI_ROUTER_INTERFACE_ATTR_NAT_ZONE_ID,    
 
     /**
      * @brief End of attributes
@@ -284,6 +284,59 @@ typedef enum _sai_router_interface_attr_t
 
     /** Custom range base value */
     SAI_ROUTER_INTERFACE_ATTR_CUSTOM_RANGE_START = 0x10000000,
+
+    /**
+     * @brief Enable DSCP -> TC MAP on port
+     *
+     * Map id = #SAI_NULL_OBJECT_ID to disable map on rif.
+     * To enable/disable trust DSCP, map ID should be added/removed on rif.
+     * Default no map.
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP = SAI_ROUTER_INTERFACE_ATTR_CUSTOM_RANGE_START,
+
+    /**
+     * @brief Enable DSCP -> COLOR MAP on rif
+     *
+     * Map id = #SAI_NULL_OBJECT_ID to disable map on port.
+     * To enable/disable trust DSCP, map ID should be added/removed on rif.
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP,
+
+
+    /**
+     * @brief Enable TC AND COLOR -> DSCP MAP
+     *
+     * Map id = #SAI_NULL_OBJECT_ID to disable map on rif.
+     * Default no map.
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP,
+
+    /**
+     * @brief Update DSCP of outgoing packets
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default false
+     */
+    SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP,
 
     /**
      * @brief Admin stats state

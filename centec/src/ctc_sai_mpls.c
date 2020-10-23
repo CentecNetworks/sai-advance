@@ -11,6 +11,8 @@
 #include "ctc_sai_tunnel.h"
 #include "ctc_sai_next_hop_group.h"
 #include "ctc_sai_qosmap.h"
+#include "ctc_sai_counter.h"
+#include "ctc_sai_policer.h"
 
 /*sdk include file*/
 #include "ctcs_api.h"
@@ -123,7 +125,7 @@ _ctc_sai_mpls_get_ctc_nh_id(sai_packet_action_t action, sai_object_id_t nexthop_
 {
     uint32 ctc_nh_id = 0;
     ctc_object_id_t ctc_object_id;
-    
+
     sal_memset(&ctc_object_id,0,sizeof(ctc_object_id_t));
     if ((SAI_PACKET_ACTION_DROP == action)
         || (SAI_PACKET_ACTION_DENY == action))
@@ -162,14 +164,24 @@ _ctc_sai_mpls_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
     sai_packet_action_t action = SAI_PACKET_ACTION_FORWARD;
     uint8 pop = 1;
     sai_object_id_t nexthop_oid = 0;
-    uint32 ctc_nh_id = 0;
+    uint32 ctc_nh_id = 0, policer_id = 0;
     ctc_object_id_t ctc_object_id;
     ctc_object_id_t ctc_object_id_old;
     ctc_sai_router_interface_t* p_route_interface = NULL;
+    ctc_sai_counter_t* p_counter_info = NULL;
     uint8 ilm_update = 0;
     uint32 psc_type = SAI_INSEG_ENTRY_PSC_TYPE_ELSP;
     uint8 qos_tc = 0, enable = 0;;
     uint32 exp_to_tc_map_id = 0, exp_to_color_map_id = 0;
+    ctc_mpls_property_t mpls_pro;
+    ctc_mpls_ilm_qos_map_t ilm_qos_map;
+    uint16 service_id = 0, old_service_id = 0, service_id_update = 0xff;
+    ctc_sai_tunnel_t* p_tunnel = NULL;
+    ctc_sai_next_hop_grp_t* p_nhp_grp_frr = NULL;
+    
+    
+    sal_memset(&ilm_qos_map, 0, sizeof(ilm_qos_map));
+    sal_memset(&mpls_pro, 0, sizeof(mpls_pro));
 
     sal_memset(&ctc_mpls_ilm, 0, sizeof(ctc_mpls_ilm_t));
 
@@ -189,7 +201,9 @@ _ctc_sai_mpls_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
     qos_tc = p_mpls_info->qos_tc;
     exp_to_tc_map_id = p_mpls_info->exp_to_tc_map_id;
     exp_to_color_map_id = p_mpls_info->exp_to_color_map_id;
-        
+    policer_id = p_mpls_info->policer_id;
+    service_id = p_mpls_info->service_id;
+
     ctc_mpls_ilm.label = inseg_entry->label;
     CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_get_ilm(lchip, invalid_nh_id, &ctc_mpls_ilm));
 
@@ -229,21 +243,85 @@ _ctc_sai_mpls_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
             psc_type = attr->value.s32;
 
             if(SAI_INSEG_ENTRY_PSC_TYPE_LLSP == psc_type)
+            {                    
+                /*Change from ELSP, need clear exp to tc qosmap */
+                if(p_mpls_info->psc_type == SAI_INSEG_ENTRY_PSC_TYPE_ELSP)
+                {
+                    if(p_mpls_info->exp_to_tc_map_id)
+                    {
+                        CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, p_mpls_info->psc_type, qos_tc,
+                                                    p_mpls_info->exp_to_tc_map_id,
+                                                    SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC, 0));
+                        p_mpls_info->exp_to_tc_map_id = 0;
+                        exp_to_tc_map_id = 0;
+                    }
+                }
+                
+                ilm_qos_map.mode = CTC_MPLS_ILM_QOS_MAP_LLSP;
+                ilm_qos_map.priority = qos_tc * QOS_MAP_SAI_TC_TO_CTC_PRI;
+                ilm_qos_map.exp_domain = p_mpls_info->qos_domain_id;
+                mpls_pro.label = inseg_entry->label;
+                mpls_pro.property_type = CTC_MPLS_ILM_QOS_MAP;
+                mpls_pro.value = &ilm_qos_map;
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_set_ilm_property(lchip, &mpls_pro));
+            }
+            else if(SAI_INSEG_ENTRY_PSC_TYPE_ELSP == psc_type)
             {
-                CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, psc_type, qos_tc,
-                                                exp_to_color_map_id,
-                                                SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR, 1));
+                ilm_qos_map.mode = CTC_MPLS_ILM_QOS_MAP_ELSP;
+                ilm_qos_map.exp_domain = p_mpls_info->qos_domain_id;
+                mpls_pro.label = inseg_entry->label;
+                mpls_pro.property_type = CTC_MPLS_ILM_QOS_MAP;
+                mpls_pro.value = &ilm_qos_map;       
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_set_ilm_property(lchip, &mpls_pro));
             }
             else
             {
-                CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, psc_type, qos_tc,
-                                                exp_to_tc_map_id,
-                                                SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC, 1));
+                         
+                /*Change from ELSP, need clear exp to tc qosmap & exp to color qosmap */
+                if(p_mpls_info->psc_type == SAI_INSEG_ENTRY_PSC_TYPE_ELSP)
+                {
+                    if(p_mpls_info->exp_to_tc_map_id)
+                    {
+                        CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, p_mpls_info->psc_type, qos_tc,
+                                                p_mpls_info->exp_to_tc_map_id,
+                                                SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC, 0));
+                        p_mpls_info->exp_to_tc_map_id = 0;
+                        exp_to_tc_map_id = 0;
+                    }
+                    if(p_mpls_info->exp_to_color_map_id)
+                    {
+                        CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, p_mpls_info->psc_type, qos_tc,
+                                                    p_mpls_info->exp_to_color_map_id,
+                                                    SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR, 0));
+                        p_mpls_info->exp_to_color_map_id = 0;
+                        
+                        exp_to_color_map_id = 0;
+                    }
+                }
+                /*Change from LLSP, need clear exp to color qosmap */
+                else if(p_mpls_info->psc_type == SAI_INSEG_ENTRY_PSC_TYPE_LLSP)
+                {
+                    if(p_mpls_info->exp_to_color_map_id)
+                    {
+                        CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, p_mpls_info->psc_type, qos_tc,
+                                                    p_mpls_info->exp_to_color_map_id,
+                                                    SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR, 0));
+                        p_mpls_info->exp_to_color_map_id = 0;
+                        
+                        exp_to_color_map_id = 0;
+                    }
+                }
+
+                ilm_qos_map.mode = CTC_MPLS_ILM_QOS_MAP_DISABLE;
+                mpls_pro.label = inseg_entry->label;
+                mpls_pro.property_type = CTC_MPLS_ILM_QOS_MAP;
+                mpls_pro.value = &ilm_qos_map; 
                 
-                CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, psc_type, qos_tc,
-                                                exp_to_color_map_id,
-                                                SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR, 1));
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_set_ilm_property(lchip, &mpls_pro));
+                
             }
+
+            
             break;
         case SAI_INSEG_ENTRY_ATTR_QOS_TC:
             if(p_mpls_info->psc_type != SAI_INSEG_ENTRY_PSC_TYPE_LLSP)
@@ -252,9 +330,14 @@ _ctc_sai_mpls_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
             }
             qos_tc = attr->value.u8;
 
-            CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, psc_type, qos_tc,
-                                                exp_to_color_map_id,
-                                                SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR, 1));
+            ilm_qos_map.mode = CTC_MPLS_ILM_QOS_MAP_LLSP;
+            ilm_qos_map.priority = qos_tc * QOS_MAP_SAI_TC_TO_CTC_PRI;
+            ilm_qos_map.exp_domain = p_mpls_info->qos_domain_id;
+            mpls_pro.label = inseg_entry->label;
+            mpls_pro.property_type = CTC_MPLS_ILM_QOS_MAP;
+            mpls_pro.value = &ilm_qos_map;
+
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_set_ilm_property(lchip, &mpls_pro));
             break;
         case SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP:
             if(p_mpls_info->psc_type != SAI_INSEG_ENTRY_PSC_TYPE_ELSP)
@@ -262,6 +345,10 @@ _ctc_sai_mpls_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
                 return SAI_STATUS_INVALID_PARAMETER;
             }
             ctc_sai_oid_get_value(attr->value.oid, &exp_to_tc_map_id);
+            if(exp_to_tc_map_id == p_mpls_info->exp_to_tc_map_id)
+            {
+                return SAI_STATUS_SUCCESS;
+            }
             if (SAI_NULL_OBJECT_ID != attr->value.oid)
             {
                 enable = TRUE;
@@ -272,15 +359,100 @@ _ctc_sai_mpls_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
                                                 SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC, enable));
             break;
         case SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP:
+            if(p_mpls_info->psc_type == SAI_INSEG_ENTRY_PSC_TYPE_NONE)
+            {
+                return SAI_STATUS_INVALID_PARAMETER;
+            }
+            
             ctc_sai_oid_get_value(attr->value.oid, &exp_to_color_map_id);
+
+            if(exp_to_color_map_id == p_mpls_info->exp_to_color_map_id)
+            {
+                return SAI_STATUS_SUCCESS;
+            }
 
             if (SAI_NULL_OBJECT_ID != attr->value.oid)
             {
                 enable = TRUE;
-            }            
+            }
             CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_inseg_set_map(inseg_entry, psc_type, qos_tc,
                                                 enable ? exp_to_color_map_id : p_mpls_info->exp_to_color_map_id,
                                                 SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR, enable));
+            break;
+        case SAI_INSEG_ENTRY_ATTR_COUNTER_ID:
+            if (SAI_NULL_OBJECT_ID != attr->value.oid)
+            {
+                p_counter_info = ctc_sai_db_get_object_property(lchip, attr->value.oid);
+                if (NULL == p_counter_info)
+                {
+                    return SAI_STATUS_ITEM_NOT_FOUND;
+                }
+                if (attr->value.oid == p_mpls_info->counter_oid)
+                {
+                    break;
+                }
+                if (SAI_NULL_OBJECT_ID != p_mpls_info->counter_oid)
+                {
+                    if (SAI_NULL_OBJECT_ID != p_mpls_info->decap_tunnel_oid)
+                    {
+                        CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(p_mpls_info->counter_oid, CTC_SAI_COUNTER_TYPE_INSEG_MPLS_PW));
+                    }
+                    else
+                    {
+                        CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(p_mpls_info->counter_oid, CTC_SAI_COUNTER_TYPE_INSEG_MPLS_LSP));
+                    }
+                }
+
+                if (SAI_NULL_OBJECT_ID != p_mpls_info->decap_tunnel_oid)
+                {
+                    CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_create(attr->value.oid, CTC_SAI_COUNTER_TYPE_INSEG_MPLS_PW, &ctc_mpls_ilm.stats_id));
+                }
+                else
+                {
+                    CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_create(attr->value.oid, CTC_SAI_COUNTER_TYPE_INSEG_MPLS_LSP, &ctc_mpls_ilm.stats_id));
+                }
+                p_mpls_info->counter_oid = attr->value.oid;
+            }
+            else
+            {
+                if (SAI_NULL_OBJECT_ID != p_mpls_info->decap_tunnel_oid)
+                {
+                    CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(p_mpls_info->counter_oid, CTC_SAI_COUNTER_TYPE_INSEG_MPLS_PW));
+                }
+                else
+                {
+                    CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(p_mpls_info->counter_oid, CTC_SAI_COUNTER_TYPE_INSEG_MPLS_LSP));
+                }
+                p_mpls_info->counter_oid = SAI_NULL_OBJECT_ID;
+            }
+            break;
+        case SAI_INSEG_ENTRY_ATTR_POLICER_ID: 
+            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, attr->value.oid, &ctc_object_id);
+            if(SAI_NULL_OBJECT_ID != attr->value.oid)
+            {
+                CTC_SAI_CTC_ERROR_RETURN(ctc_sai_policer_mpls_set_policer(lchip, inseg_entry->label, ctc_object_id.value, true));
+            }
+            //revert old policer oid
+            if (p_mpls_info->policer_id && ctc_object_id.value && (p_mpls_info->policer_id != ctc_object_id.value) )
+            {
+                CTC_SAI_CTC_ERROR_RETURN(ctc_sai_policer_mpls_set_policer(lchip, inseg_entry->label, p_mpls_info->policer_id, false));
+            }
+            policer_id = ctc_object_id.value;
+            ilm_update = 1;
+            break;
+        case SAI_INSEG_ENTRY_ATTR_SERVICE_ID:
+            old_service_id = p_mpls_info->service_id;
+            if(attr->value.u16)
+            {
+                service_id = attr->value.u16;
+                
+                service_id_update = 1;
+            }
+            else
+            {
+                service_id_update = 0;
+            }
+            ilm_update = 1;
             break;
         default:
             break;
@@ -291,10 +463,40 @@ _ctc_sai_mpls_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
         _ctc_sai_mpls_get_ctc_nh_id(action, nexthop_oid, &ctc_nh_id, &ctc_mpls_ilm);
 
         ctc_mpls_ilm.nh_id = ctc_nh_id;
+        ctc_mpls_ilm.policer_id = policer_id;
+
+        if(1 == service_id_update)
+        {
+            ctc_mpls_ilm.id_type = CTC_MPLS_ID_SERVICE;
+            ctc_mpls_ilm.flw_vrf_srv_aps.service_id = service_id;
+            if(0 == old_service_id) //first set, may need set pwid for vpws or l3vpn
+            {
+                if(p_mpls_info->decap_tunnel_oid)
+                {
+                    p_tunnel = ctc_sai_db_get_object_property(lchip, p_mpls_info->decap_tunnel_oid);
+                    ctc_mpls_ilm.pwid = p_tunnel->logic_port;
+                }
+                if(p_mpls_info->frr_nhp_grp_oid)
+                {
+                    p_nhp_grp_frr = ctc_sai_db_get_object_property(lchip, p_mpls_info->frr_nhp_grp_oid);
+                    ctc_mpls_ilm.pwid = p_nhp_grp_frr->logic_port;
+                }
+            }
+        }
+        else if(0 == service_id_update)
+        {
+            CTC_UNSET_FLAG(ctc_mpls_ilm.id_type, CTC_MPLS_ID_SERVICE);
+        }
+        else
+        {
+            //keep
+        }
         CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_update_ilm(lchip, &ctc_mpls_ilm));
         p_mpls_info->pop = pop;
         p_mpls_info->action = action;
         p_mpls_info->nexthop_oid = nexthop_oid;
+        p_mpls_info->policer_id = policer_id;
+        p_mpls_info->service_id = service_id;
     }
     else
     {
@@ -358,7 +560,7 @@ _ctc_sai_mpls_get_attr(sai_object_key_t* key, sai_attribute_t* attr, uint32 attr
             ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, p_mpls_info->frr_nhp_grp_oid, &ctc_object_id);
             ctcs_aps_get_aps_bridge(lchip, ctc_object_id.value2, &protecting);
 
-            if(((SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY == p_mpls_info->frr_configured_role) && protecting) || 
+            if(((SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY == p_mpls_info->frr_configured_role) && protecting) ||
                 ((SAI_INSEG_ENTRY_CONFIGURED_ROLE_STANDBY == p_mpls_info->frr_configured_role) && !protecting))
             {
                 attr->value.u8 = SAI_INSEG_ENTRY_OBSERVED_ROLE_INACTIVE;
@@ -386,6 +588,22 @@ _ctc_sai_mpls_get_attr(sai_object_key_t* key, sai_attribute_t* attr, uint32 attr
         case SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP:
             attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QOS_MAP, lchip, 0, 0, p_mpls_info->exp_to_color_map_id);
             break;
+        case SAI_INSEG_ENTRY_ATTR_COUNTER_ID:
+            attr->value.oid = p_mpls_info->counter_oid;
+            break;
+        case SAI_INSEG_ENTRY_ATTR_POLICER_ID: 
+            if (!p_mpls_info->policer_id)
+            {
+                attr->value.oid = SAI_NULL_OBJECT_ID;
+            }
+            else
+            {
+                attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_POLICER, lchip, 0, 0, p_mpls_info->policer_id);
+            }
+            break;
+        case SAI_INSEG_ENTRY_ATTR_SERVICE_ID: 
+            attr->value.u16 = p_mpls_info->service_id;
+            break;
         default:
             return SAI_STATUS_ATTR_NOT_SUPPORTED_0 + attr_idx;
             break;
@@ -405,12 +623,14 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
     sai_packet_action_t action = SAI_PACKET_ACTION_FORWARD;
     ctc_sai_mpls_t* p_mpls_info = NULL;
     ctc_mpls_ilm_t ctc_mpls_ilm;
-    sai_object_id_t nexthop_oid = 0;
-    sai_object_id_t tunnel_oid = 0;
-    sai_object_id_t frr_oid = 0;
+    sai_object_id_t nexthop_oid = SAI_NULL_OBJECT_ID;
+    sai_object_id_t tunnel_oid = SAI_NULL_OBJECT_ID;
+    sai_object_id_t counter_oid = SAI_NULL_OBJECT_ID;
+    sai_object_id_t frr_oid = SAI_NULL_OBJECT_ID;
     uint32 ctc_nh_id = 0;
     ctc_sai_router_interface_t* p_route_interface = NULL;
     ctc_sai_tunnel_t* p_tunnel = NULL;
+    ctc_sai_counter_t* p_sai_counter = NULL;
     ctc_sai_next_hop_grp_t* p_nhp_grp_frr = NULL;
     ctc_object_id_t ctc_object_id;
     ctc_object_id_t ctc_object_id_br;
@@ -421,11 +641,13 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
     uint8 pop_ttl_mode = 0, pop_qos_mode = 0;
     sai_object_key_t key;
     sai_attribute_t set_attr;
-        
+    uint32 policer_id = 0;
+    uint16 service_id = 0;
+
     sal_memset(&ctc_mpls_ilm,0,sizeof(ctc_mpls_ilm_t));
     sal_memset(&key, 0, sizeof(key));
     sal_memset(&set_attr, 0, sizeof(set_attr));
-    
+
     CTC_SAI_PTR_VALID_CHECK(inseg_entry);
     ctc_sai_oid_get_lchip(inseg_entry->switch_id, &lchip);
     p_mpls_info = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_MPLS, (void*)inseg_entry);
@@ -454,6 +676,16 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
        tunnel_oid = attr_value->oid;
        p_tunnel = ctc_sai_db_get_object_property(lchip, tunnel_oid);
     }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_COUNTER_ID, &attr_value, &index);
+    if (SAI_STATUS_SUCCESS == status)
+    {
+        counter_oid = attr_value->oid;
+        p_sai_counter = ctc_sai_db_get_object_property(lchip, counter_oid);
+        if (NULL == p_sai_counter)
+        {
+            return SAI_STATUS_ITEM_NOT_FOUND;
+        }
+    }
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE, &attr_value, &index);
     if (SAI_STATUS_SUCCESS == status)
     {
@@ -471,6 +703,13 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
        p_nhp_grp_frr = ctc_sai_db_get_object_property(lchip, frr_oid);
        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, attr_value->oid, &ctc_object_id_frr);
     }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_SERVICE_ID, &attr_value, &index);
+    if (SAI_STATUS_SUCCESS == status)
+    {
+       service_id = attr_value->u16;
+    }
+
     _ctc_sai_mpls_get_ctc_nh_id(action, nexthop_oid, &ctc_nh_id, &ctc_mpls_ilm);
     ctc_mpls_ilm.nh_id = ctc_nh_id;
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_INSEG_ENTRY, nexthop_oid, &ctc_object_id);
@@ -523,11 +762,35 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
                         ctc_mpls_ilm.pwid = p_nhp_grp_frr->logic_port;
                     }
                 }
+
+                if(service_id)
+                {
+                    ctc_mpls_ilm.id_type = CTC_MPLS_ID_SERVICE;
+                    ctc_mpls_ilm.flw_vrf_srv_aps.service_id = service_id;
+                }
             }
             else
             {
                 ctc_mpls_ilm.type = CTC_MPLS_LABEL_TYPE_VPWS;
                 ctc_mpls_ilm.nh_id = CTC_NH_RESERVED_NHID_FOR_DROP;
+
+                if(service_id)
+                {
+                    ctc_mpls_ilm.id_type = CTC_MPLS_ID_SERVICE;
+                    ctc_mpls_ilm.flw_vrf_srv_aps.service_id = service_id;
+
+                    if(NULL != p_tunnel)
+                    {
+                        ctc_mpls_ilm.pwid = p_tunnel->logic_port;
+                    }
+                    if(NULL != p_nhp_grp_frr)
+                    {
+                        if(0 != p_nhp_grp_frr->logic_port)
+                        {
+                            ctc_mpls_ilm.pwid = p_nhp_grp_frr->logic_port;
+                        }
+                    }
+                }
             }
             if(NULL != p_tunnel)
             {
@@ -538,6 +801,22 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
                 if(p_tunnel->decap_esi_label_valid)
                 {
                     CTC_SET_FLAG(ctc_mpls_ilm.flag, CTC_MPLS_ILM_FLAG_ESLB_EXIST);
+                }
+                if(p_tunnel->split_horizon_valid)
+                {
+                    ctc_mpls_ilm.logic_port_type = 1;
+                }
+                else
+                {
+                    ctc_mpls_ilm.logic_port_type = 0;
+                }
+				if(SAI_TUNNEL_EXP_MODE_UNIFORM_MODEL == p_tunnel->decap_exp_mode)
+                {
+                    ctc_mpls_ilm.trust_outer_exp = 1;
+                }
+                else if(SAI_TUNNEL_EXP_MODE_PIPE_MODEL == p_tunnel->decap_exp_mode)
+                {
+                    ctc_mpls_ilm.trust_outer_exp = 0;
                 }
             }
         }
@@ -567,6 +846,25 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
                     {
                         ctc_mpls_ilm.trust_outer_exp = 0;
                     }
+
+                    if(service_id)
+                    {
+                        ctc_mpls_ilm.id_type = CTC_MPLS_ID_SERVICE;
+                        ctc_mpls_ilm.flw_vrf_srv_aps.service_id = service_id;
+
+                        if(NULL != p_tunnel)
+                        {
+                            ctc_mpls_ilm.pwid = p_tunnel->logic_port;
+                        }
+                        if(NULL != p_nhp_grp_frr)
+                        {
+                            if(0 != p_nhp_grp_frr->logic_port)
+                            {
+                                ctc_mpls_ilm.pwid = p_nhp_grp_frr->logic_port;
+                            }
+                        }
+                    }
+                    
                 }
             }
             else
@@ -596,8 +894,8 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
     {
         ctc_mpls_ilm.pop = 0;
     }
-    
-    if(NULL != p_tunnel )
+
+    if (NULL != p_tunnel)
     {
         if(p_tunnel->decap_acl_use_outer && (SAI_TUNNEL_TYPE_MPLS == p_tunnel->tunnel_type || SAI_TUNNEL_TYPE_MPLS_L2 == p_tunnel->tunnel_type))
         {
@@ -605,26 +903,50 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
         }
     }
     ctc_mpls_ilm.label = inseg_entry->label;
-    CTC_SAI_CTC_ERROR_GOTO(ctcs_mpls_add_ilm(lchip, &ctc_mpls_ilm), status, out);
+
+    if (NULL != p_sai_counter)
+    {
+        CTC_SAI_ERROR_GOTO(ctc_sai_counter_id_create(counter_oid, p_tunnel?CTC_SAI_COUNTER_TYPE_INSEG_MPLS_PW:CTC_SAI_COUNTER_TYPE_INSEG_MPLS_LSP, &ctc_mpls_ilm.stats_id), status, out);
+        ctc_mpls_ilm.id_type |= CTC_MPLS_ID_STATS;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_POLICER_ID, &attr_value, &index);
+    if (status == SAI_STATUS_SUCCESS )
+    {
+        if(SAI_NULL_OBJECT_ID != attr_value->oid)
+        {        
+            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, attr_value->oid, &ctc_object_id);
+            
+            CTC_SAI_ERROR_GOTO(ctc_sai_policer_mpls_set_policer(lchip, inseg_entry->label, ctc_object_id.value, 1), status, error1);
+            
+            policer_id = ctc_object_id.value;
+            ctc_mpls_ilm.policer_id = policer_id;
+        }
+    }    
+    
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_mpls_add_ilm(lchip, &ctc_mpls_ilm), status, error2);
+
+
+    // build mpls inseg db
+    
+    CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_build_db(lchip, inseg_entry, &p_mpls_info), status, error3);
+    if(NULL != p_tunnel)
+    {
+        p_tunnel->inseg_label = inseg_entry->label;
+        p_tunnel->ref_cnt++;
+    }
+
+    
+    p_mpls_info->action = action;
+    p_mpls_info->nexthop_oid = nexthop_oid;
+    p_mpls_info->decap_tunnel_oid = tunnel_oid;
+    p_mpls_info->pop_ttl_mode = pop_ttl_mode;
+    p_mpls_info->pop_qos_mode = pop_qos_mode;
+    p_mpls_info->policer_id = policer_id;
+    p_mpls_info->service_id = service_id;
+    
 
     //update ilm qos map
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_PSC_TYPE, &attr_value, &index);
-    if (SAI_STATUS_SUCCESS == status)
-    {       
-        sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
-        set_attr.id = SAI_INSEG_ENTRY_ATTR_PSC_TYPE;
-        set_attr.value.s32 = attr_value->s32;
-        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error1);
-    }
-
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_QOS_TC, &attr_value, &index);
-    if (SAI_STATUS_SUCCESS == status)
-    {
-        sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
-        set_attr.id = SAI_INSEG_ENTRY_ATTR_QOS_TC;
-        set_attr.value.u8 = attr_value->u8;
-        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error1);
-    }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP, &attr_value, &index);
     if (SAI_STATUS_SUCCESS == status)
@@ -632,7 +954,7 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
         sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
         set_attr.id = SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP;
         set_attr.value.oid = attr_value->oid;
-        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error1);
+        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP, &attr_value, &index);
@@ -641,20 +963,33 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
         sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
         set_attr.id = SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP;
         set_attr.value.oid = attr_value->oid;
-        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error1);
-    }    
-    
-    CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_build_db(lchip, inseg_entry, &p_mpls_info), status, error1);
-    if(NULL != p_tunnel)
-    {
-        p_tunnel->inseg_label = inseg_entry->label;
-        p_tunnel->ref_cnt++;
+        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
     }
-    p_mpls_info->action = action;
-    p_mpls_info->nexthop_oid = nexthop_oid;
-    p_mpls_info->decap_tunnel_oid = tunnel_oid;
-    p_mpls_info->pop_ttl_mode = pop_ttl_mode;
-    p_mpls_info->pop_qos_mode = pop_qos_mode;
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_QOS_TC, &attr_value, &index);
+    if (SAI_STATUS_SUCCESS == status)
+    {
+        sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
+        set_attr.id = SAI_INSEG_ENTRY_ATTR_QOS_TC;
+        set_attr.value.u8 = attr_value->u8;
+        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_PSC_TYPE, &attr_value, &index);
+    if (SAI_STATUS_SUCCESS == status)
+    {
+        sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
+        set_attr.id = SAI_INSEG_ENTRY_ATTR_PSC_TYPE;
+        set_attr.value.s32 = attr_value->s32;
+        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
+    }
+
+
+    if (SAI_NULL_OBJECT_ID != counter_oid)
+    {
+        p_mpls_info->counter_oid = counter_oid;
+    }
+
     if(NULL != p_nhp_grp_frr)
     {
         p_mpls_info->frr_nhp_grp_oid = frr_oid;
@@ -669,12 +1004,25 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
             p_nhp_grp_frr->rx_label_standby = inseg_entry->label;
         }
     }
-    
+
     return SAI_STATUS_SUCCESS;
 
-error1:
-    CTC_SAI_LOG_ERROR(SAI_API_MPLS, "rollback to error1\n");
+error4:
+    CTC_SAI_LOG_ERROR(SAI_API_MPLS, "rollback to error4\n");
+    _ctc_sai_mpls_remove_db(lchip, inseg_entry);   
+error3:
+    CTC_SAI_LOG_ERROR(SAI_API_MPLS, "rollback to error3\n");
     ctcs_mpls_del_ilm(lchip, &ctc_mpls_ilm);
+error2:
+    CTC_SAI_LOG_ERROR(SAI_API_MPLS, "rollback to error2\n");
+    if(policer_id)
+    {
+        ctc_sai_policer_mpls_set_policer(lchip, inseg_entry->label, policer_id, 0);
+    }
+error1:
+    CTC_SAI_LOG_ERROR(SAI_API_MPLS, "rollback to error1\n");    
+    ctc_sai_counter_id_remove(counter_oid, p_tunnel?CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_PW:CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_LSP);
+
 out:
     return status;
 }
@@ -686,7 +1034,8 @@ _ctc_sai_mpls_remove_inseg_entry(const sai_inseg_entry_t *inseg_entry)
     ctc_sai_mpls_t* p_mpls_info = NULL;
     ctc_mpls_ilm_t ctc_mpls_ilm;
     ctc_sai_tunnel_t* p_tunnel = NULL;
-    
+    ctc_sai_next_hop_grp_t* p_nhp_grp_frr = NULL;
+
     sal_memset(&ctc_mpls_ilm,0,sizeof(ctc_mpls_ilm_t));
 
     CTC_SAI_PTR_VALID_CHECK(inseg_entry);
@@ -716,7 +1065,19 @@ _ctc_sai_mpls_remove_inseg_entry(const sai_inseg_entry_t *inseg_entry)
                                                 SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR, 0));
         p_mpls_info->exp_to_color_map_id = 0;
     }
-    
+
+    if (SAI_NULL_OBJECT_ID != p_mpls_info->counter_oid)
+    {
+        if (SAI_NULL_OBJECT_ID != p_mpls_info->decap_tunnel_oid)
+        {
+            CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(p_mpls_info->counter_oid, CTC_SAI_COUNTER_TYPE_INSEG_MPLS_PW));
+        }
+        else
+        {
+            CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(p_mpls_info->counter_oid, CTC_SAI_COUNTER_TYPE_INSEG_MPLS_LSP));
+        }
+    }
+
     ctc_mpls_ilm.label = inseg_entry->label;
     CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_del_ilm(lchip, &ctc_mpls_ilm));
     if(p_mpls_info->decap_tunnel_oid)
@@ -727,7 +1088,30 @@ _ctc_sai_mpls_remove_inseg_entry(const sai_inseg_entry_t *inseg_entry)
             p_tunnel->ref_cnt--;
             p_tunnel->inseg_label = 0;
         }
-    }  
+    }
+
+    if(p_mpls_info->frr_nhp_grp_oid)
+    {
+        p_nhp_grp_frr = ctc_sai_db_get_object_property(lchip, p_mpls_info->frr_nhp_grp_oid);
+
+        if(p_nhp_grp_frr)
+        {
+            if(SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY == p_mpls_info->frr_configured_role)
+            {
+                p_nhp_grp_frr->rx_label_primary = 0;
+            }
+            else if(SAI_INSEG_ENTRY_CONFIGURED_ROLE_STANDBY == p_mpls_info->frr_configured_role)
+            {
+                p_nhp_grp_frr->rx_label_standby = 0;
+            }
+        }
+    }
+
+    if (p_mpls_info->policer_id)
+    {
+        ctc_sai_policer_mpls_set_policer(lchip, (uint32)inseg_entry->label, p_mpls_info->policer_id, 0);
+    }
+
     _ctc_sai_mpls_remove_db(lchip, inseg_entry);
     return SAI_STATUS_SUCCESS;
 }
@@ -776,6 +1160,15 @@ static  ctc_sai_attr_fn_entry_t mpls_attr_fn_entries[] = {
       _ctc_sai_mpls_get_attr,
       _ctc_sai_mpls_set_attr},
     { SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP,
+      _ctc_sai_mpls_get_attr,
+      _ctc_sai_mpls_set_attr},
+    { SAI_INSEG_ENTRY_ATTR_COUNTER_ID,
+      _ctc_sai_mpls_get_attr,
+      _ctc_sai_mpls_set_attr},
+    { SAI_INSEG_ENTRY_ATTR_POLICER_ID,
+      _ctc_sai_mpls_get_attr,
+      _ctc_sai_mpls_set_attr},
+    { SAI_INSEG_ENTRY_ATTR_SERVICE_ID,
       _ctc_sai_mpls_get_attr,
       _ctc_sai_mpls_set_attr},
     { CTC_SAI_FUNC_ATTR_END_ID,

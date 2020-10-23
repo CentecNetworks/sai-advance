@@ -63,11 +63,17 @@ int32 ctc_sai_wb_func_add_entry(ctc_wb_data_t *data)
     int32 ret = 0;
     char key[SAI_WB_DB_SIZE_32];
     uint32 offset = 0;
-    uint8 buffer[SAI_WB_DB_SIZE_FFFF];
+    uint8 *p_buffer = NULL;
     uint32 len = 0;
     uint32 i = 0;
 
+    p_buffer = sal_malloc(SAI_WB_DB_SIZE_FFFF);
+    if (NULL == p_buffer)
+    {
+        return -1;
+    }
 
+    sal_memset(p_buffer, 0, SAI_WB_DB_SIZE_FFFF);
     sal_snprintf(key, SAI_WB_DB_SIZE_32, "SDK_%u", data->app_id);
     len = data->key_len + data->data_len;
     if (SAI_WB_DB_SIZE_FFFF < len)
@@ -76,9 +82,9 @@ int32 ctc_sai_wb_func_add_entry(ctc_wb_data_t *data)
     }
     for (i = 0; i < data->valid_cnt; i++)
     {
-        sal_memcpy(buffer, (uint8*)(data->buffer) + offset, len);
+        sal_memcpy(p_buffer, (uint8*)(data->buffer) + offset, len);
         offset += len;
-        ret = ctc_redis_client_lpush_binary(key, buffer, len);
+        ret = ctc_redis_client_lpush_binary(key, p_buffer, len);
         if (ret)
         {
             return ret;

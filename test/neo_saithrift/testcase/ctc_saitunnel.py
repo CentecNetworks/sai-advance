@@ -1050,6 +1050,7 @@ class TunnelCreateVxlanBridgeMappingTest(sai_base_test.ThriftInterfaceDataPlane)
             self.client.sai_thrift_remove_tunnel_map_entry(tunnel_map_entry_encap_id);
             self.client.sai_thrift_remove_tunnel_map(tunnel_map_encap_id);
             self.client.sai_thrift_remove_tunnel_map(tunnel_map_decap_id);
+            self.client.sai_thrift_remove_router_interface(rif_lp_inner_id)
             self.client.sai_thrift_remove_bridge_port(bport1_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
 
@@ -1212,6 +1213,7 @@ class TunnelCreateVxlanDefaultVrfMappingTest(sai_base_test.ThriftInterfaceDataPl
             sai_thrift_remove_neighbor(self.client, addr_family, rif_decap_id, ip_decap_addr_da, encap_inner_mac_da)
             self.client.sai_thrift_remove_router_interface(rif_encap_id)
             self.client.sai_thrift_remove_router_interface(rif_decap_id)
+            self.client.sai_thrift_remove_router_interface(rif_lp_inner_id)
             self.client.sai_thrift_remove_next_hop(tunnel_nexthop_id)
             self.client.sai_thrift_remove_tunnel_term_table_entry(tunnel_term_table_entry_id)
             self.client.sai_thrift_remove_tunnel(tunnel_id)
@@ -1382,10 +1384,11 @@ class TunnelCreateVxlanCrossVniTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_next_hop(tunnel_nexthop_id)
             self.client.sai_thrift_remove_tunnel_term_table_entry(tunnel_term_table_entry_id)
             self.client.sai_thrift_remove_tunnel(tunnel_id)
-            self.client.sai_thrift_remove_tunnel_map_entry(tunnel_map_entry_decap_id);
-            self.client.sai_thrift_remove_tunnel_map_entry(tunnel_map_entry_encap_id);
-            self.client.sai_thrift_remove_tunnel_map(tunnel_map_encap_id);
-            self.client.sai_thrift_remove_tunnel_map(tunnel_map_decap_id);
+            self.client.sai_thrift_remove_tunnel_map_entry(tunnel_map_entry_decap_id)
+            self.client.sai_thrift_remove_tunnel_map_entry(tunnel_map_entry_encap_id)
+            self.client.sai_thrift_remove_tunnel_map(tunnel_map_encap_id)
+            self.client.sai_thrift_remove_tunnel_map(tunnel_map_decap_id)
+            self.client.sai_thrift_remove_router_interface(rif_lp_inner_id)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid)            
@@ -1555,6 +1558,7 @@ class TunnelCreateVxlanVlanMappingWithWrongOrderTest(sai_base_test.ThriftInterfa
             self.client.sai_thrift_remove_tunnel_map_entry(tunnel_map_entry_encap_id);
             self.client.sai_thrift_remove_tunnel_map(tunnel_map_encap_id);
             self.client.sai_thrift_remove_tunnel_map(tunnel_map_decap_id);
+            self.client.sai_thrift_remove_router_interface(rif_lp_inner_id)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid)

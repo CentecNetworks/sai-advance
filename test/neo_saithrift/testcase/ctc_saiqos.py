@@ -240,30 +240,8 @@ class SwitchQosMapTCMaptoQueueandUpdateDSCP(sai_base_test.ThriftInterfaceDataPla
         try:
             self.ctc_send_packet( 0, str(pkt))
             self.ctc_verify_packets( exp_pkt, [1])
+            pdb.set_trace()
 
-            key_list_temp = [None]*len(key_list)
-            value_list_temp = [None]*len(key_list)
-            attrs = self.client.sai_thrift_get_qos_map_attribute(map_id) 
-            for a in attrs.attr_list:
-                if a.id == SAI_QOS_MAP_ATTR_TYPE:
-                    if a.value.u32 != SAI_QOS_MAP_TYPE_TC_TO_QUEUE:
-                        print "map type error!!! %d" % a.value.u32
-                        raise NotImplementedError()
-                if a.id == SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST:
-                    if a.value.qosmap.count != len(key_list):
-                        print "get map list error!!! count: %d" % a.value.qosmap.count
-                        raise NotImplementedError()
-                    for i in range(a.value.qosmap.count):
-                        key_list_temp[i] = a.value.qosmap.map_list[i].key.tc
-                        value_list_temp[i] = a.value.qosmap.map_list[i].value.queue_index
-                    print "got key_list:  ",key_list_temp
-                    print "got value_list:",value_list_temp
-                    if key_list_temp != key_list:
-                        print "get key list error!!!"
-                        raise NotImplementedError()
-                    if value_list_temp != value_list:
-                        print "get value list error!!!"
-                        raise NotImplementedError()
         finally:
             attr_value = sai_thrift_attribute_value_t(oid=0)
             attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP, value=attr_value)

@@ -74,7 +74,6 @@ class fun_01_create_mpls_inseg_entry_fn(sai_base_test.ThriftInterfaceDataPlane):
             status = sai_thrift_create_inseg_entry(self.client, label3, pop_nums, None, rif_id2, packet_action)
             sys_logging("create inseg entry status = %d" %status)
             assert (status == SAI_STATUS_SUCCESS) 
-
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
             mpls3 = sai_thrift_inseg_entry_t(label3) 
@@ -1166,7 +1165,6 @@ class fun_16_set_inseg_entry_attr_rifnhop_fn(sai_base_test.ThriftInterfaceDataPl
 
         sys_logging("======Create a inseg entry======")
         sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, rif_id1, packet_action, tunnel_id=tunnel_id)
-
         sys_logging("======get the inseg entry attribute======")
         mpls1 = sai_thrift_inseg_entry_t(label1) 
         attrs = self.client.sai_thrift_get_inseg_entry_attribute(mpls1)
@@ -1919,30 +1917,30 @@ class fun_27_set_and_get_mpls_nexthop_attr_fn(sai_base_test.ThriftInterfaceDataP
                 if a.id == SAI_NEXT_HOP_ATTR_COUNTER_ID:
                     if counter_id2 != a.value.oid:
                         raise NotImplementedError()
-            '''
-            attr_value = sai_thrift_attribute_value_t(oid=counter_id1)
-            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_COUNTER_ID, value=attr_value)
-            self.client.sai_thrift_set_route_attribute(next_hop, attr)
-            attr_value = sai_thrift_attribute_value_t(oid=counter_id2)
-            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_COUNTER_ID, value=attr_value)
-            self.client.sai_thrift_set_route_attribute(next_hop1, attr)
-            
-            attrs = self.client.sai_thrift_get_next_hop_attribute(next_hop)
-            sys_logging("status = %d" %attrs.status)
-            assert (attrs.status == SAI_STATUS_SUCCESS)
-            for a in attrs.attr_list:
-                if a.id == SAI_NEXT_HOP_ATTR_COUNTER_ID:
-                    print a.value.oid
-                    if counter_id1 != a.value.oid:
-                        raise NotImplementedError()
-            attrs = self.client.sai_thrift_get_next_hop_attribute(next_hop1)
-            sys_logging("status = %d" %attrs.status)
-            assert (attrs.status == SAI_STATUS_SUCCESS)
-            for a in attrs.attr_list:
-                if a.id == SAI_NEXT_HOP_ATTR_COUNTER_ID:
-                    if counter_id2 != a.value.oid:
-                        raise NotImplementedError()
-            '''
+
+           #attr_value = sai_thrift_attribute_value_t(oid=counter_id1)
+           #attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_COUNTER_ID, value=attr_value)
+           #self.client.sai_thrift_set_route_attribute(next_hop, attr)
+           #attr_value = sai_thrift_attribute_value_t(oid=counter_id2)
+           #attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_COUNTER_ID, value=attr_value)
+           #self.client.sai_thrift_set_route_attribute(next_hop1, attr)
+           
+           #attrs = self.client.sai_thrift_get_next_hop_attribute(next_hop)
+           #sys_logging("status = %d" %attrs.status)
+           #assert (attrs.status == SAI_STATUS_SUCCESS)
+           #for a in attrs.attr_list:
+           #    if a.id == SAI_NEXT_HOP_ATTR_COUNTER_ID:
+           #        print a.value.oid
+           #        if counter_id1 != a.value.oid:
+           #            raise NotImplementedError()
+           #attrs = self.client.sai_thrift_get_next_hop_attribute(next_hop1)
+           #sys_logging("status = %d" %attrs.status)
+           #assert (attrs.status == SAI_STATUS_SUCCESS)
+           #for a in attrs.attr_list:
+           #    if a.id == SAI_NEXT_HOP_ATTR_COUNTER_ID:
+           #        if counter_id2 != a.value.oid:
+           #            raise NotImplementedError()
+
         finally:
             sys_logging("======clean up======")
 
@@ -2744,9 +2742,10 @@ class scenario_01_basic_mpls_ac_to_pw_test(sai_base_test.ThriftInterfaceDataPlan
  
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
 
-        next_hop2 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list)
+        next_hop2 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list, outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_UNIFORM)
 
         sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask, next_hop2)
+        #pdb.set_trace()
         
 
         pkt1 = simple_tcp_packet(eth_dst=router_mac,
@@ -2756,7 +2755,7 @@ class scenario_01_basic_mpls_ac_to_pw_test(sai_base_test.ThriftInterfaceDataPlan
                                ip_id=105,
                                ip_ttl=64)
                                
-        mpls1 = [{'label':100,'tc':0,'ttl':32,'s':1}]   
+        mpls1 = [{'label':100,'tc':0,'ttl':63,'s':1}]   
         ip_only_pkt1 = simple_ip_only_packet(pktlen=86,
                                 ip_src='1.1.1.2',
                                 ip_dst=ip_addr1_subnet,
@@ -2781,7 +2780,7 @@ class scenario_01_basic_mpls_ac_to_pw_test(sai_base_test.ThriftInterfaceDataPlan
             sys_logging("======clean up======")
 
             sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask, next_hop2)
-
+            
             self.client.sai_thrift_remove_next_hop(next_hop2)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
 
@@ -2831,7 +2830,7 @@ class scenario_02_basic_mpls_pw_to_ac_test(sai_base_test.ThriftInterfaceDataPlan
 
         sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr2_subnet, ip_mask, next_hop3)
 
-        sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, rif_id3, packet_action)
+        sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, rif_id3, packet_action ,pop_ttl_mode = SAI_INSEG_ENTRY_POP_TTL_MODE_PIPE)
 
 
         mpls2 = [{'label':200,'tc':0,'ttl':100,'s':1}]   
@@ -2854,7 +2853,7 @@ class scenario_02_basic_mpls_pw_to_ac_test(sai_base_test.ThriftInterfaceDataPlan
                                ip_dst=ip_addr2_subnet,
                                ip_src='1.1.1.2',
                                ip_id=105,
-                               ip_ttl=99)
+                               ip_ttl=62)
         warmboot(self.client)
         try:
 
@@ -2900,7 +2899,7 @@ class scenario_03_basic_mpls_swap_test(sai_base_test.ThriftInterfaceDataPlane):
         label2 = 200
         label3 = 300
 
-        label_list = [(label1<<12) | 32]
+        label_list = [(label1<<12) | 60]
         pop_nums = 0
         packet_action = SAI_PACKET_ACTION_FORWARD
         
@@ -2913,9 +2912,10 @@ class scenario_03_basic_mpls_swap_test(sai_base_test.ThriftInterfaceDataPlane):
  
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
 
-        next_hop2 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list)
+        next_hop2 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list, outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_UNIFORM, outseg_type = SAI_OUTSEG_TYPE_SWAP)
 
         sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, next_hop2, packet_action)
+        #pdb.set_trace()
         
         mpls1 = [{'label':200,'tc':0,'ttl':32,'s':1}]   
         ip_only_pkt1 = simple_ip_only_packet(pktlen=86,
@@ -2933,12 +2933,11 @@ class scenario_03_basic_mpls_swap_test(sai_base_test.ThriftInterfaceDataPlane):
                                 mpls_tags= mpls1,
                                 inner_frame = ip_only_pkt1) 
                                
-        mpls2 = [{'label':100,'tc':0,'ttl':32,'s':1}]
-        #sai bug,actually label ttl should be 31 ,ip ttl should be 64
+        mpls2 = [{'label':100,'tc':0,'ttl':31,'s':1}]
         ip_only_pkt2 = simple_ip_only_packet(pktlen=86,
                                 ip_src='1.1.1.2',
                                 ip_dst=ip_addr1_subnet,
-                                ip_ttl=31,
+                                ip_ttl=64,
                                 ip_id=105,
                                 ip_ihl=5
                                 )
@@ -3005,12 +3004,12 @@ class scenario_04_basic_mpls_php_test(sai_base_test.ThriftInterfaceDataPlane):
         rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER, 0, 0, v4_enabled, v6_enabled, mac)
 
         sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_da2, dmac2)
-        next_hop3 = sai_thrift_create_nhop(self.client, addr_family, ip_da2, rif_id2)
+        next_hop3 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da2, rif_id2, [], outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_PIPE, outseg_type = SAI_OUTSEG_TYPE_PHP)
 
         #sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr2_subnet, ip_mask, next_hop3)
 
-        sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, next_hop3, packet_action)
-
+        sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, next_hop3, packet_action ,pop_ttl_mode = SAI_INSEG_ENTRY_POP_TTL_MODE_PIPE)
+        
         mpls2 = [{'label':200,'tc':0,'ttl':100,'s':1}]   
         ip_only_pkt2 = simple_ip_only_packet(pktlen=86,
                                 ip_src='1.1.1.2',
@@ -3031,7 +3030,7 @@ class scenario_04_basic_mpls_php_test(sai_base_test.ThriftInterfaceDataPlane):
                                ip_dst=ip_addr2_subnet,
                                ip_src='1.1.1.2',
                                ip_id=105,
-                               ip_ttl=99)
+                               ip_ttl=63)
         warmboot(self.client)
         try:
 
@@ -3839,7 +3838,9 @@ class scenario_12_vpls_tagged_test(sai_base_test.ThriftInterfaceDataPlane):
 
         mac_action = SAI_PACKET_ACTION_FORWARD
         sai_thrift_create_fdb_bport(self.client, bridge_id, mac1, bport, mac_action)
+        #pdb.set_trace()
         sai_thrift_create_fdb_bport(self.client, bridge_id, mac2, tunnel_bport, mac_action)
+        #pdb.set_trace()
 
         pkt1 = simple_tcp_packet(pktlen=96,
                                 eth_dst=mac2,
@@ -3924,7 +3925,7 @@ class scenario_12_vpls_tagged_test(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -4002,10 +4003,10 @@ class scenario_13_vpls_raw_test(sai_base_test.ThriftInterfaceDataPlane):
                                 eth_dst=mac2,
                                 eth_src=mac1,
                                 dl_vlan_outer=20,
-                                dl_vlan_pcp_outer=2,
+                                dl_vlan_pcp_outer=0,
                                 dl_vlan_cfi_outer=1,
                                 vlan_vid=10,
-                                vlan_pcp=2,
+                                vlan_pcp=0,
                                 dl_vlan_cfi=1,
                                 ip_dst='1.1.1.1',
                                 ip_src='2.2.2.2',
@@ -4017,7 +4018,7 @@ class scenario_13_vpls_raw_test(sai_base_test.ThriftInterfaceDataPlane):
                                 eth_src=mac1,
                                 dl_vlan_enable=True,
                                 vlan_vid=10,
-                                vlan_pcp=2,
+                                vlan_pcp=0,
                                 dl_vlan_cfi=1,
                                 ip_dst='1.1.1.1',
                                 ip_src='2.2.2.2',
@@ -4038,7 +4039,7 @@ class scenario_13_vpls_raw_test(sai_base_test.ThriftInterfaceDataPlane):
                                 eth_src=mac2,
                                 dl_vlan_enable=True,
                                 vlan_vid=10,
-                                vlan_pcp=2,
+                                vlan_pcp=0,
                                 dl_vlan_cfi=1,
                                 ip_dst='1.1.1.1',
                                 ip_src='2.2.2.2',
@@ -4058,10 +4059,10 @@ class scenario_13_vpls_raw_test(sai_base_test.ThriftInterfaceDataPlane):
                                 eth_dst=mac1,
                                 eth_src=mac2,
                                 dl_vlan_outer=20,
-                                dl_vlan_pcp_outer=2,
+                                dl_vlan_pcp_outer=0,
                                 dl_vlan_cfi_outer=1,
                                 vlan_vid=10,
-                                vlan_pcp=2,
+                                vlan_pcp=0,
                                 dl_vlan_cfi=1,
                                 ip_dst='1.1.1.1',
                                 ip_src='2.2.2.2',
@@ -4084,7 +4085,7 @@ class scenario_13_vpls_raw_test(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -4252,7 +4253,7 @@ class scenario_14_vpws_tagged_test(sai_base_test.ThriftInterfaceDataPlane):
  
         finally:
             sys_logging("======clean up======")
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
         
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -4344,10 +4345,10 @@ class scenario_15_vpws_raw_test(sai_base_test.ThriftInterfaceDataPlane):
                                 eth_dst=mac2,
                                 eth_src=mac1,
                                 dl_vlan_outer=20,
-                                dl_vlan_pcp_outer=2,
+                                dl_vlan_pcp_outer=0,
                                 dl_vlan_cfi_outer=1,
                                 vlan_vid=10,
-                                vlan_pcp=2,
+                                vlan_pcp=0,
                                 dl_vlan_cfi=1,
                                 ip_dst='1.1.1.1',
                                 ip_src='2.2.2.2',
@@ -4359,7 +4360,7 @@ class scenario_15_vpws_raw_test(sai_base_test.ThriftInterfaceDataPlane):
                                 eth_src=mac1,
                                 dl_vlan_enable=True,
                                 vlan_vid=10,
-                                vlan_pcp=2,
+                                vlan_pcp=0,
                                 dl_vlan_cfi=1,
                                 ip_dst='1.1.1.1',
                                 ip_src='2.2.2.2',
@@ -4380,7 +4381,7 @@ class scenario_15_vpws_raw_test(sai_base_test.ThriftInterfaceDataPlane):
                                 eth_src=mac2,
                                 dl_vlan_enable=True,
                                 vlan_vid=10,
-                                vlan_pcp=2,
+                                vlan_pcp=0,
                                 dl_vlan_cfi=1,
                                 ip_dst='1.1.1.1',
                                 ip_src='2.2.2.2',
@@ -4400,10 +4401,10 @@ class scenario_15_vpws_raw_test(sai_base_test.ThriftInterfaceDataPlane):
                                 eth_dst=mac1,
                                 eth_src=mac2,
                                 dl_vlan_outer=20,
-                                dl_vlan_pcp_outer=2,
+                                dl_vlan_pcp_outer=0,
                                 dl_vlan_cfi_outer=1,
                                 vlan_vid=10,
-                                vlan_pcp=2,
+                                vlan_pcp=0,
                                 dl_vlan_cfi=1,
                                 ip_dst='1.1.1.1',
                                 ip_src='2.2.2.2',
@@ -4424,7 +4425,7 @@ class scenario_15_vpws_raw_test(sai_base_test.ThriftInterfaceDataPlane):
  
         finally:
             sys_logging("======clean up======")
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
         
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -4489,13 +4490,11 @@ class scenario_16_mpls_sr_ac_to_pw_test(sai_base_test.ThriftInterfaceDataPlane):
 
  
         sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
-
-        next_hop1 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list)
-        pdb.set_trace()
+        
+        next_hop1 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list, outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_PIPE, outseg_exp_mode= SAI_OUTSEG_EXP_MODE_PIPE, outseg_type=SAI_OUTSEG_TYPE_SWAP)
         next_hop2 = sai_thrift_create_tunnel_mpls_l3vpn_nhop(self.client, tunnel_id, label_list2, next_level_nhop_oid=next_hop1)
 
         sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask, next_hop2)
-
 
         pkt1 = simple_tcp_packet(eth_dst=router_mac,
                                eth_src='00:11:11:11:11:11',
@@ -4506,7 +4505,7 @@ class scenario_16_mpls_sr_ac_to_pw_test(sai_base_test.ThriftInterfaceDataPlane):
                                
         mpls1 = [{'label':label10,'tc':0,'ttl':32,'s':0}, {'label':label9,'tc':0,'ttl':32,'s':0} ,{'label':label8,'tc':0,'ttl':32,'s':0},\
         {'label':label7,'tc':0,'ttl':32,'s':0}, {'label':label6,'tc':0,'ttl':32,'s':0} ,{'label':label5,'tc':0,'ttl':32,'s':0}, {'label':label4,'tc':0,'ttl':32,'s':0},\
-        {'label':label3,'tc':0,'ttl':32,'s':0} ,{'label':label2,'tc':0,'ttl':32,'s':0}, {'label':label1,'tc':0,'ttl':32,'s':0}, {'label':label0,'tc':3,'ttl':18,'s':1}]   
+        {'label':label3,'tc':0,'ttl':32,'s':0} ,{'label':label2,'tc':0,'ttl':32,'s':0}, {'label':label1,'tc':0,'ttl':32,'s':0}, {'label':label0,'tc':3,'ttl':60,'s':1}]   
         #some problem need test again later
         ip_only_pkt1 = simple_ip_only_packet(pktlen=86,
                                 ip_src='1.1.1.2',
@@ -4569,6 +4568,7 @@ class scenario_17_mpls_sr_transmit_test(sai_base_test.ThriftInterfaceDataPlane):
         label3 = 300
 
         label_list = [(label1<<12) | 64]
+        label_list2 = [(label2<<12) | 64]
         pop_nums = 1
         packet_action = SAI_PACKET_ACTION_FORWARD
         
@@ -4580,11 +4580,11 @@ class scenario_17_mpls_sr_transmit_test(sai_base_test.ThriftInterfaceDataPlane):
         rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER, 0, 0, v4_enabled, v6_enabled, mac)
 
         sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_da2, dmac2)
-        next_hop3 = sai_thrift_create_nhop(self.client, addr_family, ip_da2, rif_id2)
+        next_hop2 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da2, rif_id2, label_list2, outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_UNIFORM, outseg_type = SAI_OUTSEG_TYPE_SWAP)
 
-        #sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr2_subnet, ip_mask, next_hop3)
 
-        sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, next_hop3, packet_action)
+        sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, rif_id3, packet_action)
+        sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, next_hop2, packet_action)
         #pdb.set_trace()
 
         mpls1 = [{'label':100,'tc':3,'ttl':32,'s':0}, {'label':200,'tc':0,'ttl':96,'s':0}, {'label':300,'tc':0,'ttl':100,'s':1}]  
@@ -4634,12 +4634,13 @@ class scenario_17_mpls_sr_transmit_test(sai_base_test.ThriftInterfaceDataPlane):
         finally:
             sys_logging("======clean up======")
             mpls1 = sai_thrift_inseg_entry_t(label1) 
+            mpls2 = sai_thrift_inseg_entry_t(label2) 
 
             self.client.sai_thrift_remove_inseg_entry(mpls1)
+            self.client.sai_thrift_remove_inseg_entry(mpls2)
 
-            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr2_subnet, ip_mask, next_hop3)
             
-            self.client.sai_thrift_remove_next_hop(next_hop3)
+            self.client.sai_thrift_remove_next_hop(next_hop2)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id2, ip_da2, dmac)
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
@@ -4800,7 +4801,7 @@ class scenario_18_evpn_ac_to_pw_test(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id2, mac2, tunnel_bport2)
             
             sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport2)
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -4978,7 +4979,7 @@ class scenario_19_evpn_pw_to_ac_test(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id2, mac2, tunnel_bport2)
             
             sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport2)
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -5155,7 +5156,6 @@ class scenario_20_evpn_learning_fdb_test(sai_base_test.ThriftInterfaceDataPlane)
             status = sai_thrift_check_fdb_exist(self.client, bridge_id, mac2)
             assert( 1 == status)
             #assert( 0 == status)   bug110766,should support mpls fdb learning disable 
-
             #bridge1 ac to pw again
             self.ctc_send_packet( 2, str(pkt1))
             self.ctc_verify_packets( pkt2, [1])
@@ -5173,8 +5173,8 @@ class scenario_20_evpn_learning_fdb_test(sai_base_test.ThriftInterfaceDataPlane)
             #sai_thrift_delete_fdb(self.client, bridge_id2, mac2, tunnel_bport2)
             
             sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1, port3)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1, port3)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport2)
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -5368,8 +5368,8 @@ class scenario_21_evpn_unicast_add_es_label_test(sai_base_test.ThriftInterfaceDa
             self.client.sai_thrift_set_port_attribute(port2, attr)
             self.client.sai_thrift_remove_es(es_oid)
         
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port4)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port4)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport2)
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -5548,8 +5548,8 @@ class scenario_22_evpn_bum_add_es_label_test(sai_base_test.ThriftInterfaceDataPl
             self.client.sai_thrift_set_port_attribute(port2, attr)
             self.client.sai_thrift_remove_es(es_oid)
         
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port4)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port4)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport2)
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -5699,8 +5699,8 @@ class scenario_23_evpn_pw_to_ac_bum_with_es_label_test(sai_base_test.ThriftInter
             self.client.sai_thrift_set_port_attribute(port2, attr)
             self.client.sai_thrift_remove_es(es_oid)
         
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port4)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port4)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
 
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -5848,7 +5848,7 @@ class scenario_24_one_port_two_ac_and_delete_one_ac_to_pw_test(sai_base_test.Thr
             sai_thrift_delete_fdb(self.client, bridge_id2, mac2, tunnel_bport2)
             
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port2)
             
             self.client.sai_thrift_remove_bridge_port(tunnel_bport2)
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -5995,7 +5995,7 @@ class scenario_25_one_port_two_ac_and_delete_one_pw_to_ac_test(sai_base_test.Thr
             sai_thrift_delete_fdb(self.client, bridge_id2, mac2, tunnel_bport2)
             
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port2)
             
             self.client.sai_thrift_remove_bridge_port(tunnel_bport2)
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -6213,7 +6213,7 @@ class scenario_26_vpls_set_tunnel_tagged_vlan_test(sai_base_test.ThriftInterface
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -6372,7 +6372,7 @@ class scenario_27_evpn_set_tunnel_encap_with_cw_test(sai_base_test.ThriftInterfa
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
 
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
 
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -6505,7 +6505,7 @@ class scenario_28_evpn_set_tunnel_decap_with_cw_test(sai_base_test.ThriftInterfa
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -6640,7 +6640,7 @@ class scenario_29_evpn_bum_set_tunnel_encap_es_label_valid_test(sai_base_test.Th
             self.client.sai_thrift_set_port_attribute(port2, attr)
             self.client.sai_thrift_remove_es(es_oid)
         
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -6793,8 +6793,8 @@ class scenario_30_evpn_bum_set_tunnel_decap_es_label_valid_test(sai_base_test.Th
             self.client.sai_thrift_set_port_attribute(port2, attr)
             self.client.sai_thrift_remove_es(es_oid)
         
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2, port4)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port4)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
 
             mpls1 = sai_thrift_inseg_entry_t(label1)
@@ -6816,7 +6816,391 @@ class scenario_30_evpn_bum_set_tunnel_decap_es_label_valid_test(sai_base_test.Th
             self.client.sai_thrift_remove_tunnel(tunnel_id1)
             self.client.sai_thrift_remove_bridge(bridge_id)
 
+class scenario_31_ten_label_sr_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
 
+        print ""
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        port5 = port_list[4]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        
+        ip_da = '5.5.5.1'
+        ip_da2 = '5.5.5.2'
+        dmac = '00:55:55:55:55:55'
+        dmac2 = '00:55:55:55:55:66'
+        ip_addr1_subnet = '10.10.10.1'
+        ip_addr2_subnet = '20.20.20.1'
+        ip_mask = '255.255.255.0'
+
+        label1_1 = 100
+        label1_2 = 110
+        label1_3 = 120
+        label1_4 = 130
+        label1_5 = 140
+        label1_6 = 150
+        label1_7 = 160
+        label1_8 = 170
+        label1_9 = 180
+        label1_10 = 190
+        label_list1 = [(label1_1<<12) | 32, (label1_2<<12) | 32, (label1_3<<12) | 32, (label1_4<<12) | 32, (label1_5<<12) | 32, (label1_6<<12) | 32,\
+        (label1_7<<12) | 32, (label1_8<<12) | 32, (label1_9<<12) | 32, (label1_10<<12) | 32]
+        
+        
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+
+ 
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_da2, dmac2)
+
+
+        next_hop1 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list1)
+        
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask, next_hop1)
+       
+        pkt_label1 = [{'label':label1_10,'tc':0,'ttl':32,'s':0}, {'label':label1_9,'tc':0,'ttl':32,'s':0} ,{'label':label1_8,'tc':0,'ttl':32,'s':0},\
+        {'label':label1_7,'tc':0,'ttl':32,'s':0}, {'label':label1_6,'tc':0,'ttl':32,'s':0} ,{'label':label1_5,'tc':0,'ttl':32,'s':0}, {'label':label1_4,'tc':0,'ttl':32,'s':0},\
+        {'label':label1_3,'tc':0,'ttl':32,'s':0} ,{'label':label1_2,'tc':0,'ttl':32,'s':0}, {'label':label1_1,'tc':0,'ttl':32,'s':1}]   
+
+
+        pkt1 = simple_tcp_packet(eth_dst=router_mac,
+                               eth_src='00:11:11:11:11:11',
+                               ip_dst=ip_addr1_subnet,
+                               ip_src='1.1.1.2',
+                               ip_dscp=16,
+                               ip_id=105,
+                               ip_ttl=64)
+                               
+        ip_only_pkt1 = simple_ip_only_packet(pktlen=86,
+                                ip_src='1.1.1.2',
+                                ip_dst=ip_addr1_subnet,
+                                ip_dscp=16,
+                                ip_ttl=63,
+                                ip_id=105,
+                                ip_ihl=5
+                                )
+                                
+        pkt2 = simple_mpls_packet(
+                                eth_dst=dmac,
+                                eth_src=router_mac,
+                                mpls_type=0x8847,
+                                mpls_tags= pkt_label1,
+                                inner_frame = ip_only_pkt1) 
+
+                                
+        warmboot(self.client)
+        try:
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packets( pkt2, [0])
+
+
+
+        finally:
+            sys_logging("======clean up======")
+            
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask, next_hop1)
+
+            self.client.sai_thrift_remove_next_hop(next_hop1)
+            
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id2, ip_da2, dmac2)
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_router_interface(rif_id3)
+
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+
+class scenario_32_mpls_ac_to_pw_update_neighbor_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        print ""
+        switch_init(self.client)
+        port1 = port_list[1]
+        port2 = port_list[2]
+        port3 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        vlan_id = 20
+        
+        ip_da = '5.5.5.1'
+        ip_da2 = '5.5.5.2'
+        ip_da3 = '5.5.5.3'
+        dmac = '00:55:55:55:55:55'
+        dmac2 = '00:55:55:55:55:66'
+        dmac3 = '00:55:55:55:55:77'
+        ip_addr1_subnet = '10.10.10.1'
+        ip_addr2_subnet = '20.20.20.1'
+        ip_mask = '255.255.255.0'
+
+        label1 = 100
+        label2 = 200
+        label3 = 300
+
+        label_list = [(label1<<12) | 32]
+        #label_list = []
+        pop_nums = 1
+        packet_action = SAI_PACKET_ACTION_FORWARD
+
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port3, SAI_VLAN_TAGGING_MODE_TAGGED)
+        sai_thrift_create_fdb(self.client, vlan_oid, dmac3, port3, SAI_PACKET_ACTION_FORWARD)
+        
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_VLAN, 0, vlan_oid, v4_enabled, v6_enabled, mac)
+ 
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da2, dmac2)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id3, ip_da3, dmac3)
+
+        next_hop2 = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list, outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_UNIFORM)
+
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask, next_hop2)
+        
+
+        pkt1 = simple_tcp_packet(eth_dst=router_mac,
+                               eth_src='00:11:11:11:11:11',
+                               ip_dst=ip_addr1_subnet,
+                               ip_src='1.1.1.2',
+                               ip_id=105,
+                               ip_ttl=64)
+                               
+        mpls1 = [{'label':100,'tc':0,'ttl':63,'s':1}]   
+        ip_only_pkt1 = simple_ip_only_packet(pktlen=86,
+                                ip_src='1.1.1.2',
+                                ip_dst=ip_addr1_subnet,
+                                ip_ttl=63,
+                                ip_id=105,
+                                ip_ihl=5
+                                )
+                           
+        pkt2 = simple_mpls_packet(
+                                eth_dst=dmac,
+                                eth_src=router_mac,
+                                mpls_type=0x8847,
+                                mpls_tags= mpls1,
+                                inner_frame = ip_only_pkt1) 
+
+        pkt3 = simple_mpls_packet(
+                                eth_dst=dmac2,
+                                eth_src=router_mac,
+                                mpls_type=0x8847,
+                                mpls_tags= mpls1,
+                                inner_frame = ip_only_pkt1)
+
+        pkt4 = simple_mpls_packet(
+                                eth_dst=dmac3,
+                                eth_src=router_mac,
+                                dl_vlan_enable=True,
+                                vlan_vid=20,
+                                mpls_type=0x8847,
+                                mpls_tags= mpls1,
+                                inner_frame = ip_only_pkt1)
+
+
+        warmboot(self.client)
+        try:
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packets( pkt2, [1])
+
+            
+            addr = sai_thrift_ip_t(ip4=ip_da2)
+            ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=addr)
+            attr_value = sai_thrift_attribute_value_t(ipaddr=ipaddr)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_IP, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(next_hop2, attr)
+            print 'set port type rif nhop status = %d' %status
+
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packets( pkt3, [1])
+
+
+            attr_value = sai_thrift_attribute_value_t(oid=rif_id3)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_ROUTER_INTERFACE_ID, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(next_hop2, attr)
+            print 'set port type rif nhop status = %d' %status
+            
+            addr = sai_thrift_ip_t(ip4=ip_da3)
+            ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=addr)
+            attr_value = sai_thrift_attribute_value_t(ipaddr=ipaddr)
+            attr = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_IP, value=attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(next_hop2, attr)
+            print 'set port type rif nhop status = %d' %status
+
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packets( pkt4, [3])
+
+        finally:
+            sys_logging("======clean up======")
+
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask, next_hop2)
+            
+            self.client.sai_thrift_remove_next_hop(next_hop2)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da2, dmac2)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id3, ip_da3, dmac3)
+            
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_router_interface(rif_id3)
+
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            sai_thrift_delete_fdb(self.client, vlan_oid, dmac3, port3)
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+
+
+
+class scenario_33_vpws_ac_to_ac_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        print ""
+        switch_init(self.client)
+        port1 = port_list[1]
+        port2 = port_list[2]
+        port3 = port_list[3]
+        port4 = port_list[4]
+        vlan_id = 20
+        vlan_id2 = 30
+        vlan_id3 = 40
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        ip_mask = '255.255.255.0'
+        ip_da = '5.5.5.2'
+        dmac = '00:55:55:55:55:55'
+        mac1 = '00:00:00:01:01:01'
+        mac2 = '00:00:00:02:02:02'
+
+        
+        label1 = 100 
+        label2 = 200
+        label_list1 = [(label1<<12) | 64]
+        label_list2 = [(label2<<12) | 32]
+        
+        pop_nums = 1
+        packet_action = SAI_PACKET_ACTION_FORWARD
+
+        bridge_id = sai_thrift_create_bridge(self.client, SAI_BRIDGE_TYPE_CROSS_CONNECT)
+
+        tunnel_id1= sai_thrift_create_tunnel_mpls_l2vpn(self.client, decap_pw_mode=SAI_TUNNEL_MPLS_PW_MODE_TAGGED, encap_pw_mode=SAI_TUNNEL_MPLS_PW_MODE_TAGGED, decap_cw_en=False, encap_cw_en=False, encap_ttl_val=0, encap_tagged_vlan=30)
+
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER, 0, 0, v4_enabled, v6_enabled, mac, dot1d_bridge_id=bridge_id)
+        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER, 0, 0, v4_enabled, v6_enabled, mac)
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+        next_hop = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list1)
+        next_hop1 = sai_thrift_create_tunnel_mpls_l2vpn_nhop(self.client, tunnel_id1, label_list2, next_level_nhop_oid=next_hop)
+
+        sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, rif_id3, packet_action)
+        sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1)
+
+        
+        tunnel_bport = sai_thrift_create_bridge_tunnel_port(self.client, tunnel_id=tunnel_id1, bridge_id=bridge_id, admin_state=False)
+        bport = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id, False)
+        bport2 = sai_thrift_create_bridge_sub_port(self.client, port3, bridge_id, vlan_id2, False)
+        bport3 = sai_thrift_create_bridge_sub_port(self.client, port4, bridge_id, vlan_id3, False)
+        
+        bport_attr_xcport_value = sai_thrift_attribute_value_t(oid=bport2)
+        bport_attr_xcport = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT,
+                                                    value=bport_attr_xcport_value)
+        
+        self.client.sai_thrift_set_bridge_port_attribute(bport, bport_attr_xcport)
+        
+        bport_attr_xcport_value = sai_thrift_attribute_value_t(oid=bport)
+        bport_attr_xcport = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT,
+                                                    value=bport_attr_xcport_value)
+        self.client.sai_thrift_set_bridge_port_attribute(bport2, bport_attr_xcport)
+        
+        bport_attr_value = sai_thrift_attribute_value_t(booldata=True)
+        bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_ADMIN_STATE,
+                                                    value=bport_attr_value)
+
+        #pdb.set_trace()
+        self.client.sai_thrift_set_bridge_port_attribute(bport2, bport_attr)
+        self.client.sai_thrift_set_bridge_port_attribute(bport, bport_attr)
+        
+
+        
+        pkt1 = simple_tcp_packet(pktlen=96,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                dl_vlan_enable=True,
+                                vlan_vid=20,
+                                vlan_pcp=0,
+                                dl_vlan_cfi=0,
+                                ip_dst='1.1.1.1',
+                                ip_src='2.2.2.2',
+                                ip_id=105,
+                                ip_ttl=64,
+                                ip_ihl=5)
+  
+        pkt4 = simple_tcp_packet(pktlen=96,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                dl_vlan_enable=True,
+                                vlan_vid=30,
+                                vlan_pcp=0,
+                                dl_vlan_cfi=0,
+                                ip_dst='1.1.1.1',
+                                ip_src='2.2.2.2',
+                                ip_id=105,
+                                ip_ttl=64,
+                                ip_ihl=5)
+
+        warmboot(self.client)
+        try:
+ 
+            #ac to pw
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packets( pkt4, [3])
+
+            #pw to ac
+            self.ctc_send_packet( 3, str(pkt4))
+            self.ctc_verify_packets( pkt1, [2])
+ 
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port3)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport3, port4)
+            self.client.sai_thrift_remove_bridge_port(tunnel_bport)
+        
+            mpls1 = sai_thrift_inseg_entry_t(label1)
+            mpls2 = sai_thrift_inseg_entry_t(label2) 
+            self.client.sai_thrift_remove_inseg_entry(mpls1)
+            self.client.sai_thrift_remove_inseg_entry(mpls2)  
+            self.client.sai_thrift_remove_next_hop(next_hop1)
+            self.client.sai_thrift_remove_next_hop(next_hop)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_router_interface(rif_id3)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            self.client.sai_thrift_remove_tunnel(tunnel_id1)
+            self.client.sai_thrift_remove_bridge(bridge_id)
 
 
 

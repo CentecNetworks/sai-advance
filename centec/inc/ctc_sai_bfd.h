@@ -68,17 +68,21 @@
 \t  |  SAI_BFD_SESSION_ATTR_LOCAL_DIAG                          |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_REMOTE_DIAG                         |        CTC7132         |
 \t  |  SAI_BFD_SESSION_ATTR_REMOTE_MULTIPLIER                   |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE                 |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID                    |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE                    |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_MPLS_IN_LABEL                       |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_MPLS_TTL                            |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_MPLS_EXP                            |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_TP_CV_ENABLE                        |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_TP_CV_SRC_MEP_ID                    |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID              |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_TP_WITHOUT_GAL                      |        CTC7132         |
-\t  |  SAI_BFD_SESSION_ATTR_NEXT_HOP_ID                         |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_REMOTE_STATE                        |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE                 |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID                    |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE                    |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_MPLS_IN_LABEL                       |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_MPLS_TTL                            |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_MPLS_EXP                            |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_TP_CV_ENABLE                        |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_TP_CV_SRC_MEP_ID                    |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID              |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_TP_WITHOUT_GAL                      |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_NEXT_HOP_ID                         |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID     |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH    |        CTC7132         |
+\e  |  SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN                    |        CTC7132         |
 \b
 */
 
@@ -151,6 +155,10 @@ typedef struct ctc_sai_bfd_s
     uint8 mep_id_len;
 
     sai_object_id_t nh_tunnel_oid;
+
+    sai_object_id_t hw_binding_aps_group;
+    uint8 hw_binding_is_protecting_path;
+    uint8 hw_binding_aps_en;
     
     
 } ctc_sai_bfd_t;

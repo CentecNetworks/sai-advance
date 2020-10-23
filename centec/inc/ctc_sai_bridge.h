@@ -65,11 +65,15 @@
 \t  |  SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING                           |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING                            |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT                   |            CTC7132             |
-\t  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE                  |            CTC7132             |
-\t  |  SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP                                 |            CTC7132             |
-\t  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID                  |            CTC7132             |
-\t  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID                  |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT                   |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE                  |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP                                 |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID                  |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID                  |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID                    |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE              |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS                   |            CTC7132             |
+\e  |  SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID                            |            CTC7132             |
 \b
 */
 
@@ -88,7 +92,7 @@ typedef struct ctc_sai_bridge_port_s
     uint8         port_type;
     bool          admin_state;
     uint8         tag_mode;
-    uint8         rsv;
+    uint8         fdb_learn_mode;
     uint16        gport;
     uint16        vlan_id;
     uint16        bridge_id;
@@ -120,7 +124,14 @@ typedef struct ctc_sai_bridge_port_s
     uint32 vlan_member_bind_bits[128]; // vlan member binded vlanptr 
     uint32 vlan_member_bind_count;
     uint8  vlan_member_tag_mode[4096];
-    sai_object_id_t  frr_nhp_grp_id;    
+    sai_object_id_t  frr_nhp_grp_id;
+    uint16 service_vlan_id;
+    uint8 service_vlan_cos;
+    uint32 scl_entry_id;
+    uint16        cvlan_id;
+    uint16 outgoing_svid;
+    uint8 outgoing_scos;
+    int32 outgoing_scos_mode;
 }
 ctc_sai_bridge_port_t;
 
@@ -140,7 +151,7 @@ extern sai_status_t
 ctc_sai_bridge_traverse_get_bridge_port_info(uint8 lchip, uint16 bridge_id, uint16 logic_port, uint32* gport, uint16* vlan_id);
 
 extern sai_status_t
-ctc_sai_bridge_traverse_get_sub_port_info(uint8 lchip, uint32 gport, uint16 vlan_id, uint32* logic_port);
+ctc_sai_bridge_traverse_get_sub_port_info(uint8 lchip, uint32 gport, uint16 vlan_id, uint16 cvlan_id, uint32* logic_port);
 
 extern void
 ctc_sai_bridge_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t *dump_grep_param);

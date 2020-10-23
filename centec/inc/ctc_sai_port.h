@@ -131,11 +131,15 @@
 \t  |  SAI_PORT_ATTR_LINK_TRAINING_ENABLE                    |              -                 |
 \t  |  SAI_PORT_ATTR_PTP_MODE                                |              -                 |
 \t  |  SAI_PORT_ATTR_PORT_SERDES_ID                          |              -                 |
-\t  |  SAI_PORT_ATTR_ES                                      |            CTC7132             |
-\t  |  SAI_PORT_ATTR_Y1731_ENABLE                            |            CTC7132             |
-\t  |  SAI_PORT_ATTR_Y1731_LM_ENABLE                         |            CTC7132             |
-\t  |  SAI_PORT_ATTR_Y1731_MIP_ENABLE                        |            CTC7132             |
-\t  |  SAI_PORT_ATTR_MAC_ADDRESS                             |            CTC7132             |
+\e  |  SAI_PORT_ATTR_PTP_INGRESS_ASYMMETRY_DELAY             |            CTC7132             |
+\e  |  SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY              |            CTC7132             |
+\e  |  SAI_PORT_ATTR_PTP_PATH_DELAY                          |            CTC7132             |
+\e  |  SAI_PORT_ATTR_PTP_DOMAIN_ID                           |            CTC7132             |
+\e  |  SAI_PORT_ATTR_ES                                      |            CTC7132             |
+\e  |  SAI_PORT_ATTR_Y1731_ENABLE                            |            CTC7132             |
+\e  |  SAI_PORT_ATTR_Y1731_LM_ENABLE                         |            CTC7132             |
+\e  |  SAI_PORT_ATTR_Y1731_MIP_ENABLE                        |            CTC7132             |
+\e  |  SAI_PORT_ATTR_MAC_ADDRESS                             |            CTC7132             |
 \b
 */
 
@@ -182,7 +186,7 @@ typedef struct ctc_sai_port_db_s
     uint32 dot1p_to_tc_map_id;                //SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP
     uint32 dot1p_to_color_map_id;             //SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP
     uint32 tc_color_to_dot1p_map_id;          //SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP
-    uint32 tc_color_to_dscp_map_id;    
+    uint32 tc_color_to_dscp_map_id;
     uint32 dscp_to_tc_map_id;
     uint32 dscp_to_color_map_id;
 
@@ -193,7 +197,7 @@ typedef struct ctc_sai_port_db_s
     /*scheduler*/
     uint32 sched_id;
     uint8 flow_ctl_mode;        //SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_MODE
-    
+
     sai_object_id_t ethernet_segment;
     uint8 y1731_oam_en;
     uint8 y1731_lm_en;
@@ -205,15 +209,14 @@ typedef struct ctc_sai_port_db_s
     uint64 ptp_ingr_asy;
     uint64 ptp_egr_asy;
     sai_port_ptp_mode_t ptp_mode;
-    int32 sub_port_ref_cnt;
-
+    int32 scl0_ref_cnt;
+    int32 scl1_ref_cnt;
     /*router interface*/
     int32 sub_if_ref_cnt;
 
     /*service id */
     ctc_slist_t *service_id_list;
 }ctc_sai_port_db_t;
-
 
 typedef enum _ctc_sai_port_drop_type_t
 {

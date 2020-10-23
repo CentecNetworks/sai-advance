@@ -4,9 +4,6 @@
 extern "C" {
 #endif
 
-#include "sal.h"
-#include "ctc_ftm.h"
-
 #define PROFILE_PATH_MAX    256
 
 #define UNIT 256

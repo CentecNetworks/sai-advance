@@ -162,6 +162,14 @@ typedef enum _sai_lag_attr_t
      * @default false
      */
     SAI_LAG_ATTR_DROP_TAGGED,
+    
+    /**
+     * @brief End of attributes
+     */
+    SAI_LAG_ATTR_END,
+
+    /** Custom range base value */
+    SAI_LAG_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
      * @brief Member Choice Mode of LAG Group
@@ -175,15 +183,7 @@ typedef enum _sai_lag_attr_t
      * @flags CREATE
      * @default SAI_LAG_MODE_STATIC
      */
-    SAI_LAG_ATTR_MODE,
-
-    /**
-     * @brief End of attributes
-     */
-    SAI_LAG_ATTR_END,
-
-    /** Custom range base value */
-    SAI_LAG_ATTR_CUSTOM_RANGE_START = 0x10000000,
+    SAI_LAG_ATTR_MODE = SAI_LAG_ATTR_CUSTOM_RANGE_START,
 
     /** 
      * @brief Max member of LAG Group could add 

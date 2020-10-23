@@ -378,7 +378,7 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 0, 0xFFFF);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_APS;
-    ctc_opf_init_offset(&opf, 0, capability[CTC_GLOBAL_CAPABILITY_APS_GROUP_NUM]);
+    ctc_opf_init_offset(&opf, 1, capability[CTC_GLOBAL_CAPABILITY_APS_GROUP_NUM]);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_POLICER;
     ctc_opf_init_offset(&opf, 1, 0xFFFF);
@@ -418,7 +418,7 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 32, 63);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_COUNTER_INDEX;
-    ctc_opf_init_offset(&opf, 1, 1024);
+    ctc_opf_init_offset(&opf, 1, 5632);
 
     /* SDK ACL Resource */
     opf.pool_type = CTC_SAI_DB_ID_TYPE_SDK_SCL_GROUP_ID;
@@ -458,7 +458,10 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 1, 4096);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_TWAMP;
-    ctc_opf_init_offset(&opf, 0, 7);
+    ctc_opf_init_offset(&opf, 0, 4);
+
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_NPM;
+    ctc_opf_init_offset(&opf, 0, 4);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_Y1731_MEG;
     ctc_opf_init_offset(&opf, 1, 4096);
@@ -486,6 +489,9 @@ _ctc_sai_db_init_id(uint8 lchip)
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_GROUP;
     ctc_opf_init_offset(&opf, 0, 16);
+
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_WRED;
+    ctc_opf_init_offset(&opf, 1, 31);
 
     return SAI_STATUS_SUCCESS;
 }
@@ -750,6 +756,7 @@ ctc_sai_db_add_object_property(uint8 lchip, sai_object_id_t object_id, void* obj
         {
             p_object_property->oid = object_id;
             p_object_property->data = object_property;
+            return SAI_STATUS_SUCCESS;
         }
         else
         {
@@ -1053,7 +1060,8 @@ ctc_sai_db_init(uint8 lchip)
         {64, 128},/*CTC_SAI_DB_ENTRY_TYPE_MCAST_IPMC*/
         {64, 128},/*CTC_SAI_DB_ENTRY_TYPE_MCAST_FDB*/
         {32, 1024},/*CTC_SAI_DB_ENTRY_TYPE_ACL*/
-        {4, 1024},/*CTC_SAI_DB_ENTRY_TYPE_ACL_BIND*/
+        {4, 1024},/*CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS*/
+        {4, 1024},/*CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS*/
         {64, 64},  /*CTC_SAI_DB_ENTRY_TYPE_MPLS*/
         {64, 64} /*CTC_SAI_DB_ENTRY_TYPE_NAT*/
     };

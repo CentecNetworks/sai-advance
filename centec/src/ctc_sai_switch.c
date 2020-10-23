@@ -46,6 +46,7 @@
 #include "ctc_sai_es.h"
 #include "ctc_sai_synce.h"
 #include "ctc_sai_monitor.h"
+#include "ctc_sai_counter.h"
 
 static sai_switch_profile_id_t   g_profile_id;
 
@@ -181,6 +182,13 @@ ctc_sai_switch_fdb_learning_process(uint8 gchip, void* p_data)
         /* pizzabox */
         l2_addr.flag = 0;
         l2_addr.fid = p_cache->learning_entry[index].fid;
+
+        if(l2_addr.fid == 0)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "invalid fid");
+            CTC_SAI_DB_UNLOCK(lchip);
+            return 0;
+        }
 
         /*Using learning fifo*/
         if (!p_cache->sync_mode)
@@ -566,7 +574,7 @@ out:
 void
 ctc_sai_switch_monitor_event_process(ctc_monitor_data_t * p_event, void* userdata)
 {
-    uint8 lchip = 0;
+    uint8 lchip = 0, gchip = 0;
     uint8 i= 0;
     uint32 buffer_event_count = 0, latency_event_count = 0;
     uint16 message_num = 0;
@@ -575,24 +583,31 @@ ctc_sai_switch_monitor_event_process(ctc_monitor_data_t * p_event, void* userdat
     sai_monitor_buffer_notification_data_t* monitor_buffer_events = NULL;
     sai_monitor_latency_notification_data_t* monitor_latency_events = NULL;
     ctc_monitor_msg_t* message_info = NULL;
-    sai_object_id_t monitor_latency_id = 0, monitor_buffer_id = 0, port_id;
+    sai_object_id_t monitor_latency_id = 0, monitor_buffer_id = 0, port_id = 0;
     CTC_SAI_LOG_ENTER(SAI_API_SWITCH);
 
-    //ctc_app_index_get_lchip_id(gchip, &lchip);
+    // all gchip in msg should be the same
+    if(p_event->msg_num)
+    {
+        gchip = p_event->p_msg[0].gchip;
+    }
+    else
+    {
+        return;
+    }
+    ctc_app_index_get_lchip_id(gchip, &lchip);
 
     p_switch_master = ctc_sai_get_switch_property(lchip);
     if (NULL == p_switch_master)
     {
-        return ;
+        return;
     }
-
-    //p_event = (ctc_monitor_data_t*)p_data;
 
     /*buffer events */
     monitor_buffer_events = mem_malloc(MEM_SYSTEM_MODULE, sizeof(sai_monitor_buffer_notification_data_t)*p_event->msg_num);
     if (NULL == monitor_buffer_events)
     {
-        return ;
+        return;
     }
     sal_memset(monitor_buffer_events, 0, sizeof(sai_bfd_session_state_notification_t)*p_event->msg_num);
 
@@ -600,7 +615,7 @@ ctc_sai_switch_monitor_event_process(ctc_monitor_data_t * p_event, void* userdat
     monitor_latency_events = mem_malloc(MEM_SYSTEM_MODULE, sizeof(sai_monitor_latency_notification_data_t)*p_event->msg_num);
     if (NULL == monitor_latency_events)
     {
-        return ;
+        goto out1;
     }
     sal_memset(monitor_latency_events, 0, sizeof(sai_monitor_latency_notification_data_t)*p_event->msg_num);
 
@@ -640,7 +655,19 @@ ctc_sai_switch_monitor_event_process(ctc_monitor_data_t * p_event, void* userdat
         }else if (message_info->monitor_type == CTC_MONITOR_BUFFER
             && message_info->msg_type == CTC_MONITOR_MSG_EVENT)
         {
-            monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_stats= message_info->u.buffer_event.event_state;
+            if (message_info->u.buffer_event.event_state == CTC_MONITOR_EVENT_STATE_CLEAR)
+            {
+                monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_state = SAI_MONITOR_EVENT_STATE_CLEAR;
+            }
+            else if (message_info->u.buffer_event.event_state == CTC_MONITOR_EVENT_STATE_OCCUR)
+            {
+                monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_state = SAI_MONITOR_EVENT_STATE_OCCUR;
+            }
+            else
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "buffer monitor event state is error!!!");
+                goto out2;
+            }
             monitor_buffer_events[buffer_event_count].buffer_monitor_message_type = SAI_MONITOR_BUFFER_EVENT_MESSAGE;
             monitor_buffer_events[buffer_event_count].buffer_monitor_based_on_type = SAI_MONITOR_BUFFER_BASED_ON_PORT;
 
@@ -648,17 +675,17 @@ ctc_sai_switch_monitor_event_process(ctc_monitor_data_t * p_event, void* userdat
             {
                 port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, message_info->u.buffer_event.gport);
                 monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_port = port_id;
-                monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_port_multicast_cnt = message_info->u.buffer_event.mc_cnt;
-                monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_port_unicast_cnt= message_info->u.buffer_event.uc_cnt;
+                monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_port_multicast_cnt = message_info->u.buffer_event.mc_cnt * TM_CELL_TO_BYTE;
+                monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_port_unicast_cnt= message_info->u.buffer_event.uc_cnt * TM_CELL_TO_BYTE;
                 monitor_buffer_events[buffer_event_count].buffer_monitor_based_on_type = SAI_MONITOR_BUFFER_BASED_ON_PORT;
             }
             else if (message_info->u.buffer_event.buffer_type == CTC_MONITOR_BUFFER_TOTAL)
             {
-                monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_total_cnt= message_info->u.buffer_event.buffer_cnt;
+                monitor_buffer_events[buffer_event_count].u.buffer_event.buffer_monitor_event_total_cnt= message_info->u.buffer_event.buffer_cnt * TM_CELL_TO_BYTE;
                 monitor_buffer_events[buffer_event_count].buffer_monitor_based_on_type = SAI_MONITOR_BUFFER_BASED_ON_TOTAL;
             }
 
-            monitor_latency_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_MONITOR_BUFFER, lchip, 0, 0, message_info->u.buffer_event.gport);
+            monitor_buffer_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_MONITOR_BUFFER, lchip, 0, 0, message_info->u.buffer_event.gport);
             monitor_buffer_events[buffer_event_count].monitor_buffer_id = monitor_buffer_id;
             buffer_event_count++;
         }
@@ -666,7 +693,7 @@ ctc_sai_switch_monitor_event_process(ctc_monitor_data_t * p_event, void* userdat
             && message_info->msg_type == CTC_MONITOR_MSG_STATS)
         {
             monitor_buffer_events[buffer_event_count].buffer_monitor_message_type= SAI_MONITOR_BUFFER_STATS_MESSAGE;
-            monitor_buffer_events[buffer_event_count].u.buffer_stats.buffer_monitor_stats_port_cnt= message_info->u.buffer_stats.buffer_cnt;
+            monitor_buffer_events[buffer_event_count].u.buffer_stats.buffer_monitor_stats_port_cnt= message_info->u.buffer_stats.buffer_cnt * TM_CELL_TO_BYTE;
             if((message_info->u.buffer_stats.buffer_type== CTC_MONITOR_BUFFER_PORT) &&(message_info->u.buffer_stats.dir == CTC_EGRESS))
             {
                 monitor_buffer_events[buffer_event_count].u.buffer_stats.buffer_monitor_stats_direction = SAI_MONITOR_EGRESS;
@@ -700,6 +727,7 @@ ctc_sai_switch_monitor_event_process(ctc_monitor_data_t * p_event, void* userdat
         {
             port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, message_info->u.mburst_stats.gport);
             monitor_buffer_events[buffer_event_count].u.microburst_stats.buffer_monitor_microburst_port = port_id;
+            monitor_buffer_events[buffer_event_count].buffer_monitor_message_type= SAI_MONITOR_MICORBURST_STATS_MESSAGE;
             for (i = 0; i < MB_LEVEL; i++ )
             {
                 monitor_buffer_events[buffer_event_count].u.microburst_stats.buffer_monitor_microburst_threshold_cnt[i] = message_info->u.mburst_stats.threshold_cnt[i];
@@ -721,7 +749,12 @@ ctc_sai_switch_monitor_event_process(ctc_monitor_data_t * p_event, void* userdat
         p_switch_master->monitor_buffer_cb(buffer_event_count, monitor_buffer_events);
     }
 
-    //return CTC_E_NONE;
+out2:
+    mem_free(monitor_latency_events);
+out1:
+    mem_free(monitor_buffer_events);
+
+    return;
 }
 
 int32
@@ -800,8 +833,8 @@ ctc_sai_switch_get_global_panel_ports(sai_object_key_t* key, sai_attribute_t* at
     sal_memset(&local_panel_ports, 0, sizeof(local_panel_ports));
     sal_memset(ports, 0, sizeof(ports));
 
-    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
     CTC_SAI_CTC_ERROR_RETURN(ctcs_get_gchip_id(lchip, &gchip));
+    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
     CTC_SAI_CTC_ERROR_RETURN(ctcs_global_ctl_get(lchip, CTC_GLOBAL_PANEL_PORTS, (void*)&local_panel_ports));
 
     CTC_SAI_LOG_INFO(SAI_API_SWITCH, "object id %"PRIx64" get switch attribute id %d\n", key->key.object_id, attr->id);
@@ -1257,7 +1290,13 @@ ctc_sai_switch_set_global_property(sai_object_key_t* key, const sai_attribute_t*
     uint8 gchip = 0;
     uint32 gport = 0;
     uint32 num = 0;
-    ctc_global_panel_ports_t local_panel_ports ;
+    ctc_global_panel_ports_t local_panel_ports;
+	
+    /*SYSTEM MODIFIED by yoush for warm reboot in 2020-08-07*/ /* SAI merge 20200824 */
+    const char                 *profile_char;
+    sai_service_method_table_t* p_api_services=NULL;
+    sal_file_t p_file = NULL;
+	/* SAI merge 20200824 END */
 
     sal_memset(&local_panel_ports, 0, sizeof(ctc_global_panel_ports_t));
 
@@ -1431,6 +1470,21 @@ ctc_sai_switch_set_global_property(sai_object_key_t* key, const sai_attribute_t*
         case SAI_SWITCH_ATTR_RESTART_WARM:
             if (attr->value.booldata)
             {
+                /*SYSTEM MODIFIED by yoush for warm reboot in 2020-08-07*/ /* SAI merge 20200824 */
+                ctc_sai_get_services_fn(&p_api_services);
+                profile_char = p_api_services->profile_get_value(g_profile_id, SAI_KEY_WARM_BOOT_WRITE_FILE);
+                if (NULL != profile_char)
+                {
+                    CTC_SAI_LOG_NOTICE(SAI_API_SWITCH, "Warm reboot write file: %s\n", profile_char);
+                    p_file = sal_fopen(profile_char, "w+");
+                    if (NULL == p_file)
+                    {
+                        CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "Failed to write warm reboot file\n");
+                        return SAI_STATUS_INVALID_PARAMETER;
+                    }  
+                    sal_fclose(p_file);
+                }
+                /* SAI merge 20200824 END */
                 CTC_SET_FLAG(p_switch_master->flag, CTC_SAI_SWITCH_FLAG_WARMBOOT_EN);
             }
             else
@@ -1452,6 +1506,10 @@ ctc_sai_switch_set_global_property(sai_object_key_t* key, const sai_attribute_t*
             if (attr->value.booldata)
             {
                 CTC_SET_FLAG(p_switch_master->flag, CTC_SAI_SWITCH_FLAG_PRE_SHUTDOWN);
+                /* SYSTEM MODIFIED by yoush, write warm reboot data to DB*/ /* SAI merge 20200824 */
+                CTC_SAI_LOG_NOTICE(SAI_API_SWITCH, "Sync data to Redis DB for warm reboot\n");
+                CTC_SAI_ERROR_RETURN(ctc_sai_warmboot_sync(lchip));
+                /* SAI merge 20200824 END */
             }
             else
             {
@@ -1686,8 +1744,9 @@ ctc_sai_switch_get_qos_property(sai_object_key_t* key, sai_attribute_t* attr, ui
             break;
 
         case SAI_SWITCH_ATTR_QOS_DEFAULT_TC:
-            attr->value.u8 = p_switch->default_tc;
-            break;
+            //attr->value.u8 = p_switch->default_tc;
+            //break;
+            return SAI_STATUS_ATTR_NOT_SUPPORTED_0+attr_idx;
         case SAI_SWITCH_ATTR_QOS_DOT1P_TO_TC_MAP:
             value = p_switch->qos_domain_dot1p[0].tc.dot1p_to_tc_map_id;
             if (value)
@@ -1832,9 +1891,9 @@ ctc_sai_switch_set_qos_property(sai_object_key_t* key, const sai_attribute_t* at
     switch(attr->id)
     {
         case SAI_SWITCH_ATTR_QOS_DEFAULT_TC:
-            CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_switch_set_default_tc(lchip, attr->value.u8));
-            p_switch->default_tc = attr->value.u8;
-            break;
+            //CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_switch_set_default_tc(lchip, attr->value.u8));
+            //p_switch->default_tc = attr->value.u8;
+            return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
         case SAI_SWITCH_ATTR_QOS_DOT1P_TO_TC_MAP:
             if (SAI_NULL_OBJECT_ID == attr->value.oid)
             {
@@ -2305,7 +2364,6 @@ ctc_sai_switch_get_acl_property(sai_object_key_t* key, sai_attribute_t* attr, ui
             attr->value.aclcapability.action_list.list[16] = SAI_ACL_ACTION_TYPE_SET_DO_NOT_LEARN;
             attr->value.aclcapability.action_list.list[17] = SAI_ACL_ACTION_TYPE_MIRROR_EGRESS;
             attr->value.aclcapability.action_list.list[18] = SAI_ACL_ACTION_TYPE_EGRESS_SAMPLEPACKET_ENABLE;
-            attr->value.aclcapability.action_list.list[19] = SAI_ACL_ACTION_TYPE_SET_PACKET_COLOR;
             break;
         case SAI_SWITCH_ATTR_INGRESS_ACL:
             p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, (void*)(&key->key.object_id));
@@ -2395,6 +2453,8 @@ ctc_sai_switch_set_buffer_monitor_property(sai_object_key_t* key, const sai_attr
     buffer_monitor_watermark.monitor_type = CTC_MONITOR_BUFFER;
     buffer_monitor_watermark.u.buffer.buffer_type = CTC_MONITOR_BUFFER_TOTAL;
 
+    buffer_monitor_glb_cfg.cfg_type = CTC_MONITOR_GLB_CONFIG_MBURST_THRD;
+
     CTC_SAI_LOG_ENTER(SAI_API_SWITCH);
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
     CTC_SAI_LOG_INFO(SAI_API_SWITCH, "object id %"PRIx64" set switch attribute id %d\n", key->key.object_id, attr->id);
@@ -2424,35 +2484,19 @@ ctc_sai_switch_set_buffer_monitor_property(sai_object_key_t* key, const sai_attr
         break;
 
     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
-       if(attr->value.u32 > p_switch->monitor_buffer_total_thrd_max)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_MONITOR, "NOTE: THE MIN THRESHOLD IS MORE THAN THE MAX THERESHOLDT!");
-            return SAI_STATUS_FAILURE;
-        }
-        else
-        {
-            CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_from_byte(lchip, attr->value.u32, min_threshold));
-            buffer_monitor_cfg.value = min_threshold;
-            buffer_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MIN;
-            CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg));
-            p_switch->monitor_buffer_total_thrd_min = min_threshold;
-        }
+        CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_from_byte(lchip, attr->value.u32, &min_threshold));
+        buffer_monitor_cfg.value = min_threshold;
+        buffer_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MIN;
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg));
+        p_switch->monitor_buffer_total_thrd_min = attr->value.u32;
         break;
 
     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
-       if(attr->value.u32 < p_switch->monitor_buffer_total_thrd_min)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_MONITOR, "NOTE: THE MIN THRESHOLD IS MORE THAN THE MAX THERESHOLDT!");
-            return SAI_STATUS_FAILURE;
-        }
-        else
-        {
-            CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_from_byte(lchip, attr->value.u32, max_threshold));
-            buffer_monitor_cfg.value = max_threshold;
-            buffer_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MAX;
-            CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg));
-            p_switch->monitor_buffer_total_thrd_max = max_threshold;
-        }
+        CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_from_byte(lchip, attr->value.u32, &max_threshold));
+        buffer_monitor_cfg.value = max_threshold;
+        buffer_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MAX;
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg));
+        p_switch->monitor_buffer_total_thrd_max = attr->value.u32;
         break;
 
     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD:
@@ -2564,11 +2608,18 @@ ctc_sai_switch_get_buffer_monitor_property(sai_object_key_t* key, sai_attribute_
     buffer_monitor_glb_cfg.cfg_type= CTC_MONITOR_GLB_CONFIG_MBURST_THRD;
 
     sal_memset(&buffer_monitor_watermark, 0, sizeof(buffer_monitor_watermark));
+    buffer_monitor_watermark.monitor_type = CTC_MONITOR_BUFFER;
+    buffer_monitor_watermark.u.buffer.buffer_type = CTC_MONITOR_BUFFER_TOTAL;
 
     CTC_SAI_LOG_ENTER(SAI_API_SWITCH);
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
     CTC_SAI_LOG_INFO(SAI_API_SWITCH, "object id %"PRIx64" get switch attribute id %d\n", key->key.object_id, attr->id);
     p_switch = ctc_sai_get_switch_property(lchip);
+    
+    if (NULL == p_switch)
+    {
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
 
     switch (attr->id)
     {
@@ -2646,21 +2697,21 @@ ctc_sai_switch_get_buffer_monitor_property(sai_object_key_t* key, sai_attribute_
 
      case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL:
         buffer_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INTERVAL;
-        CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg));
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_get_config(lchip, &buffer_monitor_cfg));
         attr->value.u32 = buffer_monitor_cfg.value;
         break;
 
     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK:
         buffer_monitor_watermark.u.buffer.dir = CTC_INGRESS;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_monitor_get_watermark(lchip, &buffer_monitor_watermark));
-        CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_to_byte(lchip, buffer_monitor_watermark.u.buffer.max_total_cnt, watermark));
+        CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_to_byte(lchip, buffer_monitor_watermark.u.buffer.max_total_cnt, &watermark));
         attr->value.u32 = watermark;
         break;
 
     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK:
         buffer_monitor_watermark.u.buffer.dir = CTC_EGRESS;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_monitor_get_watermark(lchip, &buffer_monitor_watermark));
-        CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_to_byte(lchip, buffer_monitor_watermark.u.buffer.max_total_cnt, watermark));
+        CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_to_byte(lchip, buffer_monitor_watermark.u.buffer.max_total_cnt, &watermark));
         attr->value.u32 = watermark;
         break;
 
@@ -2689,53 +2740,43 @@ ctc_sai_switch_set_latency_monitor_property(sai_object_key_t* key, const sai_att
     CTC_SAI_LOG_ENTER(SAI_API_SWITCH);
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
     CTC_SAI_LOG_INFO(SAI_API_SWITCH, "object id %"PRIx64" set switch attribute id %d\n", key->key.object_id, attr->id);
+    p_switch = ctc_sai_get_switch_property(lchip);
+
+    if (NULL == p_switch)
+    {
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
 
     switch(attr->id)
     {
     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
-        if(attr->value.u32 > p_switch->monitor_latency_total_thrd_min)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_MONITOR, "NOTE: THE MIN THRESHOLD IS MORE THAN THE MAX THERESHOLDT!");
-            return SAI_STATUS_FAILURE;
-        }
-        else
-        {
-            latency_monitor_cfg.value = attr->value.u32;
-            latency_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MIN;
-            CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &latency_monitor_cfg));
-            p_switch->monitor_latency_total_thrd_min = attr->value.u32;
-        }
+        latency_monitor_cfg.value = attr->value.u32;
+        latency_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MIN;
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &latency_monitor_cfg));
+        p_switch->monitor_latency_total_thrd_min = attr->value.u32;
         break;
 
     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
-        if(attr->value.u32 < p_switch->monitor_latency_total_thrd_max)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_MONITOR, "NOTE:THE MIN THRESHOLD IS MORE THAN THE MAX THERESHOLDT!");
-            return SAI_STATUS_FAILURE;
-        }
-        else
-        {
-            latency_monitor_cfg.value = attr->value.u32;
-            latency_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MAX;
-            CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &latency_monitor_cfg));
-            p_switch->monitor_latency_total_thrd_max = attr->value.u32;
-        }
+        latency_monitor_cfg.value = attr->value.u32;
+        latency_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MAX;
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &latency_monitor_cfg));
+        p_switch->monitor_latency_total_thrd_max = attr->value.u32;
         break;
 
     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
         latency_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INTERVAL;
         latency_monitor_cfg.value = attr->value.u32;
-        CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_get_config(lchip, &latency_monitor_cfg));
+        CTC_SAI_CTC_ERROR_RETURN (ctcs_monitor_set_config(lchip, &latency_monitor_cfg));
         break;
 
     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD:
         for(index = 0; index < MB_LEVEL; index++)
         {
             latency_monitor_glb_cfg.u.thrd.level = index;
+            latency_monitor_glb_cfg.u.thrd.threshold = attr->value.u32list.list[index];
             CTC_SAI_CTC_ERROR_RETURN(ctcs_monitor_set_global_config(lchip, &latency_monitor_glb_cfg));
-            attr->value.u32list.list[index] = latency_monitor_glb_cfg.u.thrd.threshold;
         }
-
+        break;
     default:
         CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "switch attribute %d not implemented\n", attr->id);
         return  SAI_STATUS_ATTR_NOT_IMPLEMENTED_0;
@@ -2763,6 +2804,11 @@ ctc_sai_switch_get_latency_monitor_property(sai_object_key_t* key, sai_attribute
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
     CTC_SAI_LOG_INFO(SAI_API_SWITCH, "object id %"PRIx64" get switch attribute id %d\n", key->key.object_id, attr->id);
     p_switch = ctc_sai_get_switch_property(lchip);
+    
+    if (NULL == p_switch)
+    {
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
 
     switch (attr->id)
     {
@@ -2798,11 +2844,21 @@ ctc_sai_switch_get_latency_monitor_property(sai_object_key_t* key, sai_attribute
     return SAI_STATUS_SUCCESS;
 }
 
+extern sai_status_t ctc_sai_platform_db_init(uint8 lchip);
+extern sai_status_t ctc_sai_platform_db_deinit(uint8 lchip);
 
 static sai_status_t ctc_sai_switch_create_db(uint8 lchip)
 {
     CTC_SAI_ERROR_RETURN(ctc_sai_db_init(lchip));
     CTC_SAI_ERROR_RETURN(ctc_sai_switch_db_init(lchip));
+    /* SAI merge 20200824 */
+    #ifdef CTC_PLATFORM
+    if (0 == SDK_WORK_PLATFORM)
+    {
+        CTC_SAI_ERROR_RETURN(ctc_sai_platform_db_init(lchip));
+    }
+    #endif
+
     CTC_SAI_ERROR_RETURN(ctc_sai_port_db_init(lchip));
     CTC_SAI_ERROR_RETURN(ctc_sai_fdb_db_init(lchip));
     CTC_SAI_ERROR_RETURN(ctc_sai_stp_db_init(lchip));
@@ -2853,6 +2909,14 @@ static sai_status_t ctc_sai_switch_destroy_db(uint8 lchip)
     ctc_sai_samplepacket_db_deinit(lchip);
     ctc_sai_hostif_db_deinit(lchip);
     ctc_sai_port_db_deinit(lchip);
+    /* SAI merge 20200824 */
+    #ifdef CTC_PLATFORM
+    if (0 == SDK_WORK_PLATFORM)
+    {
+        ctc_sai_platform_db_deinit(lchip);
+    }
+    #endif
+
     ctc_sai_neighbor_db_deinit(lchip);
     ctc_sai_ld_hash_db_deinit(lchip);
     ctc_sai_mirror_db_deinit(lchip);
@@ -2861,6 +2925,8 @@ static sai_status_t ctc_sai_switch_destroy_db(uint8 lchip)
     ctc_sai_acl_db_deinit(lchip);
     ctc_sai_bfd_db_deinit(lchip);
     ctc_sai_y1731_db_deinit(lchip);
+    ctc_sai_twamp_db_deinit(lchip);
+    ctc_sai_npm_db_deinit(lchip);
 
     /*Last Operation*/
     ctc_sai_db_deinit(lchip);
@@ -2894,6 +2960,7 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     uint32 linkagg_num = 0;
     const char*                       init_cfg_file = NULL;
     const char*                       datapath_cfg_file = NULL;
+    const char*                       mem_cfg_file = NULL;
     sai_service_method_table_t* p_api_services=NULL;
     ctc_init_cfg_t* init_config = NULL;
     dal_op_t dal_cfg;
@@ -2917,9 +2984,9 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     ctc_ftm_tbl_info_t* ftm_tbl_info = NULL;
     ctc_sai_switch_master_t* p_switch_master = NULL;
     ctc_overlay_tunnel_global_cfg_t* p_overlay_cfg = NULL;
-    ctc_acl_global_cfg_t* p_acl_cfg = NULL;
-    ctc_acl_league_t league;
-    ctc_global_flow_property_t* p_global_flow_property = NULL;
+    ctc_acl_global_cfg_t acl_cfg;
+    ctc_ptp_global_config_t* p_ptp_cfg = NULL;
+    ctc_parser_global_cfg_t* p_parser_cfg = NULL;
 
     uint8 reloading = 0;
     char* boot_type_str[] = {"ColdBoot", "WarmBoot"};
@@ -2928,7 +2995,7 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
 
     CTC_SAI_LOG_ENTER(SAI_API_SWITCH);
 
-    ftm_key_info = (ctc_ftm_key_info_t*)sal_malloc(sizeof(ctc_ftm_key_info_t)*CTC_FTM_KEY_TYPE_MAX*3);
+    ftm_key_info = (ctc_ftm_key_info_t*)sal_malloc(sizeof(ctc_ftm_key_info_t)*CTC_FTM_KEY_TYPE_MAX);
     ftm_tbl_info = (ctc_ftm_tbl_info_t*)sal_malloc(sizeof(ctc_ftm_tbl_info_t)*CTC_FTM_TBL_TYPE_MAX);
     init_config = (ctc_init_cfg_t*)sal_malloc( sizeof(ctc_init_cfg_t));
     mpls_cfg = (ctc_mpls_init_t*)sal_malloc( sizeof(ctc_mpls_init_t));
@@ -2937,11 +3004,13 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     qos_cfg = (ctc_qos_global_cfg_t*)sal_malloc(sizeof(ctc_qos_global_cfg_t));
     stacking_cfg = (ctc_stacking_glb_cfg_t*)sal_malloc(sizeof(ctc_stacking_glb_cfg_t));
     p_overlay_cfg = (ctc_overlay_tunnel_global_cfg_t*)sal_malloc(sizeof(ctc_overlay_tunnel_global_cfg_t));
-    p_acl_cfg = (ctc_acl_global_cfg_t*)sal_malloc(sizeof(ctc_acl_global_cfg_t));
-    p_global_flow_property = (ctc_global_flow_property_t*)sal_malloc(sizeof(ctc_global_flow_property_t));
+    p_ptp_cfg = (ctc_ptp_global_config_t*)sal_malloc(sizeof(ctc_ptp_global_config_t));
+    p_parser_cfg = (ctc_parser_global_cfg_t*)sal_malloc(sizeof(ctc_parser_global_cfg_t));
 
     if ((NULL == ftm_key_info) || (NULL == ftm_tbl_info) || (NULL == init_config)
-        || (NULL == mpls_cfg) || (NULL == datapath_cfg) || (NULL == dma_cfg) || (NULL == qos_cfg) || (NULL == stacking_cfg) || (NULL == p_overlay_cfg) || (NULL == p_acl_cfg))
+        || (NULL == mpls_cfg) || (NULL == datapath_cfg) || (NULL == p_ptp_cfg)
+        || (NULL == dma_cfg) || (NULL == qos_cfg) || (NULL == stacking_cfg) || (NULL == p_parser_cfg)
+        || (NULL == p_overlay_cfg) )
     {
         return SAI_STATUS_NO_MEMORY;
     }
@@ -2956,7 +3025,7 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     sal_memset(mpls_cfg,0,sizeof(ctc_mpls_init_t));
     sal_memset(&intr_cfg,0,sizeof(ctc_intr_global_cfg_t));
     sal_memset(dma_cfg,0,sizeof(ctc_dma_global_cfg_t));
-    sal_memset(ftm_key_info, 0, 3*CTC_FTM_KEY_TYPE_MAX * sizeof(ctc_ftm_key_info_t));
+    sal_memset(ftm_key_info, 0, CTC_FTM_KEY_TYPE_MAX * sizeof(ctc_ftm_key_info_t));
     sal_memset(ftm_tbl_info, 0, CTC_FTM_TBL_TYPE_MAX * sizeof(ctc_ftm_tbl_info_t));
     sal_memset(&bpe_cfg,0,sizeof(ctc_bpe_global_cfg_t));
     sal_memset(&chip_cfg,0,sizeof(ctc_chip_global_cfg_t));
@@ -2967,8 +3036,9 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     sal_memset(stacking_cfg,0,sizeof(ctc_stacking_glb_cfg_t));
     sal_memset(&port_cfg,0,sizeof(ctc_port_global_cfg_t));
     sal_memset(p_overlay_cfg, 0, sizeof(ctc_overlay_tunnel_global_cfg_t));
-    sal_memset(p_acl_cfg, 0, sizeof(ctc_acl_global_cfg_t));
-    sal_memset(p_global_flow_property, 0, sizeof(ctc_global_flow_property_t));
+    sal_memset(&acl_cfg, 0, sizeof(ctc_acl_global_cfg_t));
+    sal_memset(p_ptp_cfg, 0, sizeof(ctc_ptp_global_config_t));
+    sal_memset(p_parser_cfg, 0, sizeof(ctc_parser_global_cfg_t));
 
     /* Config module init parameter, if set init_config.p_MODULE_cfg = NULL, using SDK default configration */
     init_config->dal_cfg = &dal_cfg;
@@ -2988,21 +3058,26 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     init_config->p_ipuc_cfg = &ipuc_cfg;
     init_config->p_stats_cfg = &stats_cfg;
     init_config->p_stacking_cfg = stacking_cfg;
+    init_config->p_ptp_cfg = p_ptp_cfg;
+    init_config->p_acl_cfg = &acl_cfg;
+    init_config->p_parser_cfg = p_parser_cfg;
+
     init_config->p_linkagg_cfg = &lag_cfg;
     init_config->p_port_cfg = &port_cfg;
     init_config->p_overlay_cfg = p_overlay_cfg;
-    init_config->p_acl_cfg = p_acl_cfg;
 
     sal_memcpy(&dal_cfg, &g_dal_op, sizeof(dal_op_t));
     dal_cfg.lchip = lchip;
     sal_memcpy(&dal_cfg.pci_dev, p_pci_dev, sizeof(dal_pci_dev_t));
+    
     ctc_sai_get_services_fn(&p_api_services);
 
     init_cfg_file = p_api_services->profile_get_value(g_profile_id, SAI_KEY_INIT_CONFIG_FILE);
     datapath_cfg_file = p_api_services->profile_get_value(g_profile_id, SAI_KEY_HW_PORT_PROFILE_ID_CONFIG_FILE);
+    mem_cfg_file = p_api_services->profile_get_value(g_profile_id, "SAI_MEMORY_PROFILE");
 
     /* get config info */
-    status = ctc_app_get_config(lchip, (char*)init_cfg_file, (char*)datapath_cfg_file, init_config);
+    status = ctc_app_get_config(lchip, (char*)init_cfg_file, (char*)datapath_cfg_file, (char*)mem_cfg_file, init_config, NULL);
     if (status != 0)
     {
         CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "ctc_app_get_config failed:%s@%d \n",  __FUNCTION__, __LINE__);
@@ -3031,7 +3106,7 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
         init_config->ftm_info.misc_info.profile_specs[CTC_FTM_SPEC_IPUC_HOST]  = (uint32)sal_atoi(profile_char);
     }
 
-    profile_char = p_api_services->profile_get_value(g_profile_id, SAI_KEY_NUM_LAG_MEMBERS);
+    profile_char = p_api_services->profile_get_value(g_profile_id, SAI_KEY_NUM_LAGS);
     /*default mode is  CTC_LINKAGG_MODE_FLEX*/
     init_config->p_linkagg_cfg->linkagg_mode = CTC_LINKAGG_MODE_FLEX;
     if (NULL != profile_char)
@@ -3099,23 +3174,17 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     //ECMP number of members per group Default is 64
     //nh_global_cfg.max_ecmp = 64;
 
+    //ECMP and LAG default hash ALGORITHM is crc
+    //p_parser_cfg.ecmp_hash_type = CTC_PARSER_GEN_HASH_TYPE_CRC;
+    //p_parser_cfg.linkagg_hash_type = CTC_PARSER_GEN_HASH_TYPE_CRC;
+    //CTC_SAI_CTC_ERROR_GOTO(ctcs_parser_set_global_cfg(lchip, &p_parser_cfg), status, roll_back_0);
+    
     sal_time(&tv);
     p_time_str = sal_ctime(&tv);
-    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "Create Swtich, %s, Start time %s", boot_type_str[boot_type], p_time_str);
+    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "Create Switch, %s, Start time %s", boot_type_str[boot_type], p_time_str);
 
     ctc_sai_warmboot_init(lchip, reloading);
     CTC_SAI_CTC_ERROR_GOTO(ctcs_sdk_init(lchip, init_config), status, roll_back_0);
-    sal_memset(&league, 0, sizeof(ctc_acl_league_t));
-
-    league.dir = CTC_INGRESS;
-    league.auto_move_en = 0;
-    league.acl_priority = 5;
-    league.lkup_level_bitmap = 0x60;
-    CTC_SAI_CTC_ERROR_GOTO(ctcs_acl_set_league_mode(lchip, &league), status, roll_back_1);
-
-    p_global_flow_property->igs_vlan_range_mode = CTC_GLOBAL_VLAN_RANGE_MODE_SHARE;
-    p_global_flow_property->egs_vlan_range_mode = CTC_GLOBAL_VLAN_RANGE_MODE_SHARE;
-    CTC_SAI_CTC_ERROR_GOTO(ctcs_global_ctl_set(lchip, CTC_GLOBAL_FLOW_PROPERTY, p_global_flow_property), status, roll_back_1);
 
     chip_type = ctcs_get_chip_type(lchip);
     if(CTC_CHIP_GOLDENGATE != chip_type)
@@ -3123,7 +3192,7 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
         CTC_SAI_CTC_ERROR_GOTO(ctcs_diag_init(lchip, NULL), status, roll_back_1);
     }
 
-    CTC_SAI_ERROR_GOTO(ctc_sai_swith_isr_init(lchip), status, roll_back_2);
+    //CTC_SAI_ERROR_GOTO(ctc_sai_swith_isr_init(lchip), status, roll_back_2);
     if (!reloading)
     {
         if (FALSE == g_ctc_sai_master.cli_init)
@@ -3136,10 +3205,12 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     CTC_SAI_CTC_ERROR_GOTO(ctc_sai_warmboot_init(lchip, reloading), status, roll_back_2);   /*because ctcs_sdk_init call ctc_wb_init_done*/
     CTC_SAI_CTC_ERROR_GOTO(ctc_sai_switch_create_db(lchip), status, roll_back_2);
     CTC_SAI_CTC_ERROR_GOTO(ctc_sai_warmboot_init_done(lchip, reloading), status, roll_back_3);
+    /*SYSTEM MODIFIED by yoush for warm-reboot in 2020-08-13*/ /* SAI merge 20200824 */
+    CTC_SAI_ERROR_GOTO(ctc_sai_swith_isr_init(lchip), status, roll_back_3);
 
     sal_time(&tv);
     p_time_str = sal_ctime(&tv);
-    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "Create Swtich, %s, End time %s", boot_type_str[boot_type], p_time_str);
+    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "Create Switch, %s, End time %s", boot_type_str[boot_type], p_time_str);
 
     p_switch_master = ctc_sai_get_switch_property(lchip);
     if (NULL == p_switch_master)
@@ -3200,6 +3271,11 @@ roll_back_0:
         sal_free(datapath_cfg);
     }
 
+    if(p_ptp_cfg)
+    {
+        sal_free(p_ptp_cfg);
+    }
+
     if(dma_cfg)
     {
         sal_free(dma_cfg);
@@ -3214,20 +3290,20 @@ roll_back_0:
         sal_free(stacking_cfg);
     }
 
+    if(p_parser_cfg)
+    {
+        sal_free(p_parser_cfg);
+    }
+
     if(p_overlay_cfg)
     {
         sal_free(p_overlay_cfg);
     }
 
-    if(p_acl_cfg)
-    {
-        sal_free(p_acl_cfg);
-    }
-
     if(init_config)
     {
         sal_free(init_config);
-    }
+    }    
 
     return status;
 }
@@ -3252,7 +3328,7 @@ ctc_sai_switch_deinit_switch(sai_object_id_t switch_id)
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(switch_id, &lchip));
 
-    ctcs_get_gchip_id(lchip, &gchip);
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_get_gchip_id(lchip, &gchip));
 
     p_switch_info = ctc_sai_get_switch_property(lchip);
 
@@ -3285,7 +3361,9 @@ ctc_sai_switch_deinit_switch(sai_object_id_t switch_id)
 
     if (wb_flag)
     {
-        CTC_SAI_ERROR_RETURN(ctc_sai_warmboot_sync(lchip));
+	    /* SAI merge 20200824 */
+        //CTC_SAI_LOG_NOTICE(SAI_API_SWITCH, "Sync data to Redis DB for warm reboot\n");
+        //CTC_SAI_ERROR_RETURN(ctc_sai_warmboot_sync(lchip));
     }
     CTC_SAI_ERROR_RETURN(ctc_sai_switch_destroy_db(lchip));
     ctcs_get_local_chip_num(lchip, &lchip_num);
@@ -3474,6 +3552,12 @@ ctc_sai_switch_create_switch(sai_object_id_t* switch_id,
     if (!CTC_SAI_ERROR(sai_status))
     {
         p_switch_master->port_sd_cb = (sai_signal_degrade_event_notification_fn)attr_val->ptr;
+    }
+
+    sai_status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_SWITCH_ATTR_PTP_PACKET_TX_EVENT_NOTIFY, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(sai_status))
+    {
+        p_switch_master->ptp_packet_tx_event_cb = (sai_packet_event_ptp_tx_notification_fn)attr_val->ptr;
     }
 
     sai_status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_SWITCH_ATTR_SRC_MAC_ADDRESS, &attr_val, &attr_idx);
@@ -3980,6 +4064,12 @@ void ctc_sai_switch_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param
         sal_memset(&local_panel_ports, 0, sizeof(local_panel_ports));
         switch_oid_cur = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, (uint32)gchip);
         p_switch_info = ctc_sai_db_get_object_property(lchip, switch_oid_cur);
+        if (NULL == p_switch_info)  /* SAI merge 20200824 */
+        {
+            /* maybe not init or failed to recovery. Added by taocy for CirrusOS warmBoot, 20200427.*/
+            return;
+        }
+
         ctcs_global_ctl_get(lchip, CTC_GLOBAL_PANEL_PORTS, (void*)&local_panel_ports);
 
         sal_memcpy((&ctc_switch_master_cur), p_switch_info, sizeof(ctc_sai_switch_master_t));
@@ -4000,7 +4090,7 @@ void ctc_sai_switch_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param
         CTC_SAI_LOG_DUMP(p_file, "%-30s %-10s\n", "Uninit data plane on removal: ", CTC_FLAG_ISSET(ctc_switch_master_cur.flag, CTC_SAI_SWITCH_FLAG_UNINIT_DATA_PLANE_ON_REMOVAL)?"Y":"N");
         CTC_SAI_LOG_DUMP(p_file, "%s\n", "----------------------------------------------------QOS----------------------------------------------------------------");
         CTC_SAI_LOG_DUMP(p_file, "%-30s %-10d\n", "Ucast port queues: ", ctc_switch_master_cur.port_queues);
-        CTC_SAI_LOG_DUMP(p_file, "%-30s %-10d\n", "Default tc: ", ctc_switch_master_cur.default_tc);
+        //CTC_SAI_LOG_DUMP(p_file, "%-30s %-10d\n", "Default tc: ", ctc_switch_master_cur.default_tc);
         CTC_SAI_LOG_DUMP(p_file, "%-30s %-10d\n", "Default WTD thrd(G): ", ctc_switch_master_cur.default_wtd_thrd[SAI_PACKET_COLOR_GREEN]);
         CTC_SAI_LOG_DUMP(p_file, "%-30s %-10d\n", "Default WTD thrd(Y): ", ctc_switch_master_cur.default_wtd_thrd[SAI_PACKET_COLOR_YELLOW]);
         CTC_SAI_LOG_DUMP(p_file, "%-30s %-10d\n", "Default WTD thrd(R): ", ctc_switch_master_cur.default_wtd_thrd[SAI_PACKET_COLOR_RED]);
@@ -4141,7 +4231,11 @@ ctc_sai_switch_db_init(uint8 lchip)
     p_switch_info->default_ecn_thrd[SAI_PACKET_COLOR_YELLOW] = ctc_drop.drop.ecn_th[1];
     p_switch_info->default_ecn_thrd[SAI_PACKET_COLOR_RED] = ctc_drop.drop.ecn_th[0];
 
+    ctc_sai_acl_init_resource(lchip);
+    ctc_sai_counter_init_resource(lchip);
+
     return SAI_STATUS_SUCCESS;
+
 roll_back_0:
     mem_free(p_switch_info);
     return status;

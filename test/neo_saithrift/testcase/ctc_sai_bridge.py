@@ -200,7 +200,7 @@ class func_06_set_and_get_bridge_attribute_fn_1_1d(sai_base_test.ThriftInterface
             default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
             ret = self.client.sai_thrift_get_bridge_port_list(default_1q_bridge)
             count = ret.data.objlist.count
-            assert( 28 == count ) 
+            assert( 32 == count ) 
             
             sys_logging("### every port can only be binding to 1q or 1d bridge at same time ###")
             
@@ -216,14 +216,14 @@ class func_06_set_and_get_bridge_attribute_fn_1_1d(sai_base_test.ThriftInterface
                 assert( bport_id[i] in bridge_port_list )
                 
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, bport_id[0], port1)
-            sai_thrift_remove_bridge_sub_port(self.client, bport_id[1], port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport_id[2], port3)
-            sai_thrift_remove_bridge_sub_port(self.client, bport_id[3], port4)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport_id[0], port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport_id[1], port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport_id[2], port3)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport_id[3], port4)
             self.client.sai_thrift_remove_bridge(bridge_id)             
 
-
-
+'''
+#1d port and 1q port can co-exist
 class func_06_set_and_get_bridge_attribute_fn_1_1q_and_1d(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
                       
@@ -255,7 +255,7 @@ class func_06_set_and_get_bridge_attribute_fn_1_1q_and_1d(sai_base_test.ThriftIn
         finally:
             sai_thrift_remove_bridge_sub_port(self.client, subport_id0, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)  
-
+'''
            
             
 class func_06_set_and_get_bridge_attribute_fn_2_1d(sai_base_test.ThriftInterfaceDataPlane):
@@ -664,7 +664,7 @@ class func_07_create_bridge_port_fn_sub_port(sai_base_test.ThriftInterfaceDataPl
         try:
             assert( sub_port_id != SAI_NULL_OBJECT_ID )                                   
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)    
 
 
@@ -712,7 +712,7 @@ class func_08_create_same_bridge_port_fn_1_sub_port(sai_base_test.ThriftInterfac
         try:
             assert( SAI_NULL_OBJECT_ID == sub_port_id2 ) 
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id1, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id1, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)    
 
 
@@ -840,11 +840,11 @@ class func_09_remove_bridge_port_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         ret = self.client.sai_thrift_get_bridge_port_list(default_1q_bridge)
         count = ret.data.objlist.count
-        assert( 31 == count )
+        assert( 32 == count )
              
         warmboot(self.client)
         try:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id, port1)
             ret = self.client.sai_thrift_get_bridge_port_list(default_1q_bridge)
             count = ret.data.objlist.count
             assert( 32 == count )            
@@ -897,7 +897,7 @@ class func_11_set_and_get_bridge_port_attribute_fn_0(sai_base_test.ThriftInterfa
                     assert( SAI_BRIDGE_PORT_TYPE_SUB_PORT == a.value.s32) 
                     
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id) 
             
 
@@ -941,7 +941,7 @@ class func_11_set_and_get_bridge_port_attribute_fn_1_subport(sai_base_test.Thrif
                     sys_logging("###SAI_BRIDGE_PORT_ATTR_PORT_ID = %d ###" %a.value.oid)
                     assert( port1 == a.value.oid)                           
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)             
             
             
@@ -979,7 +979,7 @@ class func_11_set_and_get_bridge_port_attribute_fn_2(sai_base_test.ThriftInterfa
                     # do not support update 
                     assert( SAI_BRIDGE_PORT_TAGGING_MODE_TAGGED == a.value.s32)                    
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)             
             
             
@@ -1002,7 +1002,7 @@ class func_11_set_and_get_bridge_port_attribute_fn_3(sai_base_test.ThriftInterfa
                     sys_logging("###SAI_BRIDGE_PORT_ATTR_VLAN_ID = %d ###" %a.value.u16)
                     assert( vlan_id1 == a.value.u16)                           
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)             
                         
                       
@@ -1283,7 +1283,7 @@ class func_11_set_and_get_bridge_port_attribute_fn_6_sub_port(sai_base_test.Thri
                     sys_logging("###SAI_BRIDGE_PORT_ATTR_BRIDGE_ID = %d ###" %a.value.oid)
                     assert( bridge_id2 == a.value.oid)          
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id1)
             self.client.sai_thrift_remove_bridge(bridge_id2)
             
@@ -1549,7 +1549,7 @@ class func_11_set_and_get_bridge_port_attribute_fn_9(sai_base_test.ThriftInterfa
                     assert( 0 == a.value.booldata)  
                     
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, sub_port_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, sub_port_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)
 
 
@@ -1853,8 +1853,6 @@ class scenario_01_bridge_max_learning_limit(sai_base_test.ThriftInterfaceDataPla
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)
             self.client.sai_thrift_remove_bridge_port(sub_port_id4)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
             self.client.sai_thrift_remove_bridge(bridge_id1)          
             self.client.sai_thrift_remove_bridge(bridge_id2)
 
@@ -1977,8 +1975,6 @@ class scenario_02_bridge_mac_learning_disable(sai_base_test.ThriftInterfaceDataP
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)
             self.client.sai_thrift_remove_bridge_port(sub_port_id4)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
             self.client.sai_thrift_remove_bridge(bridge_id1)          
             self.client.sai_thrift_remove_bridge(bridge_id2)
 
@@ -2079,8 +2075,6 @@ class scenario_03_unknown_unicast_flood_control(sai_base_test.ThriftInterfaceDat
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)
             self.client.sai_thrift_remove_bridge_port(sub_port_id4)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
             self.client.sai_thrift_remove_bridge(bridge_id1)          
             self.client.sai_thrift_remove_bridge(bridge_id2)
 
@@ -2180,8 +2174,6 @@ class scenario_04_unknown_multicast_flood_control(sai_base_test.ThriftInterfaceD
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)
             self.client.sai_thrift_remove_bridge_port(sub_port_id4)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
             self.client.sai_thrift_remove_bridge(bridge_id1)          
             self.client.sai_thrift_remove_bridge(bridge_id2)
 
@@ -2277,8 +2269,6 @@ class scenario_05_broadcast_flood_control(sai_base_test.ThriftInterfaceDataPlane
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)
             self.client.sai_thrift_remove_bridge_port(sub_port_id4)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
             self.client.sai_thrift_remove_bridge(bridge_id1)          
             self.client.sai_thrift_remove_bridge(bridge_id2)  
 
@@ -2361,11 +2351,7 @@ class scenario_06_sub_port_forward(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_bridge_port(sub_port_id1)
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)
-            self.client.sai_thrift_remove_bridge_port(sub_port_id4)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
-            sai_thrift_create_bridge_port(self.client, port3)
-            sai_thrift_create_bridge_port(self.client, port4)            
+            self.client.sai_thrift_remove_bridge_port(sub_port_id4)                     
             self.client.sai_thrift_remove_bridge(bridge_id1)          
 
 
@@ -2449,11 +2435,7 @@ class scenario_07_sub_port_forward_tag_mode(sai_base_test.ThriftInterfaceDataPla
             self.client.sai_thrift_remove_bridge_port(sub_port_id1)
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)
-            self.client.sai_thrift_remove_bridge_port(sub_port_id4)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
-            sai_thrift_create_bridge_port(self.client, port3)
-            sai_thrift_create_bridge_port(self.client, port4)            
+            self.client.sai_thrift_remove_bridge_port(sub_port_id4)                     
             self.client.sai_thrift_remove_bridge(bridge_id1)       
 
 
@@ -2570,8 +2552,8 @@ class scenario_08_1d_router_forward(sai_base_test.ThriftInterfaceDataPlane):
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2_id, port2)
             
             self.client.sai_thrift_remove_bridge(bridge_id1)           
             self.client.sai_thrift_remove_bridge(bridge_id2)
@@ -2749,7 +2731,6 @@ class scenario_09_tunnel_port_forward(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_tunnel_map(tunnel_map_decap_id);
             self.client.sai_thrift_remove_bridge_port(bport1_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
-            sai_thrift_create_bridge_port(self.client, port1)
             
 
             
@@ -2830,9 +2811,7 @@ class scenario_10_update_bridge_port_bridge_id(sai_base_test.ThriftInterfaceData
             self.client.sai_thrift_remove_bridge_port(sub_port_id1)
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)           
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
-            sai_thrift_create_bridge_port(self.client, port3)            
+          
             self.client.sai_thrift_remove_bridge(bridge_id1) 
             self.client.sai_thrift_remove_bridge(bridge_id2)            
             

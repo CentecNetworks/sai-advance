@@ -290,6 +290,21 @@ class switch_sai_rpcHandler : virtual public switch_sai_rpcIf {
     printf("sai_thrift_get_next_hop_group_member_attribute\n");
   }
 
+  void sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t nhop_group_member_oid) {
+    // Your implementation goes here
+    printf("sai_thrift_get_next_hop_group_member_attribute_ecmp\n");
+  }
+
+  void sai_thrift_create_next_hop_group_members(sai_thrift_results_t& _return, const std::vector<sai_thrift_attribute_t> & thrift_attr_lists, const std::vector<int32_t> & thrift_attr_count_lists, const int8_t mode) {
+    // Your implementation goes here
+    printf("sai_thrift_create_next_hop_group_members\n");
+  }
+
+  void sai_thrift_remove_next_hop_group_members(sai_thrift_status_list_t& _return, const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, const int8_t mode) {
+    // Your implementation goes here
+    printf("sai_thrift_remove_next_hop_group_members\n");
+  }
+
   sai_thrift_object_id_t sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
     // Your implementation goes here
     printf("sai_thrift_create_lag\n");
@@ -695,9 +710,14 @@ class switch_sai_rpcHandler : virtual public switch_sai_rpcIf {
     printf("sai_thrift_remove_acl_counter\n");
   }
 
-  void sai_thrift_get_acl_counter_attribute(std::vector<sai_thrift_attribute_value_t> & _return, const sai_thrift_object_id_t acl_counter_id, const std::vector<int32_t> & thrift_attr_ids) {
+  void sai_thrift_get_acl_counter_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_counter_id) {
     // Your implementation goes here
     printf("sai_thrift_get_acl_counter_attribute\n");
+  }
+
+  sai_thrift_status_t sai_thrift_set_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const sai_thrift_attribute_t& thrift_attr) {
+    // Your implementation goes here
+    printf("sai_thrift_set_acl_counter_attribute\n");
   }
 
   sai_thrift_object_id_t sai_thrift_create_acl_range(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
@@ -708,6 +728,11 @@ class switch_sai_rpcHandler : virtual public switch_sai_rpcIf {
   sai_thrift_status_t sai_thrift_remove_acl_range(const sai_thrift_object_id_t acl_range_id) {
     // Your implementation goes here
     printf("sai_thrift_remove_acl_range\n");
+  }
+
+  void sai_thrift_get_acl_range_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_range_id) {
+    // Your implementation goes here
+    printf("sai_thrift_get_acl_range_attribute\n");
   }
 
   sai_thrift_object_id_t sai_thrift_create_hash(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
@@ -795,6 +820,21 @@ class switch_sai_rpcHandler : virtual public switch_sai_rpcIf {
     printf("sai_thrift_set_twamp_attribute\n");
   }
 
+  void sai_thrift_get_twamp_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t thrift_twamp_session_id) {
+    // Your implementation goes here
+    printf("sai_thrift_get_twamp_attribute\n");
+  }
+
+  void sai_thrift_get_twamp_session_stats(std::vector<int64_t> & _return, const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & counter_ids, const int32_t number_of_counters) {
+    // Your implementation goes here
+    printf("sai_thrift_get_twamp_session_stats\n");
+  }
+
+  sai_thrift_status_t sai_thrift_clear_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & thrift_counter_ids, const int32_t number_of_counters) {
+    // Your implementation goes here
+    printf("sai_thrift_clear_twamp_session_stats\n");
+  }
+
   sai_thrift_object_id_t sai_thrift_create_mirror_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
     // Your implementation goes here
     printf("sai_thrift_create_mirror_session\n");
@@ -863,6 +903,11 @@ class switch_sai_rpcHandler : virtual public switch_sai_rpcIf {
   void sai_thrift_get_policer_stats(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids) {
     // Your implementation goes here
     printf("sai_thrift_get_policer_stats\n");
+  }
+
+  void sai_thrift_get_policer_stats_ext(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids, const int8_t mode) {
+    // Your implementation goes here
+    printf("sai_thrift_get_policer_stats_ext\n");
   }
 
   sai_thrift_status_t sai_thrift_clear_policer_stats(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids) {
@@ -1305,7 +1350,7 @@ class switch_sai_rpcHandler : virtual public switch_sai_rpcIf {
     printf("sai_thrift_set_tunnel_term_table_entry_attribute\n");
   }
 
-  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t switch_id) {
+  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return) {
     // Your implementation goes here
     printf("sai_thrift_get_cpu_packet_attribute\n");
   }
@@ -1545,6 +1590,26 @@ class switch_sai_rpcHandler : virtual public switch_sai_rpcIf {
     printf("sai_thrift_get_ptp_domain_attribute\n");
   }
 
+  sai_thrift_object_id_t sai_thrift_create_synce(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
+    // Your implementation goes here
+    printf("sai_thrift_create_synce\n");
+  }
+
+  sai_thrift_status_t sai_thrift_remove_synce(const sai_thrift_object_id_t synce_oid) {
+    // Your implementation goes here
+    printf("sai_thrift_remove_synce\n");
+  }
+
+  sai_thrift_status_t sai_thrift_set_synce_attribute(const sai_thrift_object_id_t synce_oid, const sai_thrift_attribute_t& thrift_attr) {
+    // Your implementation goes here
+    printf("sai_thrift_set_synce_attribute\n");
+  }
+
+  void sai_thrift_get_synce_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t synce_oid) {
+    // Your implementation goes here
+    printf("sai_thrift_get_synce_attribute\n");
+  }
+
   sai_thrift_object_id_t sai_thrift_create_es(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
     // Your implementation goes here
     printf("sai_thrift_create_es\n");
@@ -1563,6 +1628,46 @@ class switch_sai_rpcHandler : virtual public switch_sai_rpcIf {
   void sai_thrift_get_es_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t es_oid) {
     // Your implementation goes here
     printf("sai_thrift_get_es_attribute\n");
+  }
+
+  sai_thrift_object_id_t sai_thrift_create_monitor_buffer(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
+    // Your implementation goes here
+    printf("sai_thrift_create_monitor_buffer\n");
+  }
+
+  sai_thrift_status_t sai_thrift_remove_monitor_buffer(const sai_thrift_object_id_t monitor_buffer_oid) {
+    // Your implementation goes here
+    printf("sai_thrift_remove_monitor_buffer\n");
+  }
+
+  sai_thrift_status_t sai_thrift_set_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid, const sai_thrift_attribute_t& thrift_attr) {
+    // Your implementation goes here
+    printf("sai_thrift_set_monitor_buffer_attribute\n");
+  }
+
+  void sai_thrift_get_monitor_buffer_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_buffer_oid) {
+    // Your implementation goes here
+    printf("sai_thrift_get_monitor_buffer_attribute\n");
+  }
+
+  sai_thrift_object_id_t sai_thrift_create_monitor_latency(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
+    // Your implementation goes here
+    printf("sai_thrift_create_monitor_latency\n");
+  }
+
+  sai_thrift_status_t sai_thrift_remove_monitor_latency(const sai_thrift_object_id_t monitor_latency_oid) {
+    // Your implementation goes here
+    printf("sai_thrift_remove_monitor_latency\n");
+  }
+
+  sai_thrift_status_t sai_thrift_set_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid, const sai_thrift_attribute_t& thrift_attr) {
+    // Your implementation goes here
+    printf("sai_thrift_set_monitor_latency_attribute\n");
+  }
+
+  void sai_thrift_get_monitor_latency_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_latency_oid) {
+    // Your implementation goes here
+    printf("sai_thrift_get_monitor_latency_attribute\n");
   }
 
 };

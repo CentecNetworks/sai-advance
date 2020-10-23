@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+
 namespace py switch_sai
 namespace cpp switch_sai
 
@@ -32,6 +33,7 @@ typedef i32 sai_thrift_hostif_trap_id_t
 typedef i32 sai_thrift_next_hop_type_t
 typedef i32 sai_thrift_vlan_stat_counter_t
 typedef i32 sai_thrift_twamp_stat_counter_t
+typedef i32 sai_thrift_npm_stat_counter_t
 typedef i32 sai_thrift_bridge_port_stat_counter_t
 typedef i32 sai_thrift_router_interface_stat_counter_t
 typedef i32 sai_thrift_policer_stat_counter_t
@@ -241,7 +243,7 @@ union sai_thrift_attribute_value_t {
     26: sai_thrift_timeoffset_t timeoffset;
 	27: sai_thrift_timespec_t timespec;
 	28: sai_thrift_captured_timespec_t captured_timespec;
-    29: sai_thrift_bool_list_t boollist;	
+    29: sai_thrift_bool_list_t boollist;
 }
 
 struct sai_thrift_attribute_t {
@@ -393,6 +395,7 @@ service switch_sai_rpc {
     //next hop API
     sai_thrift_object_id_t sai_thrift_create_next_hop(1: list<sai_thrift_attribute_t> thrift_attr_list);
     sai_thrift_status_t sai_thrift_remove_next_hop(1: sai_thrift_object_id_t next_hop_id);
+	sai_thrift_status_t sai_thrift_set_next_hop_attribute(1: sai_thrift_object_id_t next_hop_id, 2: sai_thrift_attribute_t thrift_attr);
     sai_thrift_attribute_list_t sai_thrift_get_next_hop_attribute(1: sai_thrift_object_id_t next_hop_id);
 
     // Next Hop Group API.
@@ -589,7 +592,26 @@ service switch_sai_rpc {
                              3: i32 number_of_counters);
 
     sai_thrift_status_t sai_thrift_clear_twamp_session_stats(1: sai_thrift_object_id_t twamp_id, 2: list<sai_thrift_twamp_stat_counter_t> thrift_counter_ids, 3: i32 number_of_counters);  
-         
+
+    // NPM
+
+    sai_thrift_object_id_t sai_thrift_create_npm_session(1: list<sai_thrift_attribute_t> thrift_attr_list);
+    
+    sai_thrift_status_t sai_thrift_remove_npm_session(1: sai_thrift_object_id_t session_id);
+
+	sai_thrift_status_t sai_thrift_set_npm_attribute(1: sai_thrift_object_id_t thrift_npm_session_id,
+                                                         2: sai_thrift_attribute_t thrift_attr);
+                                                         
+    sai_thrift_attribute_list_t sai_thrift_get_npm_attribute(1: sai_thrift_object_id_t thrift_npm_session_id);
+
+    list<i64> sai_thrift_get_npm_session_stats(
+                             1: sai_thrift_object_id_t npm_id,
+                             2: list<sai_thrift_npm_stat_counter_t> counter_ids,
+                             3: i32 number_of_counters);
+
+    sai_thrift_status_t sai_thrift_clear_npm_session_stats(1: sai_thrift_object_id_t npm_id, 2: list<sai_thrift_npm_stat_counter_t> thrift_counter_ids, 3: i32 number_of_counters); 
+    
+    
     // Mirror API
     sai_thrift_object_id_t sai_thrift_create_mirror_session(1: list<sai_thrift_attribute_t> thrift_attr_list);
     sai_thrift_status_t sai_thrift_remove_mirror_session(1: sai_thrift_object_id_t session_id);

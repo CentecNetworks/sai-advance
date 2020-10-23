@@ -69,7 +69,7 @@ U16MASKFULL = -1
 U8MASKFULL = -1
 
 switch_inited=0
-warmbooten=0
+warmbooten=1
 port_list = {}
 sai_port_list = []
 table_attr_list = []
@@ -78,7 +78,7 @@ router_mac='00:77:66:55:44:00'
 rewrite_mac1='00:77:66:55:44:01'
 rewrite_mac2='00:77:66:55:44:02'
 
-profile_file = "/data01/users/systest/shanz/sdk/cmodelsai/cmodel_sai_trunk/sai/test/neo_saithrift/profile_tm.ini"
+profile_file = "/data01/users/systest/fangsl/cmodel_sai_trunk/sai/test/neo_saithrift/profile_tm.ini"
 
 switch = SwitchObj()
 
@@ -97,10 +97,14 @@ def alter(client,file,old_str,new_str):
 def warmboot(client):
         print ""
         global warmbooten
-        if warmbooten == 0:
+        if warmbooten == 1:
             return;
         attr_value = sai_thrift_attribute_value_t(booldata=1)
         attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_RESTART_WARM, value=attr_value)
+        client.sai_thrift_set_switch_attribute(attr)
+
+        attr_value = sai_thrift_attribute_value_t(booldata=1)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_PRE_SHUTDOWN, value=attr_value)
         client.sai_thrift_set_switch_attribute(attr)
 
         attr_value = sai_thrift_attribute_value_t(booldata=0)
@@ -293,17 +297,19 @@ def sai_thrift_get_port_by_bridge_port(client, bp):
     return SAI_NULL_OBJECT_ID
 
 def sai_thrift_create_bridge_sub_port(client, port_id, bridge_id, vlan_id, admin_state = True, oamEn = None, policer_id = None, service_id = None, is_lag=None):
-    if(is_lag==None):
-        bport_oid = sai_thrift_get_bridge_port_by_port(client, port_id)
-        #assert (bport_oid != SAI_NULL_OBJECT_ID)
-        if (bport_oid != SAI_NULL_OBJECT_ID):
-            status = client.sai_thrift_remove_bridge_port(bport_oid)
-            #assert (status == SAI_STATUS_SUCCESS)
+    #if(is_lag==None):
+    #    #bport_oid = sai_thrift_get_bridge_port_by_port(client, port_id)
+    #    ##assert (bport_oid != SAI_NULL_OBJECT_ID)
+    #    #if (bport_oid != SAI_NULL_OBJECT_ID):
+    #    #    status = client.sai_thrift_remove_bridge_port(bport_oid)
+    #    #    #assert (status == SAI_STATUS_SUCCESS)
 
     #sport_oid = sai_thrift_get_bridge_port_by_sub_port(client, port_id, vlan_id, bridge_id)
     #assert (sport_oid == SAI_NULL_OBJECT_ID)
     return sai_thrift_create_bridge_port(client, port_id, SAI_BRIDGE_PORT_TYPE_SUB_PORT, bridge_id, vlan_id, None, admin_state, oamEn, policer_id = policer_id, service_id = service_id)
 
+def sai_thrift_create_bridge_double_vlan_sub_port(client, port_id, bridge_id, vlan_id,customer_vlan_id,admin_state = True, oamEn = None, policer_id = None, service_id = None, is_lag=None):
+    return sai_thrift_create_bridge_port(client, port_id, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT, bridge_id, vlan_id, None, admin_state, oamEn, policer_id = policer_id, service_id = service_id, customer_vlan_id = customer_vlan_id)
 
 def sai_thrift_remove_bridge_sub_port(client, sub_port_id, port_id):
     bport_attr_admin_state_value = sai_thrift_attribute_value_t(booldata=False)
@@ -334,7 +340,7 @@ def sai_thrift_create_bridge_rif_port(client, bridge_id, rif_id):
     return sai_thrift_create_bridge_port(client, None, SAI_BRIDGE_PORT_TYPE_1D_ROUTER, bridge_id, None, rif_id, True)
 
 
-def sai_thrift_create_bridge_port(client, port_id = None, type = SAI_BRIDGE_PORT_TYPE_PORT, bridge_id = None, vlan_id = None, rif_id = None, admin_state = True, oamEn = None, policer_id = None, service_id = None):
+def sai_thrift_create_bridge_port(client, port_id = None, type = SAI_BRIDGE_PORT_TYPE_PORT, bridge_id = None, vlan_id = None, rif_id = None, admin_state = True, oamEn = None, policer_id = None, service_id = None, service_vlan_id = None, service_vlan_cos = None, customer_vlan_id = None):
     bport_attr_list = []
 
     bport_attr_type_value = sai_thrift_attribute_value_t(s32=type)
@@ -393,6 +399,21 @@ def sai_thrift_create_bridge_port(client, port_id = None, type = SAI_BRIDGE_PORT
                                                     value=bport_attr_value)
         bport_attr_list.append(bport_attr)
 
+    if service_vlan_id is not None:
+        bport_attr_value = sai_thrift_attribute_value_t(u16=service_vlan_id)
+        bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID,
+                                                    value=bport_attr_value)
+        bport_attr_list.append(bport_attr)
+    if service_vlan_id is not None:
+        bport_attr_value = sai_thrift_attribute_value_t(s32=service_vlan_cos)
+        bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS,
+                                                    value=bport_attr_value)
+        bport_attr_list.append(bport_attr)
+    if customer_vlan_id is not None:
+        bport_attr_value = sai_thrift_attribute_value_t(u16=customer_vlan_id)
+        bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID,
+                                                    value=bport_attr_value)
+        bport_attr_list.append(bport_attr)    
     ret = client.sai_thrift_create_bridge_port(bport_attr_list)
     #assert (ret.status == SAI_STATUS_SUCCESS)
     #assert (ret.data.oid != SAI_NULL_OBJECT_ID)
@@ -531,11 +552,11 @@ def sai_thrift_create_fdb(client, bv_id, mac, port, mac_action,is_lag=None):
         bport_oid = port
     return sai_thrift_create_fdb_bport(client, bv_id, mac, bport_oid, mac_action)
 
-def sai_thrift_create_fdb_bport(client, bv_id, mac, bport_oid, mac_action):
+def sai_thrift_create_fdb_bport(client, bv_id, mac, bport_oid, mac_action, type=SAI_FDB_ENTRY_TYPE_STATIC):
     fdb_entry = sai_thrift_fdb_entry_t(mac_address=mac, bv_id=bv_id)
 
     #value 0 represents static entry, id=0, represents entry type
-    fdb_attribute1_value = sai_thrift_attribute_value_t(s32=SAI_FDB_ENTRY_TYPE_STATIC)
+    fdb_attribute1_value = sai_thrift_attribute_value_t(s32=type)
     fdb_attribute1 = sai_thrift_attribute_t(id=SAI_FDB_ENTRY_ATTR_TYPE,
                                             value=fdb_attribute1_value)
     #value oid represents object id, id=1 represents port id
@@ -979,7 +1000,7 @@ def sai_thrift_create_nhop(client, addr_family, ip_addr, rif_id):
     return nhop
 
 
-def sai_thrift_create_mpls_nhop(client, addr_family, ip_addr, rif_id, label_list, counter_oid=None, next_level_nhop_oid=None, tunnel_id=None,outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_PIPE,outseg_exp_mode= SAI_OUTSEG_EXP_MODE_PIPE, exp_map_id=None):
+def sai_thrift_create_mpls_nhop(client, addr_family, ip_addr, rif_id, label_list, counter_oid=None, next_level_nhop_oid=None, tunnel_id=None,outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_PIPE,outseg_exp_mode= SAI_OUTSEG_EXP_MODE_PIPE, exp_map_id=None,outseg_type=SAI_OUTSEG_TYPE_PUSH, ttl_value=None,exp_value=None):
 
     nhop_attr_list=[]
     if addr_family == SAI_IP_ADDR_FAMILY_IPV4:
@@ -1033,20 +1054,34 @@ def sai_thrift_create_mpls_nhop(client, addr_family, ip_addr, rif_id, label_list
         nhop_attribute7 = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP,
                                                 value=nhop_attribute7_value)
         nhop_attr_list.append(nhop_attribute7)
-        
 
-    u8 = ctypes.c_uint8(outseg_ttl_mode)
-    nhop_attribute8_value = sai_thrift_attribute_value_t(u8=u8.value)
+    nhop_attribute8_value = sai_thrift_attribute_value_t(s32=outseg_ttl_mode)
     nhop_attribute8 = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE,
                                              value=nhop_attribute8_value)
     nhop_attr_list.append(nhop_attribute8)
     
-    u8 = ctypes.c_uint8(outseg_exp_mode)
-    nhop_attribute9_value = sai_thrift_attribute_value_t(u8=u8.value)
+    nhop_attribute9_value = sai_thrift_attribute_value_t(s32=outseg_exp_mode)
     nhop_attribute9 = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_OUTSEG_EXP_MODE,
                                              value=nhop_attribute9_value)
     nhop_attr_list.append(nhop_attribute9)
-    
+
+    nhop_attribute10_value = sai_thrift_attribute_value_t(s32=outseg_type)
+    nhop_attribute10 = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_OUTSEG_TYPE,
+                                             value=nhop_attribute10_value)
+    nhop_attr_list.append(nhop_attribute10)
+
+    if ttl_value != None:
+        nhop_attribute6_value = sai_thrift_attribute_value_t(u8=ttl_value)
+        nhop_attribute6 = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_OUTSEG_TTL_VALUE,
+                                                 value=nhop_attribute6_value)
+        nhop_attr_list.append(nhop_attribute6)
+        
+    if exp_value != None:
+        nhop_attribute6_value = sai_thrift_attribute_value_t(u8=exp_value)
+        nhop_attribute6 = sai_thrift_attribute_t(id=SAI_NEXT_HOP_ATTR_OUTSEG_EXP_VALUE,
+                                                 value=nhop_attribute6_value)
+        nhop_attr_list.append(nhop_attribute6)
+
 
     nhop = client.sai_thrift_create_next_hop(thrift_attr_list=nhop_attr_list)
     
@@ -1497,7 +1532,8 @@ def sai_thrift_create_hostif_trap(client,
                                   packet_action,
                                   trap_priority=None,
                                   exclude_port_list=None,
-                                  trap_group=None):
+                                  trap_group=None,
+                                  trap_counter_oid=None):
     attr_list=[]
 
     atr_value=sai_thrift_attribute_value_t(s32=trap_type)
@@ -1525,6 +1561,13 @@ def sai_thrift_create_hostif_trap(client,
     if trap_group != None:
         atr_value=sai_thrift_attribute_value_t(oid=trap_group)
         atr=sai_thrift_attribute_t(id=SAI_HOSTIF_TRAP_ATTR_TRAP_GROUP,
+                                   value=atr_value)
+        attr_list.append(atr)
+
+    if trap_counter_oid != None:
+        print "switch trap_counter_oid0x%lx" %trap_counter_oid
+        atr_value=sai_thrift_attribute_value_t(oid=trap_counter_oid)
+        atr=sai_thrift_attribute_t(id=SAI_HOSTIF_TRAP_ATTR_COUNTER_ID,
                                    value=atr_value)
         attr_list.append(atr)
 
@@ -1663,7 +1706,10 @@ def sai_thrift_create_acl_table(client,
                                 user_define_filed_group12=None,
                                 user_define_filed_group13=None,
                                 user_define_filed_group14=None,
-                                user_define_filed_group15=None):
+                                user_define_filed_group15=None,
+                                ether_type=None,
+                                metadata_port_user=None,
+                                metadata_vlan_user=None):
 
     acl_attr_list = []
 
@@ -2065,6 +2111,23 @@ def sai_thrift_create_acl_table(client,
         attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+15), value=attribute_value)
         acl_attr_list.append(attribute)
 
+    if ether_type != None:
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ETHER_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+    if metadata_port_user != None:
+        print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!sai_thrift_create_acl_table:metadata_port_user"
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_PORT_USER_META, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+    if metadata_vlan_user != None:
+        print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!sai_thrift_create_acl_table:metadata_vlan_user"
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_VLAN_USER_META, value=attribute_value)
+        acl_attr_list.append(attribute)
+
     acl_table_id = client.sai_thrift_create_acl_table(acl_attr_list)
     return acl_table_id
 
@@ -2132,7 +2195,11 @@ def sai_thrift_create_acl_entry(client,
                                 user_define_filed_group14_data=None,
                                 user_define_filed_group14_mask=None,
                                 user_define_filed_group15_data=None,
-                                user_define_filed_group15_mask=None):
+                                user_define_filed_group15_mask=None,
+                                ether_type=None,
+                                metadata_port_user=None,
+                                metadata_vlan_user=None,
+                                color=None):
     acl_attr_list = []
 
     #ACL table OID
@@ -2582,6 +2649,28 @@ def sai_thrift_create_acl_entry(client,
         attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+15), value=attribute_value)
         acl_attr_list.append(attribute)
 
+    if ether_type != None:
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                            data = sai_thrift_acl_data_t(u16=ether_type),
+                                                                                            mask = sai_thrift_acl_mask_t(u16=U16MASKFULL)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ETHER_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+    if metadata_port_user != None:
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                            data = sai_thrift_acl_data_t(u32=metadata_port_user),
+                                                                                            mask = sai_thrift_acl_mask_t(u32=metadata_port_user)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_PORT_USER_META, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+    if metadata_vlan_user != None:
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                            data = sai_thrift_acl_data_t(u32=metadata_vlan_user),
+                                                                                            mask = sai_thrift_acl_mask_t(u32=metadata_vlan_user)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_VLAN_USER_META, value=attribute_value)
+        acl_attr_list.append(attribute)
+
     #Packet action
     if action != None:
         attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
@@ -2656,6 +2745,11 @@ def sai_thrift_create_acl_entry(client,
     if redirect != None:
         attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=redirect), enable = True))
         attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+    if color != None:
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=color), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_PACKET_COLOR, value=attribute_value)
         acl_attr_list.append(attribute)
 
     acl_entry_id = client.sai_thrift_create_acl_entry(acl_attr_list)
@@ -2855,7 +2949,7 @@ def sai_thrift_create_udf_match(client,
         udf_match_attr_list.append(attribute)
 
     #l4_dst_port
-    if l4_src_port != None:
+    if l4_dst_port != None:
         attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(data = sai_thrift_acl_data_t(u16=l4_dst_port),
                                                                                             mask = sai_thrift_acl_mask_t(u16=l4_dst_port_mask)))
         attribute = sai_thrift_attribute_t(id=SAI_UDF_MATCH_ATTR_CUSTOM_L4_DST_PORT,
@@ -3049,7 +3143,7 @@ def sai_thrift_create_mirror_session(client, mirror_type, port, port_list, port_
     mirror_id = client.sai_thrift_create_mirror_session(mirror_attr_list)
     return mirror_id
 
-def sai_thrift_create_inseg_entry(client, label, pop_nums, trip_prioroty, nhop, packet_action, tunnel_id=None,frr_nhp_grp=None,frr_cfg_role=SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY, frr_inactive_discard = False):
+def sai_thrift_create_inseg_entry(client, label, pop_nums, trip_prioroty, nhop, packet_action, tunnel_id=None,frr_nhp_grp=None,frr_cfg_role=SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY, frr_inactive_discard = False,pop_ttl_mode = SAI_INSEG_ENTRY_POP_TTL_MODE_UNIFORM,counter_id=None, pop_qos_mode = None, psc_type = None, policer_id = None, service_id = None):
     mpls_attr_list = []
 
     mpls = sai_thrift_inseg_entry_t(label)
@@ -3105,6 +3199,40 @@ def sai_thrift_create_inseg_entry(client, label, pop_nums, trip_prioroty, nhop, 
                                                 value=mpls_attribute7_value)
         mpls_attr_list.append(mpls_attribute7)
         
+    mpls_attribute8_value = sai_thrift_attribute_value_t(s32=pop_ttl_mode)
+    mpls_attribute8 = sai_thrift_attribute_t(id=SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE,
+                                                        value=mpls_attribute8_value)
+    mpls_attr_list.append(mpls_attribute8)        
+
+    if counter_id != None:
+        mpls_attribute9_value = sai_thrift_attribute_value_t(oid=counter_id)
+        mpls_attribute9 = sai_thrift_attribute_t(id=SAI_INSEG_ENTRY_ATTR_COUNTER_ID,
+                                                 value=mpls_attribute9_value)
+        mpls_attr_list.append(mpls_attribute9)
+
+    if pop_qos_mode != None:
+        mpls_attribute10_value = sai_thrift_attribute_value_t(s32=pop_qos_mode)
+        mpls_attribute10 = sai_thrift_attribute_t(id=SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE,
+                                                 value=mpls_attribute10_value)
+        mpls_attr_list.append(mpls_attribute10)
+    
+    if psc_type != None:
+        mpls_attribute11_value = sai_thrift_attribute_value_t(s32=psc_type)
+        mpls_attribute11 = sai_thrift_attribute_t(id=SAI_INSEG_ENTRY_ATTR_PSC_TYPE,
+                                                 value=mpls_attribute11_value)
+        mpls_attr_list.append(mpls_attribute11)    
+
+    if policer_id != None:
+        mpls_attribute12_value = sai_thrift_attribute_value_t(oid=policer_id)
+        mpls_attribute12 = sai_thrift_attribute_t(id=SAI_INSEG_ENTRY_ATTR_POLICER_ID,
+                                                 value=mpls_attribute12_value)
+        mpls_attr_list.append(mpls_attribute12)    
+
+    if service_id != None:
+        mpls_attribute13_value = sai_thrift_attribute_value_t(u16=service_id)
+        mpls_attribute13 = sai_thrift_attribute_t(id=SAI_INSEG_ENTRY_ATTR_SERVICE_ID,
+                                                 value=mpls_attribute13_value)
+        mpls_attr_list.append(mpls_attribute13)    
         
     return client.sai_thrift_create_inseg_entry(thrift_inseg_entry=mpls, thrift_attr_list=mpls_attr_list)
 
@@ -3133,17 +3261,17 @@ def sai_thrift_create_buffer_profile(client, pool_id, size, threshold, xoff_th, 
                                            value=attribute_value)
     buffer_attr_list.append(attribute)
 
-    attribute_value = sai_thrift_attribute_value_t(u8=threshold)
+    attribute_value = sai_thrift_attribute_value_t(s8=threshold)
     attribute = sai_thrift_attribute_t(id=SAI_BUFFER_PROFILE_ATTR_SHARED_DYNAMIC_TH ,
                                            value=attribute_value)
     buffer_attr_list.append(attribute)
 
-    attribute_value = sai_thrift_attribute_value_t(u32=xoff_th)
+    attribute_value = sai_thrift_attribute_value_t(u64=xoff_th)
     attribute = sai_thrift_attribute_t(id=SAI_BUFFER_PROFILE_ATTR_XOFF_TH ,
                                            value=attribute_value)
     buffer_attr_list.append(attribute)
 
-    attribute_value = sai_thrift_attribute_value_t(u32=xon_th)
+    attribute_value = sai_thrift_attribute_value_t(u64=xon_th)
     attribute = sai_thrift_attribute_t(id=SAI_BUFFER_PROFILE_ATTR_XON_TH ,
                                            value=attribute_value)
     buffer_attr_list.append(attribute)
@@ -3223,15 +3351,19 @@ def sai_thrift_read_port_counters(client,port):
     return (counters_results, queue_counters_results)
 
 def sai_thrift_create_vlan(client, vlan_id, stats_enable = 1):
+
     vlan_attr_list = []
+    
     attribute_value = sai_thrift_attribute_value_t(u16=vlan_id)
     attribute = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_VLAN_ID, value=attribute_value)
     vlan_attr_list.append(attribute)
+    
     attribute_value = sai_thrift_attribute_value_t(booldata=stats_enable)
     attribute = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE, value=attribute_value)
     vlan_attr_list.append(attribute)
 
     vlan_oid = client.sai_thrift_create_vlan(vlan_attr_list)
+    
     return vlan_oid
 
 def sai_thrift_create_vlan_with_stats_disable(client, vlan_id):
@@ -3572,7 +3704,7 @@ def sai_thrift_create_tunnel_map_entry(client, type, tunnel_map_oid, key, value)
 
     return client.sai_thrift_create_tunnel_map_entry(tunnel_attr_list)
 
-def sai_thrift_create_tunnel(client, underlay_if, overlay_if, ip_addr, encap_ttl_mode=SAI_TUNNEL_TTL_MODE_UNIFORM_MODEL, encap_ttl_val=0, encap_dscp_mode=SAI_TUNNEL_DSCP_MODE_UNIFORM_MODEL, encap_dscp_val=0):
+def sai_thrift_create_tunnel(client, underlay_if, overlay_if, ip_addr, encap_ttl_mode=SAI_TUNNEL_TTL_MODE_UNIFORM_MODEL, encap_ttl_val=0, encap_dscp_mode=SAI_TUNNEL_DSCP_MODE_UNIFORM_MODEL, encap_dscp_val=0, decap_ttl_mode=SAI_TUNNEL_TTL_MODE_UNIFORM_MODEL, decap_dscp_mode=SAI_TUNNEL_DSCP_MODE_UNIFORM_MODEL):
     tunnel_attr_list = []
 
     tunnel_attribute1_value = sai_thrift_attribute_value_t(s32=SAI_TUNNEL_TYPE_IPINIP)
@@ -3596,6 +3728,21 @@ def sai_thrift_create_tunnel(client, underlay_if, overlay_if, ip_addr, encap_ttl
     tunnel_attribute4 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_ENCAP_SRC_IP,
                                              value=tunnel_attribute4_value)
     tunnel_attr_list.append(tunnel_attribute4)
+
+
+
+    u8 = ctypes.c_int8(decap_ttl_mode)
+    tunnel_attribute5_value = sai_thrift_attribute_value_t(u8=u8.value)
+    tunnel_attribute5 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_DECAP_TTL_MODE,
+                                            value=tunnel_attribute5_value)
+    tunnel_attr_list.append(tunnel_attribute5)
+    u8 = ctypes.c_int8(decap_dscp_mode)
+    tunnel_attribute6_value = sai_thrift_attribute_value_t(u8=u8.value)
+    tunnel_attribute6 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_DECAP_DSCP_MODE,
+                                            value=tunnel_attribute6_value)
+    tunnel_attr_list.append(tunnel_attribute6)
+
+
 
     if encap_ttl_mode != SAI_TUNNEL_TTL_MODE_UNIFORM_MODEL:
         u8 = ctypes.c_int8(encap_ttl_mode)
@@ -3664,7 +3811,7 @@ def sai_thrift_create_tunnel_mpls(client, decap_ttl_mode=SAI_TUNNEL_TTL_MODE_UNI
         tunnel_attr_list.append(tunnel_attribute7)
     return client.sai_thrift_create_tunnel(tunnel_attr_list)
 
-def sai_thrift_create_tunnel_mpls_l2vpn(client, decap_pw_mode=SAI_TUNNEL_MPLS_PW_MODE_RAW, encap_pw_mode=SAI_TUNNEL_MPLS_PW_MODE_RAW, decap_cw_en=False, encap_cw_en=False, encap_ttl_val=0, encap_tagged_vlan=0, decap_esi_label_valid=False, encap_esi_label_valid=False):
+def sai_thrift_create_tunnel_mpls_l2vpn(client, decap_pw_mode=SAI_TUNNEL_MPLS_PW_MODE_RAW, encap_pw_mode=SAI_TUNNEL_MPLS_PW_MODE_RAW, decap_cw_en=False, encap_cw_en=False, encap_ttl_val=0, encap_tagged_vlan=0, decap_esi_label_valid=False, encap_esi_label_valid=False, encap_ttl_mode=None, encap_exp_mode=None, encap_exp_val=None, decap_exp_mode=SAI_TUNNEL_EXP_MODE_UNIFORM_MODEL):
     tunnel_attr_list = []
     tunnel_attribute1_value = sai_thrift_attribute_value_t(s32=SAI_TUNNEL_TYPE_MPLS_L2)
     tunnel_attribute1 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_TYPE,
@@ -3689,18 +3836,42 @@ def sai_thrift_create_tunnel_mpls_l2vpn(client, decap_pw_mode=SAI_TUNNEL_MPLS_PW
     tunnel_attribute5 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_WITH_CW,
                                             value=tunnel_attribute5_value)
     tunnel_attr_list.append(tunnel_attribute5)
+    
     if encap_ttl_val:
         u8 = ctypes.c_int8(encap_ttl_val)
         tunnel_attribute6_value = sai_thrift_attribute_value_t(u8=u8.value)
         tunnel_attribute6 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_ENCAP_TTL_VAL,
                                             value=tunnel_attribute6_value)
         tunnel_attr_list.append(tunnel_attribute6)
+        
     if encap_tagged_vlan:
         u16 = ctypes.c_int16(encap_tagged_vlan)
         tunnel_attribute7_value = sai_thrift_attribute_value_t(u16=u16.value)
         tunnel_attribute7 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_TAGGED_VLAN,
                                             value=tunnel_attribute7_value)
         tunnel_attr_list.append(tunnel_attribute7)
+
+    if encap_ttl_mode:
+        u8 = ctypes.c_int8(encap_ttl_mode)
+        tunnel_attribute6_value = sai_thrift_attribute_value_t(u8=u8.value)
+        tunnel_attribute6 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_ENCAP_TTL_MODE,
+                                            value=tunnel_attribute6_value)
+        tunnel_attr_list.append(tunnel_attribute6)
+        
+    if encap_exp_mode:
+        u8 = ctypes.c_int8(encap_exp_mode)
+        tunnel_attribute7_value = sai_thrift_attribute_value_t(u8=u8.value)
+        tunnel_attribute7 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_ENCAP_EXP_MODE,
+                                            value=tunnel_attribute7_value)
+        tunnel_attr_list.append(tunnel_attribute7)
+
+    if encap_exp_val:
+        u8 = ctypes.c_int8(encap_exp_val)
+        tunnel_attribute7_value = sai_thrift_attribute_value_t(u8=u8.value)
+        tunnel_attribute7 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_ENCAP_EXP_VAL,
+                                            value=tunnel_attribute7_value)
+        tunnel_attr_list.append(tunnel_attribute7)
+
     tunnel_attribute8_value = sai_thrift_attribute_value_t(booldata=decap_esi_label_valid)
     tunnel_attribute8 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID,
                                             value=tunnel_attribute8_value)
@@ -3709,6 +3880,13 @@ def sai_thrift_create_tunnel_mpls_l2vpn(client, decap_pw_mode=SAI_TUNNEL_MPLS_PW
     tunnel_attribute9 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID,
                                             value=tunnel_attribute9_value)
     tunnel_attr_list.append(tunnel_attribute9)
+
+    u8 = ctypes.c_int8(decap_exp_mode)
+    tunnel_attribute10_value = sai_thrift_attribute_value_t(u8=u8.value)
+    tunnel_attribute10 = sai_thrift_attribute_t(id=SAI_TUNNEL_ATTR_DECAP_EXP_MODE,
+                                            value=tunnel_attribute10_value)
+    tunnel_attr_list.append(tunnel_attribute10)
+    
     return client.sai_thrift_create_tunnel(tunnel_attr_list)
 
 def sai_thrift_create_tunnel_gre(client, underlay_if, overlay_if, ip_addr, gre_key, decap_ttl_mode=SAI_TUNNEL_TTL_MODE_UNIFORM_MODEL, decap_dscp_mode=SAI_TUNNEL_DSCP_MODE_UNIFORM_MODEL):
@@ -3935,7 +4113,7 @@ def sai_thrift_remove_nat(client, vr_id, keylist, masklist):
 def sai_thrift_create_counter(client, type):
     attr_list = []
 
-    attr_value = sai_thrift_attribute_value_t(u32=type)
+    attr_value = sai_thrift_attribute_value_t(s32=type)
     attr = sai_thrift_attribute_t(id=SAI_COUNTER_ATTR_TYPE,
                                             value=attr_value)
     attr_list.append(attr)
@@ -3989,7 +4167,7 @@ def sai_thrift_read_port_debug_counters(client,port, debug_index_list, ext_mode=
 
 
 
-def sai_thrift_create_twamp_session_sender(client, receive_port_oid, udp_src_port, udp_dst_port, addr_family, src_ip, dst_ip, tc, vrf_oid, encap_type, enable_transmit, hw_lookup, pkt_len, mode, tx_mode, tx_rate,  tx_period=None, tx_pkt_cnt=None, tx_pkt_duration=None, port_oid=None):
+def sai_thrift_create_twamp_session_sender(client, receive_port_list, udp_src_port, udp_dst_port, addr_family, src_ip, dst_ip, tc, vrf_oid, encap_type, enable_transmit, hw_lookup, pkt_len, mode, tx_mode, tx_rate,  tx_period=None, tx_pkt_cnt=None, tx_pkt_duration=None, port_oid=None):
 
     attr_list = []
 
@@ -3998,10 +4176,13 @@ def sai_thrift_create_twamp_session_sender(client, receive_port_oid, udp_src_por
                                             value=attr_value)
     attr_list.append(attr)  
     
-    attr_value = sai_thrift_attribute_value_t(oid=receive_port_oid)
+
+    receive_port_obj_list = sai_thrift_object_list_t(count=len(receive_port_list), object_id_list=receive_port_list)
+    attr_value = sai_thrift_attribute_value_t(objlist=receive_port_obj_list)
     attr = sai_thrift_attribute_t(id=SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT,
-                                            value=attr_value)
-    attr_list.append(attr)
+                                        value=attr_value)
+    attr_list.append(attr) 
+
     
     attr_value = sai_thrift_attribute_value_t(s32=SAI_TWAMP_SESSION_SENDER)
     attr = sai_thrift_attribute_t(id=SAI_TWAMP_SESSION_ATTR_SESSION_ROLE,
@@ -4110,7 +4291,7 @@ def sai_thrift_create_twamp_session_sender(client, receive_port_oid, udp_src_por
     return twamp_session_id
     
 
-def sai_thrift_create_twamp_session_reflector(client, receive_port_oid, udp_src_port, udp_dst_port, addr_family, src_ip, dst_ip, tc, vrf_oid, encap_type, hw_lookup, mode, nexthop=None, port_oid=None ):
+def sai_thrift_create_twamp_session_reflector(client, receive_port_list, udp_src_port, udp_dst_port, addr_family, src_ip, dst_ip, tc, vrf_oid, encap_type, hw_lookup, mode, nexthop=None, port_oid=None ):
 
     attr_list = []
 
@@ -4119,10 +4300,12 @@ def sai_thrift_create_twamp_session_reflector(client, receive_port_oid, udp_src_
                                             value=attr_value)
     attr_list.append(attr)
           
-    attr_value = sai_thrift_attribute_value_t(oid=receive_port_oid)
+    receive_port_obj_list = sai_thrift_object_list_t(count=len(receive_port_list), object_id_list=receive_port_list)
+    attr_value = sai_thrift_attribute_value_t(objlist=receive_port_obj_list)
     attr = sai_thrift_attribute_t(id=SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT,
-                                            value=attr_value)
-    attr_list.append(attr)
+                                        value=attr_value)
+    attr_list.append(attr) 
+
     
     attr_value = sai_thrift_attribute_value_t(s32=SAI_TWAMP_SESSION_REFLECTOR)
     attr = sai_thrift_attribute_t(id=SAI_TWAMP_SESSION_ATTR_SESSION_ROLE,
@@ -4209,6 +4392,278 @@ def sai_thrift_set_twamp_attribute(client, session_id, enable):
     attr_value = sai_thrift_attribute_value_t(booldata=enable)
     attr = sai_thrift_attribute_t(id=SAI_TWAMP_SESSION_ATTR_SESSION_ENABLE_TRANSMIT, value=attr_value)
     client.sai_thrift_set_twamp_attribute(session_id,attr)
+
+
+
+
+def sai_thrift_create_npm_session_sender(client, encap_type, test_port_oid, receive_port_list, src_mac, dst_mac, outer_vlanid, inner_vlan_id, addr_family, src_ip, dst_ip, udp_src_port, udp_dst_port, ttl, tc, enable_transmit, vrf_oid, hw_lookup, pkt_len, tx_rate , tx_mode, tx_period, tx_pkt_cnt, tx_pkt_duration):
+
+    attr_list = []
+
+    attr_value = sai_thrift_attribute_value_t(s32=SAI_NPM_SESSION_SENDER)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_SESSION_ROLE,
+                                            value=attr_value)
+    attr_list.append(attr)  
+
+    attr_value = sai_thrift_attribute_value_t(s32=encap_type)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_NPM_ENCAPSULATION_TYPE,
+                                            value=attr_value)
+    attr_list.append(attr)
+    
+    
+    attr_value = sai_thrift_attribute_value_t(oid=test_port_oid)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_NPM_TEST_PORT,
+                                            value=attr_value)
+    attr_list.append(attr)  
+
+
+    receive_port_obj_list = sai_thrift_object_list_t(count=len(receive_port_list), object_id_list=receive_port_list)
+    attr_value = sai_thrift_attribute_value_t(objlist=receive_port_obj_list)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_NPM_RECEIVE_PORT,
+                                        value=attr_value)
+    attr_list.append(attr)  
+
+
+    attr_value = sai_thrift_attribute_value_t(mac=src_mac)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_SRC_MAC,
+                                            value=attr_value)
+    attr_list.append(attr)
+    
+    attr_value = sai_thrift_attribute_value_t(mac=dst_mac)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_DST_MAC,
+                                            value=attr_value)
+    attr_list.append(attr)
+
+    if( outer_vlanid != None):    
+        attr_value = sai_thrift_attribute_value_t(u16=outer_vlanid)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_OUTER_VLANID,
+                                                value=attr_value)
+        attr_list.append(attr)
+
+    if( inner_vlan_id != None):    
+        attr_value = sai_thrift_attribute_value_t(u16=inner_vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_INNER_VLANID,
+                                                value=attr_value)
+        attr_list.append(attr)
+        
+
+    if addr_family == SAI_IP_ADDR_FAMILY_IPV4:
+        src_addr = sai_thrift_ip_t(ip4=src_ip)
+        src_ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=src_addr)
+        dst_addr = sai_thrift_ip_t(ip4=dst_ip)
+        dst_ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=dst_addr)        
+    else:
+        src_addr = sai_thrift_ip_t(ip6=src_ip)
+        src_ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV6, addr=src_addr)
+        dst_addr = sai_thrift_ip_t(ip6=dst_ip)
+        dst_ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV6, addr=dst_addr) 
+        
+    attr_value = sai_thrift_attribute_value_t(ipaddr=src_ipaddr)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_SRC_IP,
+                                            value=attr_value)
+    attr_list.append(attr)
+
+    attr_value = sai_thrift_attribute_value_t(ipaddr=dst_ipaddr)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_DST_IP,
+                                            value=attr_value)
+    attr_list.append(attr)
+    
+    
+    attr_value = sai_thrift_attribute_value_t(u32=udp_src_port)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_UDP_SRC_PORT,
+                                            value=attr_value)
+    attr_list.append(attr)    
+    
+    attr_value = sai_thrift_attribute_value_t(u32=udp_dst_port)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_UDP_DST_PORT,
+                                            value=attr_value)
+    attr_list.append(attr)
+    
+    if( ttl != None):   
+        attr_value = sai_thrift_attribute_value_t(u8=ttl)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_TTL,
+                                                value=attr_value)
+        attr_list.append(attr)
+    
+    if( tc != None):     
+        attr_value = sai_thrift_attribute_value_t(u8=tc)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_TC,
+                                                value=attr_value)
+        attr_list.append(attr)
+
+    if( enable_transmit != None): 
+        attr_value = sai_thrift_attribute_value_t(booldata=enable_transmit)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_SESSION_ENABLE_TRANSMIT,
+                                                value=attr_value)
+        attr_list.append(attr)
+
+    if( vrf_oid != None):         
+        attr_value = sai_thrift_attribute_value_t(oid=vrf_oid)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_VPN_VIRTUAL_ROUTER,
+                                                value=attr_value)
+        attr_list.append(attr)    
+    
+    if( hw_lookup != None):  
+        attr_value = sai_thrift_attribute_value_t(booldata=hw_lookup)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_HW_LOOKUP_VALID,
+                                                value=attr_value)
+        attr_list.append(attr)
+
+    attr_value = sai_thrift_attribute_value_t(u32=pkt_len)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_PACKET_LENGTH,
+                                            value=attr_value)
+    attr_list.append(attr)
+
+    attr_value = sai_thrift_attribute_value_t(u32=tx_rate)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_TX_RATE,
+                                            value=attr_value)
+    attr_list.append(attr)  
+   
+    attr_value = sai_thrift_attribute_value_t(s32=tx_mode)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_PKT_TX_MODE,
+                                            value=attr_value)
+    attr_list.append(attr)
+
+    if( tx_period != None):      
+        attr_value = sai_thrift_attribute_value_t(u32=tx_period)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_TX_PKT_PERIOD,
+                                               value=attr_value)
+        attr_list.append(attr)
+
+    if( tx_pkt_cnt != None):         
+        attr_value = sai_thrift_attribute_value_t(u32=tx_pkt_cnt)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_TX_PKT_CNT,
+                                                value=attr_value)
+        attr_list.append(attr)
+
+    if( tx_pkt_duration != None):         
+        attr_value = sai_thrift_attribute_value_t(u64=tx_pkt_duration)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_TX_PKT_DURATION,
+                                                value=attr_value)
+        attr_list.append(attr)
+    
+    npm_session_id = client.sai_thrift_create_npm_session(attr_list)
+
+    return npm_session_id
+    
+
+
+def sai_thrift_create_npm_session_reflector(client, encap_type, test_port_oid, receive_port_list, src_mac, dst_mac, outer_vlanid, inner_vlan_id, addr_family, src_ip, dst_ip, udp_src_port, udp_dst_port, tc, vrf_oid, hw_lookup):
+
+    attr_list = []
+
+    attr_value = sai_thrift_attribute_value_t(s32=SAI_NPM_SESSION_REFLECTOR)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_SESSION_ROLE,
+                                            value=attr_value)
+    attr_list.append(attr)  
+
+    attr_value = sai_thrift_attribute_value_t(s32=encap_type)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_NPM_ENCAPSULATION_TYPE,
+                                            value=attr_value)
+    attr_list.append(attr)
+    
+    
+    attr_value = sai_thrift_attribute_value_t(oid=test_port_oid)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_NPM_TEST_PORT,
+                                            value=attr_value)
+    attr_list.append(attr)  
+    
+    receive_port_obj_list = sai_thrift_object_list_t(count=len(receive_port_list), object_id_list=receive_port_list)
+    attr_value = sai_thrift_attribute_value_t(objlist=receive_port_obj_list)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_NPM_RECEIVE_PORT,
+                                        value=attr_value)
+    attr_list.append(attr)  
+
+    
+
+    attr_value = sai_thrift_attribute_value_t(mac=src_mac)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_SRC_MAC,
+                                            value=attr_value)
+    attr_list.append(attr)
+    
+    attr_value = sai_thrift_attribute_value_t(mac=dst_mac)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_DST_MAC,
+                                            value=attr_value)
+    attr_list.append(attr)
+
+    if( outer_vlanid != None):    
+        attr_value = sai_thrift_attribute_value_t(u16=outer_vlanid)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_OUTER_VLANID,
+                                                value=attr_value)
+        attr_list.append(attr)
+
+    if( inner_vlan_id != None):    
+        attr_value = sai_thrift_attribute_value_t(u16=inner_vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_INNER_VLANID,
+                                                value=attr_value)
+        attr_list.append(attr)
+        
+
+    if addr_family == SAI_IP_ADDR_FAMILY_IPV4:
+        src_addr = sai_thrift_ip_t(ip4=src_ip)
+        src_ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=src_addr)
+        dst_addr = sai_thrift_ip_t(ip4=dst_ip)
+        dst_ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=dst_addr)        
+    else:
+        src_addr = sai_thrift_ip_t(ip6=src_ip)
+        src_ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV6, addr=src_addr)
+        dst_addr = sai_thrift_ip_t(ip6=dst_ip)
+        dst_ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV6, addr=dst_addr) 
+        
+    attr_value = sai_thrift_attribute_value_t(ipaddr=src_ipaddr)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_SRC_IP,
+                                            value=attr_value)
+    attr_list.append(attr)
+
+    attr_value = sai_thrift_attribute_value_t(ipaddr=dst_ipaddr)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_DST_IP,
+                                            value=attr_value)
+    attr_list.append(attr)
+    
+    
+    attr_value = sai_thrift_attribute_value_t(u32=udp_src_port)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_UDP_SRC_PORT,
+                                            value=attr_value)
+    attr_list.append(attr)    
+    
+    attr_value = sai_thrift_attribute_value_t(u32=udp_dst_port)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_UDP_DST_PORT,
+                                            value=attr_value)
+    attr_list.append(attr)
+    
+   
+    if( tc != None):     
+        attr_value = sai_thrift_attribute_value_t(u8=tc)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_TC,
+                                                value=attr_value)
+        attr_list.append(attr)
+
+    if( vrf_oid != None):         
+        attr_value = sai_thrift_attribute_value_t(oid=vrf_oid)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_VPN_VIRTUAL_ROUTER,
+                                                value=attr_value)
+        attr_list.append(attr)    
+    
+    if( hw_lookup != None):  
+        attr_value = sai_thrift_attribute_value_t(booldata=hw_lookup)
+        attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_HW_LOOKUP_VALID,
+                                                value=attr_value)
+        attr_list.append(attr)
+
+    npm_session_id = client.sai_thrift_create_npm_session(attr_list)
+
+    return npm_session_id
+
+
+
+def sai_thrift_remove_npm_session(client, session_id):
+    return client.sai_thrift_remove_npm_session(session_id)
+
+def sai_thrift_set_npm_attribute(client, session_id, enable):
+    attr_value = sai_thrift_attribute_value_t(booldata=enable)
+    attr = sai_thrift_attribute_t(id=SAI_NPM_SESSION_ATTR_SESSION_ENABLE_TRANSMIT, value=attr_value)
+    client.sai_thrift_set_npm_attribute(session_id,attr)
+
 
 
 def sai_thrift_create_ip_bfd_session(client, l_disc, r_disc, udp_srcport, multihop, vr_id, addr_family, src_ip, dst_ip, min_tx=1, min_rx=1, multip=3, tos=None, ttl=None):
@@ -4540,7 +4995,7 @@ def sai_thrift_remove_bfd(client, bfd_oid):
     return client.sai_thrift_remove_bfd(bfd_oid)
 
 
-def sai_thrift_create_mpls_bfd_session(client, l_disc, r_disc, udp_srcport, addr_family, src_ip, dst_ip, mpls_encap_type, label, nh_id, ach_type=None, min_tx=1, min_rx=1, multip=3, cv_en=0, src_mepid=None, without_gal=0, l3if_oid=None):
+def sai_thrift_create_mpls_bfd_session(client, l_disc, r_disc, udp_srcport, addr_family, src_ip, dst_ip, mpls_encap_type, label, nh_id, ach_type=None, min_tx=1, min_rx=1, multip=3, cv_en=0, src_mepid=None, without_gal=0, l3if_oid=None, aps_group=None, is_protection=None, protection_en=None):
     attr_list = []
 
     attr_value0 = sai_thrift_attribute_value_t(s32=SAI_BFD_SESSION_TYPE_ASYNC_ACTIVE)
@@ -4688,6 +5143,27 @@ def sai_thrift_create_mpls_bfd_session(client, l_disc, r_disc, udp_srcport, addr
         attr_list.append(attr19)
 
 
+    if aps_group != None:    
+        attr_value19 = sai_thrift_attribute_value_t(oid=aps_group)
+        attr19 = sai_thrift_attribute_t(id=SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID,
+                                            value=attr_value19)
+        attr_list.append(attr19)
+        
+
+    if is_protection != None:    
+        attr_value19 = sai_thrift_attribute_value_t(booldata=is_protection)
+        attr19 = sai_thrift_attribute_t(id=SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH,
+                                            value=attr_value19)
+        attr_list.append(attr19)
+
+        
+    if protection_en != None:    
+        attr_value19 = sai_thrift_attribute_value_t(booldata=protection_en)
+        attr19 = sai_thrift_attribute_t(id=SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN,
+                                            value=attr_value19)
+        attr_list.append(attr19)
+
+        
     return client.sai_thrift_create_bfd(attr_list)
 
 def sai_thrift_create_y1731_meg(client, meg_type, meg_name, level):
@@ -4779,7 +5255,7 @@ def sai_thrift_create_y1731_eth_session(client, meg_oid, dir, local_mep_id, ccm_
 
     return client.sai_thrift_create_y1731_session(attr_list)
 
-def sai_thrift_create_y1731_tp_session(client, mpls_in_label, meg_oid, dir, local_mep_id, ccm_period, ccm_en, next_hop_id, nogal, lm_en=0, lm_type=0, dm_en=0, tx_cos=1, tx_ttl=64):
+def sai_thrift_create_y1731_tp_session(client, mpls_in_label, meg_oid, dir, local_mep_id, ccm_period, ccm_en, next_hop_id, nogal, lm_en=0, lm_type=0, dm_en=0, tx_cos=0, tx_ttl=64):
     attr_list = []
 
     attr_value0 = sai_thrift_attribute_value_t(oid=meg_oid)
@@ -4896,7 +5372,7 @@ def sai_thrift_create_y1731_tp_section_session(client, meg_oid, rif_oid, dir, lo
     return client.sai_thrift_create_y1731_session(attr_list)
 
 
-def sai_thrift_create_y1731_rmep(client, session_id, rmep_id, mac=None):
+def sai_thrift_create_y1731_rmep(client, session_id, rmep_id, mac=None, aps_group=None, is_protection=None, protection_en=None):
     attr_list = []
 
     attr_value0 = sai_thrift_attribute_value_t(oid=session_id)
@@ -4915,9 +5391,32 @@ def sai_thrift_create_y1731_rmep(client, session_id, rmep_id, mac=None):
                                             value=attr_value2)
         attr_list.append(attr2)
 
+    if( aps_group != None):
+        attr_value2 = sai_thrift_attribute_value_t(oid=aps_group)
+        attr2 = sai_thrift_attribute_t(id=SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID,
+                                            value=attr_value2)
+        attr_list.append(attr2)
+
+
+    if( is_protection != None):
+        attr_value2 = sai_thrift_attribute_value_t(booldata=is_protection)
+        attr2 = sai_thrift_attribute_t(id=SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH,
+                                            value=attr_value2)
+        attr_list.append(attr2)
+
+
+    if( protection_en != None):
+        attr_value2 = sai_thrift_attribute_value_t(booldata=protection_en)
+        attr2 = sai_thrift_attribute_t(id=SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN,
+                                            value=attr_value2)
+        attr_list.append(attr2)
+
     return client.sai_thrift_create_y1731_rmep(attr_list)
 
-def sai_thrift_send_hostif_packet(client, hostif_id, packet, oam_tx_type, host_if_tx_type, egress_port=None, oam_session=None, dm_offset=None):
+
+
+
+def sai_thrift_send_hostif_packet(client, hostif_id, packet, oam_tx_type, host_if_tx_type, egress_port=None, oam_session=None, dm_offset=None, ptp_tx_op_type=None, sec=None, nsec=None):
     attr_list = []
 
     attr_value0 = sai_thrift_attribute_value_t(s32=oam_tx_type)
@@ -4947,6 +5446,16 @@ def sai_thrift_send_hostif_packet(client, hostif_id, packet, oam_tx_type, host_i
         attr2 = sai_thrift_attribute_t(id=SAI_HOSTIF_PACKET_ATTR_CUSTOM_TIMESTAMP_OFFSET,
                                                 value=attr_value2)
         attr_list.append(attr2)
+        
+    if ptp_tx_op_type!=None:
+        attr_value2 = sai_thrift_attribute_value_t(s32=ptp_tx_op_type)
+        attr2 = sai_thrift_attribute_t(id=SAI_HOSTIF_PACKET_ATTR_CUSTOM_PTP_TX_PACKET_OP_TYPE,
+                                                value=attr_value2)
+        attr_list.append(attr2)
+    if sec!=None and nsec!=None:    
+        attr_value = sai_thrift_attribute_value_t(timespec=sai_thrift_timespec_t(tv_sec=sec,tv_nsec=nsec))
+        attr = sai_thrift_attribute_t(id=SAI_HOSTIF_PACKET_ATTR_TX_TIMESTAMP, value=attr_value)
+        attr_list.append(attr)
 
     return client.sai_thrift_send_hostif_packet(hostif_id, packet.encode('hex'), attr_list)
 
@@ -5436,7 +5945,7 @@ def sai_thrift_qos_create_wred(client, color_en = [None]*3, min_thrd = [None]*3,
 
     return client.sai_thrift_create_wred_profile(attr_list) 
     
-def sai_thrift_create_queue_id(client, queue_type, port, index, wred_id, parent_id=0, service_id=0):
+def sai_thrift_create_queue_id(client, queue_type, port, index, wred_id=0, parent_id=0, service_id=0, buffer_id=0, sche_id=0, pfc_dldr_en=0):
     attr_list = []
 
     attr_value = sai_thrift_attribute_value_t(u32=queue_type)
@@ -5466,6 +5975,21 @@ def sai_thrift_create_queue_id(client, queue_type, port, index, wred_id, parent_
         attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
         attr_list.append(attr)
 
+    if buffer_id:
+        attr_value = sai_thrift_attribute_value_t(oid=buffer_id)
+        attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_BUFFER_PROFILE_ID, value=attr_value)
+        attr_list.append(attr)
+
+    if sche_id:
+        attr_value = sai_thrift_attribute_value_t(oid=sche_id)
+        attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, value=attr_value)
+        attr_list.append(attr)
+
+    if pfc_dldr_en:
+        attr_value = sai_thrift_attribute_value_t(booldata=pfc_dldr_en)
+        attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, value=attr_value)
+        attr_list.append(attr)
+
     return client.sai_thrift_create_queue(attr_list)
     
 def sai_thrift_qos_create_buffer_profile(client, 
@@ -5481,7 +6005,7 @@ def sai_thrift_qos_create_buffer_profile(client,
     attr_list.append(attr)
 
     if static_th:
-        attr_value = sai_thrift_attribute_value_t(u32=static_th)
+        attr_value = sai_thrift_attribute_value_t(u64=static_th)
         attr = sai_thrift_attribute_t(id=SAI_BUFFER_PROFILE_ATTR_SHARED_STATIC_TH, value=attr_value)
         attr_list.append(attr)
 
@@ -5491,12 +6015,12 @@ def sai_thrift_qos_create_buffer_profile(client,
         attr_list.append(attr)        
 
     if xon_th:
-        attr_value = sai_thrift_attribute_value_t(u32=xon_th)
+        attr_value = sai_thrift_attribute_value_t(u64=xon_th)
         attr = sai_thrift_attribute_t(id=SAI_BUFFER_PROFILE_ATTR_XON_TH, value=attr_value)
         attr_list.append(attr) 
 
     if xoff_th:
-        attr_value = sai_thrift_attribute_value_t(u32=xoff_th)
+        attr_value = sai_thrift_attribute_value_t(u64=xoff_th)
         attr = sai_thrift_attribute_t(id=SAI_BUFFER_PROFILE_ATTR_XOFF_TH, value=attr_value)
         attr_list.append(attr)
 
@@ -5538,7 +6062,7 @@ def sai_thrift_qos_create_scheduler_group(client,
                                            level, 
                                            max_childs, 
                                            parent_id, 
-                                           sched_id,
+                                           sched_id = 0,
                                            service_id = 0):
     attr_list = []
 
@@ -5633,3 +6157,44 @@ def sai_thrift_monitor_create_latency(client, port, microburst_event, monitor_di
     
     print attr_list
     return client.sai_thrift_create_monitor_latency(attr_list)
+
+def sai_thrift_get_wtd_factor(client, dynamic_th):
+
+    threshold = (dynamic_th+7)
+    f = 0.0
+
+    if threshold == 0:
+        f = (1.0/128)
+    elif threshold == 1:
+        f = (1.0/64)
+    elif threshold == 2:
+        f = (1.0/32)
+    elif threshold == 3:
+        f = (1.0/16)
+    elif threshold == 4:
+        f = (1.0/8)
+    elif threshold == 5:
+        f = (1.0/4)
+    elif threshold == 6:
+        f = (1.0/2)
+    elif threshold == 7:
+        f = 1.0
+    elif threshold == 8:
+        f = 2.0
+    elif threshold == 9:
+        f = 4.0
+    elif threshold == 10:
+        f = 8.0
+
+    factor = (f/(1.0+f))
+    return factor
+
+def sai_thrift_get_remain_cnt(client, sc_thrd=0, sc_cnt=0):
+
+    #read DsErmScThrd 0
+    #sc_thrd = 1536
+    #read DsErmScCnt 0
+    #sc_cnt = 0
+
+	remain_cnt = sc_thrd - sc_cnt
+	return remain_cnt

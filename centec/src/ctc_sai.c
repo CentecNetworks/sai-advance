@@ -975,6 +975,7 @@ sai_status_t sai_log_set( sai_api_t sai_api_id,  sai_log_level_t log_level)
             break;
         case SAI_API_NEXT_HOP_GROUP   :
             ctc_debug_set_flag("nexthop", "nexthop", 1, debug_level, TRUE);
+            ctc_debug_set_flag("aps", "aps", 1, debug_level, TRUE);
             break;
         case SAI_API_ROUTER_INTERFACE :
             ctc_debug_set_flag("l3if", "l3if", 1, debug_level, TRUE);
@@ -1054,6 +1055,23 @@ sai_status_t sai_log_set( sai_api_t sai_api_id,  sai_log_level_t log_level)
         case SAI_API_COUNTER          :
         case SAI_API_DEBUG_COUNTER    :    
             ctc_debug_set_flag("stats", "stats", 1, debug_level, TRUE);
+            break;
+        case SAI_API_BFD             :
+        case SAI_API_Y1731           :
+            ctc_debug_set_flag("oam", "oam", 1, debug_level, TRUE);
+            break;
+        case SAI_API_TWAMP             :
+        case SAI_API_NPM           :
+            ctc_debug_set_flag("npm", "npm", 1, debug_level, TRUE);
+            break;
+        case SAI_API_PTP           :
+            ctc_debug_set_flag("ptp", "ptp", 1, debug_level, TRUE);
+            break;
+        case SAI_API_MONITOR           :
+            ctc_debug_set_flag("monitor", "monitor", 1, debug_level, TRUE);
+            break;
+        case SAI_API_SYNCE           :
+            ctc_debug_set_flag("sync_ether", "sync_ether", 1, debug_level, TRUE);
             break;
         default:
             break;

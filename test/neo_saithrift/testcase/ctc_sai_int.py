@@ -112,6 +112,32 @@ class func_01(sai_base_test.ThriftInterfaceDataPlane):
             # step8: delete vlan
             delete_vlan(self.client,vlan_oid_list)
 
+class casenum(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        #print()
+        import os
+        import re
+        import glob
+        print("It's only a test!")
+        switch_init(self.client)
+        filelist = []
+        num_list = []
+        s = 0
+        allfiles = os.listdir(os.getcwd())
+        print allfiles
+        for filename in allfiles:
+            if re.match(r'.*sai.*.py$',filename):
+                filelist.append(filename)
+        for file in filelist:
+            fobj = open(file, 'r').read()
+            words = re.findall('class',fobj)
+            num = len(words)
+            num_list.append(num)
+            #fobj.close()
+        for i in range(len(num_list)):
+            print "%s case num is %d" %(filelist[i], num_list[i])
+            s = s + num_list[i]
+        print 'total case num is %d' %s   
 
 
 

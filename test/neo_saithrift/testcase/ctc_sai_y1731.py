@@ -1182,7 +1182,7 @@ class afunc_08_VplsOamFidTxRxTest(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, port1)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -1547,7 +1547,7 @@ class afunc_09_VplsOamVlanTxRxTest(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, port1)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -1813,7 +1813,7 @@ class afunc_10_VpwsOamFidTxRxTest(sai_base_test.ThriftInterfaceDataPlane):
             #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, port1)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -2510,7 +2510,7 @@ class afunc_13_VplsOamFidCpuTxTest(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, port1)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -3674,7 +3674,7 @@ class func_12_remove_not_exist_y1731_session_fn(sai_base_test.ThriftInterfaceDat
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
 
-
+'''
 class func_13_create_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -3767,7 +3767,6 @@ class func_13_create_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
 
                         
             mac2 = '00:11:11:11:11:22'
-                        
             attr_value = sai_thrift_attribute_value_t(mac=mac2)
             attr = sai_thrift_attribute_t(id=SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS, value=attr_value)
             status = self.client.sai_thrift_set_y1731_rmep_attribute(rmep_id1, attr)
@@ -3821,7 +3820,7 @@ class func_13_create_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(booldata=0)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
-
+'''
 
 
 class func_14_create_same_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
@@ -6767,7 +6766,7 @@ class scenario_09_vpls_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, port1)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -7048,7 +7047,7 @@ class scenario_10_vpls_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, port1)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -7291,7 +7290,7 @@ class scenario_10_vpls_vsi_test_for_lag(sai_base_test.ThriftInterfaceDataPlane):
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
             sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, lag_oid)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, lag_oid)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -7524,7 +7523,7 @@ class scenario_11_vpws_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
                         
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, port1)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -7766,7 +7765,7 @@ class scenario_12_vpws_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
                         
-            sai_thrift_remove_bridge_sub_port(self.client, uni_port_oid, port1)            
+            sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
             
             sai_thrift_remove_route(self.client, vr_id, addr_family, dst_ip_subnet, ip_mask1, nhop1)
@@ -8293,7 +8292,7 @@ class scenario_15_tp_pw_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
 
                 if a.id == SAI_Y1731_SESSION_ATTR_EXP_OR_COS:
                     sys_logging("get exp or cos = 0x%x" %a.value.u8)
-                    if 1 != a.value.u8:
+                    if 0 != a.value.u8:
                         raise NotImplementedError()
                         
                         

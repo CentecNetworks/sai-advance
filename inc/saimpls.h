@@ -42,7 +42,13 @@ typedef enum _sai_inseg_entry_psc_type_t
     /**
      * @brief MPLS label infers TC and EXP of MPLS label infers COLOR
      */
-    SAI_INSEG_ENTRY_PSC_TYPE_LLSP
+    SAI_INSEG_ENTRY_PSC_TYPE_LLSP,
+
+    /**
+     * @brief do not use MPLS label infers TC and COLOR
+     */
+    SAI_INSEG_ENTRY_PSC_TYPE_NONE  
+    
 } sai_inseg_entry_psc_type_t;
 
 typedef enum _sai_inseg_entry_pop_ttl_mode_t
@@ -224,6 +230,14 @@ typedef enum _sai_inseg_entry_attr_t
      * @default SAI_INSEG_ENTRY_POP_QOS_MODE_UNIFORM
      */
     SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE,
+        
+    /**
+     * @brief End of attributes
+     */
+    SAI_INSEG_ENTRY_ATTR_END,
+
+    /** Custom range base value */
+    SAI_INSEG_ENTRY_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
      * @brief The tunnel id
@@ -234,8 +248,8 @@ typedef enum _sai_inseg_entry_attr_t
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
      */
-    SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID,
-    
+    SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID = SAI_INSEG_ENTRY_ATTR_CUSTOM_RANGE_START,
+
     /**
      * @brief FRR nexthop group
      *
@@ -265,7 +279,7 @@ typedef enum _sai_inseg_entry_attr_t
      * @validonly SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
      */
     SAI_INSEG_ENTRY_ATTR_FRR_OBSERVED_ROLE,
-    
+
     /**
      * @brief FRR observed Role inactive discard in receiving direction
      *
@@ -277,12 +291,42 @@ typedef enum _sai_inseg_entry_attr_t
     SAI_INSEG_ENTRY_ATTR_FRR_INACTIVE_RX_DISCARD,
 
     /**
-     * @brief End of attributes
+     * @brief Attach a counter
+     *
+     * When it is empty, then packet hits won't be counted
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_COUNTER
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
      */
-    SAI_INSEG_ENTRY_ATTR_END,
+    SAI_INSEG_ENTRY_ATTR_COUNTER_ID,
 
-    /** Custom range base value */
-    SAI_INSEG_ENTRY_ATTR_CUSTOM_RANGE_START = 0x10000000,
+    /**
+     * @brief Attach/Detach policer to mpls insegment
+     *
+     * Set policer id = #SAI_NULL_OBJECT_ID to disable policer on mpls insegment.
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_POLICER
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_INSEG_ENTRY_ATTR_POLICER_ID,
+
+    /**
+     * @brief service id for mpls insegment entry
+     * 
+     * used for H-QoS, set to service schedule group service id
+     * set to 0 means disable H-QoS on mpls label, usually used in PW label
+     *
+     * @type sai_uint16_t
+     * @flags CREATE_AND_SET
+     * @default 0
+     */
+    SAI_INSEG_ENTRY_ATTR_SERVICE_ID,
 
     /** End of custom range base */
     SAI_INSEG_ENTRY_ATTR_CUSTOM_RANGE_END

@@ -109,7 +109,7 @@ class fun_02_create_v6_nexthop_fn(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
-class fun_03_create_exist_v4_nexthop_fn(sai_base_test.ThriftInterfaceDataPlane):
+class fun_03_create_same_neighbor_v4_nexthop_fn(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         print
         switch_init(self.client)
@@ -132,19 +132,20 @@ class fun_03_create_exist_v4_nexthop_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         warmboot(self.client)
         try:
-            sys_logging("======create exist v4 nexthop======")
+            sys_logging("======create same neighbor v4 nexthop======")
             nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
             sys_logging("nhop1 = 0x%x" %nhop1)
-            assert (nhop1 == SAI_NULL_OBJECT_ID)
+            assert (nhop1 != SAI_NULL_OBJECT_ID)
             
         finally:
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_next_hop(nhop)
+            self.client.sai_thrift_remove_next_hop(nhop1)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
-class fun_04_create_exist_v6_nexthop_fn(sai_base_test.ThriftInterfaceDataPlane):
+class fun_04_create_same_neighbor_v6_nexthop_fn(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         print
         switch_init(self.client)
@@ -167,14 +168,15 @@ class fun_04_create_exist_v6_nexthop_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         warmboot(self.client)
         try:
-            sys_logging("======create exist v6 nexthop======")
+            sys_logging("======create same neighbor v6 nexthop======")
             nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
             sys_logging("nhop1 = 0x%x" %nhop1)
-            assert (nhop1 == SAI_NULL_OBJECT_ID)
+            assert (nhop1 != SAI_NULL_OBJECT_ID)
             
         finally:
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_next_hop(nhop)
+            self.client.sai_thrift_remove_next_hop(nhop1)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_virtual_router(vr_id)

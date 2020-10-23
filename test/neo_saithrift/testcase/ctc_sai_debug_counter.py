@@ -713,9 +713,11 @@ class DebugCounterInSwitchDropClearTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_vlan(vlan_oid1)
             self.client.sai_thrift_remove_vlan(vlan_oid2)
             self.client.sai_thrift_remove_vlan(vlan_oid3)
-            
-            self.client.sai_thrift_remove_debug_counter(counter_id)
             self.client.sai_thrift_remove_debug_counter(sw_counter_id)
+            self.client.sai_thrift_remove_debug_counter(counter_id)
+            
+
+
             
 class DebugCounterOutPortDropTest(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -873,3 +875,4 @@ class DebugCounterOutPortDropTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_vlan(vlan_oid3)
             
             self.client.sai_thrift_remove_debug_counter(counter_id)
+            self.client.sai_thrift_remove_debug_counter(sw_counter_id)

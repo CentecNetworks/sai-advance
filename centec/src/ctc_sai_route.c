@@ -40,9 +40,6 @@ _ctc_sai_route_mapping_ipuc_action(ctc_ipuc_param_t* ipuc_info, sai_packet_actio
 {
     uint32 ctc_nh_id = 0;
     ctc_object_id_t ctc_object_id;
-    uint8 lchip = 0;
-    ctc_sai_counter_t* p_counter_info = NULL;
-    uint32 stats_id = 0;
 
     if ((SAI_PACKET_ACTION_FORWARD == action) || (SAI_PACKET_ACTION_COPY == action)
         || (SAI_PACKET_ACTION_LOG == action) || (SAI_PACKET_ACTION_TRANSIT == action))
@@ -97,37 +94,10 @@ _ctc_sai_route_mapping_ipuc_action(ctc_ipuc_param_t* ipuc_info, sai_packet_actio
 
     if (counter_obj_id != SAI_NULL_OBJECT_ID)
     {
-        CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(counter_obj_id, &lchip));
-        p_counter_info = ctc_sai_db_get_object_property(lchip, counter_obj_id);
-        if(!p_counter_info)
-        {
-            return SAI_STATUS_ITEM_NOT_FOUND;
-        }
-        else
-        {
-            if(p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_MAX)
-            {
-                CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_create(counter_obj_id, CTC_SAI_COUNTER_TYPE_ROUTE, &stats_id));
-            }
-            
-            if(p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_ROUTE)
-            {
-                ipuc_info->stats_id = p_counter_info->statsinfo.stats_id;
-                ipuc_info->route_flag |= CTC_IPUC_FLAG_STATS_EN;
-            }
-            else
-            {
-                return SAI_STATUS_INVALID_PARAMETER;
-            }
+        CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_create(counter_obj_id, CTC_SAI_COUNTER_TYPE_ROUTE, &ipuc_info->stats_id));
+        ipuc_info->route_flag |= CTC_IPUC_FLAG_STATS_EN;
+    }
 
-        }        
-    }
-    else
-    {
-        CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(counter_obj_id, CTC_SAI_COUNTER_TYPE_ROUTE));
-        ipuc_info->stats_id = 0;
-        CTC_UNSET_FLAG(ipuc_info->route_flag, CTC_IPUC_FLAG_STATS_EN);
-    }
     ipuc_info->nh_id = ctc_nh_id;
     ipuc_info->cid = cid;
 
@@ -234,10 +204,10 @@ _ctc_sai_route_create_route(const sai_route_entry_t *route_entry,
     {
         counter_obj_id = attr_value->oid;
     }
-    
+
     sal_memset(&ipuc_info, 0, sizeof(ipuc_info));
     CTC_SAI_ERROR_GOTO(_ctc_sai_route_mapping_ipuc_key(route_entry, &ipuc_info), status, error1);
-    CTC_SAI_ERROR_GOTO(_ctc_sai_route_mapping_ipuc_action(&ipuc_info, action, nh_obj_id, cid, counter_obj_id), status, error1);    
+    CTC_SAI_ERROR_GOTO(_ctc_sai_route_mapping_ipuc_action(&ipuc_info, action, nh_obj_id, cid, counter_obj_id), status, error1);
     CTC_SAI_CTC_ERROR_GOTO(ctcs_ipuc_add(lchip, &ipuc_info), status, error1);
     CTC_SAI_ERROR_GOTO(_ctc_sai_route_build_db(lchip, route_entry, &p_route_info), status, error2);
     p_route_info->action = action;
@@ -251,7 +221,7 @@ error2:
     ctcs_ipuc_remove(lchip, &ipuc_info);
 error1:
     CTC_SAI_LOG_ERROR(SAI_API_ROUTE, "rollback to error1\n");
-    
+
 out:
     return status;
 }
@@ -270,8 +240,8 @@ _ctc_sai_route_remove_route(const sai_route_entry_t *route_entry)
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
     sal_memset(&ipuc_info, 0, sizeof(ipuc_info));
-    CTC_SAI_ERROR_RETURN(_ctc_sai_route_mapping_ipuc_key(route_entry, &ipuc_info));    
-    CTC_SAI_ERROR_RETURN(_ctc_sai_route_mapping_ipuc_action(&ipuc_info, p_route_info->action, p_route_info->nh_obj_id, p_route_info->cid, p_route_info->counter_obj_id));
+    CTC_SAI_ERROR_RETURN(_ctc_sai_route_mapping_ipuc_key(route_entry, &ipuc_info));
+    CTC_SAI_ERROR_RETURN(_ctc_sai_route_mapping_ipuc_action(&ipuc_info, p_route_info->action, p_route_info->nh_obj_id, p_route_info->cid, SAI_NULL_OBJECT_ID));
     CTC_SAI_CTC_ERROR_RETURN(ctcs_ipuc_remove(lchip, &ipuc_info));
     CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(p_route_info->counter_obj_id, CTC_SAI_COUNTER_TYPE_ROUTE));
     _ctc_sai_route_remove_db(lchip, (void*)route_entry);
@@ -288,6 +258,7 @@ _ctc_sai_route_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
     sai_packet_action_t action = 0;
     sai_object_id_t nh_obj_id= 0, counter_obj_id = 0;
     uint16 cid = 0;
+    uint8 is_set_counter_oid = 0;
 
     ctc_sai_oid_get_lchip(route_entry->switch_id, &lchip);
     p_route_info = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ROUTE, (void*)route_entry);
@@ -322,13 +293,14 @@ _ctc_sai_route_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
             {
                 CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_remove(p_route_info->counter_obj_id, CTC_SAI_COUNTER_TYPE_ROUTE));
             }
+            is_set_counter_oid = 1;
             break;
         case SAI_ROUTE_ENTRY_ATTR_USER_TRAP_ID:
         default:
             return SAI_STATUS_NOT_SUPPORTED;
             break;
     }
-    CTC_SAI_ERROR_RETURN(_ctc_sai_route_mapping_ipuc_action(&ipuc_info, action, nh_obj_id, cid, counter_obj_id));
+    CTC_SAI_ERROR_RETURN(_ctc_sai_route_mapping_ipuc_action(&ipuc_info, action, nh_obj_id, cid, is_set_counter_oid ? counter_obj_id : SAI_NULL_OBJECT_ID));
     CTC_SAI_CTC_ERROR_RETURN(ctcs_ipuc_add(lchip, &ipuc_info));
     p_route_info->action = action;
     p_route_info->nh_obj_id = nh_obj_id;

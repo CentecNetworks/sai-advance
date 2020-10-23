@@ -819,7 +819,7 @@ class func_03_set_and_get_switch_attribute_26_RESTART(sai_base_test.ThriftInterf
     def runTest(self):
 
         switch_init(self.client)
-        wboot = 1
+        wboot = 0
         type = SAI_SWITCH_RESTART_TYPE_PLANNED
 
         warmboot(self.client)
@@ -1847,8 +1847,9 @@ class func_03_set_and_get_switch_attribute_48_SUPPORTED_EXTENDED_STATS_MODE(sai_
 
         finally:           
             sys_logging("### TEST END! ###")  
-            
-            
+
+''''           
+#need start a redis server
 class func_03_set_and_get_switch_attribute_49_UNINIT_DATA_PLANE_ON_REMOVAL(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -1915,7 +1916,7 @@ class func_03_set_and_get_switch_attribute_49_UNINIT_DATA_PLANE_ON_REMOVAL(sai_b
         finally:           
             sys_logging("### TEST END! ###") 
 
-
+'''
 
 
 class func_03_set_and_get_switch_attribute_50_NUMBER_OF_Y1731_SESSION(sai_base_test.ThriftInterfaceDataPlane):

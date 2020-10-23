@@ -4,6 +4,7 @@
 #include "ctc_sai_virtual_router.h"
 #include "ctc_sai_route.h"
 #include "ctc_sai_next_hop.h"
+#include "ctc_sai_next_hop_group.h"
 #include "ctc_sai_mpls.h"
 #include "ctc_sai_bfd.h"
 
@@ -769,7 +770,10 @@ _ctc_sai_bfd_add_local_ipuc(uint8 lchip, ctc_sai_bfd_t* p_bfd_info)
 
     sal_memset(&ipuc_info, 0, sizeof(ctc_ipuc_param_t));
 
-    ctc_sai_oid_get_vrf_id(p_bfd_info->vr_oid, &ctc_vrf_id);
+    if(SAI_NULL_OBJECT_ID != p_bfd_info->vr_oid)
+    {
+        ctc_sai_oid_get_vrf_id(p_bfd_info->vr_oid, &ctc_vrf_id);
+    }
     ipuc_info.vrf_id = ctc_vrf_id;
 
     if(4 == p_bfd_info->ip_hdr_ver)
@@ -817,7 +821,10 @@ _ctc_sai_bfd_remove_local_ipuc(uint8 lchip, ctc_sai_bfd_t* p_bfd_info)
         return status;
     }
 
-    ctc_sai_oid_get_vrf_id(p_bfd_info->vr_oid, &ctc_vrf_id);
+    if(SAI_NULL_OBJECT_ID != p_bfd_info->vr_oid)
+    {
+        ctc_sai_oid_get_vrf_id(p_bfd_info->vr_oid, &ctc_vrf_id);
+    }
     ipuc_info.vrf_id = ctc_vrf_id;
 
     if(4 == p_bfd_info->ip_hdr_ver)
@@ -1118,6 +1125,7 @@ ctc_sai_bfd_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     uint8 lchip = 0;
     sai_object_id_t bfd_session_id = 0;
     ctc_sai_bfd_t* p_bfd_info = NULL;
+    ctc_object_id_t ctc_object_id;
     
     ctc_oam_mep_info_t  mep_info;
     ctc_oam_lmep_t lmep;
@@ -1125,16 +1133,20 @@ ctc_sai_bfd_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     ctc_oam_update_t  update_lmep;
     uint8 lmep_upd_en = 0, rmep_upd_en = 0;
     ctc_oam_bfd_timer_t oam_bfd_timer;
+    ctc_oam_hw_aps_t  oam_aps;
 
     ctc_sai_virtual_router_t* p_vr_info = NULL;
     uint16 ctc_vrf_id = 0;
     ctc_l3if_property_t l3if_prop;
+    ctc_sai_next_hop_grp_t* p_next_hop_grp_info = NULL;
 
+    sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
     sal_memset(&mep_info, 0, sizeof(ctc_oam_mep_info_t));
     sal_memset(&lmep, 0, sizeof(ctc_oam_lmep_t));
     sal_memset(&rmep, 0, sizeof(ctc_oam_rmep_t));
     sal_memset(&update_lmep, 0, sizeof(ctc_oam_update_t));
     sal_memset(&oam_bfd_timer, 0, sizeof(ctc_oam_bfd_timer_t));
+    sal_memset(&oam_aps, 0, sizeof(ctc_oam_hw_aps_t));
 
     bfd_session_id = key->key.object_id;
 
@@ -1193,6 +1205,16 @@ ctc_sai_bfd_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
             break;
         case SAI_BFD_SESSION_ATTR_TC:
             return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
+            break;
+        case SAI_BFD_SESSION_ATTR_STATE:
+            if(attr->value.s32 > SAI_BFD_SESSION_STATE_UP) 
+            {
+                return SAI_STATUS_INVALID_PARAMETER;
+            }
+            update_lmep.is_local = 1;
+            update_lmep.update_type = CTC_OAM_BFD_LMEP_UPDATE_TYPE_STATE;
+            update_lmep.update_value = attr->value.s32;
+            lmep_upd_en = 1;
             break;
         case SAI_BFD_SESSION_ATTR_TOS:
             p_bfd_info->ip_tos = attr->value.u8;
@@ -1262,7 +1284,85 @@ ctc_sai_bfd_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
             update_lmep.update_type = CTC_OAM_BFD_LMEP_UPDATE_TYPE_CV_EN;
             update_lmep.update_value = attr->value.booldata;
             lmep_upd_en = 1;
-            break;       
+            break;     
+        case SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID:
+            if(SAI_NULL_OBJECT_ID == attr->value.oid)
+            {
+                //enable hw aps
+                update_lmep.is_local = 0;
+                update_lmep.update_type = CTC_OAM_BFD_RMEP_UPDATE_TYPE_HW_APS_EN;
+                update_lmep.p_update_value = NULL;
+                update_lmep.update_value = 0;
+
+                rmep_upd_en = 1;
+
+                p_bfd_info->hw_binding_aps_en = 0;
+                p_bfd_info->hw_binding_aps_group = SAI_NULL_OBJECT_ID;
+            }
+            else
+            {
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, attr->value.oid, &ctc_object_id);
+                if( SAI_NEXT_HOP_GROUP_TYPE_PROTECTION != ctc_object_id.sub_type)
+                {
+                    status = SAI_STATUS_INVALID_OBJECT_TYPE;
+                    goto out;
+                }
+                p_next_hop_grp_info = ctc_sai_db_get_object_property(lchip, attr->value.oid);
+                if(NULL == p_next_hop_grp_info)
+                {
+                    status = SAI_STATUS_ITEM_NOT_FOUND;
+                    goto out;
+                }
+            
+                p_bfd_info->hw_binding_aps_group = attr->value.oid;
+                
+                update_lmep.is_local = 0;
+                update_lmep.update_type = CTC_OAM_BFD_RMEP_UPDATE_TYPE_HW_APS;
+                            
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, p_bfd_info->hw_binding_aps_group, &ctc_object_id);
+                oam_aps.aps_group_id = ctc_object_id.value2;
+                oam_aps.protection_path = p_bfd_info->hw_binding_is_protecting_path;
+                update_lmep.p_update_value = &oam_aps;
+                                
+                rmep_upd_en = 1;
+                
+            }
+            break;
+        case SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH:   
+            if( SAI_NULL_OBJECT_ID == p_bfd_info->hw_binding_aps_group)
+            {
+                status = SAI_STATUS_INVALID_ATTRIBUTE_0;
+                goto out;
+            }
+            p_bfd_info->hw_binding_is_protecting_path = attr->value.booldata;
+            
+            update_lmep.is_local = 0;
+            update_lmep.update_type = CTC_OAM_BFD_RMEP_UPDATE_TYPE_HW_APS;
+                        
+            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, p_bfd_info->hw_binding_aps_group, &ctc_object_id);
+            oam_aps.aps_group_id = ctc_object_id.value2;
+            oam_aps.protection_path = p_bfd_info->hw_binding_is_protecting_path;
+            update_lmep.p_update_value = &oam_aps;
+            rmep_upd_en = 1;
+            break;
+
+        case SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN:   
+            if( SAI_NULL_OBJECT_ID == p_bfd_info->hw_binding_aps_group)
+            {
+                status = SAI_STATUS_INVALID_ATTRIBUTE_0;
+                goto out;
+            }
+            p_bfd_info->hw_binding_aps_en = attr->value.booldata;
+            
+            //enable hw aps
+            update_lmep.is_local = 0;
+            update_lmep.update_type = CTC_OAM_BFD_RMEP_UPDATE_TYPE_HW_APS_EN;
+            update_lmep.p_update_value = NULL;
+            update_lmep.update_value = p_bfd_info->hw_binding_aps_en;
+            
+            rmep_upd_en = 1;
+            break;
+        
         default:
             status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
             break;
@@ -1410,10 +1510,10 @@ ctc_sai_bfd_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_i
             {
                 attr->value.s32 = SAI_BFD_SESSION_STATE_UP;
             }
-            else
+            else if ( CTC_OAM_BFD_STATE_ADMIN_DOWN == mep_info.lmep.bfd_lmep.loacl_state)
             {
-                status = SAI_STATUS_INVALID_ATTRIBUTE_0 + attr_idx;
-            }
+                attr->value.s32 = SAI_BFD_SESSION_STATE_ADMIN_DOWN;
+            }            
             
             break;
         case SAI_BFD_SESSION_ATTR_OFFLOAD_TYPE:
@@ -1474,9 +1574,36 @@ ctc_sai_bfd_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_i
         case SAI_BFD_SESSION_ATTR_NEXT_HOP_ID:
             attr->value.oid = p_bfd_info->nh_tunnel_oid;
             break;
+        case SAI_BFD_SESSION_ATTR_REMOTE_STATE:
+            if ( CTC_OAM_BFD_STATE_DOWN == mep_info.rmep.bfd_rmep.remote_state)
+            {
+                attr->value.s32 = SAI_BFD_SESSION_STATE_DOWN;
+            }
+            else if ( CTC_OAM_BFD_STATE_INIT == mep_info.rmep.bfd_rmep.remote_state)
+            {
+                attr->value.s32 = SAI_BFD_SESSION_STATE_INIT;
+            }
+            else if ( CTC_OAM_BFD_STATE_UP == mep_info.rmep.bfd_rmep.remote_state)
+            {
+                attr->value.s32 = SAI_BFD_SESSION_STATE_UP;
+            }
+            else if ( CTC_OAM_BFD_STATE_ADMIN_DOWN == mep_info.rmep.bfd_rmep.remote_state)
+            {
+                attr->value.s32 = SAI_BFD_SESSION_STATE_ADMIN_DOWN;
+            }    
+            break;
         case SAI_BFD_SESSION_ATTR_REMOTE_MIN_TX:
         case SAI_BFD_SESSION_ATTR_REMOTE_MIN_RX:
             status = SAI_STATUS_ATTR_NOT_SUPPORTED_0 + attr_idx;
+            break;
+        case SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID:
+            attr->value.oid = p_bfd_info->hw_binding_aps_group;
+            break;
+        case SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH:
+            attr->value.booldata = p_bfd_info->hw_binding_is_protecting_path;
+            break;
+        case SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN:
+            attr->value.booldata = p_bfd_info->hw_binding_aps_en;
             break;
         default:
             status = SAI_STATUS_ATTR_NOT_SUPPORTED_0 + attr_idx;
@@ -1592,7 +1719,7 @@ static ctc_sai_attr_fn_entry_t  bfd_attr_fn_entries[] =
       NULL },
     { SAI_BFD_SESSION_ATTR_STATE,
       ctc_sai_bfd_get_info,
-      NULL },
+      ctc_sai_bfd_set_info },
     { SAI_BFD_SESSION_ATTR_OFFLOAD_TYPE,
       ctc_sai_bfd_get_info,
       ctc_sai_bfd_set_info },
@@ -1609,6 +1736,9 @@ static ctc_sai_attr_fn_entry_t  bfd_attr_fn_entries[] =
       ctc_sai_bfd_get_info,
       NULL },
     { SAI_BFD_SESSION_ATTR_REMOTE_MULTIPLIER,
+      ctc_sai_bfd_get_info,
+      NULL },
+    { SAI_BFD_SESSION_ATTR_REMOTE_STATE,
       ctc_sai_bfd_get_info,
       NULL },
     { SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE,
@@ -1644,6 +1774,15 @@ static ctc_sai_attr_fn_entry_t  bfd_attr_fn_entries[] =
     { SAI_BFD_SESSION_ATTR_NEXT_HOP_ID,
       ctc_sai_bfd_get_info,
       ctc_sai_bfd_set_info },
+    { SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID,
+      ctc_sai_bfd_get_info,
+      ctc_sai_bfd_set_info },
+    { SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH,
+      ctc_sai_bfd_get_info,
+      ctc_sai_bfd_set_info },
+    { SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN,
+      ctc_sai_bfd_get_info,
+      ctc_sai_bfd_set_info },      
     { CTC_SAI_FUNC_ATTR_END_ID,
       NULL,
       NULL }
@@ -1673,6 +1812,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     uint32 nh_id = 0;
     ctc_object_id_t ctc_object_id;
     ctc_sai_next_hop_t* p_next_hop_info = NULL;
+    ctc_sai_next_hop_grp_t* p_next_hop_grp_info = NULL;
 
     ctc_oam_lmep_t lmep;
     ctc_oam_bfd_lmep_t* p_bfd_lmep  = NULL;
@@ -1680,6 +1820,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     ctc_oam_bfd_rmep_t* p_bfd_rmep  = NULL;
 
     ctc_oam_update_t update_lmep;
+    ctc_oam_hw_aps_t  oam_aps;
     
     sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
     
@@ -1690,6 +1831,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     p_bfd_rmep = &rmep.u.bfd_rmep;
 
     sal_memset(&update_lmep, 0, sizeof(ctc_oam_update_t));
+    sal_memset(&oam_aps, 0, sizeof(ctc_oam_hw_aps_t));
 
     CTC_SAI_LOG_ENTER(SAI_API_BFD);
     CTC_SAI_PTR_VALID_CHECK(sai_bfd_session_id);
@@ -1916,6 +2058,47 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     if (!CTC_SAI_ERROR(status))
     {
         p_bfd_info->nh_tunnel_oid = attr_value->oid;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID, &attr_value, &index);
+    if (!CTC_SAI_ERROR(status))
+    {
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, attr_value->oid, &ctc_object_id);
+        if( SAI_NEXT_HOP_GROUP_TYPE_PROTECTION != ctc_object_id.sub_type)
+        {
+            status = SAI_STATUS_INVALID_OBJECT_TYPE;
+            goto error2;
+        }
+        p_next_hop_grp_info = ctc_sai_db_get_object_property(lchip, attr_value->oid);
+        if(NULL == p_next_hop_grp_info)
+        {
+            status = SAI_STATUS_ITEM_NOT_FOUND;
+            goto error2;
+        }
+        p_bfd_info->hw_binding_aps_group = attr_value->oid;     
+    }
+    
+    if(p_bfd_info->hw_binding_aps_group)
+    {
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH, &attr_value, &index);
+        if (!CTC_SAI_ERROR(status))
+        {
+            p_bfd_info->hw_binding_is_protecting_path = attr_value->booldata;
+        }
+        else
+        {
+            p_bfd_info->hw_binding_is_protecting_path = 0;
+        }
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN, &attr_value, &index);
+        if (!CTC_SAI_ERROR(status))
+        {
+            p_bfd_info->hw_binding_aps_en = attr_value->booldata;
+        }
+        else
+        {
+            p_bfd_info->hw_binding_aps_en = 0;
+        }
     }
 
 
@@ -2163,7 +2346,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     p_bfd_info->remote_mep_index = rmep.rmep_index;
 
     sal_memcpy(&(update_lmep.key), &(lmep.key), sizeof(ctc_oam_key_t));
-
+    
     update_lmep.is_local = 1;
     update_lmep.update_type = CTC_OAM_BFD_LMEP_UPDATE_TYPE_CC_EN;
     update_lmep.update_value = 1;
@@ -2175,6 +2358,28 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
         update_lmep.update_value = 1;
         CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_lmep(lchip, &update_lmep), status, error5);
     }    
+
+    if(p_bfd_info->hw_binding_aps_group)
+    {
+        //configure hw aps group and is protecting path
+        update_lmep.is_local = 0;
+        update_lmep.update_type = CTC_OAM_BFD_RMEP_UPDATE_TYPE_HW_APS;
+        
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, p_bfd_info->hw_binding_aps_group, &ctc_object_id);
+        oam_aps.aps_group_id = ctc_object_id.value2;
+        oam_aps.protection_path = p_bfd_info->hw_binding_is_protecting_path;
+        update_lmep.p_update_value = &oam_aps;
+        
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_lmep), status, error5);
+
+        //enable hw aps
+        update_lmep.is_local = 0;
+        update_lmep.update_type = CTC_OAM_BFD_RMEP_UPDATE_TYPE_HW_APS_EN;
+        update_lmep.p_update_value = NULL;
+        update_lmep.update_value = p_bfd_info->hw_binding_aps_en;
+        
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_lmep), status, error5);
+    }
 
     *sai_bfd_session_id = bfd_obj_id;    
 

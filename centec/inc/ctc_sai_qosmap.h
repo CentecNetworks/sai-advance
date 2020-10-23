@@ -57,6 +57,10 @@ This module defines SAI Qosmap.
 #include "sal.h"
 #include "ctcs_api.h"
 
+//domain = 0, used for switch
+#define QOS_MAP_DOMAIN_ID_START       1
+#define QOS_MAP_SAI_TC_TO_CTC_PRI     2
+#define QOS_MAP_CTC_PRI_TO_SAI_DSCP   4
 
 typedef struct ctc_sai_qos_map_db_s
 {
@@ -88,8 +92,9 @@ ctc_sai_qos_map_mpls_inseg_set_map(const sai_inseg_entry_t* inseg_entry, uint32 
 extern sai_status_t
 ctc_sai_qos_map_mpls_nh_set_map(sai_object_id_t nh_oid, uint32 map_id, sai_qos_map_type_t map_type, bool enable, uint8* ret_domain);
 
-extern sai_status_t
-ctc_sai_qos_map_switch_set_default_tc(uint8 lchip, uint8 tc);
+
+//extern sai_status_t
+//ctc_sai_qos_map_switch_set_default_tc(uint8 lchip, uint8 tc);
 
 extern void
 ctc_sai_qos_map_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t* dump_grep_param);

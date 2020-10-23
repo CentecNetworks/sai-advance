@@ -610,8 +610,8 @@ class UDF_CreateTest(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_BASE:
                     print "set base = %d" %base
-                    print "get base = %d" %a.value.u8
-                    if base != a.value.u8:
+                    print "get base = %d" %a.value.s32
+                    if base != a.value.s32:
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_OFFSET:
                     print "set offset = %d" %offset
@@ -710,8 +710,8 @@ class UDF_RemoveTest(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_BASE:
                     print "set base = %d" %base
-                    print "get base = %d" %a.value.u8
-                    if base != a.value.u8:
+                    print "get base = %d" %a.value.s32
+                    if base != a.value.s32:
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_OFFSET:
                     print "set offset = %d" %offset
@@ -808,8 +808,8 @@ class UDF_GetTest(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_BASE:
                     print "set base = %d" %base
-                    print "get base = %d" %a.value.u8
-                    if base != a.value.u8:
+                    print "get base = %d" %a.value.s32
+                    if base != a.value.s32:
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_OFFSET:
                     print "set offset = %d" %offset
@@ -908,8 +908,8 @@ class UDF_SetTest(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_BASE:
                     print "set base = %d" %base
-                    print "get base = %d" %a.value.u8
-                    if base != a.value.u8:
+                    print "get base = %d" %a.value.s32
+                    if base != a.value.s32:
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_OFFSET:
                     print "set offset = %d" %offset
@@ -932,7 +932,7 @@ class UDF_SetTest(sai_base_test.ThriftInterfaceDataPlane):
             status = self.client.sai_thrift_set_udf_attribute(udf_id, attr)
             print "udf_id = 0x%lx" %udf_id
             print "status = %d" %status
-            assert (status == SAI_STATUS_NOT_SUPPORTED)
+            assert (status != SAI_STATUS_SUCCESS)
 
             print "Set udf attribute: SAI_UDF_ATTR_HASH_MASK [0,-1,0,-1]"
             hash_mask_list_tmp = sai_thrift_u8_list_t(count=len(hash_mask_list_set), u8list=hash_mask_list_set)
@@ -964,8 +964,8 @@ class UDF_SetTest(sai_base_test.ThriftInterfaceDataPlane):
 
                 if a.id == SAI_UDF_ATTR_BASE:
                     print "set base = %d" %base
-                    print "get base = %d" %a.value.u8
-                    if base != a.value.u8:
+                    print "get base = %d" %a.value.s32
+                    if base != a.value.s32:
                         raise NotImplementedError()
                 if a.id == SAI_UDF_ATTR_OFFSET:
                     print "set offset = %d" %offset
@@ -1965,6 +1965,7 @@ class UDF_MATCH_ExcludeEntry(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_udf_match(udf_match_id)
             self.client.sai_thrift_remove_udf_group(udf_group_id)
 
+
 class udf_max_generic_groups(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
 
@@ -2563,4 +2564,910 @@ class udf_max_generic_groups(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_udf_group(udf_group_id13)
             self.client.sai_thrift_remove_udf_group(udf_group_id14)
             self.client.sai_thrift_remove_udf_group(udf_group_id15)
-            self.client.sai_thrift_remove_udf_group(udf_group_id16)
+
+
+class ingress_acl_bind_switch_with_udf_key_test(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+
+        sys_logging(" step 1 basic data environment")
+        
+        switch_init(self.client)
+
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        sys_logging(" step 2 udf config ")
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+        group_length = 16
+
+        udf_group_oid = sai_thrift_create_udf_group(self.client, group_type, group_length)
+
+        l2_type = 0x0800
+        l2_type_mask = -1
+        l3_type = 0x11
+        l3_type_mask = -1
+        gre_type = None
+        gre_type_mask = -1
+        mpls_label_num = None
+        l4_src_port = 1234
+        l4_src_port_mask = -1
+        l4_dst_port = 5678
+        l4_dst_port_mask = -1
+        priority = 15
+
+        udf_match_oid = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        base = SAI_UDF_BASE_L4
+        offset = 8
+
+        udf_oid =  sai_thrift_create_udf(self.client, udf_match_oid, udf_group_oid, base, offset, None)
+
+
+        #DsAclQosUdfKey320.udf
+        #"128'H11111111222222220044567800000000"
+
+        udf0 = ctypes.c_int8(17)
+        udf1 = ctypes.c_int8(17)
+        udf2 = ctypes.c_int8(17)
+        udf3 = ctypes.c_int8(17)
+
+        udf4 = ctypes.c_int8(34)
+        udf5 = ctypes.c_int8(34)
+        udf6 = ctypes.c_int8(34)
+        udf7 = ctypes.c_int8(34)
+
+        udf8 = ctypes.c_int8(0)
+        udf9 = ctypes.c_int8(68)
+        udf10 = ctypes.c_int8(86)
+        udf11 = ctypes.c_int8(120)
+
+        udf12 = ctypes.c_int8(0)
+        udf13 = ctypes.c_int8(0)
+        udf14 = ctypes.c_int8(0)
+        udf15 = ctypes.c_int8(0)
+
+        group0_udf_value = [udf12.value, udf13.value, udf14.value, udf15.value, udf8.value, udf9.value, udf10.value, udf11.value, udf4.value, udf5.value, udf6.value, udf7.value, udf0.value, udf1.value, udf2.value, udf3.value]
+        group0_udf_mask  = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
+
+
+        sys_logging(" step 3 acl config ")
+
+        # acl table info
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+
+        action = SAI_PACKET_ACTION_DROP
+        addr_family = None
+
+        mac_src = None
+        mac_src_mask = None
+        mac_dst = None
+        mac_dst_mask = None
+
+        ip_src = None
+        ip_src_mask = None
+        ip_dst = None
+        ip_dst_mask = None
+
+        in_ports = None
+        out_ports = None
+        in_port = None
+        out_port = None
+
+        svlan_id = None
+        svlan_pri = None
+        svlan_cfi = None
+        cvlan_id = None
+        cvlan_pri = None
+        cvlan_cfi = None
+
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        ip_protocol = None
+        ip_tos = None
+        ip_ecn = None
+        ip_dscp = None
+        ip_ttl = None
+
+        ipv6_src = None
+        ipv6_dst = None
+
+        ipv6_src_mask = None
+        ipv6_dst_mask = None
+        ingress_samplepacket = None
+        acl_range_id_list = None
+        redirect = None
+        
+
+        src_l4_port = None
+        dst_l4_port = None
+
+        ingress_mirror = None
+        egress_mirror = None
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        deny_learn = None
+
+        acl_range_type_list = None
+        
+        user_define_filed_group0 = True
+
+        # create acl table
+        acl_table_oid = sai_thrift_create_acl_table(self.client,
+            table_stage,
+            table_bind_point_list,
+            addr_family,
+            mac_src,
+            mac_dst,
+            ip_src,
+            ip_dst,
+            in_ports,
+            out_ports,
+            in_port,
+            out_port,
+            svlan_id,
+            svlan_pri,
+            svlan_cfi,
+            cvlan_id,
+            cvlan_pri,
+            cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_protocol,
+            src_l4_port,
+            dst_l4_port,
+            ipv6_src,
+            ipv6_dst,
+            ip_tos,
+            ip_ecn,
+            ip_dscp,
+            ip_ttl,
+            acl_range_type_list,
+            user_define_filed_group0)
+
+
+        sys_logging("create acl table = %d" %acl_table_oid)
+        assert(acl_table_oid != SAI_NULL_OBJECT_ID )
+
+        entry_priority = 1
+        admin_state = True
+
+        # create acl entry
+        acl_entry_oid = sai_thrift_create_acl_entry(self.client,
+            acl_table_oid,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror,
+            egress_mirror,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn,
+            ipv6_src,
+            ipv6_src_mask,
+            ipv6_dst,
+            ipv6_dst_mask,
+            ingress_samplepacket,
+            acl_range_id_list,
+            redirect,
+            group0_udf_value,
+            group0_udf_mask)
+
+        sys_logging("create acl entry = %d" %acl_entry_oid)
+        assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+
+        
+        warmboot(self.client)
+
+        try:
+
+            src_mac = mac1
+            dst_mac = mac2
+            src_ip = '1.2.3.4' 
+            dst_ip = '5.6.7.8' 
+            udp_src_port = 1234 
+            udp_dst_port = 5678
+            ttl = 100
+            tc = 0 
+            pkt_len = 100
+
+            #Sequence_Number = hexstr_to_ascii('00000000')
+            #Timestamp = hexstr_to_ascii('0000000000445678')
+
+            Sequence_Number = hexstr_to_ascii('11111111')
+            Timestamp = hexstr_to_ascii('2222222200445678')
+
+
+            npm_test_pkt = Sequence_Number + Timestamp
+
+            pkt = simple_udp_packet(pktlen=pkt_len-4,
+                                    eth_dst=dst_mac,
+                                    eth_src=src_mac,
+                                    dl_vlan_enable=False,
+                                    ip_src=src_ip,
+                                    ip_dst=dst_ip,
+                                    ip_tos=0,
+                                    ip_ttl=ttl,
+                                    udp_sport=udp_src_port,
+                                    udp_dport=udp_dst_port,
+                                    ip_ihl=None,
+                                    ip_id=0,
+                                    ip_options=False,
+                                    with_udp_chksum=True,
+                                    udp_payload=npm_test_pkt,
+                                    pattern_type=1)
+
+
+            sys_logging(" step4: none acl , packet will forwarding  ")
+            #self.ctc_send_packet( 0, str(pkt))
+            #self.ctc_verify_packets( pkt, [1])
+
+            sys_logging(" step5: bind this ACL table to switch ")
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            sys_logging(" step6: match drop acl entry ")
+            self.ctc_send_packet( 0, str(pkt))
+            #pdb.set_trace()
+            self.ctc_verify_no_packet( pkt, 1)
+
+        finally:
+
+            sys_logging("clear config")
+
+            #pdb.set_trace()
+
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+
+            self.client.sai_thrift_remove_udf(udf_oid)
+            self.client.sai_thrift_remove_udf_match(udf_match_oid)
+            self.client.sai_thrift_remove_udf_group(udf_group_oid)
+
+
+
+
+
+
+class ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+
+        sys_logging(" step 1 basic data environment")
+        
+        switch_init(self.client)
+
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        sys_logging(" step 2 udf config ")
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+        group_length = 16
+
+        udf_group_oid = sai_thrift_create_udf_group(self.client, group_type, group_length)
+
+        l2_type = 0x0800
+        l2_type_mask = -1
+        l3_type = 0x11
+        l3_type_mask = -1
+        gre_type = None
+        gre_type_mask = -1
+        mpls_label_num = None
+        l4_src_port = 1234
+        l4_src_port_mask = -1
+        l4_dst_port = None
+        l4_dst_port_mask = -1
+        priority = 1
+
+        udf_match_oid = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        base = SAI_UDF_BASE_L4
+        offset = 8
+
+        udf_oid =  sai_thrift_create_udf(self.client, udf_match_oid, udf_group_oid, base, offset, None)
+
+
+        l2_type = 0x0800
+        l2_type_mask = -1
+        l3_type = 0x11
+        l3_type_mask = -1
+        gre_type = None
+        gre_type_mask = -1
+        mpls_label_num = None
+        l4_src_port = None
+        l4_src_port_mask = -1
+        l4_dst_port = 5678
+        l4_dst_port_mask = -1
+        priority = 2
+
+        udf_match_oid_2 = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        base = SAI_UDF_BASE_L4
+        offset = 8
+
+        udf_oid_2 =  sai_thrift_create_udf(self.client, udf_match_oid_2, udf_group_oid, base, offset, None)
+
+
+
+        l2_type = 0x0800
+        l2_type_mask = -1
+        l3_type = 0x11
+        l3_type_mask = -1
+        gre_type = None
+        gre_type_mask = -1
+        mpls_label_num = None
+        l4_src_port = 1234
+        l4_src_port_mask = -1
+        l4_dst_port = 5678
+        l4_dst_port_mask = -1
+        priority = 3
+
+        udf_match_oid_3 = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        base = SAI_UDF_BASE_L4
+        offset = 8
+
+        udf_oid_3 =  sai_thrift_create_udf(self.client, udf_match_oid_3, udf_group_oid, base, offset, None)
+        
+
+        #DsAclQosUdfKey320.udf
+        #"128'H11111111222222220044567800000000"
+
+        udf0 = ctypes.c_int8(17)
+        udf1 = ctypes.c_int8(17)
+        udf2 = ctypes.c_int8(17)
+        udf3 = ctypes.c_int8(17)
+
+        udf4 = ctypes.c_int8(34)
+        udf5 = ctypes.c_int8(34)
+        udf6 = ctypes.c_int8(34)
+        udf7 = ctypes.c_int8(34)
+
+        udf8 = ctypes.c_int8(0)
+        udf9 = ctypes.c_int8(68)
+        udf10 = ctypes.c_int8(86)
+        udf11 = ctypes.c_int8(120)
+
+        udf12 = ctypes.c_int8(0)
+        udf13 = ctypes.c_int8(0)
+        udf14 = ctypes.c_int8(0)
+        udf15 = ctypes.c_int8(0)
+
+        group0_udf_value = [udf12.value, udf13.value, udf14.value, udf15.value, udf8.value, udf9.value, udf10.value, udf11.value, udf4.value, udf5.value, udf6.value, udf7.value, udf0.value, udf1.value, udf2.value, udf3.value]
+        group0_udf_mask  = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
+
+
+        sys_logging(" step 3 acl config ")
+
+        # acl table info
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+
+        action = SAI_PACKET_ACTION_DROP
+        addr_family = None
+
+        mac_src = None
+        mac_src_mask = None
+        mac_dst = None
+        mac_dst_mask = None
+
+        ip_src = None
+        ip_src_mask = None
+        ip_dst = None
+        ip_dst_mask = None
+
+        in_ports = None
+        out_ports = None
+        in_port = None
+        out_port = None
+
+        svlan_id = None
+        svlan_pri = None
+        svlan_cfi = None
+        cvlan_id = None
+        cvlan_pri = None
+        cvlan_cfi = None
+
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        ip_protocol = None
+        ip_tos = None
+        ip_ecn = None
+        ip_dscp = None
+        ip_ttl = None
+
+        ipv6_src = None
+        ipv6_dst = None
+
+        ipv6_src_mask = None
+        ipv6_dst_mask = None
+        ingress_samplepacket = None
+        acl_range_id_list = None
+        redirect = None
+        
+
+        src_l4_port = None
+        dst_l4_port = None
+
+        ingress_mirror = None
+        egress_mirror = None
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        deny_learn = None
+
+        acl_range_type_list = None
+        
+        user_define_filed_group0 = True
+
+        # create acl table
+        acl_table_oid = sai_thrift_create_acl_table(self.client,
+            table_stage,
+            table_bind_point_list,
+            addr_family,
+            mac_src,
+            mac_dst,
+            ip_src,
+            ip_dst,
+            in_ports,
+            out_ports,
+            in_port,
+            out_port,
+            svlan_id,
+            svlan_pri,
+            svlan_cfi,
+            cvlan_id,
+            cvlan_pri,
+            cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_protocol,
+            src_l4_port,
+            dst_l4_port,
+            ipv6_src,
+            ipv6_dst,
+            ip_tos,
+            ip_ecn,
+            ip_dscp,
+            ip_ttl,
+            acl_range_type_list,
+            user_define_filed_group0)
+
+
+        sys_logging("create acl table = %d" %acl_table_oid)
+        assert(acl_table_oid != SAI_NULL_OBJECT_ID )
+
+        entry_priority = 1
+        admin_state = True
+
+        # create acl entry
+        acl_entry_oid = sai_thrift_create_acl_entry(self.client,
+            acl_table_oid,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror,
+            egress_mirror,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn,
+            ipv6_src,
+            ipv6_src_mask,
+            ipv6_dst,
+            ipv6_dst_mask,
+            ingress_samplepacket,
+            acl_range_id_list,
+            redirect,
+            group0_udf_value,
+            group0_udf_mask)
+
+        sys_logging("create acl entry = %d" %acl_entry_oid)
+        assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+
+        
+        warmboot(self.client)
+
+        try:
+
+            src_mac = mac1
+            dst_mac = mac2
+            src_ip = '1.2.3.4' 
+            dst_ip = '5.6.7.8' 
+            udp_src_port = 1234 
+            udp_dst_port = 5678
+            ttl = 100
+            tc = 0 
+            pkt_len = 100
+
+            #Sequence_Number = hexstr_to_ascii('00000000')
+            #Timestamp = hexstr_to_ascii('0000000000445678')
+
+            Sequence_Number = hexstr_to_ascii('11111111')
+            Timestamp = hexstr_to_ascii('2222222200445678')
+
+
+            npm_test_pkt = Sequence_Number + Timestamp
+
+            pkt = simple_udp_packet(pktlen=pkt_len-4,
+                                    eth_dst=dst_mac,
+                                    eth_src=src_mac,
+                                    dl_vlan_enable=False,
+                                    ip_src=src_ip,
+                                    ip_dst=dst_ip,
+                                    ip_tos=0,
+                                    ip_ttl=ttl,
+                                    udp_sport=udp_src_port,
+                                    udp_dport=udp_dst_port,
+                                    ip_ihl=None,
+                                    ip_id=0,
+                                    ip_options=False,
+                                    with_udp_chksum=True,
+                                    udp_payload=npm_test_pkt,
+                                    pattern_type=1)
+                                   
+            pkt1 = simple_udp_packet(pktlen=pkt_len-4,
+                                    eth_dst=dst_mac,
+                                    eth_src=src_mac,
+                                    dl_vlan_enable=False,
+                                    ip_src=src_ip,
+                                    ip_dst=dst_ip,
+                                    ip_tos=0,
+                                    ip_ttl=ttl,
+                                    udp_sport=1235,
+                                    udp_dport=udp_dst_port,
+                                    ip_ihl=None,
+                                    ip_id=0,
+                                    ip_options=False,
+                                    with_udp_chksum=True,
+                                    udp_payload=npm_test_pkt,
+                                    pattern_type=1)
+
+
+            pkt2 = simple_udp_packet(pktlen=pkt_len-4,
+                                    eth_dst=dst_mac,
+                                    eth_src=src_mac,
+                                    dl_vlan_enable=False,
+                                    ip_src=src_ip,
+                                    ip_dst=dst_ip,
+                                    ip_tos=0,
+                                    ip_ttl=ttl,
+                                    udp_sport=udp_src_port,
+                                    udp_dport=5679,
+                                    ip_ihl=None,
+                                    ip_id=0,
+                                    ip_options=False,
+                                    with_udp_chksum=True,
+                                    udp_payload=npm_test_pkt,
+                                    pattern_type=1)
+                                    
+            pkt3 = simple_udp_packet(pktlen=pkt_len-4,
+                                    eth_dst=dst_mac,
+                                    eth_src=src_mac,
+                                    dl_vlan_enable=False,
+                                    ip_src=src_ip,
+                                    ip_dst=dst_ip,
+                                    ip_tos=0,
+                                    ip_ttl=ttl,
+                                    udp_sport=1235,
+                                    udp_dport=5679,
+                                    ip_ihl=None,
+                                    ip_id=0,
+                                    ip_options=False,
+                                    with_udp_chksum=True,
+                                    udp_payload=npm_test_pkt,
+                                    pattern_type=1)
+                                    
+
+
+            sys_logging(" step4: none acl , packet will forwarding  ")
+            
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( pkt, [1])
+
+            self.ctc_send_packet( 0, str(pkt1))
+            self.ctc_verify_packets( pkt1, [1])
+            
+            self.ctc_send_packet( 0, str(pkt2))
+            self.ctc_verify_packets( pkt2, [1])
+
+            self.ctc_send_packet( 0, str(pkt3))
+            self.ctc_verify_packets( pkt3, [1])
+            
+            sys_logging(" step5: bind this ACL table to switch ")
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            sys_logging(" step6: match drop acl entry ")
+            
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_no_packet( pkt, 1)
+
+            self.ctc_send_packet( 0, str(pkt1))
+            self.ctc_verify_no_packet( pkt1, 1)
+            
+            self.ctc_send_packet( 0, str(pkt2))
+            self.ctc_verify_no_packet( pkt2, 1)
+            
+            self.ctc_send_packet( 0, str(pkt3))
+            self.ctc_verify_packets( pkt3, [1])
+
+        finally:
+
+            sys_logging("clear config")
+
+            #pdb.set_trace()
+
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+
+            self.client.sai_thrift_remove_udf(udf_oid)
+            self.client.sai_thrift_remove_udf(udf_oid_2)
+            self.client.sai_thrift_remove_udf(udf_oid_3)            
+            self.client.sai_thrift_remove_udf_match(udf_match_oid)
+            self.client.sai_thrift_remove_udf_match(udf_match_oid_2)
+            self.client.sai_thrift_remove_udf_match(udf_match_oid_3)            
+            self.client.sai_thrift_remove_udf_group(udf_group_oid)         

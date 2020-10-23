@@ -38,14 +38,14 @@ This module defines SAI Next Hop.
 \t  |  SAI_NEXT_HOP_ATTR_SEGMENTROUTE_ENDPOINT_POP_TYPE  |              -                 |
 \t  |  SAI_NEXT_HOP_ATTR_LABELSTACK                      |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_NEXT_HOP_ATTR_COUNTER_ID                      |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID          |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TYPE                     |            CTC7132             |
 \t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE                 |            CTC7132             |
 \t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TTL_VALUE                |            CTC7132             |
 \t  |  SAI_NEXT_HOP_ATTR_OUTSEG_EXP_MODE                 |            CTC7132             |
 \t  |  SAI_NEXT_HOP_ATTR_OUTSEG_EXP_VALUE                |            CTC7132             |
 \t  |  SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP|            CTC7132             |
+\e  |  SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID            |            CTC7132             |
+\e  |  SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID          |            CTC7132             |
 \b
 
 */
@@ -62,6 +62,7 @@ This module defines SAI Next Hop.
 typedef struct  ctc_sai_next_hop_s
 {
     sai_object_id_t rif_id;
+    sai_object_id_t rif_id_temp;
     sai_ip_address_t ip_address;
     sai_u32_list_t label;
     sai_object_id_t tunnel_id;

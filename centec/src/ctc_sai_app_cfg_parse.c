@@ -5,8 +5,7 @@
  ****************************************************************************/
 
 #include "sal.h"
-#include "ctc_error.h"
-#include "ctc_macro.h"
+#include "api/include/ctc_api.h"
 #include "ctc_sai_app_cfg_parse.h"
 
 
@@ -62,6 +61,7 @@ typedef struct ctc_app_parse_s
 
 #define ___________APP_PARSE_INNER_FUNCTION________________________
 #define __1_STRING__
+#define APP_MAX_PARER_STR_LEN 64
 static int32
 _ctc_app_string_atrim(char* output, const char* input)
 {
@@ -231,8 +231,8 @@ _ctc_app_parse_file_fgets(char* s, int n, ctc_app_parse_file_t *p_file)
 static int32
 _ctc_app_do_parse(ctc_app_parse_t* p_app_parse, ctc_app_parse_file_t* p_file)
 {
-    char string[64] = "";
-    char line[64]   = "";
+    char string[APP_MAX_PARER_STR_LEN+1] = "";
+    char line[APP_MAX_PARER_STR_LEN+1]   = "";
 
     int  err_map[CTC_APP_PARSE_RET_MAX] = {CTC_E_NOT_EXIST,
                                            CTC_E_NONE,
@@ -246,8 +246,7 @@ _ctc_app_do_parse(ctc_app_parse_t* p_app_parse, ctc_app_parse_file_t* p_file)
     {
         sal_memset(string, 0, sizeof(string));
         sal_memset(line, 0, sizeof(line));
-        _ctc_app_parse_file_fgets(string, sizeof(string), p_file);
-
+        _ctc_app_parse_file_fgets(string, APP_MAX_PARER_STR_LEN, p_file);
         /*comment line*/
         if ('#' == string[0] && '{' != string[1] && '}' != string[1])
         {
@@ -476,7 +475,7 @@ ctc_app_parse_open_file(const char* file_name, ctc_app_parse_file_t* p_file)
         return CTC_E_NO_MEMORY;
     }
 #elif defined _SAL_LINUX_KM || defined (_SAL_VXWORKS)
-    p_file->mem_addr = sal_malloc(p_file->len);
+    p_file->mem_addr = mem_malloc(MEM_APP_MODULE, p_file->len);
 
     if(!p_file->mem_addr)
     {
@@ -503,7 +502,7 @@ ctc_app_parse_close_file(ctc_app_parse_file_t* p_file)
 #if defined _SAL_LINUX_UM
         munmap(p_file->mem_addr, p_file->len);
 #elif defined _SAL_LINUX_KM || defined (_SAL_VXWORKS)
-        sal_free(p_file->mem_addr);
+        mem_free(p_file->mem_addr);
 #endif
         p_file->mem_addr = NULL;
     }

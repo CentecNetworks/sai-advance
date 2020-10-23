@@ -138,6 +138,7 @@ ctc_sai_stp_get_stp_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 at
         
         break;
     case  SAI_STP_ATTR_BRIDGE_ID:
+        // only support 1q bridge
         p_switch_master = ctc_sai_get_switch_property(ctc_object_id.lchip);
         attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, ctc_object_id.lchip, SAI_BRIDGE_TYPE_1Q, 0, p_switch_master->default_bridge_id);
         break;

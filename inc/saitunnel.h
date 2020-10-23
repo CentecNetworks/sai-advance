@@ -651,6 +651,14 @@ typedef enum _sai_tunnel_attr_t
      * @objects SAI_OBJECT_TYPE_TUNNEL_TERM_TABLE_ENTRY
      */
     SAI_TUNNEL_ATTR_TERM_TABLE_ENTRY_LIST,
+        
+    /**
+     * @brief End of attributes
+     */
+    SAI_TUNNEL_ATTR_END,
+
+    /** Custom range base value */
+    SAI_TUNNEL_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
      * @brief Tunnel associated Nexthop ID for encap.
@@ -659,7 +667,7 @@ typedef enum _sai_tunnel_attr_t
      * @flags READ_ONLY
      * @objects SAI_OBJECT_TYPE_NEXT_HOP or SAI_OBJECT_TYPE_NEXT_HOP_GROUP
      */
-    SAI_TUNNEL_ATTR_ENCAP_NEXTHOP_ID,
+    SAI_TUNNEL_ATTR_ENCAP_NEXTHOP_ID = SAI_TUNNEL_ATTR_CUSTOM_RANGE_START,
 
     /**
      * @brief MPLS VPN Tunnel mode for decap.
@@ -772,12 +780,14 @@ typedef enum _sai_tunnel_attr_t
     SAI_TUNNEL_ATTR_DECAP_ACL_USE_OUTER_HDR_INFO,
 
     /**
-     * @brief End of attributes
+     * @brief MPLS VPN Tunnel Split-Horizon Enable for flooding or multicast.
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default true
+     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
      */
-    SAI_TUNNEL_ATTR_END,
-
-    /** Custom range base value */
-    SAI_TUNNEL_ATTR_CUSTOM_RANGE_START = 0x10000000,
+    SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE,
 
     /** End of custom range base */
     SAI_TUNNEL_ATTR_CUSTOM_RANGE_END

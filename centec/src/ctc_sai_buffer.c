@@ -108,25 +108,25 @@ _ctc_sai_buffer_set_profile_attr(sai_object_key_t *key, const sai_attribute_t* a
             p_buf_prof->dynamic_th = attr->value.s8;
             break;
         case SAI_BUFFER_PROFILE_ATTR_SHARED_STATIC_TH:
-            if (p_buf_prof->static_th == attr->value.u32)
+            if (p_buf_prof->static_th == attr->value.u64)
             {
                 return SAI_STATUS_SUCCESS;
             }
-            p_buf_prof->static_th = attr->value.u32;
+            p_buf_prof->static_th = attr->value.u64;
             break;
         case SAI_BUFFER_PROFILE_ATTR_XOFF_TH:
-            if (p_buf_prof->xoff_th == attr->value.u32)
+            if (p_buf_prof->xoff_th == attr->value.u64)
             {
                 return SAI_STATUS_SUCCESS;
             }
-            p_buf_prof->xoff_th = attr->value.u32;
+            p_buf_prof->xoff_th = attr->value.u64;
             break;
         case SAI_BUFFER_PROFILE_ATTR_XON_TH:
-            if (p_buf_prof->xon_th == attr->value.u32)
+            if (p_buf_prof->xon_th == attr->value.u64)
             {
                 return SAI_STATUS_SUCCESS;
             }
-            p_buf_prof->xon_th = attr->value.u32;
+            p_buf_prof->xon_th = attr->value.u64;
             break;
         default:
             return SAI_STATUS_NOT_IMPLEMENTED;
@@ -227,13 +227,13 @@ _ctc_sai_buffer_get_profile_attr(sai_object_key_t *key, sai_attribute_t* attr, u
             attr->value.s8 = p_buf_prof->dynamic_th;
             break;
         case SAI_BUFFER_PROFILE_ATTR_SHARED_STATIC_TH:
-            attr->value.u32 = p_buf_prof->static_th;
+            attr->value.u64 = p_buf_prof->static_th;
             break;
         case SAI_BUFFER_PROFILE_ATTR_XOFF_TH:
-            attr->value.u32 = p_buf_prof->xoff_th;
+            attr->value.u64 = p_buf_prof->xoff_th;
             break;
         case SAI_BUFFER_PROFILE_ATTR_XON_TH:
-            attr->value.u32 = p_buf_prof->xon_th;
+            attr->value.u64 = p_buf_prof->xon_th;
             break;
         default:
             return SAI_STATUS_NOT_IMPLEMENTED;
@@ -362,13 +362,13 @@ sai_status_t
 ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t* attr)
 {
     uint8 lchip = 0;
-    uint8 queue_idx = 0;
     uint8 update_cnt = 1;
     uint32 gport = 0;
     uint32 old_buf_id = 0;
     ctc_object_id_t ctc_oid;
     ctc_qos_drop_t drop;
     ctc_sai_queue_db_t* p_queue_db = NULL;
+    ctc_sai_switch_master_t* p_switch = NULL;
     ctc_sai_buffer_profile_db_t* p_buf_prof_db = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_BUFFER);
@@ -377,7 +377,6 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_QUEUE, queue_id, &ctc_oid);
     lchip = ctc_oid.lchip;
     gport = ctc_oid.value;
-    queue_idx = (ctc_oid.sub_type == SAI_QUEUE_TYPE_MULTICAST) ? (ctc_oid.value2 + 8) : ctc_oid.value2;
 
     p_queue_db = ctc_sai_db_get_object_property(lchip, queue_id);
     if (NULL == p_queue_db)
@@ -386,18 +385,31 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
         return SAI_STATUS_FAILURE;
     }
 
-    if(ctc_oid.sub_type <= SAI_QUEUE_TYPE_MULTICAST )
+    p_switch = ctc_sai_get_switch_property(lchip);
+    if (NULL == p_switch)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Switch DB not found!\n");
+        return SAI_STATUS_FAILURE;
+    }
+
+    if ((ctc_oid.sub_type <= SAI_QUEUE_TYPE_MULTICAST) && (16 == p_switch->port_queues))
     {
         drop.queue.gport = gport;
-        drop.queue.queue_id = queue_idx;
+        drop.queue.queue_id = ctc_oid.value2 + CTC_QOS_BASIC_Q_NUM;
         drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
     }
-    else if (ctc_oid.sub_type == SAI_QUEUE_TYPE_SERVICE )
+    else if (ctc_oid.sub_type == SAI_QUEUE_TYPE_SERVICE)
     {
         drop.queue.gport = gport;
         drop.queue.queue_id = ctc_oid.value2 & 0x3F;
         drop.queue.service_id = (ctc_oid.value2 >> 6);
         drop.queue.queue_type = CTC_QUEUE_TYPE_SERVICE_INGRESS;
+    }
+    else
+    {
+        drop.queue.gport = gport;
+        drop.queue.queue_id = ctc_oid.value2;
+        drop.queue.queue_type = CTC_QUEUE_TYPE_NETWORK_EGRESS;
     }
 
     if (SAI_NULL_OBJECT_ID != attr->value.oid)
@@ -424,12 +436,13 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
         }
         //config wtd, color red/yellow/green
         drop.drop.mode = CTC_QUEUE_DROP_WTD;
-        drop.drop.is_coexist = 1;                
 
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &drop));
-        
+
+        drop.drop.is_coexist = 1;
         if (p_buf_prof_db->mode == SAI_BUFFER_PROFILE_THRESHOLD_MODE_STATIC)
         {
+            drop.drop.is_dynamic = 0;
             drop.drop.max_th[0] = p_buf_prof_db->static_th / CTC_SAI_QOS_BYTES_PER_CELL;//red
             drop.drop.max_th[1] = p_buf_prof_db->static_th / CTC_SAI_QOS_BYTES_PER_CELL;//yellow
             drop.drop.max_th[2] = p_buf_prof_db->static_th / CTC_SAI_QOS_BYTES_PER_CELL;//green
@@ -443,7 +456,7 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
             drop.drop.drop_factor[2] = drop.drop.drop_factor[0];
             drop.drop.drop_factor[3] = drop.drop.drop_factor[0];
         }
-        
+
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &drop));
         if (update_cnt)
         {
@@ -458,7 +471,7 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
                 CTC_SAI_LOG_ERROR(SAI_API_BUFFER, "Old Buffer profile DB get failed!\n");
                 return SAI_STATUS_ITEM_NOT_FOUND;
             }
-            if(p_buf_prof_db->ref_cnt)
+            if (p_buf_prof_db->ref_cnt)
             {
                 p_buf_prof_db->ref_cnt--;
             }
@@ -478,12 +491,12 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
         }
         drop.drop.mode = CTC_QUEUE_DROP_WTD;
         drop.drop.is_coexist = 1;
-        
+
         drop.drop.is_dynamic = 1;
-        drop.drop.drop_factor[0] = 0;
-        drop.drop.drop_factor[1] = 0;
-        drop.drop.drop_factor[2] = 0;
-        drop.drop.drop_factor[3] = 0;
+        drop.drop.drop_factor[0] = CTC_SAI_QOS_DROP_FACTOR_SHIFT;
+        drop.drop.drop_factor[1] = CTC_SAI_QOS_DROP_FACTOR_SHIFT;
+        drop.drop.drop_factor[2] = CTC_SAI_QOS_DROP_FACTOR_SHIFT;
+        drop.drop.drop_factor[3] = CTC_SAI_QOS_DROP_FACTOR_SHIFT;
 
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &drop));
         if(p_buf_prof_db->ref_cnt)
@@ -492,9 +505,9 @@ ctc_sai_buffer_queue_set_profile(sai_object_id_t queue_id, const sai_attribute_t
         }
         p_queue_db->buf_id = 0;
     }
+
     return SAI_STATUS_SUCCESS;
 }
-
 
 sai_status_t
 ctc_sai_buffer_ingress_pg_set_profile(sai_object_id_t ingress_pg_id, const sai_attribute_t* attr)
@@ -595,9 +608,12 @@ ctc_sai_buffer_ingress_pg_set_profile(sai_object_id_t ingress_pg_id, const sai_a
             CTC_SAI_LOG_ERROR(SAI_API_BUFFER, "Buffer profile DB get failed!\n");
             return SAI_STATUS_ITEM_NOT_FOUND;
         }
+
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_resrc(lchip, &resrc));
-        resrc.u.flow_ctl.xon_thrd = 256;
-        resrc.u.flow_ctl.xoff_thrd = 224;
+        resrc.u.flow_ctl.xon_thrd = 224;
+        resrc.u.flow_ctl.xoff_thrd = 256;
+        resrc.u.flow_ctl.drop_thrd = 32767;
+        resrc.u.flow_ctl.is_pfc = 1;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_resrc(lchip, &resrc));
         p_buf_prof_db->ref_cnt--;
         p_pg_db->buf_prof_id = SAI_NULL_OBJECT_ID;
@@ -820,12 +836,12 @@ ctc_sai_buffer_create_profile_id(
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BUFFER_PROFILE_ATTR_XOFF_TH, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        buf_prof.xoff_th= attr_value->u32;
+        buf_prof.xoff_th = attr_value->u64;
     }
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BUFFER_PROFILE_ATTR_XON_TH, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        buf_prof.xon_th= attr_value->u32;
+        buf_prof.xon_th = attr_value->u64;
     }
     p_prof_db = mem_malloc(MEM_QUEUE_MODULE, sizeof(ctc_sai_buffer_profile_db_t));
     if (p_prof_db == NULL)
@@ -1073,17 +1089,27 @@ ctc_sai_ingress_pg_remove_group_id(
     p_pg_db = ctc_sai_db_get_object_property(lchip, ingress_priority_group_id);
     if (NULL == p_pg_db)
     {
-        status = SAI_STATUS_SUCCESS;
-        goto error_return;
+        CTC_SAI_LOG_ERROR(SAI_API_BUFFER, "Remove Ingress PG Error! ingress_pg_oid:0x%"PRIx64" status=%d", ingress_priority_group_id, status);
+        goto error0;
     }
+
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        sai_attribute_t attr_temp;
+        attr_temp.id = SAI_INGRESS_PRIORITY_GROUP_ATTR_BUFFER_PROFILE;
+        attr_temp.value.oid = SAI_NULL_OBJECT_ID;
+        CTC_SAI_ERROR_GOTO(ctc_sai_buffer_ingress_pg_set_profile(ingress_priority_group_id, &attr_temp), status, error0);
+    }
+
     mem_free(p_pg_db);
     ctc_sai_db_remove_object_property(lchip, ingress_priority_group_id);
 
-error_return:
+error0:
     if (status != SAI_STATUS_SUCCESS)
     {
         CTC_SAI_LOG_ERROR(SAI_API_BUFFER, "Remove Ingress PG Error! ingress_pg_oid:0x%"PRIx64" status=%d", ingress_priority_group_id, status);
     }
+
     CTC_SAI_DB_UNLOCK(lchip);
     return status;
 }

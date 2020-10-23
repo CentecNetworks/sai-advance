@@ -12,6 +12,10 @@ typedef struct  ctc_sai_wb_traverse_param_s
 
 uint8 g_wb_status[CTC_SAI_MAX_CHIP_NUM] = {CTC_WB_STATUS_DONE};
 extern ctc_sai_db_t* g_sai_db[CTC_SAI_MAX_CHIP_NUM];
+/*SYSTEM MODIFIED by yoush for warm-reboot in 2020-08-12*/ /* SAI merge 20200824 */
+extern sai_status_t ctc_sai_platform_db_run(uint8 lchip);
+extern sai_status_t ctc_sai_port_db_run(uint8 lchip);
+extern sai_status_t ctc_sai_hostif_db_run(uint8 lchip);
 
 sai_status_t
 ctc_sai_warmboot_sync_version(uint8 lchip, uint8 wb_type, uint8 wb_sub_type)
@@ -129,6 +133,7 @@ ctc_sai_warmboot_sync(uint8 lchip)
         return SAI_STATUS_UNINITIALIZED;
     }
 
+    sal_memset(&wb_data, 0, sizeof(wb_data));
     sal_memset(&wb_param, 0, sizeof(wb_param));
 
     p_switch_master = ctc_sai_get_switch_property(lchip);
@@ -152,6 +157,7 @@ ctc_sai_warmboot_sync(uint8 lchip)
     }
     ctc_wb_sync(lchip);
 
+    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Sync Data to RedisDB start\n");
     for (wb_type = CTC_SAI_WB_TYPE_OID; wb_type <= CTC_SAI_WB_TYPE_VECTOR; wb_type++)
     {
         type_index = wb_type - CTC_SAI_WB_TYPE_OID;
@@ -165,24 +171,27 @@ ctc_sai_warmboot_sync(uint8 lchip)
             wb_param.wb_type = wb_type;
             wb_param.wb_sub_type = wb_sub_type;
             wb_param.data = &wb_data;
-            CTC_SAI_LOG_INFO(SAI_API_SWITCH, "WarmBoot Sync wb_type = %d, wb_sub_type = %d, key_len = %d, data_len = %d\n", wb_type, wb_sub_type, wb_data.key_len, wb_data.data_len);
+            CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Sync: wb_type = %d, wb_sub_type = %d, key_len = %d, data_len = %d\n", wb_type, wb_sub_type, wb_data.key_len, wb_data.data_len);
             if ((CTC_SAI_WB_TYPE_OID == wb_type)&&g_sai_db[lchip]->oid_hash[wb_sub_type])
             {
                 CTC_SAI_CTC_ERROR_GOTO(ctc_hash_traverse_through(g_sai_db[lchip]->oid_hash[wb_sub_type], (hash_traversal_fn)ctc_sai_warmboot_sync_cb, (void *)&wb_param), status, done);
-                ctc_hash_free(g_sai_db[lchip]->oid_hash[wb_sub_type]);
-                g_sai_db[lchip]->oid_hash[wb_sub_type] = NULL;
+                /* SAI merge 20200824 */
+                //ctc_hash_free(g_sai_db[lchip]->oid_hash[wb_sub_type]);
+                //g_sai_db[lchip]->oid_hash[wb_sub_type] = NULL;
             }
             else if ((CTC_SAI_WB_TYPE_ENTRY == wb_type)&&g_sai_db[lchip]->entry_hash[wb_sub_type])
             {
                 CTC_SAI_CTC_ERROR_GOTO(ctc_hash_traverse_through(g_sai_db[lchip]->entry_hash[wb_sub_type], (hash_traversal_fn)ctc_sai_warmboot_sync_cb, (void *)&wb_param), status, done);
-                ctc_hash_free(g_sai_db[lchip]->entry_hash[wb_sub_type]);
-                g_sai_db[lchip]->entry_hash[wb_sub_type] = NULL;
+                /* SAI merge 20200824 */
+                //ctc_hash_free(g_sai_db[lchip]->entry_hash[wb_sub_type]);
+                //g_sai_db[lchip]->entry_hash[wb_sub_type] = NULL;
             }
             else if ((CTC_SAI_WB_TYPE_VECTOR == wb_type)&&g_sai_db[lchip]->vector[wb_sub_type])
             {
                 CTC_SAI_CTC_ERROR_GOTO(ctc_vector_traverse(g_sai_db[lchip]->vector[wb_sub_type], (hash_traversal_fn)ctc_sai_warmboot_sync_cb, (void *)&wb_param), status, done);
-                ctc_vector_release(g_sai_db[lchip]->vector[wb_sub_type]);
-                g_sai_db[lchip]->vector[wb_sub_type] = NULL;
+                /* SAI merge 20200824 */
+                //ctc_vector_release(g_sai_db[lchip]->vector[wb_sub_type]);
+                //g_sai_db[lchip]->vector[wb_sub_type] = NULL;
             }
             if (wb_data.valid_cnt > 0)
             {
@@ -199,6 +208,7 @@ ctc_sai_warmboot_sync(uint8 lchip)
 
     ctc_wb_sync_done(lchip, 0);
     ctc_wb_set_cpu_rx_en(lchip, 1);
+    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Sync Data to RedisDB end\n");
 
 done:
     if (wb_data.buffer)
@@ -246,11 +256,86 @@ ctc_sai_warmboot_reload(uint8 lchip)
     sal_memset(wb_query.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
     g_wb_status[lchip] = CTC_WB_STATUS_RELOADING;
 
+    /*SYSTEM MODIFIED by yoush for warm reboot in 2020-08-14*/ /* SAI merge 20200824 */
+    /*
+    It must reload object SAI_OBJECT_TYPE_SWITCH firstly,
+    because other object would use p_switch_master when reloading data with wb_reload_cb or wb_reload_cb1
+    */
+    wb_type = CTC_SAI_WB_TYPE_OID;
+    wb_sub_type = SAI_OBJECT_TYPE_SWITCH;
+    type_index = wb_type - CTC_SAI_WB_TYPE_OID;
+    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Reload Switch Master Data from RedisDB start\n");
+    if (SAI_STATUS_SUCCESS == ctc_sai_warmboot_reload_version_check(lchip, wb_type, wb_sub_type) && wb_sub_type < sub_type_max[type_index])
+    {
+        CTC_WB_INIT_QUERY_T((&wb_query), ctc_sai_oid_property_t, wb_type, wb_sub_type);
+        wb_query.key_len = key_len[type_index];
+        wb_query.data_len = g_sai_db[lchip]->wb_info[type_index][wb_sub_type].data_len;
+        CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Reload: wb_type = %d, wb_sub_type = %d, key_len = %d, data_len = %d\n", wb_type, wb_sub_type, wb_query.key_len, wb_query.data_len);
+        CTC_WB_QUERY_ENTRY_BEGIN((&wb_query));
+        offset = entry_cnt * (wb_query.key_len + wb_query.data_len);
+        if (wb_query.data_len)
+        {
+            data = mem_malloc(MEM_SYSTEM_MODULE,  wb_query.data_len);
+            if (NULL == data)
+            {
+                ret = CTC_E_NO_MEMORY;
+                goto done;
+            }
+            sal_memcpy((uint8*)data, (uint8*)(wb_query.buffer) + offset + wb_query.key_len, wb_query.data_len);
+        }
+        db = mem_malloc(MEM_SYSTEM_MODULE,  db_len[type_index]);
+        if (NULL == db)
+        {
+            ret = CTC_E_NO_MEMORY;
+            goto done;
+        }
+        sal_memcpy((uint8*)db, (uint8*)(wb_query.buffer) + offset, wb_query.key_len);
+
+        if (CTC_SAI_WB_TYPE_OID == wb_type)
+        {
+            ((ctc_sai_oid_property_t*)db)->data = data;
+            ctc_hash_insert(g_sai_db[lchip]->oid_hash[wb_sub_type], db);
+        }
+        else if (CTC_SAI_WB_TYPE_ENTRY == wb_type)
+        {
+            ((ctc_sai_entry_property_t*)db)->data = data;
+            ctc_hash_insert(g_sai_db[lchip]->entry_hash[wb_sub_type], db);
+        }
+        else if (CTC_SAI_WB_TYPE_VECTOR == wb_type)
+        {
+            ((ctc_sai_vector_property_t*)db)->data = data;
+            ctc_vector_add(g_sai_db[lchip]->vector[wb_sub_type], ((ctc_sai_vector_property_t*)db)->index, db);
+        }
+
+        if (g_sai_db[lchip]->wb_info[type_index][wb_sub_type].wb_reload_cb)
+        {
+            g_sai_db[lchip]->wb_info[type_index][wb_sub_type].wb_reload_cb(lchip, db, data);
+        }
+        entry_cnt++;
+        CTC_WB_QUERY_ENTRY_END((&wb_query));
+        if (g_sai_db[lchip]->wb_info[type_index][wb_sub_type].wb_reload_cb1)
+        {
+            g_sai_db[lchip]->wb_info[type_index][wb_sub_type].wb_reload_cb1(lchip);
+        }
+
+        data = NULL;
+    }
+    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Reload Switch Master Data from RedisDB end\n");
+    /*end*/
+
+    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Reload Data from RedisDB start\n");
     for (wb_type = CTC_SAI_WB_TYPE_OID; wb_type <= CTC_SAI_WB_TYPE_VECTOR; wb_type++)
     {
         type_index = wb_type - CTC_SAI_WB_TYPE_OID;
         for (wb_sub_type = 0; wb_sub_type < sub_type_max[type_index]; wb_sub_type++)
         {
+            /*SYSTEM MODIFIED by yoush for warm reboot in 2020-08-14*/ /* SAI merge 20200824 */
+            /*Object SAI_OBJECT_TYPE_SWITCH is reloaded firstly, it should skip reloading SAI_OBJECT_TYPE_SWITCH*/
+            if (CTC_SAI_WB_TYPE_OID == wb_type && SAI_OBJECT_TYPE_SWITCH == wb_sub_type)
+            {
+                continue;
+            }
+            /*end*/
             if (SAI_STATUS_SUCCESS != ctc_sai_warmboot_reload_version_check(lchip, wb_type, wb_sub_type))
             {
                 continue;
@@ -258,6 +343,7 @@ ctc_sai_warmboot_reload(uint8 lchip)
             CTC_WB_INIT_QUERY_T((&wb_query), ctc_sai_oid_property_t, wb_type, wb_sub_type);
             wb_query.key_len = key_len[type_index];
             wb_query.data_len = g_sai_db[lchip]->wb_info[type_index][wb_sub_type].data_len;
+            CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Reload: wb_type = %d, wb_sub_type = %d, key_len = %d, data_len = %d\n", wb_type, wb_sub_type, wb_query.key_len, wb_query.data_len);
             CTC_WB_QUERY_ENTRY_BEGIN((&wb_query));
             CTC_SAI_LOG_INFO(SAI_API_SWITCH, "WarmBoot Reload wb_type = %d, wb_sub_type = %d, key_len = %d, data_len = %d\n", wb_type, wb_sub_type, wb_query.key_len, wb_query.data_len);
             offset = entry_cnt * (wb_query.key_len + wb_query.data_len);
@@ -305,10 +391,13 @@ ctc_sai_warmboot_reload(uint8 lchip)
             {
                 g_sai_db[lchip]->wb_info[type_index][wb_sub_type].wb_reload_cb1(lchip);
             }
+
+            data = NULL;
         }
     }
 
     g_wb_status[lchip] = CTC_WB_STATUS_DONE;
+    CTC_SAI_LOG_CRITICAL(SAI_API_SWITCH, "WarmBoot Reload Data from RedisDB end\n");
 
 done:
     if (wb_query.buffer)
@@ -317,6 +406,23 @@ done:
     }
     return ret;
 }
+
+/*SYSTEM MODIFIED by yoush for warm-reboot in 2020-08-12*/ /* SAI merge 20200824 */
+sai_status_t 
+ctc_sai_switch_run_thread(uint8 lchip)
+{
+#ifdef CTC_PLATFORM
+    if (0 == SDK_WORK_PLATFORM)
+    {
+        CTC_SAI_ERROR_RETURN(ctc_sai_platform_db_run(lchip));
+    }
+#endif
+    CTC_SAI_ERROR_RETURN(ctc_sai_port_db_run(lchip));
+    CTC_SAI_ERROR_RETURN(ctc_sai_hostif_db_run(lchip));
+    
+    return SAI_STATUS_SUCCESS;
+}
+/*end*/
 
 uint8
 ctc_sai_warmboot_get_status(uint8 lchip)
@@ -356,6 +462,7 @@ ctc_sai_warmboot_init_done(uint8 lchip, uint8 reloading)
     if (reloading)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_warmboot_reload(lchip));
+        CTC_SAI_ERROR_RETURN(ctc_sai_switch_run_thread(lchip));
         CTC_SAI_CTC_ERROR_RETURN(ctc_wb_init_done(lchip));
     }
     return SAI_STATUS_SUCCESS;

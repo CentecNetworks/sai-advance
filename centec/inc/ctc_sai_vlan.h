@@ -56,10 +56,11 @@ This module defines SAI VLAN.
 \t  |  SAI_VLAN_ATTR_UNKNOWN_MULTICAST_FLOOD_GROUP          |              -                 |
 \t  |  SAI_VLAN_ATTR_BROADCAST_FLOOD_CONTROL_TYPE           |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_VLAN_ATTR_BROADCAST_FLOOD_GROUP                  |              -                 |
-\t  |  SAI_VLAN_ATTR_PTP_DOMAIN_ID                          |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_VLAN_ATTR_CUSTOM_IGMP_SNOOPING_ENABLE            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE                    |    CTC7148,CTC7132             |
 \t  |  SAI_VLAN_ATTR_TAM_OBJECT                             |              -                 |
+\e  |  SAI_VLAN_ATTR_PTP_DOMAIN_ID                          |            CTC7132             |
+\e  |  SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE                    |            CTC7132             |
+\e  |  SAI_VLAN_ATTR_POLICER_ID                             |            CTC7132             |
 \b
 
 \p
@@ -98,12 +99,12 @@ typedef struct ctc_sai_vlan_user_s
     uint64 egs_packet_count;
     uint64 egs_byte_count;
     uint32 ptp_domain_id;
-    
-    uint32 vlan_member_port_bind_bits[8]; 
-    uint32 vlan_member_lag_bind_bits[8];  
+    uint32 policer_id;
+
+    uint32 vlan_member_port_bind_bits[8];
+    uint32 vlan_member_lag_bind_bits[8];
     uint32 vlan_member_port_bind_count;
     uint32 vlan_member_lag_bind_count;
-    
 }ctc_sai_vlan_user_t;
 
 enum ctc_sai_vlan_pkt_type_e

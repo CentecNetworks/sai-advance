@@ -108,9 +108,9 @@ class QueueSetQueueAttributeWithWredIdTest(sai_base_test.ThriftInterfaceDataPlan
         queue_index = 1
 
         #create Wred Id
-        color_en = [0,0,1]
+        color_en = [1,1,1]
         min_thrd = [1000,1000,100]
-        max_thrd = [2000,1500,200]
+        max_thrd = [2000,2000,2000]
         drop_prob = [100, 50, 10]
         wred_id = sai_thrift_qos_create_wred(self.client, color_en, min_thrd, max_thrd, drop_prob)
         sys_logging("wred_id:",wred_id)
@@ -122,6 +122,7 @@ class QueueSetQueueAttributeWithWredIdTest(sai_base_test.ThriftInterfaceDataPlan
         attr_value = sai_thrift_attribute_value_t(oid=wred_id)
         attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_WRED_PROFILE_ID, value=attr_value)
         self.client.sai_thrift_set_queue_attribute(queueId, attr)
+        #pdb.set_trace()
         warmboot(self.client)
         try:
             attrs = self.client.sai_thrift_get_queue_attribute(queueId)
@@ -185,5 +186,1878 @@ class GetQueueListFromPortTest(sai_base_test.ThriftInterfaceDataPlane):
         finally:
             self.client.sai_thrift_remove_queue(queueId)
             self.client.sai_thrift_remove_wred_profile(wred_id)
+
+class fun_01_create_normal_type_queue_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Create QueueId
+        step1:create 3 type queues 
+        step2:verify queues attr
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[1]
+        queue_index1 = 1
+        queue_index2 = 2
+        queue_index3 = 3
+        queue_type1 = SAI_QUEUE_TYPE_ALL
+        queue_type2 = SAI_QUEUE_TYPE_UNICAST
+        queue_type3 = SAI_QUEUE_TYPE_MULTICAST
+
+        queueId1 = sai_thrift_create_queue_id(self.client, queue_type1, port, queue_index1) 
+        sys_logging("queue_id:0x%x" %queueId1)
+
+        queueId2 = sai_thrift_create_queue_id(self.client, queue_type2, port, queue_index2) 
+        sys_logging("queue_id:0x%x" %queueId2)
+
+        queueId3 = sai_thrift_create_queue_id(self.client, queue_type3, port, queue_index3) 
+        sys_logging("queue_id:0x%x" %queueId3)
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId1)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_TYPE:
+                    sys_logging("get queue type:%d"%a.value.u32)
+                    if a.value.u32 != queue_type1:
+                        raise NotImplementedError() 
+                if a.id == SAI_QUEUE_ATTR_PORT:
+                    sys_logging("get port:0x%x" %a.value.oid)
+                    if a.value.oid != port:
+                        raise NotImplementedError()    
+                if a.id == SAI_QUEUE_ATTR_INDEX:
+                    sys_logging("get index:%d"%a.value.u8)
+                    if a.value.u8 != queue_index1:
+                        raise NotImplementedError()   
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("Get queue Buffer Profile oid: 0x%x"% a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("Get queue scheduler Profile oid: 0x%x"% a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != False:
+                        raise NotImplementedError()
+
+
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId2)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_TYPE:
+                    sys_logging("get queue type:%d"%a.value.u32)
+                    if a.value.u32 != queue_type2:
+                        raise NotImplementedError() 
+                if a.id == SAI_QUEUE_ATTR_PORT:
+                    sys_logging("get port:0x%x" %a.value.oid)
+                    if a.value.oid != port:
+                        raise NotImplementedError()    
+                if a.id == SAI_QUEUE_ATTR_INDEX:
+                    sys_logging("get index:%d"%a.value.u8)
+                    if a.value.u8 != queue_index2:
+                        raise NotImplementedError() 
+                        
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId3)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_TYPE:
+                    sys_logging("get queue type:%d"%a.value.u32)
+                    if a.value.u32 != queue_type3:
+                        raise NotImplementedError() 
+                if a.id == SAI_QUEUE_ATTR_PORT:
+                    sys_logging("get port:0x%x" %a.value.oid)
+                    if a.value.oid != port:
+                        raise NotImplementedError()    
+                if a.id == SAI_QUEUE_ATTR_INDEX:
+                    sys_logging("get index:%d"%a.value.u8)
+                    if a.value.u8 != queue_index3:
+                        raise NotImplementedError() 
+                        
+        finally:
+            self.client.sai_thrift_remove_queue(queueId1)
+            self.client.sai_thrift_remove_queue(queueId2)
+            self.client.sai_thrift_remove_queue(queueId3)
+
+
+class fun_02_get_port_default_queue_list_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Create QueueId
+        step1:get port attribute queue list 
+        step2:verify queues attr
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[1]
+        queueId_list = []
+        queue_type1 = SAI_QUEUE_TYPE_ALL
+
+        attrs = self.client.sai_thrift_get_port_attribute(port)
+        for a in attrs.attr_list:  
+            if a.id == SAI_PORT_ATTR_QOS_NUMBER_OF_QUEUES:
+                sys_logging("queue number:%d"%a.value.u32)
+                queue_num = a.value.u32
+            if a.id == SAI_PORT_ATTR_QOS_QUEUE_LIST:
+                for i in range(a.value.objlist.count):
+                    queueId_list.append(a.value.objlist.object_id_list[i])
+
+        warmboot(self.client)
+        try:
+            for i in range(8):
+                attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[i])
+                for a in attrs.attr_list:
+                    if a.id == SAI_QUEUE_ATTR_TYPE:
+                        sys_logging("get queue type:%d"%a.value.u32)
+                        if a.value.u32 != queue_type1:
+                            raise NotImplementedError() 
+                    if a.id == SAI_QUEUE_ATTR_PORT:
+                        sys_logging("get port:0x%x" %a.value.oid)
+                        if a.value.oid != port:
+                            raise NotImplementedError()    
+                    if a.id == SAI_QUEUE_ATTR_INDEX:
+                        sys_logging("get index:%d"%a.value.u8)
+                        if a.value.u8 != i:
+                            raise NotImplementedError() 
+        finally:
+            for ii in queueId_list:
+                self.client.sai_thrift_remove_queue(ii)
+
+
+class fun_03_create_service_type_queue_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Create QueueId
+        step1:create service type queues 
+        step2:verify queues attr
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[1]
+        port2 = port_list[2]
+        queue_index_list = [0,1,2,3,4,5,6,7]
+        queue_type1 = SAI_QUEUE_TYPE_SERVICE
+        sched_group_service_id = 1
+        sched_group_service_id2 = 10
+        
+
+
+        queueId1 = sai_thrift_create_queue_id(self.client, queue_type1, port, queue_index_list[0], service_id=sched_group_service_id) 
+        sys_logging("queue_id:0x%x" %queueId1)
+
+        queueId2 = sai_thrift_create_queue_id(self.client, queue_type1, port2, queue_index_list[1], service_id=sched_group_service_id2) 
+        sys_logging("queue_id:0x%x" %queueId2)
+
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId1)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_TYPE:
+                    sys_logging("get queue type:%d"%a.value.u32)
+                    if a.value.u32 != queue_type1:
+                        raise NotImplementedError() 
+                if a.id == SAI_QUEUE_ATTR_PORT:
+                    sys_logging("get port:0x%x" %a.value.oid)
+                    if a.value.oid != port:
+                        raise NotImplementedError()    
+                if a.id == SAI_QUEUE_ATTR_INDEX:
+                    sys_logging("get index:%d"%a.value.u8)
+                    if a.value.u8 != queue_index_list[0]:
+                        raise NotImplementedError()    
+                if a.id == SAI_QUEUE_ATTR_SERVICE_ID:
+                    sys_logging("get service id:%d"%a.value.u16)
+                    if a.value.u16 != sched_group_service_id:
+                        raise NotImplementedError()  
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId2)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_TYPE:
+                    sys_logging("get queue type:%d"%a.value.u32)
+                    if a.value.u32 != queue_type1:
+                        raise NotImplementedError() 
+                if a.id == SAI_QUEUE_ATTR_PORT:
+                    sys_logging("get port:0x%x" %a.value.oid)
+                    if a.value.oid != port2:
+                        raise NotImplementedError()    
+                if a.id == SAI_QUEUE_ATTR_INDEX:
+                    sys_logging("get index:%d"%a.value.u8)
+                    if a.value.u8 != queue_index_list[1]:
+                        raise NotImplementedError()    
+                if a.id == SAI_QUEUE_ATTR_SERVICE_ID:
+                    sys_logging("get service id:%d"%a.value.u16)
+                    if a.value.u16 != sched_group_service_id2:
+                        raise NotImplementedError()
+            
+                        
+        finally:
+            self.client.sai_thrift_remove_queue(queueId1)
+            self.client.sai_thrift_remove_queue(queueId2)
+
+class fun_04_create_invalid_index_service_type_queue_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Create QueueId
+        step1:create service type queue with invalid index 
+        step2:verify queue oid
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[1]
+        port2 = port_list[2]
+        queue_index = 8
+        queue_type1 = SAI_QUEUE_TYPE_SERVICE
+        sched_group_service_id = 1
+
+        warmboot(self.client)
+        try:
+            queueId1 = sai_thrift_create_queue_id(self.client, queue_type1, port, queue_index, service_id=sched_group_service_id) 
+            sys_logging("queue_id:0x%x" %queueId1)
+            assert(queueId1 == SAI_NULL_OBJECT_ID)
+        finally:
+            pass
+
+
+class fun_05_remove_normal_types_queue_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Create QueueId
+        step1:create wred
+        step2:create 3 type queues
+        step3:wred bind queue
+        step4:verify queues attr
+        step5:remove all queue
+        step6:verify queues attr again
+        step7:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[1]
+        queue_index1 = 1
+        queue_index2 = 2
+        queue_index3 = 3
+        queue_index4 = 4
+        queue_type1 = SAI_QUEUE_TYPE_ALL
+        queue_type2 = SAI_QUEUE_TYPE_UNICAST
+        queue_type3 = SAI_QUEUE_TYPE_MULTICAST
+        queue_type4 = SAI_QUEUE_TYPE_SERVICE
+        sched_group_service_id = 20
+
+        color_en = [0,1,1]
+        min_thrd = [1000,1000,100]
+        max_thrd = [2000,1500,200]
+        drop_prob = [100, 50, 10]
+        ecn_thrd = [1500,1300,150]
+        wred_id = sai_thrift_qos_create_wred(self.client, color_en, min_thrd, max_thrd, drop_prob, ecn_thrd)
+
+        queueId1 = sai_thrift_create_queue_id(self.client, queue_type1, port, queue_index1, wred_id=wred_id) 
+
+        queueId2 = sai_thrift_create_queue_id(self.client, queue_type2, port, queue_index2, wred_id=wred_id) 
+
+        queueId3 = sai_thrift_create_queue_id(self.client, queue_type3, port, queue_index3, wred_id=wred_id) 
+
+        
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId1)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != wred_id:
+                        raise NotImplementedError() 
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId2)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != wred_id:
+                        raise NotImplementedError() 
+                        
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId3)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != wred_id:
+                        raise NotImplementedError()
+
+            status = self.client.sai_thrift_remove_queue(queueId1)
+            sys_logging("remove queue status:%d"%status)
+            status = self.client.sai_thrift_remove_queue(queueId2)
+            sys_logging("remove queue status:%d"%status)
+            status = self.client.sai_thrift_remove_queue(queueId3)
+            sys_logging("remove queue status:%d"%status)
+
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId1)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError() 
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId2)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError() 
+                        
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId3)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+
+                        
+        finally:
+            self.client.sai_thrift_remove_wred_profile(wred_id)
+
+
+
+class fun_06_set_normal_queue_attr_wred_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Create QueueId
+        step1:create wred
+        step2:create all type queue
+        step3:wred bind queue
+        step4:verify queues attr
+        step5:remove all type queue
+        step7:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[1]
+        queue_index1 = 1
+        queue_type1 = SAI_QUEUE_TYPE_ALL
+
+        color_en = [1,1,1]
+        min_thrd = [1000,1000,100]
+        max_thrd = [2000,1500,200]
+        drop_prob = [100, 50, 10]
+        ecn_thrd = [1500,1300,150]
+        wred_id = sai_thrift_qos_create_wred(self.client, color_en, min_thrd, max_thrd, drop_prob, ecn_thrd)
+        #pdb.set_trace()
+        queueId1 = sai_thrift_create_queue_id(self.client, queue_type1, port, queue_index1, wred_id=wred_id) 
+
+        
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId1)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != wred_id:
+                        raise NotImplementedError()
+
+                        
+        finally:
+            self.client.sai_thrift_remove_queue(queueId1)
+            self.client.sai_thrift_remove_wred_profile(wred_id)
+
+
+
+class fun_07_set_service_type_queue_attr_wred_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Scheduler Group Bind Queue Test
+        step1:Create Scheduler Group Id
+        step2:verify 
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        sched_type = SAI_SCHEDULING_TYPE_DWRR
+        sched_weight = 10
+        cir = 4000000
+        cbs = 256000
+        pir = 1000000
+        pbs = 64000
+        port = port_list[1]
+        level = [0,1,2]
+        max_childs = [4, 64, 8]
+        parent_id = [port, None, None, None]
+        sched_group_id_root = [None]*1
+        sched_group_id_chan_node = [None]*2
+        sched_group_id_group_node = [None]*3
+        sched_group_service_id = 1
+        service_queueId = [None]*3
+
+
+        color_en = [1,1,1]
+        min_thrd = [1000,1000,100]
+        max_thrd = [2000,1500,200]
+        drop_prob = [100, 50, 10]
+        ecn_thrd = [1500,1300,150]
+        wred_id1= sai_thrift_qos_create_wred(self.client, color_en, min_thrd, max_thrd, drop_prob, ecn_thrd)
+
+        
+        #port level
+        sched_group_id_root[0] = sai_thrift_qos_create_scheduler_group(self.client, port, level[0], max_childs[0], parent_id[0], 0)
+        
+        parent_id[1] = sched_group_id_root[0]
+        sched_group_id_chan_node[0] = sai_thrift_qos_create_scheduler_group(self.client, port, level[1], max_childs[1], parent_id[1], 0)
+        sched_group_id_chan_node[1] = sai_thrift_qos_create_scheduler_group(self.client, port, level[1], max_childs[1], parent_id[1], 0)
+        
+
+        sched_group_id_group_node[0] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node[1], 0, service_id=sched_group_service_id)      
+        sched_group_id_group_node[1] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node[1], 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[2] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node[1], 0, service_id=sched_group_service_id)
+
+        
+        queue_type = SAI_QUEUE_TYPE_SERVICE
+        queue_index = 0
+        service_queueId[0] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index, wred_id=wred_id1, parent_id=sched_group_id_group_node[0], service_id=sched_group_service_id)
+        
+        queue_index = 1
+        service_queueId[1] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index, 0, parent_id=sched_group_id_group_node[1], service_id=sched_group_service_id)
+        
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != wred_id1:
+                        raise NotImplementedError()
+
+                        
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+
+
+            attr_value = sai_thrift_attribute_value_t(oid=wred_id1)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_WRED_PROFILE_ID, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[1], attr)
+
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != wred_id1:
+                        raise NotImplementedError()
+            
+                        
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_WRED_PROFILE_ID:
+                    sys_logging("get queue wred profile:0x%x"%a.value.oid)
+                    if a.value.oid != wred_id1:
+                        raise NotImplementedError()
+                
+
+        finally:
+            self.client.sai_thrift_remove_queue(service_queueId[0])
+            self.client.sai_thrift_remove_queue(service_queueId[1])
+            
+            for ii in range(3):
+                self.client.sai_thrift_remove_scheduler_group(sched_group_id_group_node[ii])
+            for ii in range(2):
+                self.client.sai_thrift_remove_scheduler_group(sched_group_id_chan_node[ii])
+            for ii in range(1):
+                self.client.sai_thrift_remove_scheduler_group(sched_group_id_root[ii])
+            self.client.sai_thrift_remove_wred_profile(wred_id1)
+
+
+
+class fun_08_set_normal_queue_attr_buffer_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Get Port Ingress Priority Group List Test
+        step1:Get Port Attrs
+        step2:verify 
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[1]
+        th_mode = SAI_BUFFER_PROFILE_THRESHOLD_MODE_STATIC
+        static_th = 2000000
+        dynamic_th = 0
+        xon_th = 1000000
+        xoff_th = 1200000
+        queueId_list = []
+
+        buf_prof_id = sai_thrift_qos_create_buffer_profile(self.client, th_mode, static_th, dynamic_th, xon_th, xoff_th)
+        assert(0 != buf_prof_id)
+        sys_logging("Create Buffer Profile id:0x%X"%buf_prof_id)
+
+        attrs = self.client.sai_thrift_get_port_attribute(port)
+        for a in attrs.attr_list:  
+            if a.id == SAI_PORT_ATTR_QOS_NUMBER_OF_QUEUES:
+                sys_logging("queue number:%d"%a.value.u32)
+                queue_num = a.value.u32
+            if a.id == SAI_PORT_ATTR_QOS_QUEUE_LIST:
+                for i in range(a.value.objlist.count):
+                    queueId_list.append(a.value.objlist.object_id_list[i])
+                    sys_logging("queue_oid[%d]:0x%X"%(i, a.value.objlist.object_id_list[i]))
+                    attr_value = sai_thrift_attribute_value_t(oid=buf_prof_id)
+                    attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_BUFFER_PROFILE_ID, value=attr_value)
+                    self.client.sai_thrift_set_queue_attribute(queueId_list[i], attr)
+        #pdb.set_trace()
+        warmboot(self.client)
+        try:
+            for ii in range(queue_num):
+                attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[ii])
+                for a in attrs.attr_list:  
+                    if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                        sys_logging("Get queue[0x%x] Buffer Profile oid: 0x%x"%(queueId_list[ii], a.value.oid))
+                        if a.value.oid != buf_prof_id:
+                            raise NotImplementedError() 
+        finally:
+            for i in range(queue_num):
+                attr_value = sai_thrift_attribute_value_t(oid=0)
+                self.client.sai_thrift_remove_queue(queueId_list[i])
+            self.client.sai_thrift_remove_buffer_profile(buf_prof_id)
+
+
+
+class fun_09_set_service_type_queue_attr_buffer_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Scheduler Group Bind Queue Test
+        step1:Create Scheduler Group Id
+        step2:verify 
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        sched_type = SAI_SCHEDULING_TYPE_DWRR
+        sched_weight = 10
+        cir = 4000000
+        cbs = 256000
+        pir = 1000000
+        pbs = 64000
+        port = port_list[1]
+        level = [0,1,2]
+        max_childs = [4, 64, 8]
+        sched_group_id_group_node = [None]*8
+        sched_group_service_id = 1
+        service_queueId = [None]*8
+
+
+        th_mode = SAI_BUFFER_PROFILE_THRESHOLD_MODE_STATIC
+        static_th = 2000000
+        dynamic_th = 0
+        xon_th = 1000000
+        xoff_th = 1200000
+        buf_prof_id1 = sai_thrift_qos_create_buffer_profile(self.client, th_mode, static_th, dynamic_th, xon_th, xoff_th)
+        
+        th_mode = SAI_BUFFER_PROFILE_THRESHOLD_MODE_DYNAMIC
+        static_th = 0
+        dynamic_th = -2
+        xon_th = 1000000
+        xoff_th = 1200000
+        buf_prof_id2 = sai_thrift_qos_create_buffer_profile(self.client, th_mode, static_th, dynamic_th, xon_th, xoff_th)
+
+        
+        sched_group_id_root = sai_thrift_qos_create_scheduler_group(self.client, port, level[0], max_childs[0], port, 0)
+        
+        sched_group_id_chan_node = sai_thrift_qos_create_scheduler_group(self.client, port, level[1], max_childs[1], sched_group_id_root, 0)
+        
+        sched_group_id_group_node[0] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)      
+        sched_group_id_group_node[1] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[2] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[3] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[4] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)      
+        sched_group_id_group_node[5] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[6] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[7] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+
+        
+        queue_type = SAI_QUEUE_TYPE_SERVICE
+        queue_index = [0,1,2,3,4,5,6,7]
+        service_queueId[0] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[0], parent_id=sched_group_id_group_node[0], service_id=sched_group_service_id, buffer_id=buf_prof_id1)        
+        service_queueId[1] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[1], parent_id=sched_group_id_group_node[1], service_id=sched_group_service_id, buffer_id=buf_prof_id2)
+        service_queueId[2] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[2], parent_id=sched_group_id_group_node[1], service_id=sched_group_service_id, buffer_id=buf_prof_id1)
+        service_queueId[3] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[3], parent_id=sched_group_id_group_node[3], service_id=sched_group_service_id, buffer_id=buf_prof_id2)
+        service_queueId[4] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[4], parent_id=sched_group_id_group_node[3], service_id=sched_group_service_id)
+        service_queueId[5] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[5], parent_id=sched_group_id_group_node[3], service_id=sched_group_service_id)
+        service_queueId[6] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[6], parent_id=sched_group_id_group_node[6], service_id=sched_group_service_id)
+        service_queueId[7] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[7], parent_id=sched_group_id_group_node[6], service_id=sched_group_service_id)
+        #pdb.set_trace()
+
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+
+
+            attr_value = sai_thrift_attribute_value_t(oid=buf_prof_id1)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_BUFFER_PROFILE_ID, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[4], attr)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[6], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=buf_prof_id2)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_BUFFER_PROFILE_ID, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[5], attr)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[7], attr)
+            #pdb.set_trace()
+
+
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                    sys_logging("get queue buffer profile:0x%x"%a.value.oid)
+                    if a.value.oid != buf_prof_id2:
+                        raise NotImplementedError()
+                
+
+        finally:
+            for i in range(8):
+                self.client.sai_thrift_remove_queue(service_queueId[i])
+            
+            for ii in range(8):
+                self.client.sai_thrift_remove_scheduler_group(sched_group_id_group_node[ii])
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_chan_node)
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_root)
+            self.client.sai_thrift_remove_buffer_profile(buf_prof_id1)
+            self.client.sai_thrift_remove_buffer_profile(buf_prof_id2)
+
+
+
+class fun_10_set_normal_queue_attr_scheduler_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Get Port Ingress Priority Group List Test
+        step1:Get Port Attrs
+        step2:verify 
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[1]
+        sched_type1 = SAI_SCHEDULING_TYPE_STRICT
+        sched_type2 = SAI_SCHEDULING_TYPE_DWRR
+        sched_weight = 10
+        cir = 2000000
+        cbs = 256000
+        pir = 1000000
+        pbs = 64000
+        queueId_list = []
+
+        sched_oid1 = sai_thrift_qos_create_scheduler_profile(self.client, sched_type1, 0, cir, cbs, pir, pbs)
+        sys_logging("sched_oid_1 0x%x"%sched_oid1)
+
+        sched_oid2 = sai_thrift_qos_create_scheduler_profile(self.client, sched_type2, sched_weight, cir, cbs, pir, pbs)
+        sys_logging("sched_oid_1 0x%x"%sched_oid2)
+        sched_oid_list = [sched_oid1, sched_oid2]
+        attrs = self.client.sai_thrift_get_port_attribute(port)
+        for a in attrs.attr_list:  
+            if a.id == SAI_PORT_ATTR_QOS_NUMBER_OF_QUEUES:
+                sys_logging("queue number:%d"%a.value.u32)
+                queue_num = a.value.u32
+            if a.id == SAI_PORT_ATTR_QOS_QUEUE_LIST:
+                for i in range(a.value.objlist.count):
+                    queueId_list.append(a.value.objlist.object_id_list[i])
+                    sys_logging("queue_oid[%d]:0x%X"%(i, a.value.objlist.object_id_list[i]))
+                    attr_value = sai_thrift_attribute_value_t(oid=sched_oid_list[i%2])
+                    attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, value=attr_value)
+                    self.client.sai_thrift_set_queue_attribute(queueId_list[i], attr)
+        #pdb.set_trace()
+        warmboot(self.client)
+        try:
+            for ii in range(queue_num):
+                attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[ii])
+                for a in attrs.attr_list:  
+                    if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                        sys_logging("Get queue[0x%x] scheduler Profile oid: 0x%x"%(queueId_list[ii], a.value.oid))
+                        if a.value.oid != sched_oid_list[ii%2]:
+                            raise NotImplementedError() 
+            for i in range(8):
+                attr_value = sai_thrift_attribute_value_t(oid=sched_oid_list[(i+1)%2])
+                attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, value=attr_value)
+                self.client.sai_thrift_set_queue_attribute(queueId_list[i], attr)
+            #pdb.set_trace()
+            for ii in range(queue_num):
+                attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[ii])
+                for a in attrs.attr_list:  
+                    if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                        sys_logging("Get queue[0x%x] scheduler Profile oid: 0x%x"%(queueId_list[ii], a.value.oid))
+                        if a.value.oid != sched_oid_list[(ii+1)%2]:
+                            raise NotImplementedError() 
+        finally:
+            for i in range(queue_num):
+                self.client.sai_thrift_remove_queue(queueId_list[i])
+            self.client.sai_thrift_remove_scheduler_profile(sched_oid1)
+            self.client.sai_thrift_remove_scheduler_profile(sched_oid2)
+
+
+
+
+class fun_11_set_service_type_queue_attr_scheduler_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Scheduler Group Bind Queue Test
+        step1:Create Scheduler Group Id
+        step2:verify 
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+
+        port = port_list[1]
+        level = [0,1,2]
+        max_childs = [4, 64, 8]
+        sched_group_id_group_node = [None]*8
+        sched_group_service_id = 1
+        service_queueId = [None]*8
+
+
+        sched_type1 = SAI_SCHEDULING_TYPE_STRICT
+        sched_type2 = SAI_SCHEDULING_TYPE_DWRR
+        sched_weight = 10
+        cir = 2000000
+        cbs = 256000
+        pir = 1000000
+        pbs = 64000
+        queueId_list = []
+
+        sched_oid1 = sai_thrift_qos_create_scheduler_profile(self.client, sched_type1, 0, cir, cbs, pir, pbs)
+        sys_logging("sched_oid_1 0x%x"%sched_oid1)
+
+        sched_oid2 = sai_thrift_qos_create_scheduler_profile(self.client, sched_type2, sched_weight, cir, cbs, pir, pbs)
+        sys_logging("sched_oid_1 0x%x"%sched_oid2)
+        sched_oid_list = [sched_oid1, sched_oid2]
+
+        
+        sched_group_id_root = sai_thrift_qos_create_scheduler_group(self.client, port, level[0], max_childs[0], port, 0)
+        
+        sched_group_id_chan_node = sai_thrift_qos_create_scheduler_group(self.client, port, level[1], max_childs[1], sched_group_id_root, 0)
+        
+        sched_group_id_group_node[0] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)      
+        sched_group_id_group_node[1] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[2] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[3] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[4] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)      
+        sched_group_id_group_node[5] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[6] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[7] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+
+        
+        queue_type = SAI_QUEUE_TYPE_SERVICE
+        queue_index = [0,1,2,3,4,5,6,7]
+        service_queueId[0] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[0], parent_id=sched_group_id_group_node[0], service_id=sched_group_service_id, sche_id=sched_oid1)        
+        service_queueId[1] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[1], parent_id=sched_group_id_group_node[1], service_id=sched_group_service_id, sche_id=sched_oid2)
+        service_queueId[2] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[2], parent_id=sched_group_id_group_node[1], service_id=sched_group_service_id, sche_id=sched_oid2)
+        service_queueId[3] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[3], parent_id=sched_group_id_group_node[3], service_id=sched_group_service_id, sche_id=sched_oid1)
+        service_queueId[4] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[4], parent_id=sched_group_id_group_node[4], service_id=sched_group_service_id)
+        service_queueId[5] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[5], parent_id=sched_group_id_group_node[4], service_id=sched_group_service_id)
+        service_queueId[6] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[6], parent_id=sched_group_id_group_node[4], service_id=sched_group_service_id)
+        service_queueId[7] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[7], parent_id=sched_group_id_group_node[7], service_id=sched_group_service_id)
+        #pdb.set_trace()
+
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid1:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_oid2)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[4], attr)
+            
+            self.client.sai_thrift_set_queue_attribute(service_queueId[5], attr)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[6], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_oid1)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[7], attr)
+            
+            
+
+
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid1:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid1:
+                        raise NotImplementedError()
+                
+
+        finally:
+            #pdb.set_trace()
+            for ii in range(8):
+                attr_value = sai_thrift_attribute_value_t(oid=0)
+                attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, value=attr_value)
+                self.client.sai_thrift_set_queue_attribute(service_queueId[ii], attr)
+
+            #pdb.set_trace()
+            for i in range(8):
+                self.client.sai_thrift_remove_queue(service_queueId[i])
+
+            for ii in range(8):
+                self.client.sai_thrift_remove_scheduler_group(sched_group_id_group_node[ii])
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_chan_node)
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_root)
+
+            self.client.sai_thrift_remove_scheduler_profile(sched_oid1)
+            self.client.sai_thrift_remove_scheduler_profile(sched_oid2)
+
+
+
+
+class fun_12_set_normal_queue_attr_parent_node_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Scheduler Group Bind Queue Test
+        step1:Create Scheduler Group Id
+        step2:verify 
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+
+        port = port_list[1]
+        level = [0,1,2]
+        max_childs = [4, 64, 8]
+        sched_group_id_group_node = [None]*8
+
+
+        sched_type1 = SAI_SCHEDULING_TYPE_STRICT
+        sched_type2 = SAI_SCHEDULING_TYPE_DWRR
+        sched_weight = 10
+        cir = 2000000
+        cbs = 256000
+        pir = 1000000
+        pbs = 64000
+        queueId_list = []
+
+        sched_oid1 = sai_thrift_qos_create_scheduler_profile(self.client, sched_type1, 0, cir, cbs, pir, pbs)
+        sys_logging("sched_oid_1 0x%x"%sched_oid1)
+
+        sched_oid2 = sai_thrift_qos_create_scheduler_profile(self.client, sched_type2, sched_weight, cir, cbs, pir, pbs)
+        sys_logging("sched_oid_1 0x%x"%sched_oid2)
+        sched_oid_list = [sched_oid1, sched_oid2]
+
+        
+        sched_group_id_root = sai_thrift_qos_create_scheduler_group(self.client, port, level[0], max_childs[0], port, 0)
+        
+        sched_group_id_chan_node = sai_thrift_qos_create_scheduler_group(self.client, port, level[1], max_childs[1], sched_group_id_root, 0)
+        
+        sched_group_id_group_node[0] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)      
+        sched_group_id_group_node[1] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[2] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[3] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[4] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)      
+        sched_group_id_group_node[5] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[6] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[7] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+
+        
+        attrs = self.client.sai_thrift_get_port_attribute(port)
+        for a in attrs.attr_list:  
+            if a.id == SAI_PORT_ATTR_QOS_NUMBER_OF_QUEUES:
+                sys_logging("queue number:%d"%a.value.u32)
+                queue_num = a.value.u32
+            if a.id == SAI_PORT_ATTR_QOS_QUEUE_LIST:
+                for i in range(a.value.objlist.count):
+                    queueId_list.append(a.value.objlist.object_id_list[i])
+                    sys_logging("queue_oid[%d]:0x%X"%(i, a.value.objlist.object_id_list[i]))
+
+        sys_logging("=======set queue parent node profile=======")
+        attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[0])
+        attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+        self.client.sai_thrift_set_queue_attribute(queueId_list[0], attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[1])
+        attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+        self.client.sai_thrift_set_queue_attribute(queueId_list[1], attr)
+        self.client.sai_thrift_set_queue_attribute(queueId_list[2], attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[3])
+        attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+        self.client.sai_thrift_set_queue_attribute(queueId_list[3], attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[4])
+        attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+        self.client.sai_thrift_set_queue_attribute(queueId_list[4], attr)
+        self.client.sai_thrift_set_queue_attribute(queueId_list[5], attr)
+        self.client.sai_thrift_set_queue_attribute(queueId_list[6], attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[7])
+        attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+        self.client.sai_thrift_set_queue_attribute(queueId_list[7], attr)
+        #pdb.set_trace()
+
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[0]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[3]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[7]:
+                        raise NotImplementedError()
+
+            sys_logging("=======set queue scheduler profile=======")
+            attr_value = sai_thrift_attribute_value_t(oid=sched_oid2)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[1], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[2], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[4], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[5], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[6], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_oid1)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[0], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[3], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[7], attr)
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid1:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid1:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid2:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
+                    sys_logging("get queue scheduler profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_oid1:
+                        raise NotImplementedError()
+
+
+            sys_logging("=======remove queue parent node profile=======")
+            #pdb.set_trace()
+            for ii in range(8):
+                attr_value = sai_thrift_attribute_value_t(oid=0)
+                attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+                self.client.sai_thrift_set_queue_attribute(queueId_list[ii], attr)
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+
+
+            #pdb.set_trace()
+
+            sys_logging("=======set queue parent node profile again=======")
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[0])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[0], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[1])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[1], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[2], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[3])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[3], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[4])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[4], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[5], attr)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[6], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[7])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[7], attr)
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[0]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[3]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[7]:
+                        raise NotImplementedError()
+
+        finally:
+
+            #pdb.set_trace()
+            for i in range(8):
+                self.client.sai_thrift_remove_queue(queueId_list[i])
+
+            for ii in range(8):
+                self.client.sai_thrift_remove_scheduler_group(sched_group_id_group_node[ii])
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_chan_node)
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_root)
+
+            self.client.sai_thrift_remove_scheduler_profile(sched_oid1)
+            self.client.sai_thrift_remove_scheduler_profile(sched_oid2)
+
+
+
+class fun_13_set_service_type_queue_attr_parent_node_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Scheduler Group Bind Queue Test
+        step1:Create Scheduler Group Id
+        step2:verify 
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+
+        port = port_list[1]
+        level = [0,1,2]
+        max_childs = [4, 64, 8]
+        sched_group_id_group_node = [None]*8
+        sched_group_service_id = 1
+        service_queueId = [None]*8
+
+
+        sched_type1 = SAI_SCHEDULING_TYPE_STRICT
+        sched_type2 = SAI_SCHEDULING_TYPE_DWRR
+        sched_weight = 10
+        cir = 2000000
+        cbs = 256000
+        pir = 1000000
+        pbs = 64000
+
+        sched_oid1 = sai_thrift_qos_create_scheduler_profile(self.client, sched_type1, 0, cir, cbs, pir, pbs)
+        sys_logging("sched_oid_1 0x%x"%sched_oid1)
+
+        sched_oid2 = sai_thrift_qos_create_scheduler_profile(self.client, sched_type2, sched_weight, cir, cbs, pir, pbs)
+        sys_logging("sched_oid_1 0x%x"%sched_oid2)
+        sched_oid_list = [sched_oid1, sched_oid2]
+
+        
+        sched_group_id_root = sai_thrift_qos_create_scheduler_group(self.client, port, level[0], max_childs[0], port, 0)
+        
+        sched_group_id_chan_node = sai_thrift_qos_create_scheduler_group(self.client, port, level[1], max_childs[1], sched_group_id_root, 0)
+        
+        sched_group_id_group_node[0] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)      
+        sched_group_id_group_node[1] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[2] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[3] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[4] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)      
+        sched_group_id_group_node[5] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[6] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+        sched_group_id_group_node[7] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0, service_id=sched_group_service_id)
+
+        
+        queue_type = SAI_QUEUE_TYPE_SERVICE
+        queue_index = [0,1,2,3,4,5,6,7]
+        service_queueId[0] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[0], parent_id=sched_group_id_group_node[0], service_id=sched_group_service_id, sche_id=sched_oid1)        
+        service_queueId[1] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[1], parent_id=sched_group_id_group_node[1], service_id=sched_group_service_id, sche_id=sched_oid2)
+        service_queueId[2] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[2], parent_id=sched_group_id_group_node[1], service_id=sched_group_service_id, sche_id=sched_oid2)
+        service_queueId[3] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[3], parent_id=sched_group_id_group_node[3], service_id=sched_group_service_id, sche_id=sched_oid1)
+        service_queueId[4] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[4], service_id=sched_group_service_id, sche_id=sched_oid2)
+        service_queueId[5] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[5], service_id=sched_group_service_id, sche_id=sched_oid2)
+        service_queueId[6] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[6], service_id=sched_group_service_id, sche_id=sched_oid2)
+        service_queueId[7] = sai_thrift_create_queue_id(self.client, queue_type, port, queue_index[7], service_id=sched_group_service_id, sche_id=sched_oid1)
+        #pdb.set_trace()
+
+        warmboot(self.client)
+        try:
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[0]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[3]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != SAI_NULL_OBJECT_ID:
+                        raise NotImplementedError()
+
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[4])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[4], attr)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[5], attr)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[6], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[7])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[7], attr)
+            
+            
+
+
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[0]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[3]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[7]:
+                        raise NotImplementedError()
+
+
+            for ii in range(8):
+                attr_value = sai_thrift_attribute_value_t(oid=0)
+                attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+                self.client.sai_thrift_set_queue_attribute(service_queueId[ii], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[0])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[0], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[1])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[1], attr)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[2], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[3])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[3], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[4])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[4], attr)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[5], attr)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[6], attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=sched_group_id_group_node[7])
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(service_queueId[7], attr)
+
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[0]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[1])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[1]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[3])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[3]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[4])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[5])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[6])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[4]:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(service_queueId[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
+                    sys_logging("get queue parent node profile:0x%x"%a.value.oid)
+                    if a.value.oid != sched_group_id_group_node[7]:
+                        raise NotImplementedError()
+
+        finally:
+            #pdb.set_trace()
+            for ii in range(8):
+                attr_value = sai_thrift_attribute_value_t(oid=0)
+                attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE, value=attr_value)
+                self.client.sai_thrift_set_queue_attribute(service_queueId[ii], attr)
+
+            #pdb.set_trace()
+            for i in range(8):
+                self.client.sai_thrift_remove_queue(service_queueId[i])
+
+            for ii in range(8):
+                self.client.sai_thrift_remove_scheduler_group(sched_group_id_group_node[ii])
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_chan_node)
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_root)
+
+            self.client.sai_thrift_remove_scheduler_profile(sched_oid1)
+            self.client.sai_thrift_remove_scheduler_profile(sched_oid2)
+
+
+
+
+class fun_14_set_queue_attr_enable_pfc_dldr_fn(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Scheduler Group Bind Queue Test
+        step1:Create Scheduler Group Id
+        step2:verify 
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+
+        port = port_list[1]
+        level = [0,1,2]
+        max_childs = [4, 64, 8]
+        sched_group_id_group_node = [None]*8
+        queueId_list = []
+        
+        sched_group_id_root = sai_thrift_qos_create_scheduler_group(self.client, port, level[0], max_childs[0], port, 0)
+        
+        sched_group_id_chan_node = sai_thrift_qos_create_scheduler_group(self.client, port, level[1], max_childs[1], sched_group_id_root, 0)
+        
+        sched_group_id_group_node[0] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)      
+        sched_group_id_group_node[1] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[2] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[3] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[4] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)      
+        sched_group_id_group_node[5] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[6] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+        sched_group_id_group_node[7] = sai_thrift_qos_create_scheduler_group(self.client, port, level[2], max_childs[2], sched_group_id_chan_node, 0)
+
+        
+        attrs = self.client.sai_thrift_get_port_attribute(port)
+        for a in attrs.attr_list:  
+            if a.id == SAI_PORT_ATTR_QOS_NUMBER_OF_QUEUES:
+                sys_logging("queue number:%d"%a.value.u32)
+                queue_num = a.value.u32
+            if a.id == SAI_PORT_ATTR_QOS_QUEUE_LIST:
+                for i in range(a.value.objlist.count):
+                    queueId_list.append(a.value.objlist.object_id_list[i])
+                    sys_logging("queue_oid[%d]:0x%X"%(i, a.value.objlist.object_id_list[i]))
+
+        sys_logging("=======set queue pfc_dldr_enable=======")
+        pfc_dldr_enable = 1
+        pfc_dldr_disable = 0
+
+        warmboot(self.client)
+        try:
+            attr_value = sai_thrift_attribute_value_t(booldata=pfc_dldr_enable)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[0], attr)
+            #pdb.set_trace()
+            attr_value = sai_thrift_attribute_value_t(booldata=pfc_dldr_enable)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[7], attr)
+            #pdb.set_trace()
+            attr_value = sai_thrift_attribute_value_t(booldata=pfc_dldr_enable)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[2], attr)
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_enable:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_enable:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_disable:
+                        raise NotImplementedError()   
+
+
+
+            attr_value = sai_thrift_attribute_value_t(booldata=pfc_dldr_disable)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[7], attr)
+            #pdb.set_trace()
+            attr_value = sai_thrift_attribute_value_t(booldata=pfc_dldr_enable)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[2], attr)
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_enable:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_disable:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_enable:
+                        raise NotImplementedError()   
+
+
+
+            #pdb.set_trace()
+            attr_value = sai_thrift_attribute_value_t(booldata=pfc_dldr_disable)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[0], attr)
+            #pdb.set_trace()
+            attr_value = sai_thrift_attribute_value_t(booldata=pfc_dldr_disable)
+            attr = sai_thrift_attribute_t(id=SAI_QUEUE_ATTR_ENABLE_PFC_DLDR, value=attr_value)
+            self.client.sai_thrift_set_queue_attribute(queueId_list[2], attr)
+
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[0])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_disable:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[7])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_disable:
+                        raise NotImplementedError()   
+            attrs = self.client.sai_thrift_get_queue_attribute(queueId_list[2])
+            assert(SAI_STATUS_SUCCESS == attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    sys_logging("get queue pfc dldr enable:%d"%a.value.booldata)
+                    if a.value.booldata != pfc_dldr_disable:
+                        raise NotImplementedError() 
+
+        finally:
+
+            #pdb.set_trace()
+            for i in range(8):
+                self.client.sai_thrift_remove_queue(queueId_list[i])
+            
+            for ii in range(8):
+                self.client.sai_thrift_remove_scheduler_group(sched_group_id_group_node[ii])
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_chan_node)
+            self.client.sai_thrift_remove_scheduler_group(sched_group_id_root)
+
 
 

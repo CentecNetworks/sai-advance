@@ -1214,10 +1214,11 @@ class scenario_01_micro_ipv4_bfd_tx_test(sai_base_test.ThriftInterfaceDataPlane)
         dst_ip = '20.20.20.1'
         dst_mac = '00:11:22:33:66:77'
         src_mac = '00:11:22:33:66:88'
-        min_tx = 3
-        min_rx = 3
+        min_tx = 4
+        min_rx = 4
         default_mult = 3
-
+        micro_bfd_macda = '01:00:5e:90:00:01'  
+            
         vr_id = sai_thrift_get_default_router_id(self.client)        
                   
         bfd_id = sai_thrift_create_micro_bfd_session(self.client, l_disc, r_disc, udp_srcport, multihop, addr_family, src_ip, dst_ip, port1, dst_mac, src_mac, min_tx, min_rx, default_mult)
@@ -1364,8 +1365,40 @@ class scenario_01_micro_ipv4_bfd_tx_test(sai_base_test.ThriftInterfaceDataPlane)
                     sys_logging("get nexthop oid = 0x%x" %a.value.oid)
                     if SAI_NULL_OBJECT_ID != a.value.oid:
                         raise NotImplementedError() 
-                        
-           self.ctc_show_packet(0)
+
+           bfd_hdr = simple_bfd_packet(vers=1,
+                                  diag=0,
+                                  sta=1,
+                                  pbit=0,
+                                  fbit=0,
+                                  cbit=0,
+                                  abit=0,
+                                  dbit=0,
+                                  mbit=0,
+                                  mult=default_mult,
+                                  mydisc=l_disc,
+                                  yourdisc=r_disc,
+                                  mintxinterval=min_tx,
+                                  minrxinterval=min_rx,
+                                  echointerval=0)
+
+                                  
+           pkt = simple_udp_packet(pktlen=66,
+                                   eth_dst=micro_bfd_macda,
+                                   eth_src=src_mac,
+                                   ip_src=src_ip,
+                                   ip_dst=dst_ip,
+                                   ip_tos=0,
+                                   ip_ttl=255,
+                                   udp_sport=udp_srcport,
+                                   udp_dport=6784,
+                                   ip_ihl=None,
+                                   ip_options=False,
+                                   ip_id=0,
+                                   with_udp_chksum=False,
+                                   udp_payload=bfd_hdr)
+
+           self.ctc_show_packet_twamp(0,str(pkt))                         
                         
         finally:
 
@@ -1438,7 +1471,7 @@ class scenario_02_micro_ipv4_bfd_rx_test(sai_base_test.ThriftInterfaceDataPlane)
             self.ctc_show_packet(0)
             
             self.ctc_send_packet(0, str(pkt))
-            
+                
             # sdk cli show
             # show oam mep bfd micro my-discr 100
             # local state, 1stPkt
@@ -1474,10 +1507,10 @@ class scenario_03_micro_ipv6_bfd_tx_test(sai_base_test.ThriftInterfaceDataPlane)
         dst_ip = '1234:5678:9abc:def0:4422:1133:5577:99ab'
         dst_mac = '00:11:22:33:66:77'
         src_mac = '00:11:22:33:66:88'
-        min_tx = 5
-        min_rx = 6
+        min_tx = 4
+        min_rx = 4
         default_mult = 3
-
+        micro_bfd_macda = '01:00:5e:90:00:01'  
 
         vr_id = sai_thrift_get_default_router_id(self.client)        
                   
@@ -1505,9 +1538,38 @@ class scenario_03_micro_ipv6_bfd_tx_test(sai_base_test.ThriftInterfaceDataPlane)
                     sys_logging("get ip header ttl = 0x%x" %u81.value)
                     if 100 != u81.value:
                         raise NotImplementedError() 
-                        
-           self.ctc_show_packet(0)
-                        
+
+           bfd_hdr = simple_bfd_packet(vers=1,
+                              diag=0,
+                              sta=1,
+                              pbit=0,
+                              fbit=0,
+                              cbit=0,
+                              abit=0,
+                              dbit=0,
+                              mbit=0,
+                              mult=default_mult,
+                              mydisc=l_disc,
+                              yourdisc=r_disc,
+                              mintxinterval=min_tx,
+                              minrxinterval=min_rx,
+                              echointerval=0)
+
+                                  
+           pkt = simple_ipv6_udp_packet(pktlen=86,
+                                   eth_dst=micro_bfd_macda,
+                                   eth_src=src_mac,
+                                   ipv6_src=src_ip,
+                                   ipv6_dst=dst_ip,
+                                   ipv6_tc=24<<2,
+                                   ipv6_hlim=100,
+                                   udp_sport=udp_srcport,
+                                   udp_dport=6784,
+                                   with_udp_chksum=False,
+                                   udp_payload=bfd_hdr)
+
+           self.ctc_show_packet_twamp(0,str(pkt))  
+           
         finally:
 
                 sys_logging("remove bfd session = %d" %bfd_id)
@@ -1841,7 +1903,7 @@ class scenario_06_ipv4_bfd_rx_test(sai_base_test.ThriftInterfaceDataPlane):
             self.ctc_show_packet(0)
             
             self.ctc_send_packet( 0, str(pkt))
-            
+            # pdb.set_trace()
             # sdk cli show
             # show oam mep bfd ip my-discr 100
             # local state, 1stPkt
@@ -2414,6 +2476,7 @@ class scenario_11_mpls_ipv4_lsp_bfd_tx_and_rx_test(sai_base_test.ThriftInterface
                                  inner_frame = mpls_inner_pkt)
                         
             self.ctc_show_packet(0)
+            #pdb.set_trace()
             
             self.ctc_send_packet( 0, str(pkt))
             
@@ -2577,7 +2640,7 @@ class scenario_12_mpls_pw_vccv_raw_bfd_tx_and_rx_test(sai_base_test.ThriftInterf
 
                             
             self.ctc_show_packet(0)
-            
+            #pdb.set_trace()
             self.ctc_send_packet( 0, str(pkt))
             
             # sdk cli show
@@ -2760,7 +2823,7 @@ class scenario_13_mpls_pw_vccv_ipv4_bfd_tx_and_rx_test(sai_base_test.ThriftInter
 
                             
             self.ctc_show_packet(0)
-            
+            #pdb.set_trace()
             self.ctc_send_packet( 0, str(pkt))
             
             # sdk cli show
@@ -2939,7 +3002,7 @@ class scenario_14_mpls_pw_vccv_ipv6_bfd_tx_and_rx_test(sai_base_test.ThriftInter
 
                             
             self.ctc_show_packet(0)
-            
+            #pdb.set_trace()
             self.ctc_send_packet( 0, str(pkt))
             
             # sdk cli show
@@ -3115,7 +3178,7 @@ class scenario_15_mpls_tp_pw_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
 
                             
             self.ctc_show_packet(0)
-            
+            #pdb.set_trace()
             self.ctc_send_packet( 0, str(pkt))
             
             # sdk cli show
@@ -3284,7 +3347,7 @@ class scenario_16_mpls_tp_pw_tx_and_rx_test_without_gal(sai_base_test.ThriftInte
 
                             
             self.ctc_show_packet(0)
-            
+            #pdb.set_trace()
             self.ctc_send_packet( 0, str(pkt))
             
             # sdk cli show
@@ -3344,7 +3407,7 @@ class scenario_17_mpls_tp_lsp_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
         sys_logging("create output route interface = %d" %rif_id1)
 
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
-        sys_logging("create output route interface = %d" %rif_id1)
+        sys_logging("create output route interface = %d" %rif_id2)
         
         dmac1 = '00:00:00:00:00:01'        
         sys_logging("create neighbor")
@@ -3458,7 +3521,7 @@ class scenario_17_mpls_tp_lsp_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
 
                             
             self.ctc_show_packet(0)
-            
+            #pdb.set_trace()
             self.ctc_send_packet( 0, str(pkt))
             
             # sdk cli show

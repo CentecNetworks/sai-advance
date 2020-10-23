@@ -1233,7 +1233,7 @@ class scenario_02_bc_device_rx_pkt_to_cpu_test(sai_base_test.ThriftInterfaceData
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid)
             self.client.sai_thrift_remove_ptp_domain(ptp_oid)
-
+'''
 class scenario_03_oc_device_sync_pkt_cpu_to_tx_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
 
@@ -1337,7 +1337,130 @@ class scenario_03_oc_device_sync_pkt_cpu_to_tx_test(sai_base_test.ThriftInterfac
         try:
             oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
             host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
-            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14)                                    
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_TYPE_1_STEP_TS_UPDATE)
+
+            self.ctc_show_packet(1,None,str(pkt1),1)
+            #self.ctc_verify_packets( str(pkt), [1])
+        finally:
+            sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(u64=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            self.client.sai_thrift_remove_ptp_domain(ptp_oid)
+'''
+class scenario_03_oc_device_sync_pkt_cpu_to_tx_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging ("access port to access port")
+        
+        switch_init(self.client)
+        
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+        default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        enable_type = SAI_PTP_ENABLE_BASED_ON_PORT
+        device_type = SAI_PTP_DEVICE_OC
+        ptp_oid = sai_thrift_create_ptp(self.client, enable_type, device_type)
+        
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=ptp_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_DOMAIN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        egs_delay = 50
+        attr_value = sai_thrift_attribute_value_t(u64=egs_delay)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+        #sync
+        ptppkt = simple_ptp_packet(msgType=0,  #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0,
+                                   cfLow=0x00030000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt = simple_eth_packet(pktlen=64,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt)
+
+        ptppkt1 = simple_ptp_packet(msgType=0,
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0x22,
+                                   cfLow=0x00030000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0x445678,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt1 = simple_eth_packet(pktlen=64,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt1)
+
+        
+        warmboot(self.client)
+        try:
+            oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
+            host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_1)
 
             self.ctc_show_packet(1,None,str(pkt1),1)
             #self.ctc_verify_packets( str(pkt), [1])
@@ -1429,9 +1552,9 @@ class scenario_04_oc_device_delay_req_pkt_cpu_to_tx_test(sai_base_test.ThriftInt
                                    msgLen=44,
                                    flag0=0,
                                    flag1=0,
-                                   cfHigh=0x66,
-                                   #cfLow=0x56ad0000, bug110916
-                                   cfLow=0x567b0000,
+                                   cfHigh=0x22,
+                                   #cfLow=0x00350000, bug110916
+                                   cfLow=0x00030000,
                                    clockId="4097",
                                    srcPortId=1,
                                    seqId=302,
@@ -1439,7 +1562,7 @@ class scenario_04_oc_device_delay_req_pkt_cpu_to_tx_test(sai_base_test.ThriftInt
                                    logMsgInt=0x7F,
                                    tsSecHigh=0,
                                    tsSec=0,
-                                   tsNs=0,
+                                   tsNs=0x445678,
                                    reqClockId="1023",
                                    reqSrcPortId=0,
                                    utcOffset=0,
@@ -1461,7 +1584,7 @@ class scenario_04_oc_device_delay_req_pkt_cpu_to_tx_test(sai_base_test.ThriftInt
         try:
             oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
             host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
-            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14)                                    
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_1)                                    
 
             self.ctc_show_packet(1,None,str(pkt1),1)
             #self.ctc_verify_packets( str(pkt), [1])
@@ -1520,7 +1643,7 @@ class scenario_05_bc_device_sync_pkt_cpu_to_tx_test(sai_base_test.ThriftInterfac
         self.client.sai_thrift_set_port_attribute(port2, attr)
         #sync
         ptppkt = simple_ptp_packet(msgType=0,  #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
-                                   msgLen=44,
+                                   msgLen=64,
                                    flag0=0,
                                    flag1=0,
                                    cfHigh=0,
@@ -1543,18 +1666,18 @@ class scenario_05_bc_device_sync_pkt_cpu_to_tx_test(sai_base_test.ThriftInterfac
                                    stepRemove=0,
                                    timeSrc=0)
         
-        pkt = simple_eth_packet(pktlen=44,
+        pkt = simple_eth_packet(pktlen=64,
                                 eth_dst=mac2,
                                 eth_src=mac1,
                                 eth_type=0x88f7,
                                 inner_frame=ptppkt)
 
         ptppkt1 = simple_ptp_packet(msgType=0,
-                                   msgLen=44,
+                                   msgLen=64,
                                    flag0=0,
                                    flag1=0,
-                                   cfHigh=0x66,
-                                   cfLow=0x567b0000,
+                                   cfHigh=0x22,
+                                   cfLow=0x00030000,
                                    clockId="4097",
                                    srcPortId=1,
                                    seqId=302,
@@ -1562,7 +1685,7 @@ class scenario_05_bc_device_sync_pkt_cpu_to_tx_test(sai_base_test.ThriftInterfac
                                    logMsgInt=0x7F,
                                    tsSecHigh=0,
                                    tsSec=0,
-                                   tsNs=0,
+                                   tsNs=0x445678,
                                    reqClockId="1023",
                                    reqSrcPortId=0,
                                    utcOffset=0,
@@ -1573,7 +1696,7 @@ class scenario_05_bc_device_sync_pkt_cpu_to_tx_test(sai_base_test.ThriftInterfac
                                    stepRemove=0,
                                    timeSrc=0)
         
-        pkt1 = simple_eth_packet(pktlen=44,
+        pkt1 = simple_eth_packet(pktlen=64,
                                 eth_dst=mac2,
                                 eth_src=mac1,
                                 eth_type=0x88f7,
@@ -1584,7 +1707,7 @@ class scenario_05_bc_device_sync_pkt_cpu_to_tx_test(sai_base_test.ThriftInterfac
         try:
             oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
             host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
-            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14)                                    
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_1)                                    
 
             self.ctc_show_packet(1,None,str(pkt1),1)
             #self.ctc_verify_packets( str(pkt), [1])
@@ -1643,7 +1766,7 @@ class scenario_06_bc_device_delay_req_pkt_cpu_to_tx_test(sai_base_test.ThriftInt
         self.client.sai_thrift_set_port_attribute(port2, attr)
         #sync
         ptppkt = simple_ptp_packet(msgType=1,  #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
-                                   msgLen=44,
+                                   msgLen=64,
                                    flag0=0,
                                    flag1=0,
                                    cfHigh=0,
@@ -1666,18 +1789,17 @@ class scenario_06_bc_device_delay_req_pkt_cpu_to_tx_test(sai_base_test.ThriftInt
                                    stepRemove=0,
                                    timeSrc=0)
         
-        pkt = simple_eth_packet(pktlen=44,
+        pkt = simple_eth_packet(pktlen=64,
                                 eth_dst=mac2,
                                 eth_src=mac1,
                                 eth_type=0x88f7,
                                 inner_frame=ptppkt)
 
         ptppkt1 = simple_ptp_packet(msgType=1,
-                                   msgLen=44,
+                                   msgLen=64,
                                    flag0=0,
                                    flag1=0,
                                    cfHigh=0x66,
-                                   #cfLow=0x56ad0000, bug110916
                                    cfLow=0x567b0000,
                                    clockId="4097",
                                    srcPortId=1,
@@ -1697,7 +1819,7 @@ class scenario_06_bc_device_delay_req_pkt_cpu_to_tx_test(sai_base_test.ThriftInt
                                    stepRemove=0,
                                    timeSrc=0)
         
-        pkt1 = simple_eth_packet(pktlen=44,
+        pkt1 = simple_eth_packet(pktlen=64,
                                 eth_dst=mac2,
                                 eth_src=mac1,
                                 eth_type=0x88f7,
@@ -1708,7 +1830,7 @@ class scenario_06_bc_device_delay_req_pkt_cpu_to_tx_test(sai_base_test.ThriftInt
         try:
             oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
             host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
-            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14)                                    
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_2)                                    
 
             self.ctc_show_packet(1,None,str(pkt1),1)
             #self.ctc_verify_packets( str(pkt), [1])
@@ -2231,4 +2353,801 @@ class scenario_10_p2p_tc_device_sync_pkt_test(sai_base_test.ThriftInterfaceDataP
             self.client.sai_thrift_remove_vlan(vlan_oid)
             self.client.sai_thrift_remove_ptp_domain(ptp_oid)
 
+class scenario_11_oc_device_sync_pkt_cpu_to_tx_2_step_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
 
+        sys_logging ("access port to access port")
+        
+        switch_init(self.client)
+        
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+        default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        enable_type = SAI_PTP_ENABLE_BASED_ON_PORT
+        device_type = SAI_PTP_DEVICE_OC
+        ptp_oid = sai_thrift_create_ptp(self.client, enable_type, device_type)
+        
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=ptp_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_DOMAIN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        egs_delay = 50
+        attr_value = sai_thrift_attribute_value_t(u64=egs_delay)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+        #sync
+        ptppkt = simple_ptp_packet(msgType=0,  #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0,
+                                   cfLow=0x00000000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt)
+
+        ptppkt1 = simple_ptp_packet(msgType=0,
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0x66,
+                                   cfLow=0x56780000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt1 = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt1)
+
+        
+        warmboot(self.client)
+        try:
+            oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
+            host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_2)
+
+            self.ctc_show_packet(1,None,str(pkt1),1)
+            #self.ctc_verify_packets( str(pkt), [1])
+        finally:
+            sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(u64=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            self.client.sai_thrift_remove_ptp_domain(ptp_oid)
+
+class scenario_12_oc_device_cpu_to_tx_2_step_followup_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging ("access port to access port")
+        
+        switch_init(self.client)
+        
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+        default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        enable_type = SAI_PTP_ENABLE_BASED_ON_PORT
+        device_type = SAI_PTP_DEVICE_OC
+        ptp_oid = sai_thrift_create_ptp(self.client, enable_type, device_type)
+        
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=ptp_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_DOMAIN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        egs_delay = 50
+        attr_value = sai_thrift_attribute_value_t(u64=egs_delay)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+        #sync
+
+                                   
+        ptppkt = simple_ptp_packet(msgType=8, #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0,
+                                   cfLow=0x00000005,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=None,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0x12345678,
+                                   tsNs=0x87654321,
+                                   reqClockId="1023",
+                                   reqSrcPortId=2,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt)
+
+        
+        warmboot(self.client)
+        try:
+            oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
+            host_if_tx_type = SAI_HOSTIF_TX_TYPE_PIPELINE_BYPASS
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14)
+
+            self.ctc_show_packet(1,None,str(pkt),1)
+            #self.ctc_verify_packets( str(pkt), [1])
+        finally:
+            sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(u64=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            self.client.sai_thrift_remove_ptp_domain(ptp_oid)
+
+
+class scenario_13_oc_device_pdelay_resp_pkt_cpu_to_tx_1_step_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging ("access port to access port")
+        
+        switch_init(self.client)
+        
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+        default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        enable_type = SAI_PTP_ENABLE_BASED_ON_PORT
+        device_type = SAI_PTP_DEVICE_OC
+        ptp_oid = sai_thrift_create_ptp(self.client, enable_type, device_type)
+        
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=ptp_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_DOMAIN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        egs_delay = 50
+        attr_value = sai_thrift_attribute_value_t(u64=egs_delay)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+        #sync
+        ptppkt = simple_ptp_packet(msgType=3,  #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0,
+                                   cfLow=0x00070000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt = simple_eth_packet(pktlen=64,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt)
+
+        ptppkt1 = simple_ptp_packet(msgType=3,
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0x55,
+                                   cfLow=0x456e0000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt1 = simple_eth_packet(pktlen=64,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt1)
+
+        
+        warmboot(self.client)
+        try:
+            oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
+            host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_3, sec=0, nsec=0x111111)
+
+            self.ctc_show_packet(1,None,str(pkt1),1)
+            #self.ctc_verify_packets( str(pkt), [1])
+        finally:
+            sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(u64=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            self.client.sai_thrift_remove_ptp_domain(ptp_oid)
+
+
+
+class scenario_14_oc_device_pdelay_resp_pkt_cpu_to_tx_2_step_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging ("access port to access port")
+        
+        switch_init(self.client)
+        
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+        default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        enable_type = SAI_PTP_ENABLE_BASED_ON_PORT
+        device_type = SAI_PTP_DEVICE_OC
+        ptp_oid = sai_thrift_create_ptp(self.client, enable_type, device_type)
+        
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=ptp_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_DOMAIN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        egs_delay = 50
+        attr_value = sai_thrift_attribute_value_t(u64=egs_delay)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+        #sync
+        ptppkt = simple_ptp_packet(msgType=3,  #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0,
+                                   cfLow=0x00000000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt)
+
+        ptppkt1 = simple_ptp_packet(msgType=3,
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0x66,
+                                   cfLow=0x56780000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt1 = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt1)
+
+        
+        warmboot(self.client)
+        try:
+            oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
+            host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_2)
+
+            self.ctc_show_packet(1,None,str(pkt1),1)
+            #self.ctc_verify_packets( str(pkt), [1])
+        finally:
+            sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(u64=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            self.client.sai_thrift_remove_ptp_domain(ptp_oid)
+
+
+
+class scenario_15_oc_device_cpu_to_tx_2_step_pdelay_resp_followup_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging ("access port to access port")
+        
+        switch_init(self.client)
+        
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+        default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        enable_type = SAI_PTP_ENABLE_BASED_ON_PORT
+        device_type = SAI_PTP_DEVICE_OC
+        ptp_oid = sai_thrift_create_ptp(self.client, enable_type, device_type)
+        
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=ptp_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_DOMAIN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        egs_delay = 50
+        attr_value = sai_thrift_attribute_value_t(u64=egs_delay)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+        #sync
+
+                                   
+        ptppkt = simple_ptp_packet(msgType=10, #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0,
+                                   cfLow=0x00000005,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=None,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0x12345678,
+                                   tsNs=0x87654321,
+                                   reqClockId="1023",
+                                   reqSrcPortId=2,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt)
+
+
+        
+        warmboot(self.client)
+        try:
+            oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
+            host_if_tx_type = SAI_HOSTIF_TX_TYPE_PIPELINE_BYPASS
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14)
+
+            self.ctc_show_packet(1,None,str(pkt),1)
+            #self.ctc_verify_packets( str(pkt), [1])
+        finally:
+            sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(u64=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            self.client.sai_thrift_remove_ptp_domain(ptp_oid)
+
+
+
+class scenario_16_bc_device_sync_pkt_cpu_to_tx_2_step_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging ("access port to access port")
+        
+        switch_init(self.client)
+        
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+        default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        enable_type = SAI_PTP_ENABLE_BASED_ON_PORT
+        device_type = SAI_PTP_DEVICE_BC
+        ptp_oid = sai_thrift_create_ptp(self.client, enable_type, device_type)
+        
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=ptp_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_DOMAIN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        egs_delay = 50
+        attr_value = sai_thrift_attribute_value_t(u64=egs_delay)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+        #sync
+        ptppkt = simple_ptp_packet(msgType=0,  #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0,
+                                   cfLow=0x00000000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt)
+
+        ptppkt1 = simple_ptp_packet(msgType=0,
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0x66,
+                                   cfLow=0x56780000,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=0,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0,
+                                   tsNs=0,
+                                   reqClockId="1023",
+                                   reqSrcPortId=0,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt1 = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt1)
+
+        
+        warmboot(self.client)
+        try:
+            oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
+            host_if_tx_type = SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14, ptp_tx_op_type=SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_2)
+
+            self.ctc_show_packet(1,None,str(pkt1),1)
+            #self.ctc_verify_packets( str(pkt), [1])
+        finally:
+            sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(u64=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            self.client.sai_thrift_remove_ptp_domain(ptp_oid)
+
+
+
+class scenario_17_bc_device_cpu_to_tx_2_step_followup_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging ("access port to access port")
+        
+        switch_init(self.client)
+        
+        vlan_id = 100
+        port1 = port_list[0]
+        port2 = port_list[1]
+        default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+
+        enable_type = SAI_PTP_ENABLE_BASED_ON_PORT
+        device_type = SAI_PTP_DEVICE_BC
+        ptp_oid = sai_thrift_create_ptp(self.client, enable_type, device_type)
+        
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port1, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=ptp_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_DOMAIN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        egs_delay = 50
+        attr_value = sai_thrift_attribute_value_t(u64=egs_delay)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+        #sync
+
+                                   
+        ptppkt = simple_ptp_packet(msgType=8, #0:sync 1:delay_req 2:pdelay_req 3:pdelay_resp 8:follow_up 9:delay_resp 10:pdelay_resp_follow_up
+                                   msgLen=44,
+                                   flag0=0,
+                                   flag1=0,
+                                   cfHigh=0,
+                                   cfLow=0x00000005,
+                                   clockId="4097",
+                                   srcPortId=1,
+                                   seqId=302,
+                                   controlFld=None,
+                                   logMsgInt=0x7F,
+                                   tsSecHigh=0,
+                                   tsSec=0x12345678,
+                                   tsNs=0x87654321,
+                                   reqClockId="1023",
+                                   reqSrcPortId=2,
+                                   utcOffset=0,
+                                   masterPri1=0,
+                                   clockQuality=0,
+                                   masterPri2=0,
+                                   masterId=0,
+                                   stepRemove=0,
+                                   timeSrc=0)
+        
+        pkt = simple_eth_packet(pktlen=44,
+                                eth_dst=mac2,
+                                eth_src=mac1,
+                                eth_type=0x88f7,
+                                inner_frame=ptppkt)
+
+        
+        warmboot(self.client)
+        try:
+            oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM #no use
+            host_if_tx_type = SAI_HOSTIF_TX_TYPE_PIPELINE_BYPASS
+            sai_thrift_send_hostif_packet(self.client, ptp_oid, str(pkt), oam_tx_type, host_if_tx_type, egress_port = port2, oam_session=None, dm_offset=14)
+
+            self.ctc_show_packet(1,None,str(pkt),1)
+            #self.ctc_verify_packets( str(pkt), [1])
+        finally:
+            sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(u64=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            self.client.sai_thrift_remove_ptp_domain(ptp_oid)
+
+
+
+
+
+
+
+
+
+
+
+            

@@ -103,8 +103,7 @@ typedef enum ctc_sai_db_id_type_e
     CTC_SAI_DB_ID_TYPE_UDF_GROUP,
     CTC_SAI_DB_ID_TYPE_UDF_ENTRY,
     CTC_SAI_DB_ID_TYPE_UDF_MATCH,
-    CTC_SAI_DB_ID_TYPE_MONITOR_BUFFER,
-    CTC_SAI_DB_ID_TYPE_MONITOR_LATENCY,
+    CTC_SAI_DB_ID_TYPE_WRED,
 
     CTC_SAI_DB_ID_TYPE_MAX,
 }ctc_sai_db_id_type_t;
@@ -327,11 +326,14 @@ typedef struct ctc_sai_switch_master_s{
     uint32 profile_id;
     uint8 port_queues;
     uint32 fdb_miss_action[3];  /* pkt_action[0]:unicast; pkt_action[1]:muticast;  pkt_action[2]:broadcast; */
-    uint8 default_tc;
+    //uint8 default_tc;
     uint32 hostif_acl_grp_id;
     uint16 lport_link_status[CTC_SAI_LOCAL_PORT_NUM];
     sal_task_t *recv_task;
     sal_task_t *port_polling_task;
+    sal_task_t *fiber_polling_task;
+    sal_task_t *macled_polling_task;
+    sal_task_t *platform_callback_task;
     int32 epoll_sock;
     struct epoll_event evl;
     uint16 default_wtd_thrd[3]; /*refer to sai_packet_color_t*/
@@ -356,6 +358,7 @@ typedef struct ctc_sai_switch_master_s{
     sai_y1731_session_state_change_notification_fn      y1731_event_cb;
     sai_queue_pfc_deadlock_notification_fn              pfc_deadlock_cb;
     sai_signal_degrade_event_notification_fn            port_sd_cb;
+    sai_packet_event_ptp_tx_notification_fn            ptp_packet_tx_event_cb;
     sai_object_id_t                             default_trap_grp_id;
     dal_pci_dev_t pci_dev;
     sai_mac_t vxlan_default_router_mac;

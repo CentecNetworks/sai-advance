@@ -16,12 +16,12 @@ This module defines SAI TWAMP.
 \p
 \b
 \t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_twamp_session                                 |            CTC7132             |
-\t  |  remove_twamp_session                                 |            CTC7132             |
-\t  |  set_twamp_session_attribute                          |            CTC7132             |
-\t  |  get_twamp_session_attribute                          |            CTC7132             |
-\t  |  get_twamp_session_stats                              |            CTC7132             |
-\t  |  clear_twamp_session_stats                            |            CTC7132             |
+\e  |  create_twamp_session                                 |            CTC7132             |
+\e  |  remove_twamp_session                                 |            CTC7132             |
+\e  |  set_twamp_session_attribute                          |            CTC7132             |
+\e  |  get_twamp_session_attribute                          |            CTC7132             |
+\e  |  get_twamp_session_stats                              |            CTC7132             |
+\e  |  clear_twamp_session_stats                            |            CTC7132             |
 \b
 
 \p
@@ -29,29 +29,29 @@ This module defines SAI TWAMP.
 \p
 \b
 \t  |   ATTRIBUTE                                        |       SUPPORT CHIPS LIST       |
-\t  |  SAI_TWAMP_SESSION_ATTR_TWAMP_PORT                 |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT               |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_SESSION_ROLE               |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_UDP_SRC_PORT               |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_UDP_DST_PORT               |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_SRC_IP                     |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_DST_IP                     |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_TC                         |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_TTL                        |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_VPN_VIRTUAL_ROUTER         |            CTC7132             |  
-\t  |  SAI_TWAMP_SESSION_ATTR_TWAMP_ENCAPSULATION_TYPE   |            CTC7132             |        
-\t  |  SAI_TWAMP_SESSION_ATTR_SESSION_ENABLE_TRANSMIT    |            CTC7132             |       
-\t  |  SAI_TWAMP_SESSION_ATTR_HW_LOOKUP_VALID            |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_PACKET_LENGTH              |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_AUTH_MODE                  |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_NEXT_HOP_ID                |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_TX_RATE                    |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE                |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_TX_PKT_DURATION            |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_TX_PKT_CNT                 |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_TX_PKT_PERIOD              |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_MODE                       |            CTC7132             |
-\t  |  SAI_TWAMP_SESSION_ATTR_TIMESTAMP_FORMAT           |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_TWAMP_PORT                 |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT               |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_SESSION_ROLE               |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_UDP_SRC_PORT               |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_UDP_DST_PORT               |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_SRC_IP                     |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_DST_IP                     |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_TC                         |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_TTL                        |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_VPN_VIRTUAL_ROUTER         |            CTC7132             |  
+\e  |  SAI_TWAMP_SESSION_ATTR_TWAMP_ENCAPSULATION_TYPE   |            CTC7132             |        
+\e  |  SAI_TWAMP_SESSION_ATTR_SESSION_ENABLE_TRANSMIT    |            CTC7132             |       
+\e  |  SAI_TWAMP_SESSION_ATTR_HW_LOOKUP_VALID            |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_PACKET_LENGTH              |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_AUTH_MODE                  |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_NEXT_HOP_ID                |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_TX_RATE                    |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE                |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_TX_PKT_DURATION            |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_TX_PKT_CNT                 |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_TX_PKT_PERIOD              |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_MODE                       |            CTC7132             |
+\e  |  SAI_TWAMP_SESSION_ATTR_TIMESTAMP_FORMAT           |            CTC7132             |
 \b
 
 */
@@ -86,7 +86,10 @@ typedef struct ctc_sai_twamp_s
 {
     sai_object_id_t port_id;
     uint32      role;
-    sai_object_id_t receive_port_id;
+
+    uint32 receive_port_bits[8];  
+    uint32 receive_port_count; 
+
     uint32      udp_dst_port;
     uint32      udp_src_port;
     sai_ip_address_t dst_ip;
@@ -141,6 +144,10 @@ ctc_sai_twamp_api_init();
 
 extern sai_status_t
 ctc_sai_twamp_db_init(uint8 lchip);
+
+extern sai_status_t
+ctc_sai_twamp_db_deinit(uint8 lchip);
+
 
 #endif /*_CTC_SAI_TWAMP_H*/
 

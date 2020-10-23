@@ -32,7 +32,7 @@ This module defines SAI Scheduler Group.
 \t  |  SAI_SCHEDULER_GROUP_ATTR_MAX_CHILDS                  |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_SCHEDULER_GROUP_ATTR_SCHEDULER_PROFILE_ID        |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_SCHEDULER_GROUP_ATTR_PARENT_NODE                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_GROUP_ATTR_SERVICE_ID                  |            CTC7132             |
+\e  |  SAI_SCHEDULER_GROUP_ATTR_SERVICE_ID                  |            CTC7132             |
 \b
 */
 
@@ -53,11 +53,15 @@ This module defines SAI Scheduler Group.
 #define CTC_SAI_PORT_SCHED_GROUP_NUM 4
 
 
-
+typedef struct  ctc_sai_sched_group_child_id_s
+{
+   ctc_slistnode_t node;
+   sai_object_id_t child_id;
+}ctc_sai_sched_group_child_id_t;
 
 typedef struct  ctc_sai_sched_group_db_s
 {
-    sai_object_id_t child_list[CTC_SAI_SCHED_MAX_GRP_NUM];
+    ctc_slist_t *child_list_head;
     uint32 child_cnt;
     uint8  child_type;//oid type
     sai_object_id_t parent_id;

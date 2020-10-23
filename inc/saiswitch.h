@@ -1451,15 +1451,7 @@ typedef enum _sai_switch_attr_t
      * @default NULL
      */
     SAI_SWITCH_ATTR_PACKET_EVENT_NOTIFY,
-
-    /**
-     * @brief Max number of TWAMP session supports
-     *
-     * @type sai_uint32_t
-     * @flags READ_ONLY
-     */
-    SAI_SWITCH_ATTR_MAX_TWAMP_SESSION,
-
+    
     /**
      * @brief Enable SAI function call fast mode, which executes calls very quickly
      *
@@ -1834,6 +1826,14 @@ typedef enum _sai_switch_attr_t
      * @default false
      */
     SAI_SWITCH_ATTR_NAT_ENABLE,
+    
+    /**
+     * @brief End of attributes
+     */
+    SAI_SWITCH_ATTR_END,
+
+    /** Custom range base value */
+    SAI_SWITCH_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
      * @brief Set Switch Y1731 session event notification callback function passed to the adapter.
@@ -1907,7 +1907,7 @@ typedef enum _sai_switch_attr_t
      * @brief  buffer monitor microburst enable
      *
      * @type bool
-     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     * @flags CREATE_AND_SET
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE,
     
@@ -1915,7 +1915,7 @@ typedef enum _sai_switch_attr_t
      * @brief define the min threshold of microburst , global control(unit is byte)
      *
      * @type sai_uint32_t
-     * @flags MANDATORY_ON_CREATE |CREATE_AND_SET
+     * @flags CREATE_AND_SET
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN,
 
@@ -1923,7 +1923,7 @@ typedef enum _sai_switch_attr_t
      * @brief define the max threshold of microburst, global control(unit is byte)
      *
      * @type  sai_uint32_t
-     * @flags MANDATORY_ON_CREATE |CREATE_AND_SET
+     * @flags CREATE_AND_SET
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX,
 
@@ -2034,12 +2034,23 @@ typedef enum _sai_switch_attr_t
     SAI_SWITCH_ATTR_SIGNAL_DEGRADE_EVENT_NOTIFY,
 
     /**
-     * @brief End of attributes
+     * @brief Set ptp packet tx event notification callback function passed to the adapter.
+     *
+     * Use sai_packet_event_ptp_tx_notification_fn as notification function.
+     *
+     * @type sai_pointer_t sai_packet_event_ptp_tx_notification_fn
+     * @flags CREATE_AND_SET
+     * @default NULL
      */
-    SAI_SWITCH_ATTR_END,
+    SAI_SWITCH_ATTR_PTP_PACKET_TX_EVENT_NOTIFY,
 
-    /** Custom range base value */
-    SAI_SWITCH_ATTR_CUSTOM_RANGE_START = 0x10000000,
+    /**
+     * @brief Max number of TWAMP session supports
+     *
+     * @type sai_uint32_t
+     * @flags READ_ONLY
+     */
+    SAI_SWITCH_ATTR_MAX_TWAMP_SESSION,
 
     /** End of custom range base */
     SAI_SWITCH_ATTR_CUSTOM_RANGE_END

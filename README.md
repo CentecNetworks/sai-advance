@@ -84,8 +84,9 @@ Sales email: sales@centecnetworks.com<BR>
 
 # Release Log
 ## 2020-05-29
-  Initial release.
-### Feauture Added:
+  Initial release.<BR>
+  tag：CTC-v1.0.0-SAI-1.5.0
+### Feature Added:
     Support CTC7132
     Support SAI 1.5
     Support above feature list
@@ -93,8 +94,9 @@ Sales email: sales@centecnetworks.com<BR>
  This pakage depends on Centec SDK V5.5.6RC
 
 ## 2020-07-31
-  Second release.
-### Feauture Added:
+  Second release.<BR>
+  tag：CTC-v1.1.0-SAI-1.5.0
+### Feature Added:
     Support CTC7132
     Support SAI 1.5
     Support new feature list: 
@@ -103,6 +105,17 @@ Sales email: sales@centecnetworks.com<BR>
         Signal Degrade Detect
 ### Dependencies
  This pakage depends on Centec SDK V5.6.0.21
+
+## 2020-10-23
+  3rd release.<BR>
+  tag：CTC-v1.1.1-SAI-1.5.0
+### Feature Added:
+    Support CTC7132
+    Support SAI 1.5
+    Support new feature list: 
+         More support for L2/L3 VPN
+### Dependencies
+ This pakage depends on Centec SDK V5.6.1
  
 # How to compile
 

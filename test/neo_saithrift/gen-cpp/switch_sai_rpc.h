@@ -76,6 +76,9 @@ class switch_sai_rpcIf {
   virtual sai_thrift_object_id_t sai_thrift_create_next_hop_group_member(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_next_hop_group_member(const sai_thrift_object_id_t nhop_group_member_oid) = 0;
   virtual void sai_thrift_get_next_hop_group_member_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t nhop_group_member_oid) = 0;
+  virtual void sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t nhop_group_member_oid) = 0;
+  virtual void sai_thrift_create_next_hop_group_members(sai_thrift_results_t& _return, const std::vector<sai_thrift_attribute_t> & thrift_attr_lists, const std::vector<int32_t> & thrift_attr_count_lists, const int8_t mode) = 0;
+  virtual void sai_thrift_remove_next_hop_group_members(sai_thrift_status_list_t& _return, const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, const int8_t mode) = 0;
   virtual sai_thrift_object_id_t sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_lag(const sai_thrift_object_id_t lag_id) = 0;
   virtual sai_thrift_status_t sai_thrift_set_lag_attribute(const sai_thrift_object_id_t lag_id, const sai_thrift_attribute_t& thrift_attr) = 0;
@@ -157,9 +160,11 @@ class switch_sai_rpcIf {
   virtual void sai_thrift_get_acl_table_group_member_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_table_group_member_id) = 0;
   virtual sai_thrift_object_id_t sai_thrift_create_acl_counter(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_acl_counter(const sai_thrift_object_id_t acl_counter_id) = 0;
-  virtual void sai_thrift_get_acl_counter_attribute(std::vector<sai_thrift_attribute_value_t> & _return, const sai_thrift_object_id_t acl_counter_id, const std::vector<int32_t> & thrift_attr_ids) = 0;
+  virtual void sai_thrift_get_acl_counter_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_counter_id) = 0;
+  virtual sai_thrift_status_t sai_thrift_set_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const sai_thrift_attribute_t& thrift_attr) = 0;
   virtual sai_thrift_object_id_t sai_thrift_create_acl_range(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_acl_range(const sai_thrift_object_id_t acl_range_id) = 0;
+  virtual void sai_thrift_get_acl_range_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_range_id) = 0;
   virtual sai_thrift_object_id_t sai_thrift_create_hash(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_hash(const sai_thrift_object_id_t hash_id) = 0;
   virtual sai_thrift_status_t sai_thrift_set_hash_attribute(const sai_thrift_object_id_t thrift_hash_id, const sai_thrift_attribute_t& thrift_attr) = 0;
@@ -177,6 +182,9 @@ class switch_sai_rpcIf {
   virtual sai_thrift_object_id_t sai_thrift_create_twamp_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_twamp_session(const sai_thrift_object_id_t session_id) = 0;
   virtual sai_thrift_status_t sai_thrift_set_twamp_attribute(const sai_thrift_object_id_t thrift_twamp_session_id, const sai_thrift_attribute_t& thrift_attr) = 0;
+  virtual void sai_thrift_get_twamp_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t thrift_twamp_session_id) = 0;
+  virtual void sai_thrift_get_twamp_session_stats(std::vector<int64_t> & _return, const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & counter_ids, const int32_t number_of_counters) = 0;
+  virtual sai_thrift_status_t sai_thrift_clear_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & thrift_counter_ids, const int32_t number_of_counters) = 0;
   virtual sai_thrift_object_id_t sai_thrift_create_mirror_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_mirror_session(const sai_thrift_object_id_t session_id) = 0;
   virtual sai_thrift_status_t sai_thrift_set_mirror_attribute(const sai_thrift_object_id_t thrift_mirror_id, const sai_thrift_attribute_t& thrift_attr) = 0;
@@ -191,6 +199,7 @@ class switch_sai_rpcIf {
   virtual void sai_thrift_get_policer_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t thrift_policer_id) = 0;
   virtual sai_thrift_status_t sai_thrift_set_policer_attribute(const sai_thrift_object_id_t thrift_policer_id, const sai_thrift_attribute_t& thrift_attr) = 0;
   virtual void sai_thrift_get_policer_stats(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids) = 0;
+  virtual void sai_thrift_get_policer_stats_ext(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids, const int8_t mode) = 0;
   virtual sai_thrift_status_t sai_thrift_clear_policer_stats(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids) = 0;
   virtual sai_thrift_object_id_t sai_thrift_create_scheduler_profile(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_scheduler_profile(const sai_thrift_object_id_t scheduler_id) = 0;
@@ -279,7 +288,7 @@ class switch_sai_rpcIf {
   virtual sai_thrift_status_t sai_thrift_remove_tunnel_term_table_entry(const sai_thrift_object_id_t tunnel_term_table_entry_id) = 0;
   virtual void sai_thrift_get_tunnel_term_table_entry_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t tunnel_term_table_entry_id, const std::vector<int32_t> & thrift_attr_ids) = 0;
   virtual sai_thrift_status_t sai_thrift_set_tunnel_term_table_entry_attribute(const sai_thrift_object_id_t tunnel_term_table_entry_id, const sai_thrift_attribute_t& thrift_attr) = 0;
-  virtual void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t switch_id) = 0;
+  virtual void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return) = 0;
   virtual void sai_thrift_get_cpu_packet_count(sai_thrift_result_t& _return) = 0;
   virtual void sai_thrift_clear_cpu_packet_info(sai_thrift_result_t& _return) = 0;
   virtual sai_thrift_status_t sai_thrift_log_set(const int32_t sai_api_id, const int32_t log_level) = 0;
@@ -327,10 +336,22 @@ class switch_sai_rpcIf {
   virtual sai_thrift_status_t sai_thrift_remove_ptp_domain(const sai_thrift_object_id_t ptp_oid) = 0;
   virtual sai_thrift_status_t sai_thrift_set_ptp_domain_attribute(const sai_thrift_object_id_t ptp_oid, const sai_thrift_attribute_t& thrift_attr) = 0;
   virtual void sai_thrift_get_ptp_domain_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t ptp_oid) = 0;
+  virtual sai_thrift_object_id_t sai_thrift_create_synce(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
+  virtual sai_thrift_status_t sai_thrift_remove_synce(const sai_thrift_object_id_t synce_oid) = 0;
+  virtual sai_thrift_status_t sai_thrift_set_synce_attribute(const sai_thrift_object_id_t synce_oid, const sai_thrift_attribute_t& thrift_attr) = 0;
+  virtual void sai_thrift_get_synce_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t synce_oid) = 0;
   virtual sai_thrift_object_id_t sai_thrift_create_es(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
   virtual sai_thrift_status_t sai_thrift_remove_es(const sai_thrift_object_id_t es_oid) = 0;
   virtual sai_thrift_status_t sai_thrift_set_es_attribute(const sai_thrift_object_id_t es_oid, const sai_thrift_attribute_t& thrift_attr) = 0;
   virtual void sai_thrift_get_es_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t es_oid) = 0;
+  virtual sai_thrift_object_id_t sai_thrift_create_monitor_buffer(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
+  virtual sai_thrift_status_t sai_thrift_remove_monitor_buffer(const sai_thrift_object_id_t monitor_buffer_oid) = 0;
+  virtual sai_thrift_status_t sai_thrift_set_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid, const sai_thrift_attribute_t& thrift_attr) = 0;
+  virtual void sai_thrift_get_monitor_buffer_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_buffer_oid) = 0;
+  virtual sai_thrift_object_id_t sai_thrift_create_monitor_latency(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) = 0;
+  virtual sai_thrift_status_t sai_thrift_remove_monitor_latency(const sai_thrift_object_id_t monitor_latency_oid) = 0;
+  virtual sai_thrift_status_t sai_thrift_set_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid, const sai_thrift_attribute_t& thrift_attr) = 0;
+  virtual void sai_thrift_get_monitor_latency_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_latency_oid) = 0;
 };
 
 class switch_sai_rpcIfFactory {
@@ -554,6 +575,15 @@ class switch_sai_rpcNull : virtual public switch_sai_rpcIf {
     return _return;
   }
   void sai_thrift_get_next_hop_group_member_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* nhop_group_member_oid */) {
+    return;
+  }
+  void sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* nhop_group_member_oid */) {
+    return;
+  }
+  void sai_thrift_create_next_hop_group_members(sai_thrift_results_t& /* _return */, const std::vector<sai_thrift_attribute_t> & /* thrift_attr_lists */, const std::vector<int32_t> & /* thrift_attr_count_lists */, const int8_t /* mode */) {
+    return;
+  }
+  void sai_thrift_remove_next_hop_group_members(sai_thrift_status_list_t& /* _return */, const std::vector<sai_thrift_object_id_t> & /* thrift_object_id_list */, const int8_t /* mode */) {
     return;
   }
   sai_thrift_object_id_t sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & /* thrift_attr_list */) {
@@ -853,8 +883,12 @@ class switch_sai_rpcNull : virtual public switch_sai_rpcIf {
     sai_thrift_status_t _return = 0;
     return _return;
   }
-  void sai_thrift_get_acl_counter_attribute(std::vector<sai_thrift_attribute_value_t> & /* _return */, const sai_thrift_object_id_t /* acl_counter_id */, const std::vector<int32_t> & /* thrift_attr_ids */) {
+  void sai_thrift_get_acl_counter_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* acl_counter_id */) {
     return;
+  }
+  sai_thrift_status_t sai_thrift_set_acl_counter_attribute(const sai_thrift_object_id_t /* acl_counter_id */, const sai_thrift_attribute_t& /* thrift_attr */) {
+    sai_thrift_status_t _return = 0;
+    return _return;
   }
   sai_thrift_object_id_t sai_thrift_create_acl_range(const std::vector<sai_thrift_attribute_t> & /* thrift_attr_list */) {
     sai_thrift_object_id_t _return = 0;
@@ -863,6 +897,9 @@ class switch_sai_rpcNull : virtual public switch_sai_rpcIf {
   sai_thrift_status_t sai_thrift_remove_acl_range(const sai_thrift_object_id_t /* acl_range_id */) {
     sai_thrift_status_t _return = 0;
     return _return;
+  }
+  void sai_thrift_get_acl_range_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* acl_range_id */) {
+    return;
   }
   sai_thrift_object_id_t sai_thrift_create_hash(const std::vector<sai_thrift_attribute_t> & /* thrift_attr_list */) {
     sai_thrift_object_id_t _return = 0;
@@ -928,6 +965,16 @@ class switch_sai_rpcNull : virtual public switch_sai_rpcIf {
     sai_thrift_status_t _return = 0;
     return _return;
   }
+  void sai_thrift_get_twamp_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* thrift_twamp_session_id */) {
+    return;
+  }
+  void sai_thrift_get_twamp_session_stats(std::vector<int64_t> & /* _return */, const sai_thrift_object_id_t /* twamp_id */, const std::vector<sai_thrift_twamp_stat_counter_t> & /* counter_ids */, const int32_t /* number_of_counters */) {
+    return;
+  }
+  sai_thrift_status_t sai_thrift_clear_twamp_session_stats(const sai_thrift_object_id_t /* twamp_id */, const std::vector<sai_thrift_twamp_stat_counter_t> & /* thrift_counter_ids */, const int32_t /* number_of_counters */) {
+    sai_thrift_status_t _return = 0;
+    return _return;
+  }
   sai_thrift_object_id_t sai_thrift_create_mirror_session(const std::vector<sai_thrift_attribute_t> & /* thrift_attr_list */) {
     sai_thrift_object_id_t _return = 0;
     return _return;
@@ -978,6 +1025,9 @@ class switch_sai_rpcNull : virtual public switch_sai_rpcIf {
     return _return;
   }
   void sai_thrift_get_policer_stats(std::vector<sai_thrift_uint64_t> & /* _return */, const sai_thrift_object_id_t /* thrift_policer_id */, const std::vector<sai_thrift_policer_stat_t> & /* thrift_counter_ids */) {
+    return;
+  }
+  void sai_thrift_get_policer_stats_ext(std::vector<sai_thrift_uint64_t> & /* _return */, const sai_thrift_object_id_t /* thrift_policer_id */, const std::vector<sai_thrift_policer_stat_t> & /* thrift_counter_ids */, const int8_t /* mode */) {
     return;
   }
   sai_thrift_status_t sai_thrift_clear_policer_stats(const sai_thrift_object_id_t /* thrift_policer_id */, const std::vector<sai_thrift_policer_stat_t> & /* thrift_counter_ids */) {
@@ -1308,7 +1358,7 @@ class switch_sai_rpcNull : virtual public switch_sai_rpcIf {
     sai_thrift_status_t _return = 0;
     return _return;
   }
-  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* switch_id */) {
+  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& /* _return */) {
     return;
   }
   void sai_thrift_get_cpu_packet_count(sai_thrift_result_t& /* _return */) {
@@ -1484,6 +1534,21 @@ class switch_sai_rpcNull : virtual public switch_sai_rpcIf {
   void sai_thrift_get_ptp_domain_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* ptp_oid */) {
     return;
   }
+  sai_thrift_object_id_t sai_thrift_create_synce(const std::vector<sai_thrift_attribute_t> & /* thrift_attr_list */) {
+    sai_thrift_object_id_t _return = 0;
+    return _return;
+  }
+  sai_thrift_status_t sai_thrift_remove_synce(const sai_thrift_object_id_t /* synce_oid */) {
+    sai_thrift_status_t _return = 0;
+    return _return;
+  }
+  sai_thrift_status_t sai_thrift_set_synce_attribute(const sai_thrift_object_id_t /* synce_oid */, const sai_thrift_attribute_t& /* thrift_attr */) {
+    sai_thrift_status_t _return = 0;
+    return _return;
+  }
+  void sai_thrift_get_synce_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* synce_oid */) {
+    return;
+  }
   sai_thrift_object_id_t sai_thrift_create_es(const std::vector<sai_thrift_attribute_t> & /* thrift_attr_list */) {
     sai_thrift_object_id_t _return = 0;
     return _return;
@@ -1497,6 +1562,36 @@ class switch_sai_rpcNull : virtual public switch_sai_rpcIf {
     return _return;
   }
   void sai_thrift_get_es_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* es_oid */) {
+    return;
+  }
+  sai_thrift_object_id_t sai_thrift_create_monitor_buffer(const std::vector<sai_thrift_attribute_t> & /* thrift_attr_list */) {
+    sai_thrift_object_id_t _return = 0;
+    return _return;
+  }
+  sai_thrift_status_t sai_thrift_remove_monitor_buffer(const sai_thrift_object_id_t /* monitor_buffer_oid */) {
+    sai_thrift_status_t _return = 0;
+    return _return;
+  }
+  sai_thrift_status_t sai_thrift_set_monitor_buffer_attribute(const sai_thrift_object_id_t /* monitor_buffer_oid */, const sai_thrift_attribute_t& /* thrift_attr */) {
+    sai_thrift_status_t _return = 0;
+    return _return;
+  }
+  void sai_thrift_get_monitor_buffer_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* monitor_buffer_oid */) {
+    return;
+  }
+  sai_thrift_object_id_t sai_thrift_create_monitor_latency(const std::vector<sai_thrift_attribute_t> & /* thrift_attr_list */) {
+    sai_thrift_object_id_t _return = 0;
+    return _return;
+  }
+  sai_thrift_status_t sai_thrift_remove_monitor_latency(const sai_thrift_object_id_t /* monitor_latency_oid */) {
+    sai_thrift_status_t _return = 0;
+    return _return;
+  }
+  sai_thrift_status_t sai_thrift_set_monitor_latency_attribute(const sai_thrift_object_id_t /* monitor_latency_oid */, const sai_thrift_attribute_t& /* thrift_attr */) {
+    sai_thrift_status_t _return = 0;
+    return _return;
+  }
+  void sai_thrift_get_monitor_latency_attribute(sai_thrift_attribute_list_t& /* _return */, const sai_thrift_object_id_t /* monitor_latency_oid */) {
     return;
   }
 };
@@ -7399,6 +7494,339 @@ class switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_presult {
   sai_thrift_attribute_list_t* success;
 
   _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args__isset {
+  _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args__isset() : nhop_group_member_oid(false) {}
+  bool nhop_group_member_oid :1;
+} _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args__isset;
+
+class switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args(const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args&);
+  switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args& operator=(const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args&);
+  switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args() : nhop_group_member_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args() noexcept;
+  sai_thrift_object_id_t nhop_group_member_oid;
+
+  _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args__isset __isset;
+
+  void __set_nhop_group_member_oid(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args & rhs) const
+  {
+    if (!(nhop_group_member_oid == rhs.nhop_group_member_oid))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_pargs() noexcept;
+  const sai_thrift_object_id_t* nhop_group_member_oid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result__isset {
+  _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result__isset;
+
+class switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result(const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result&);
+  switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result& operator=(const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result&);
+  switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result() noexcept;
+  sai_thrift_attribute_list_t success;
+
+  _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result__isset __isset;
+
+  void __set_success(const sai_thrift_attribute_list_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_presult__isset {
+  _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_presult__isset;
+
+class switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_presult() noexcept;
+  sai_thrift_attribute_list_t* success;
+
+  _switch_sai_rpc_sai_thrift_get_next_hop_group_member_attribute_ecmp_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_next_hop_group_members_args__isset {
+  _switch_sai_rpc_sai_thrift_create_next_hop_group_members_args__isset() : thrift_attr_lists(false), thrift_attr_count_lists(false), mode(false) {}
+  bool thrift_attr_lists :1;
+  bool thrift_attr_count_lists :1;
+  bool mode :1;
+} _switch_sai_rpc_sai_thrift_create_next_hop_group_members_args__isset;
+
+class switch_sai_rpc_sai_thrift_create_next_hop_group_members_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_create_next_hop_group_members_args(const switch_sai_rpc_sai_thrift_create_next_hop_group_members_args&);
+  switch_sai_rpc_sai_thrift_create_next_hop_group_members_args& operator=(const switch_sai_rpc_sai_thrift_create_next_hop_group_members_args&);
+  switch_sai_rpc_sai_thrift_create_next_hop_group_members_args() : mode(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_create_next_hop_group_members_args() noexcept;
+  std::vector<sai_thrift_attribute_t>  thrift_attr_lists;
+  std::vector<int32_t>  thrift_attr_count_lists;
+  int8_t mode;
+
+  _switch_sai_rpc_sai_thrift_create_next_hop_group_members_args__isset __isset;
+
+  void __set_thrift_attr_lists(const std::vector<sai_thrift_attribute_t> & val);
+
+  void __set_thrift_attr_count_lists(const std::vector<int32_t> & val);
+
+  void __set_mode(const int8_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_create_next_hop_group_members_args & rhs) const
+  {
+    if (!(thrift_attr_lists == rhs.thrift_attr_lists))
+      return false;
+    if (!(thrift_attr_count_lists == rhs.thrift_attr_count_lists))
+      return false;
+    if (!(mode == rhs.mode))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_create_next_hop_group_members_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_create_next_hop_group_members_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_create_next_hop_group_members_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_create_next_hop_group_members_pargs() noexcept;
+  const std::vector<sai_thrift_attribute_t> * thrift_attr_lists;
+  const std::vector<int32_t> * thrift_attr_count_lists;
+  const int8_t* mode;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_next_hop_group_members_result__isset {
+  _switch_sai_rpc_sai_thrift_create_next_hop_group_members_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_create_next_hop_group_members_result__isset;
+
+class switch_sai_rpc_sai_thrift_create_next_hop_group_members_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_create_next_hop_group_members_result(const switch_sai_rpc_sai_thrift_create_next_hop_group_members_result&);
+  switch_sai_rpc_sai_thrift_create_next_hop_group_members_result& operator=(const switch_sai_rpc_sai_thrift_create_next_hop_group_members_result&);
+  switch_sai_rpc_sai_thrift_create_next_hop_group_members_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_create_next_hop_group_members_result() noexcept;
+  sai_thrift_results_t success;
+
+  _switch_sai_rpc_sai_thrift_create_next_hop_group_members_result__isset __isset;
+
+  void __set_success(const sai_thrift_results_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_create_next_hop_group_members_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_create_next_hop_group_members_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_create_next_hop_group_members_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_next_hop_group_members_presult__isset {
+  _switch_sai_rpc_sai_thrift_create_next_hop_group_members_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_create_next_hop_group_members_presult__isset;
+
+class switch_sai_rpc_sai_thrift_create_next_hop_group_members_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_create_next_hop_group_members_presult() noexcept;
+  sai_thrift_results_t* success;
+
+  _switch_sai_rpc_sai_thrift_create_next_hop_group_members_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args__isset {
+  _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args__isset() : thrift_object_id_list(false), mode(false) {}
+  bool thrift_object_id_list :1;
+  bool mode :1;
+} _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args__isset;
+
+class switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args(const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args&);
+  switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args& operator=(const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args&);
+  switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args() : mode(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args() noexcept;
+  std::vector<sai_thrift_object_id_t>  thrift_object_id_list;
+  int8_t mode;
+
+  _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args__isset __isset;
+
+  void __set_thrift_object_id_list(const std::vector<sai_thrift_object_id_t> & val);
+
+  void __set_mode(const int8_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args & rhs) const
+  {
+    if (!(thrift_object_id_list == rhs.thrift_object_id_list))
+      return false;
+    if (!(mode == rhs.mode))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_remove_next_hop_group_members_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_next_hop_group_members_pargs() noexcept;
+  const std::vector<sai_thrift_object_id_t> * thrift_object_id_list;
+  const int8_t* mode;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result__isset {
+  _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result__isset;
+
+class switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result(const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result&);
+  switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result& operator=(const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result&);
+  switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result() noexcept;
+  sai_thrift_status_list_t success;
+
+  _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_list_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_remove_next_hop_group_members_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_presult__isset {
+  _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_presult__isset;
+
+class switch_sai_rpc_sai_thrift_remove_next_hop_group_members_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_next_hop_group_members_presult() noexcept;
+  sai_thrift_status_list_t* success;
+
+  _switch_sai_rpc_sai_thrift_remove_next_hop_group_members_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -15945,9 +16373,8 @@ class switch_sai_rpc_sai_thrift_remove_acl_counter_presult {
 };
 
 typedef struct _switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args__isset {
-  _switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args__isset() : acl_counter_id(false), thrift_attr_ids(false) {}
+  _switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args__isset() : acl_counter_id(false) {}
   bool acl_counter_id :1;
-  bool thrift_attr_ids :1;
 } _switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args__isset;
 
 class switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args {
@@ -15960,19 +16387,14 @@ class switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args {
 
   virtual ~switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args() noexcept;
   sai_thrift_object_id_t acl_counter_id;
-  std::vector<int32_t>  thrift_attr_ids;
 
   _switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args__isset __isset;
 
   void __set_acl_counter_id(const sai_thrift_object_id_t val);
 
-  void __set_thrift_attr_ids(const std::vector<int32_t> & val);
-
   bool operator == (const switch_sai_rpc_sai_thrift_get_acl_counter_attribute_args & rhs) const
   {
     if (!(acl_counter_id == rhs.acl_counter_id))
-      return false;
-    if (!(thrift_attr_ids == rhs.thrift_attr_ids))
       return false;
     return true;
   }
@@ -15994,7 +16416,6 @@ class switch_sai_rpc_sai_thrift_get_acl_counter_attribute_pargs {
 
   virtual ~switch_sai_rpc_sai_thrift_get_acl_counter_attribute_pargs() noexcept;
   const sai_thrift_object_id_t* acl_counter_id;
-  const std::vector<int32_t> * thrift_attr_ids;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -16014,11 +16435,11 @@ class switch_sai_rpc_sai_thrift_get_acl_counter_attribute_result {
   }
 
   virtual ~switch_sai_rpc_sai_thrift_get_acl_counter_attribute_result() noexcept;
-  std::vector<sai_thrift_attribute_value_t>  success;
+  sai_thrift_attribute_list_t success;
 
   _switch_sai_rpc_sai_thrift_get_acl_counter_attribute_result__isset __isset;
 
-  void __set_success(const std::vector<sai_thrift_attribute_value_t> & val);
+  void __set_success(const sai_thrift_attribute_list_t& val);
 
   bool operator == (const switch_sai_rpc_sai_thrift_get_acl_counter_attribute_result & rhs) const
   {
@@ -16047,9 +16468,120 @@ class switch_sai_rpc_sai_thrift_get_acl_counter_attribute_presult {
 
 
   virtual ~switch_sai_rpc_sai_thrift_get_acl_counter_attribute_presult() noexcept;
-  std::vector<sai_thrift_attribute_value_t> * success;
+  sai_thrift_attribute_list_t* success;
 
   _switch_sai_rpc_sai_thrift_get_acl_counter_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args__isset() : acl_counter_id(false), thrift_attr(false) {}
+  bool acl_counter_id :1;
+  bool thrift_attr :1;
+} _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args(const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args&);
+  switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args& operator=(const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args&);
+  switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args() : acl_counter_id(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args() noexcept;
+  sai_thrift_object_id_t acl_counter_id;
+  sai_thrift_attribute_t thrift_attr;
+
+  _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args__isset __isset;
+
+  void __set_acl_counter_id(const sai_thrift_object_id_t val);
+
+  void __set_thrift_attr(const sai_thrift_attribute_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args & rhs) const
+  {
+    if (!(acl_counter_id == rhs.acl_counter_id))
+      return false;
+    if (!(thrift_attr == rhs.thrift_attr))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_set_acl_counter_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_set_acl_counter_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* acl_counter_id;
+  const sai_thrift_attribute_t* thrift_attr;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result(const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result&);
+  switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result& operator=(const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result&);
+  switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result() noexcept;
+  sai_thrift_status_t success;
+
+  _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_set_acl_counter_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_set_acl_counter_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_set_acl_counter_attribute_presult() noexcept;
+  sai_thrift_status_t* success;
+
+  _switch_sai_rpc_sai_thrift_set_acl_counter_attribute_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -16258,6 +16790,110 @@ class switch_sai_rpc_sai_thrift_remove_acl_range_presult {
   sai_thrift_status_t* success;
 
   _switch_sai_rpc_sai_thrift_remove_acl_range_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_acl_range_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_get_acl_range_attribute_args__isset() : acl_range_id(false) {}
+  bool acl_range_id :1;
+} _switch_sai_rpc_sai_thrift_get_acl_range_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_get_acl_range_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_acl_range_attribute_args(const switch_sai_rpc_sai_thrift_get_acl_range_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_acl_range_attribute_args& operator=(const switch_sai_rpc_sai_thrift_get_acl_range_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_acl_range_attribute_args() : acl_range_id(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_acl_range_attribute_args() noexcept;
+  sai_thrift_object_id_t acl_range_id;
+
+  _switch_sai_rpc_sai_thrift_get_acl_range_attribute_args__isset __isset;
+
+  void __set_acl_range_id(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_acl_range_attribute_args & rhs) const
+  {
+    if (!(acl_range_id == rhs.acl_range_id))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_acl_range_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_acl_range_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_get_acl_range_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_acl_range_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* acl_range_id;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_acl_range_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_get_acl_range_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_acl_range_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_get_acl_range_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_acl_range_attribute_result(const switch_sai_rpc_sai_thrift_get_acl_range_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_acl_range_attribute_result& operator=(const switch_sai_rpc_sai_thrift_get_acl_range_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_acl_range_attribute_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_acl_range_attribute_result() noexcept;
+  sai_thrift_attribute_list_t success;
+
+  _switch_sai_rpc_sai_thrift_get_acl_range_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_attribute_list_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_acl_range_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_acl_range_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_acl_range_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_acl_range_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_get_acl_range_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_acl_range_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_get_acl_range_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_acl_range_attribute_presult() noexcept;
+  sai_thrift_attribute_list_t* success;
+
+  _switch_sai_rpc_sai_thrift_get_acl_range_attribute_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -18052,6 +18688,346 @@ class switch_sai_rpc_sai_thrift_set_twamp_attribute_presult {
 
 };
 
+typedef struct _switch_sai_rpc_sai_thrift_get_twamp_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_get_twamp_attribute_args__isset() : thrift_twamp_session_id(false) {}
+  bool thrift_twamp_session_id :1;
+} _switch_sai_rpc_sai_thrift_get_twamp_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_get_twamp_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_twamp_attribute_args(const switch_sai_rpc_sai_thrift_get_twamp_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_twamp_attribute_args& operator=(const switch_sai_rpc_sai_thrift_get_twamp_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_twamp_attribute_args() : thrift_twamp_session_id(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_twamp_attribute_args() noexcept;
+  sai_thrift_object_id_t thrift_twamp_session_id;
+
+  _switch_sai_rpc_sai_thrift_get_twamp_attribute_args__isset __isset;
+
+  void __set_thrift_twamp_session_id(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_twamp_attribute_args & rhs) const
+  {
+    if (!(thrift_twamp_session_id == rhs.thrift_twamp_session_id))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_twamp_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_twamp_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_get_twamp_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_twamp_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* thrift_twamp_session_id;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_twamp_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_get_twamp_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_twamp_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_get_twamp_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_twamp_attribute_result(const switch_sai_rpc_sai_thrift_get_twamp_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_twamp_attribute_result& operator=(const switch_sai_rpc_sai_thrift_get_twamp_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_twamp_attribute_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_twamp_attribute_result() noexcept;
+  sai_thrift_attribute_list_t success;
+
+  _switch_sai_rpc_sai_thrift_get_twamp_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_attribute_list_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_twamp_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_twamp_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_twamp_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_twamp_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_get_twamp_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_twamp_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_get_twamp_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_twamp_attribute_presult() noexcept;
+  sai_thrift_attribute_list_t* success;
+
+  _switch_sai_rpc_sai_thrift_get_twamp_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_twamp_session_stats_args__isset {
+  _switch_sai_rpc_sai_thrift_get_twamp_session_stats_args__isset() : twamp_id(false), counter_ids(false), number_of_counters(false) {}
+  bool twamp_id :1;
+  bool counter_ids :1;
+  bool number_of_counters :1;
+} _switch_sai_rpc_sai_thrift_get_twamp_session_stats_args__isset;
+
+class switch_sai_rpc_sai_thrift_get_twamp_session_stats_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_twamp_session_stats_args(const switch_sai_rpc_sai_thrift_get_twamp_session_stats_args&);
+  switch_sai_rpc_sai_thrift_get_twamp_session_stats_args& operator=(const switch_sai_rpc_sai_thrift_get_twamp_session_stats_args&);
+  switch_sai_rpc_sai_thrift_get_twamp_session_stats_args() : twamp_id(0), number_of_counters(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_twamp_session_stats_args() noexcept;
+  sai_thrift_object_id_t twamp_id;
+  std::vector<sai_thrift_twamp_stat_counter_t>  counter_ids;
+  int32_t number_of_counters;
+
+  _switch_sai_rpc_sai_thrift_get_twamp_session_stats_args__isset __isset;
+
+  void __set_twamp_id(const sai_thrift_object_id_t val);
+
+  void __set_counter_ids(const std::vector<sai_thrift_twamp_stat_counter_t> & val);
+
+  void __set_number_of_counters(const int32_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_twamp_session_stats_args & rhs) const
+  {
+    if (!(twamp_id == rhs.twamp_id))
+      return false;
+    if (!(counter_ids == rhs.counter_ids))
+      return false;
+    if (!(number_of_counters == rhs.number_of_counters))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_twamp_session_stats_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_twamp_session_stats_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_get_twamp_session_stats_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_twamp_session_stats_pargs() noexcept;
+  const sai_thrift_object_id_t* twamp_id;
+  const std::vector<sai_thrift_twamp_stat_counter_t> * counter_ids;
+  const int32_t* number_of_counters;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_twamp_session_stats_result__isset {
+  _switch_sai_rpc_sai_thrift_get_twamp_session_stats_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_twamp_session_stats_result__isset;
+
+class switch_sai_rpc_sai_thrift_get_twamp_session_stats_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_twamp_session_stats_result(const switch_sai_rpc_sai_thrift_get_twamp_session_stats_result&);
+  switch_sai_rpc_sai_thrift_get_twamp_session_stats_result& operator=(const switch_sai_rpc_sai_thrift_get_twamp_session_stats_result&);
+  switch_sai_rpc_sai_thrift_get_twamp_session_stats_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_twamp_session_stats_result() noexcept;
+  std::vector<int64_t>  success;
+
+  _switch_sai_rpc_sai_thrift_get_twamp_session_stats_result__isset __isset;
+
+  void __set_success(const std::vector<int64_t> & val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_twamp_session_stats_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_twamp_session_stats_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_twamp_session_stats_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_twamp_session_stats_presult__isset {
+  _switch_sai_rpc_sai_thrift_get_twamp_session_stats_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_twamp_session_stats_presult__isset;
+
+class switch_sai_rpc_sai_thrift_get_twamp_session_stats_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_twamp_session_stats_presult() noexcept;
+  std::vector<int64_t> * success;
+
+  _switch_sai_rpc_sai_thrift_get_twamp_session_stats_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args__isset {
+  _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args__isset() : twamp_id(false), thrift_counter_ids(false), number_of_counters(false) {}
+  bool twamp_id :1;
+  bool thrift_counter_ids :1;
+  bool number_of_counters :1;
+} _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args__isset;
+
+class switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args(const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args&);
+  switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args& operator=(const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args&);
+  switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args() : twamp_id(0), number_of_counters(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args() noexcept;
+  sai_thrift_object_id_t twamp_id;
+  std::vector<sai_thrift_twamp_stat_counter_t>  thrift_counter_ids;
+  int32_t number_of_counters;
+
+  _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args__isset __isset;
+
+  void __set_twamp_id(const sai_thrift_object_id_t val);
+
+  void __set_thrift_counter_ids(const std::vector<sai_thrift_twamp_stat_counter_t> & val);
+
+  void __set_number_of_counters(const int32_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args & rhs) const
+  {
+    if (!(twamp_id == rhs.twamp_id))
+      return false;
+    if (!(thrift_counter_ids == rhs.thrift_counter_ids))
+      return false;
+    if (!(number_of_counters == rhs.number_of_counters))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_clear_twamp_session_stats_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_clear_twamp_session_stats_pargs() noexcept;
+  const sai_thrift_object_id_t* twamp_id;
+  const std::vector<sai_thrift_twamp_stat_counter_t> * thrift_counter_ids;
+  const int32_t* number_of_counters;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result__isset {
+  _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result__isset;
+
+class switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result(const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result&);
+  switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result& operator=(const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result&);
+  switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result() noexcept;
+  sai_thrift_status_t success;
+
+  _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_clear_twamp_session_stats_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_presult__isset {
+  _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_presult__isset;
+
+class switch_sai_rpc_sai_thrift_clear_twamp_session_stats_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_clear_twamp_session_stats_presult() noexcept;
+  sai_thrift_status_t* success;
+
+  _switch_sai_rpc_sai_thrift_clear_twamp_session_stats_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _switch_sai_rpc_sai_thrift_create_mirror_session_args__isset {
   _switch_sai_rpc_sai_thrift_create_mirror_session_args__isset() : thrift_attr_list(false) {}
   bool thrift_attr_list :1;
@@ -19538,6 +20514,124 @@ class switch_sai_rpc_sai_thrift_get_policer_stats_presult {
   std::vector<sai_thrift_uint64_t> * success;
 
   _switch_sai_rpc_sai_thrift_get_policer_stats_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_policer_stats_ext_args__isset {
+  _switch_sai_rpc_sai_thrift_get_policer_stats_ext_args__isset() : thrift_policer_id(false), thrift_counter_ids(false), mode(false) {}
+  bool thrift_policer_id :1;
+  bool thrift_counter_ids :1;
+  bool mode :1;
+} _switch_sai_rpc_sai_thrift_get_policer_stats_ext_args__isset;
+
+class switch_sai_rpc_sai_thrift_get_policer_stats_ext_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_policer_stats_ext_args(const switch_sai_rpc_sai_thrift_get_policer_stats_ext_args&);
+  switch_sai_rpc_sai_thrift_get_policer_stats_ext_args& operator=(const switch_sai_rpc_sai_thrift_get_policer_stats_ext_args&);
+  switch_sai_rpc_sai_thrift_get_policer_stats_ext_args() : thrift_policer_id(0), mode(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_policer_stats_ext_args() noexcept;
+  sai_thrift_object_id_t thrift_policer_id;
+  std::vector<sai_thrift_policer_stat_t>  thrift_counter_ids;
+  int8_t mode;
+
+  _switch_sai_rpc_sai_thrift_get_policer_stats_ext_args__isset __isset;
+
+  void __set_thrift_policer_id(const sai_thrift_object_id_t val);
+
+  void __set_thrift_counter_ids(const std::vector<sai_thrift_policer_stat_t> & val);
+
+  void __set_mode(const int8_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_policer_stats_ext_args & rhs) const
+  {
+    if (!(thrift_policer_id == rhs.thrift_policer_id))
+      return false;
+    if (!(thrift_counter_ids == rhs.thrift_counter_ids))
+      return false;
+    if (!(mode == rhs.mode))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_policer_stats_ext_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_policer_stats_ext_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_get_policer_stats_ext_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_policer_stats_ext_pargs() noexcept;
+  const sai_thrift_object_id_t* thrift_policer_id;
+  const std::vector<sai_thrift_policer_stat_t> * thrift_counter_ids;
+  const int8_t* mode;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_policer_stats_ext_result__isset {
+  _switch_sai_rpc_sai_thrift_get_policer_stats_ext_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_policer_stats_ext_result__isset;
+
+class switch_sai_rpc_sai_thrift_get_policer_stats_ext_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_policer_stats_ext_result(const switch_sai_rpc_sai_thrift_get_policer_stats_ext_result&);
+  switch_sai_rpc_sai_thrift_get_policer_stats_ext_result& operator=(const switch_sai_rpc_sai_thrift_get_policer_stats_ext_result&);
+  switch_sai_rpc_sai_thrift_get_policer_stats_ext_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_policer_stats_ext_result() noexcept;
+  std::vector<sai_thrift_uint64_t>  success;
+
+  _switch_sai_rpc_sai_thrift_get_policer_stats_ext_result__isset __isset;
+
+  void __set_success(const std::vector<sai_thrift_uint64_t> & val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_policer_stats_ext_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_policer_stats_ext_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_policer_stats_ext_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_policer_stats_ext_presult__isset {
+  _switch_sai_rpc_sai_thrift_get_policer_stats_ext_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_policer_stats_ext_presult__isset;
+
+class switch_sai_rpc_sai_thrift_get_policer_stats_ext_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_policer_stats_ext_presult() noexcept;
+  std::vector<sai_thrift_uint64_t> * success;
+
+  _switch_sai_rpc_sai_thrift_get_policer_stats_ext_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -28933,30 +30027,19 @@ class switch_sai_rpc_sai_thrift_set_tunnel_term_table_entry_attribute_presult {
 
 };
 
-typedef struct _switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args__isset {
-  _switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args__isset() : switch_id(false) {}
-  bool switch_id :1;
-} _switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args__isset;
 
 class switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args {
  public:
 
   switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args(const switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args&);
   switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args& operator=(const switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args&);
-  switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args() : switch_id(0) {
+  switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args() {
   }
 
   virtual ~switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args() noexcept;
-  sai_thrift_object_id_t switch_id;
 
-  _switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args__isset __isset;
-
-  void __set_switch_id(const sai_thrift_object_id_t val);
-
-  bool operator == (const switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args & rhs) const
+  bool operator == (const switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args & /* rhs */) const
   {
-    if (!(switch_id == rhs.switch_id))
-      return false;
     return true;
   }
   bool operator != (const switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_args &rhs) const {
@@ -28976,7 +30059,6 @@ class switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_pargs {
 
 
   virtual ~switch_sai_rpc_sai_thrift_get_cpu_packet_attribute_pargs() noexcept;
-  const sai_thrift_object_id_t* switch_id;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -34041,6 +35123,429 @@ class switch_sai_rpc_sai_thrift_get_ptp_domain_attribute_presult {
 
 };
 
+typedef struct _switch_sai_rpc_sai_thrift_create_synce_args__isset {
+  _switch_sai_rpc_sai_thrift_create_synce_args__isset() : thrift_attr_list(false) {}
+  bool thrift_attr_list :1;
+} _switch_sai_rpc_sai_thrift_create_synce_args__isset;
+
+class switch_sai_rpc_sai_thrift_create_synce_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_create_synce_args(const switch_sai_rpc_sai_thrift_create_synce_args&);
+  switch_sai_rpc_sai_thrift_create_synce_args& operator=(const switch_sai_rpc_sai_thrift_create_synce_args&);
+  switch_sai_rpc_sai_thrift_create_synce_args() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_create_synce_args() noexcept;
+  std::vector<sai_thrift_attribute_t>  thrift_attr_list;
+
+  _switch_sai_rpc_sai_thrift_create_synce_args__isset __isset;
+
+  void __set_thrift_attr_list(const std::vector<sai_thrift_attribute_t> & val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_create_synce_args & rhs) const
+  {
+    if (!(thrift_attr_list == rhs.thrift_attr_list))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_create_synce_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_create_synce_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_create_synce_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_create_synce_pargs() noexcept;
+  const std::vector<sai_thrift_attribute_t> * thrift_attr_list;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_synce_result__isset {
+  _switch_sai_rpc_sai_thrift_create_synce_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_create_synce_result__isset;
+
+class switch_sai_rpc_sai_thrift_create_synce_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_create_synce_result(const switch_sai_rpc_sai_thrift_create_synce_result&);
+  switch_sai_rpc_sai_thrift_create_synce_result& operator=(const switch_sai_rpc_sai_thrift_create_synce_result&);
+  switch_sai_rpc_sai_thrift_create_synce_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_create_synce_result() noexcept;
+  sai_thrift_object_id_t success;
+
+  _switch_sai_rpc_sai_thrift_create_synce_result__isset __isset;
+
+  void __set_success(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_create_synce_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_create_synce_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_create_synce_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_synce_presult__isset {
+  _switch_sai_rpc_sai_thrift_create_synce_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_create_synce_presult__isset;
+
+class switch_sai_rpc_sai_thrift_create_synce_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_create_synce_presult() noexcept;
+  sai_thrift_object_id_t* success;
+
+  _switch_sai_rpc_sai_thrift_create_synce_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_synce_args__isset {
+  _switch_sai_rpc_sai_thrift_remove_synce_args__isset() : synce_oid(false) {}
+  bool synce_oid :1;
+} _switch_sai_rpc_sai_thrift_remove_synce_args__isset;
+
+class switch_sai_rpc_sai_thrift_remove_synce_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_remove_synce_args(const switch_sai_rpc_sai_thrift_remove_synce_args&);
+  switch_sai_rpc_sai_thrift_remove_synce_args& operator=(const switch_sai_rpc_sai_thrift_remove_synce_args&);
+  switch_sai_rpc_sai_thrift_remove_synce_args() : synce_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_synce_args() noexcept;
+  sai_thrift_object_id_t synce_oid;
+
+  _switch_sai_rpc_sai_thrift_remove_synce_args__isset __isset;
+
+  void __set_synce_oid(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_remove_synce_args & rhs) const
+  {
+    if (!(synce_oid == rhs.synce_oid))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_remove_synce_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_remove_synce_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_remove_synce_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_synce_pargs() noexcept;
+  const sai_thrift_object_id_t* synce_oid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_synce_result__isset {
+  _switch_sai_rpc_sai_thrift_remove_synce_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_remove_synce_result__isset;
+
+class switch_sai_rpc_sai_thrift_remove_synce_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_remove_synce_result(const switch_sai_rpc_sai_thrift_remove_synce_result&);
+  switch_sai_rpc_sai_thrift_remove_synce_result& operator=(const switch_sai_rpc_sai_thrift_remove_synce_result&);
+  switch_sai_rpc_sai_thrift_remove_synce_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_synce_result() noexcept;
+  sai_thrift_status_t success;
+
+  _switch_sai_rpc_sai_thrift_remove_synce_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_remove_synce_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_remove_synce_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_remove_synce_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_synce_presult__isset {
+  _switch_sai_rpc_sai_thrift_remove_synce_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_remove_synce_presult__isset;
+
+class switch_sai_rpc_sai_thrift_remove_synce_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_synce_presult() noexcept;
+  sai_thrift_status_t* success;
+
+  _switch_sai_rpc_sai_thrift_remove_synce_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_synce_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_set_synce_attribute_args__isset() : synce_oid(false), thrift_attr(false) {}
+  bool synce_oid :1;
+  bool thrift_attr :1;
+} _switch_sai_rpc_sai_thrift_set_synce_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_set_synce_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_set_synce_attribute_args(const switch_sai_rpc_sai_thrift_set_synce_attribute_args&);
+  switch_sai_rpc_sai_thrift_set_synce_attribute_args& operator=(const switch_sai_rpc_sai_thrift_set_synce_attribute_args&);
+  switch_sai_rpc_sai_thrift_set_synce_attribute_args() : synce_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_set_synce_attribute_args() noexcept;
+  sai_thrift_object_id_t synce_oid;
+  sai_thrift_attribute_t thrift_attr;
+
+  _switch_sai_rpc_sai_thrift_set_synce_attribute_args__isset __isset;
+
+  void __set_synce_oid(const sai_thrift_object_id_t val);
+
+  void __set_thrift_attr(const sai_thrift_attribute_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_set_synce_attribute_args & rhs) const
+  {
+    if (!(synce_oid == rhs.synce_oid))
+      return false;
+    if (!(thrift_attr == rhs.thrift_attr))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_set_synce_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_set_synce_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_set_synce_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_set_synce_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* synce_oid;
+  const sai_thrift_attribute_t* thrift_attr;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_synce_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_set_synce_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_set_synce_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_set_synce_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_set_synce_attribute_result(const switch_sai_rpc_sai_thrift_set_synce_attribute_result&);
+  switch_sai_rpc_sai_thrift_set_synce_attribute_result& operator=(const switch_sai_rpc_sai_thrift_set_synce_attribute_result&);
+  switch_sai_rpc_sai_thrift_set_synce_attribute_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_set_synce_attribute_result() noexcept;
+  sai_thrift_status_t success;
+
+  _switch_sai_rpc_sai_thrift_set_synce_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_set_synce_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_set_synce_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_set_synce_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_synce_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_set_synce_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_set_synce_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_set_synce_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_set_synce_attribute_presult() noexcept;
+  sai_thrift_status_t* success;
+
+  _switch_sai_rpc_sai_thrift_set_synce_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_synce_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_get_synce_attribute_args__isset() : synce_oid(false) {}
+  bool synce_oid :1;
+} _switch_sai_rpc_sai_thrift_get_synce_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_get_synce_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_synce_attribute_args(const switch_sai_rpc_sai_thrift_get_synce_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_synce_attribute_args& operator=(const switch_sai_rpc_sai_thrift_get_synce_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_synce_attribute_args() : synce_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_synce_attribute_args() noexcept;
+  sai_thrift_object_id_t synce_oid;
+
+  _switch_sai_rpc_sai_thrift_get_synce_attribute_args__isset __isset;
+
+  void __set_synce_oid(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_synce_attribute_args & rhs) const
+  {
+    if (!(synce_oid == rhs.synce_oid))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_synce_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_synce_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_get_synce_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_synce_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* synce_oid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_synce_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_get_synce_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_synce_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_get_synce_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_synce_attribute_result(const switch_sai_rpc_sai_thrift_get_synce_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_synce_attribute_result& operator=(const switch_sai_rpc_sai_thrift_get_synce_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_synce_attribute_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_synce_attribute_result() noexcept;
+  sai_thrift_attribute_list_t success;
+
+  _switch_sai_rpc_sai_thrift_get_synce_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_attribute_list_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_synce_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_synce_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_synce_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_synce_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_get_synce_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_synce_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_get_synce_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_synce_attribute_presult() noexcept;
+  sai_thrift_attribute_list_t* success;
+
+  _switch_sai_rpc_sai_thrift_get_synce_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _switch_sai_rpc_sai_thrift_create_es_args__isset {
   _switch_sai_rpc_sai_thrift_create_es_args__isset() : thrift_attr_list(false) {}
   bool thrift_attr_list :1;
@@ -34464,6 +35969,852 @@ class switch_sai_rpc_sai_thrift_get_es_attribute_presult {
 
 };
 
+typedef struct _switch_sai_rpc_sai_thrift_create_monitor_buffer_args__isset {
+  _switch_sai_rpc_sai_thrift_create_monitor_buffer_args__isset() : thrift_attr_list(false) {}
+  bool thrift_attr_list :1;
+} _switch_sai_rpc_sai_thrift_create_monitor_buffer_args__isset;
+
+class switch_sai_rpc_sai_thrift_create_monitor_buffer_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_create_monitor_buffer_args(const switch_sai_rpc_sai_thrift_create_monitor_buffer_args&);
+  switch_sai_rpc_sai_thrift_create_monitor_buffer_args& operator=(const switch_sai_rpc_sai_thrift_create_monitor_buffer_args&);
+  switch_sai_rpc_sai_thrift_create_monitor_buffer_args() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_create_monitor_buffer_args() noexcept;
+  std::vector<sai_thrift_attribute_t>  thrift_attr_list;
+
+  _switch_sai_rpc_sai_thrift_create_monitor_buffer_args__isset __isset;
+
+  void __set_thrift_attr_list(const std::vector<sai_thrift_attribute_t> & val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_create_monitor_buffer_args & rhs) const
+  {
+    if (!(thrift_attr_list == rhs.thrift_attr_list))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_create_monitor_buffer_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_create_monitor_buffer_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_create_monitor_buffer_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_create_monitor_buffer_pargs() noexcept;
+  const std::vector<sai_thrift_attribute_t> * thrift_attr_list;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_monitor_buffer_result__isset {
+  _switch_sai_rpc_sai_thrift_create_monitor_buffer_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_create_monitor_buffer_result__isset;
+
+class switch_sai_rpc_sai_thrift_create_monitor_buffer_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_create_monitor_buffer_result(const switch_sai_rpc_sai_thrift_create_monitor_buffer_result&);
+  switch_sai_rpc_sai_thrift_create_monitor_buffer_result& operator=(const switch_sai_rpc_sai_thrift_create_monitor_buffer_result&);
+  switch_sai_rpc_sai_thrift_create_monitor_buffer_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_create_monitor_buffer_result() noexcept;
+  sai_thrift_object_id_t success;
+
+  _switch_sai_rpc_sai_thrift_create_monitor_buffer_result__isset __isset;
+
+  void __set_success(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_create_monitor_buffer_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_create_monitor_buffer_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_create_monitor_buffer_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_monitor_buffer_presult__isset {
+  _switch_sai_rpc_sai_thrift_create_monitor_buffer_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_create_monitor_buffer_presult__isset;
+
+class switch_sai_rpc_sai_thrift_create_monitor_buffer_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_create_monitor_buffer_presult() noexcept;
+  sai_thrift_object_id_t* success;
+
+  _switch_sai_rpc_sai_thrift_create_monitor_buffer_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_monitor_buffer_args__isset {
+  _switch_sai_rpc_sai_thrift_remove_monitor_buffer_args__isset() : monitor_buffer_oid(false) {}
+  bool monitor_buffer_oid :1;
+} _switch_sai_rpc_sai_thrift_remove_monitor_buffer_args__isset;
+
+class switch_sai_rpc_sai_thrift_remove_monitor_buffer_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_remove_monitor_buffer_args(const switch_sai_rpc_sai_thrift_remove_monitor_buffer_args&);
+  switch_sai_rpc_sai_thrift_remove_monitor_buffer_args& operator=(const switch_sai_rpc_sai_thrift_remove_monitor_buffer_args&);
+  switch_sai_rpc_sai_thrift_remove_monitor_buffer_args() : monitor_buffer_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_monitor_buffer_args() noexcept;
+  sai_thrift_object_id_t monitor_buffer_oid;
+
+  _switch_sai_rpc_sai_thrift_remove_monitor_buffer_args__isset __isset;
+
+  void __set_monitor_buffer_oid(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_remove_monitor_buffer_args & rhs) const
+  {
+    if (!(monitor_buffer_oid == rhs.monitor_buffer_oid))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_remove_monitor_buffer_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_remove_monitor_buffer_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_remove_monitor_buffer_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_monitor_buffer_pargs() noexcept;
+  const sai_thrift_object_id_t* monitor_buffer_oid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_monitor_buffer_result__isset {
+  _switch_sai_rpc_sai_thrift_remove_monitor_buffer_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_remove_monitor_buffer_result__isset;
+
+class switch_sai_rpc_sai_thrift_remove_monitor_buffer_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_remove_monitor_buffer_result(const switch_sai_rpc_sai_thrift_remove_monitor_buffer_result&);
+  switch_sai_rpc_sai_thrift_remove_monitor_buffer_result& operator=(const switch_sai_rpc_sai_thrift_remove_monitor_buffer_result&);
+  switch_sai_rpc_sai_thrift_remove_monitor_buffer_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_monitor_buffer_result() noexcept;
+  sai_thrift_status_t success;
+
+  _switch_sai_rpc_sai_thrift_remove_monitor_buffer_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_remove_monitor_buffer_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_remove_monitor_buffer_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_remove_monitor_buffer_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_monitor_buffer_presult__isset {
+  _switch_sai_rpc_sai_thrift_remove_monitor_buffer_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_remove_monitor_buffer_presult__isset;
+
+class switch_sai_rpc_sai_thrift_remove_monitor_buffer_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_monitor_buffer_presult() noexcept;
+  sai_thrift_status_t* success;
+
+  _switch_sai_rpc_sai_thrift_remove_monitor_buffer_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args__isset() : monitor_buffer_oid(false), thrift_attr(false) {}
+  bool monitor_buffer_oid :1;
+  bool thrift_attr :1;
+} _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args(const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args&);
+  switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args& operator=(const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args&);
+  switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args() : monitor_buffer_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args() noexcept;
+  sai_thrift_object_id_t monitor_buffer_oid;
+  sai_thrift_attribute_t thrift_attr;
+
+  _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args__isset __isset;
+
+  void __set_monitor_buffer_oid(const sai_thrift_object_id_t val);
+
+  void __set_thrift_attr(const sai_thrift_attribute_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args & rhs) const
+  {
+    if (!(monitor_buffer_oid == rhs.monitor_buffer_oid))
+      return false;
+    if (!(thrift_attr == rhs.thrift_attr))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* monitor_buffer_oid;
+  const sai_thrift_attribute_t* thrift_attr;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result(const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result&);
+  switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result& operator=(const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result&);
+  switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result() noexcept;
+  sai_thrift_status_t success;
+
+  _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_presult() noexcept;
+  sai_thrift_status_t* success;
+
+  _switch_sai_rpc_sai_thrift_set_monitor_buffer_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args__isset() : monitor_buffer_oid(false) {}
+  bool monitor_buffer_oid :1;
+} _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args(const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args& operator=(const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args() : monitor_buffer_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args() noexcept;
+  sai_thrift_object_id_t monitor_buffer_oid;
+
+  _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args__isset __isset;
+
+  void __set_monitor_buffer_oid(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args & rhs) const
+  {
+    if (!(monitor_buffer_oid == rhs.monitor_buffer_oid))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* monitor_buffer_oid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result(const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result& operator=(const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result() noexcept;
+  sai_thrift_attribute_list_t success;
+
+  _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_attribute_list_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_presult() noexcept;
+  sai_thrift_attribute_list_t* success;
+
+  _switch_sai_rpc_sai_thrift_get_monitor_buffer_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_monitor_latency_args__isset {
+  _switch_sai_rpc_sai_thrift_create_monitor_latency_args__isset() : thrift_attr_list(false) {}
+  bool thrift_attr_list :1;
+} _switch_sai_rpc_sai_thrift_create_monitor_latency_args__isset;
+
+class switch_sai_rpc_sai_thrift_create_monitor_latency_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_create_monitor_latency_args(const switch_sai_rpc_sai_thrift_create_monitor_latency_args&);
+  switch_sai_rpc_sai_thrift_create_monitor_latency_args& operator=(const switch_sai_rpc_sai_thrift_create_monitor_latency_args&);
+  switch_sai_rpc_sai_thrift_create_monitor_latency_args() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_create_monitor_latency_args() noexcept;
+  std::vector<sai_thrift_attribute_t>  thrift_attr_list;
+
+  _switch_sai_rpc_sai_thrift_create_monitor_latency_args__isset __isset;
+
+  void __set_thrift_attr_list(const std::vector<sai_thrift_attribute_t> & val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_create_monitor_latency_args & rhs) const
+  {
+    if (!(thrift_attr_list == rhs.thrift_attr_list))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_create_monitor_latency_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_create_monitor_latency_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_create_monitor_latency_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_create_monitor_latency_pargs() noexcept;
+  const std::vector<sai_thrift_attribute_t> * thrift_attr_list;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_monitor_latency_result__isset {
+  _switch_sai_rpc_sai_thrift_create_monitor_latency_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_create_monitor_latency_result__isset;
+
+class switch_sai_rpc_sai_thrift_create_monitor_latency_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_create_monitor_latency_result(const switch_sai_rpc_sai_thrift_create_monitor_latency_result&);
+  switch_sai_rpc_sai_thrift_create_monitor_latency_result& operator=(const switch_sai_rpc_sai_thrift_create_monitor_latency_result&);
+  switch_sai_rpc_sai_thrift_create_monitor_latency_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_create_monitor_latency_result() noexcept;
+  sai_thrift_object_id_t success;
+
+  _switch_sai_rpc_sai_thrift_create_monitor_latency_result__isset __isset;
+
+  void __set_success(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_create_monitor_latency_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_create_monitor_latency_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_create_monitor_latency_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_create_monitor_latency_presult__isset {
+  _switch_sai_rpc_sai_thrift_create_monitor_latency_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_create_monitor_latency_presult__isset;
+
+class switch_sai_rpc_sai_thrift_create_monitor_latency_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_create_monitor_latency_presult() noexcept;
+  sai_thrift_object_id_t* success;
+
+  _switch_sai_rpc_sai_thrift_create_monitor_latency_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_monitor_latency_args__isset {
+  _switch_sai_rpc_sai_thrift_remove_monitor_latency_args__isset() : monitor_latency_oid(false) {}
+  bool monitor_latency_oid :1;
+} _switch_sai_rpc_sai_thrift_remove_monitor_latency_args__isset;
+
+class switch_sai_rpc_sai_thrift_remove_monitor_latency_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_remove_monitor_latency_args(const switch_sai_rpc_sai_thrift_remove_monitor_latency_args&);
+  switch_sai_rpc_sai_thrift_remove_monitor_latency_args& operator=(const switch_sai_rpc_sai_thrift_remove_monitor_latency_args&);
+  switch_sai_rpc_sai_thrift_remove_monitor_latency_args() : monitor_latency_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_monitor_latency_args() noexcept;
+  sai_thrift_object_id_t monitor_latency_oid;
+
+  _switch_sai_rpc_sai_thrift_remove_monitor_latency_args__isset __isset;
+
+  void __set_monitor_latency_oid(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_remove_monitor_latency_args & rhs) const
+  {
+    if (!(monitor_latency_oid == rhs.monitor_latency_oid))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_remove_monitor_latency_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_remove_monitor_latency_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_remove_monitor_latency_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_monitor_latency_pargs() noexcept;
+  const sai_thrift_object_id_t* monitor_latency_oid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_monitor_latency_result__isset {
+  _switch_sai_rpc_sai_thrift_remove_monitor_latency_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_remove_monitor_latency_result__isset;
+
+class switch_sai_rpc_sai_thrift_remove_monitor_latency_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_remove_monitor_latency_result(const switch_sai_rpc_sai_thrift_remove_monitor_latency_result&);
+  switch_sai_rpc_sai_thrift_remove_monitor_latency_result& operator=(const switch_sai_rpc_sai_thrift_remove_monitor_latency_result&);
+  switch_sai_rpc_sai_thrift_remove_monitor_latency_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_monitor_latency_result() noexcept;
+  sai_thrift_status_t success;
+
+  _switch_sai_rpc_sai_thrift_remove_monitor_latency_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_remove_monitor_latency_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_remove_monitor_latency_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_remove_monitor_latency_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_remove_monitor_latency_presult__isset {
+  _switch_sai_rpc_sai_thrift_remove_monitor_latency_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_remove_monitor_latency_presult__isset;
+
+class switch_sai_rpc_sai_thrift_remove_monitor_latency_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_remove_monitor_latency_presult() noexcept;
+  sai_thrift_status_t* success;
+
+  _switch_sai_rpc_sai_thrift_remove_monitor_latency_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args__isset() : monitor_latency_oid(false), thrift_attr(false) {}
+  bool monitor_latency_oid :1;
+  bool thrift_attr :1;
+} _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args(const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args&);
+  switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args& operator=(const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args&);
+  switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args() : monitor_latency_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args() noexcept;
+  sai_thrift_object_id_t monitor_latency_oid;
+  sai_thrift_attribute_t thrift_attr;
+
+  _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args__isset __isset;
+
+  void __set_monitor_latency_oid(const sai_thrift_object_id_t val);
+
+  void __set_thrift_attr(const sai_thrift_attribute_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args & rhs) const
+  {
+    if (!(monitor_latency_oid == rhs.monitor_latency_oid))
+      return false;
+    if (!(thrift_attr == rhs.thrift_attr))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* monitor_latency_oid;
+  const sai_thrift_attribute_t* thrift_attr;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result(const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result&);
+  switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result& operator=(const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result&);
+  switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result() : success(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result() noexcept;
+  sai_thrift_status_t success;
+
+  _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_status_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_presult() noexcept;
+  sai_thrift_status_t* success;
+
+  _switch_sai_rpc_sai_thrift_set_monitor_latency_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args__isset {
+  _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args__isset() : monitor_latency_oid(false) {}
+  bool monitor_latency_oid :1;
+} _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args__isset;
+
+class switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args(const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args& operator=(const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args&);
+  switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args() : monitor_latency_oid(0) {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args() noexcept;
+  sai_thrift_object_id_t monitor_latency_oid;
+
+  _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args__isset __isset;
+
+  void __set_monitor_latency_oid(const sai_thrift_object_id_t val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args & rhs) const
+  {
+    if (!(monitor_latency_oid == rhs.monitor_latency_oid))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_pargs {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_pargs() noexcept;
+  const sai_thrift_object_id_t* monitor_latency_oid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result__isset {
+  _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result__isset;
+
+class switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result {
+ public:
+
+  switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result(const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result& operator=(const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result&);
+  switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result() {
+  }
+
+  virtual ~switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result() noexcept;
+  sai_thrift_attribute_list_t success;
+
+  _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result__isset __isset;
+
+  void __set_success(const sai_thrift_attribute_list_t& val);
+
+  bool operator == (const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_presult__isset {
+  _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_presult__isset() : success(false) {}
+  bool success :1;
+} _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_presult__isset;
+
+class switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_presult {
+ public:
+
+
+  virtual ~switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_presult() noexcept;
+  sai_thrift_attribute_list_t* success;
+
+  _switch_sai_rpc_sai_thrift_get_monitor_latency_attribute_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 class switch_sai_rpcClient : virtual public switch_sai_rpcIf {
  public:
   switch_sai_rpcClient(std::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
@@ -34651,6 +37002,15 @@ class switch_sai_rpcClient : virtual public switch_sai_rpcIf {
   void sai_thrift_get_next_hop_group_member_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t nhop_group_member_oid);
   void send_sai_thrift_get_next_hop_group_member_attribute(const sai_thrift_object_id_t nhop_group_member_oid);
   void recv_sai_thrift_get_next_hop_group_member_attribute(sai_thrift_attribute_list_t& _return);
+  void sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t nhop_group_member_oid);
+  void send_sai_thrift_get_next_hop_group_member_attribute_ecmp(const sai_thrift_object_id_t nhop_group_member_oid);
+  void recv_sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_attribute_list_t& _return);
+  void sai_thrift_create_next_hop_group_members(sai_thrift_results_t& _return, const std::vector<sai_thrift_attribute_t> & thrift_attr_lists, const std::vector<int32_t> & thrift_attr_count_lists, const int8_t mode);
+  void send_sai_thrift_create_next_hop_group_members(const std::vector<sai_thrift_attribute_t> & thrift_attr_lists, const std::vector<int32_t> & thrift_attr_count_lists, const int8_t mode);
+  void recv_sai_thrift_create_next_hop_group_members(sai_thrift_results_t& _return);
+  void sai_thrift_remove_next_hop_group_members(sai_thrift_status_list_t& _return, const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, const int8_t mode);
+  void send_sai_thrift_remove_next_hop_group_members(const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, const int8_t mode);
+  void recv_sai_thrift_remove_next_hop_group_members(sai_thrift_status_list_t& _return);
   sai_thrift_object_id_t sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   void send_sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_lag();
@@ -34894,15 +37254,21 @@ class switch_sai_rpcClient : virtual public switch_sai_rpcIf {
   sai_thrift_status_t sai_thrift_remove_acl_counter(const sai_thrift_object_id_t acl_counter_id);
   void send_sai_thrift_remove_acl_counter(const sai_thrift_object_id_t acl_counter_id);
   sai_thrift_status_t recv_sai_thrift_remove_acl_counter();
-  void sai_thrift_get_acl_counter_attribute(std::vector<sai_thrift_attribute_value_t> & _return, const sai_thrift_object_id_t acl_counter_id, const std::vector<int32_t> & thrift_attr_ids);
-  void send_sai_thrift_get_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const std::vector<int32_t> & thrift_attr_ids);
-  void recv_sai_thrift_get_acl_counter_attribute(std::vector<sai_thrift_attribute_value_t> & _return);
+  void sai_thrift_get_acl_counter_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_counter_id);
+  void send_sai_thrift_get_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id);
+  void recv_sai_thrift_get_acl_counter_attribute(sai_thrift_attribute_list_t& _return);
+  sai_thrift_status_t sai_thrift_set_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const sai_thrift_attribute_t& thrift_attr);
+  void send_sai_thrift_set_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const sai_thrift_attribute_t& thrift_attr);
+  sai_thrift_status_t recv_sai_thrift_set_acl_counter_attribute();
   sai_thrift_object_id_t sai_thrift_create_acl_range(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   void send_sai_thrift_create_acl_range(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_acl_range();
   sai_thrift_status_t sai_thrift_remove_acl_range(const sai_thrift_object_id_t acl_range_id);
   void send_sai_thrift_remove_acl_range(const sai_thrift_object_id_t acl_range_id);
   sai_thrift_status_t recv_sai_thrift_remove_acl_range();
+  void sai_thrift_get_acl_range_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_range_id);
+  void send_sai_thrift_get_acl_range_attribute(const sai_thrift_object_id_t acl_range_id);
+  void recv_sai_thrift_get_acl_range_attribute(sai_thrift_attribute_list_t& _return);
   sai_thrift_object_id_t sai_thrift_create_hash(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   void send_sai_thrift_create_hash(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_hash();
@@ -34954,6 +37320,15 @@ class switch_sai_rpcClient : virtual public switch_sai_rpcIf {
   sai_thrift_status_t sai_thrift_set_twamp_attribute(const sai_thrift_object_id_t thrift_twamp_session_id, const sai_thrift_attribute_t& thrift_attr);
   void send_sai_thrift_set_twamp_attribute(const sai_thrift_object_id_t thrift_twamp_session_id, const sai_thrift_attribute_t& thrift_attr);
   sai_thrift_status_t recv_sai_thrift_set_twamp_attribute();
+  void sai_thrift_get_twamp_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t thrift_twamp_session_id);
+  void send_sai_thrift_get_twamp_attribute(const sai_thrift_object_id_t thrift_twamp_session_id);
+  void recv_sai_thrift_get_twamp_attribute(sai_thrift_attribute_list_t& _return);
+  void sai_thrift_get_twamp_session_stats(std::vector<int64_t> & _return, const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & counter_ids, const int32_t number_of_counters);
+  void send_sai_thrift_get_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & counter_ids, const int32_t number_of_counters);
+  void recv_sai_thrift_get_twamp_session_stats(std::vector<int64_t> & _return);
+  sai_thrift_status_t sai_thrift_clear_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & thrift_counter_ids, const int32_t number_of_counters);
+  void send_sai_thrift_clear_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & thrift_counter_ids, const int32_t number_of_counters);
+  sai_thrift_status_t recv_sai_thrift_clear_twamp_session_stats();
   sai_thrift_object_id_t sai_thrift_create_mirror_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   void send_sai_thrift_create_mirror_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_mirror_session();
@@ -34996,6 +37371,9 @@ class switch_sai_rpcClient : virtual public switch_sai_rpcIf {
   void sai_thrift_get_policer_stats(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids);
   void send_sai_thrift_get_policer_stats(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids);
   void recv_sai_thrift_get_policer_stats(std::vector<sai_thrift_uint64_t> & _return);
+  void sai_thrift_get_policer_stats_ext(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids, const int8_t mode);
+  void send_sai_thrift_get_policer_stats_ext(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids, const int8_t mode);
+  void recv_sai_thrift_get_policer_stats_ext(std::vector<sai_thrift_uint64_t> & _return);
   sai_thrift_status_t sai_thrift_clear_policer_stats(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids);
   void send_sai_thrift_clear_policer_stats(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids);
   sai_thrift_status_t recv_sai_thrift_clear_policer_stats();
@@ -35260,8 +37638,8 @@ class switch_sai_rpcClient : virtual public switch_sai_rpcIf {
   sai_thrift_status_t sai_thrift_set_tunnel_term_table_entry_attribute(const sai_thrift_object_id_t tunnel_term_table_entry_id, const sai_thrift_attribute_t& thrift_attr);
   void send_sai_thrift_set_tunnel_term_table_entry_attribute(const sai_thrift_object_id_t tunnel_term_table_entry_id, const sai_thrift_attribute_t& thrift_attr);
   sai_thrift_status_t recv_sai_thrift_set_tunnel_term_table_entry_attribute();
-  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t switch_id);
-  void send_sai_thrift_get_cpu_packet_attribute(const sai_thrift_object_id_t switch_id);
+  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return);
+  void send_sai_thrift_get_cpu_packet_attribute();
   void recv_sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return);
   void sai_thrift_get_cpu_packet_count(sai_thrift_result_t& _return);
   void send_sai_thrift_get_cpu_packet_count();
@@ -35404,6 +37782,18 @@ class switch_sai_rpcClient : virtual public switch_sai_rpcIf {
   void sai_thrift_get_ptp_domain_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t ptp_oid);
   void send_sai_thrift_get_ptp_domain_attribute(const sai_thrift_object_id_t ptp_oid);
   void recv_sai_thrift_get_ptp_domain_attribute(sai_thrift_attribute_list_t& _return);
+  sai_thrift_object_id_t sai_thrift_create_synce(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  void send_sai_thrift_create_synce(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  sai_thrift_object_id_t recv_sai_thrift_create_synce();
+  sai_thrift_status_t sai_thrift_remove_synce(const sai_thrift_object_id_t synce_oid);
+  void send_sai_thrift_remove_synce(const sai_thrift_object_id_t synce_oid);
+  sai_thrift_status_t recv_sai_thrift_remove_synce();
+  sai_thrift_status_t sai_thrift_set_synce_attribute(const sai_thrift_object_id_t synce_oid, const sai_thrift_attribute_t& thrift_attr);
+  void send_sai_thrift_set_synce_attribute(const sai_thrift_object_id_t synce_oid, const sai_thrift_attribute_t& thrift_attr);
+  sai_thrift_status_t recv_sai_thrift_set_synce_attribute();
+  void sai_thrift_get_synce_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t synce_oid);
+  void send_sai_thrift_get_synce_attribute(const sai_thrift_object_id_t synce_oid);
+  void recv_sai_thrift_get_synce_attribute(sai_thrift_attribute_list_t& _return);
   sai_thrift_object_id_t sai_thrift_create_es(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   void send_sai_thrift_create_es(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_es();
@@ -35416,6 +37806,30 @@ class switch_sai_rpcClient : virtual public switch_sai_rpcIf {
   void sai_thrift_get_es_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t es_oid);
   void send_sai_thrift_get_es_attribute(const sai_thrift_object_id_t es_oid);
   void recv_sai_thrift_get_es_attribute(sai_thrift_attribute_list_t& _return);
+  sai_thrift_object_id_t sai_thrift_create_monitor_buffer(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  void send_sai_thrift_create_monitor_buffer(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  sai_thrift_object_id_t recv_sai_thrift_create_monitor_buffer();
+  sai_thrift_status_t sai_thrift_remove_monitor_buffer(const sai_thrift_object_id_t monitor_buffer_oid);
+  void send_sai_thrift_remove_monitor_buffer(const sai_thrift_object_id_t monitor_buffer_oid);
+  sai_thrift_status_t recv_sai_thrift_remove_monitor_buffer();
+  sai_thrift_status_t sai_thrift_set_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid, const sai_thrift_attribute_t& thrift_attr);
+  void send_sai_thrift_set_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid, const sai_thrift_attribute_t& thrift_attr);
+  sai_thrift_status_t recv_sai_thrift_set_monitor_buffer_attribute();
+  void sai_thrift_get_monitor_buffer_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_buffer_oid);
+  void send_sai_thrift_get_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid);
+  void recv_sai_thrift_get_monitor_buffer_attribute(sai_thrift_attribute_list_t& _return);
+  sai_thrift_object_id_t sai_thrift_create_monitor_latency(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  void send_sai_thrift_create_monitor_latency(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  sai_thrift_object_id_t recv_sai_thrift_create_monitor_latency();
+  sai_thrift_status_t sai_thrift_remove_monitor_latency(const sai_thrift_object_id_t monitor_latency_oid);
+  void send_sai_thrift_remove_monitor_latency(const sai_thrift_object_id_t monitor_latency_oid);
+  sai_thrift_status_t recv_sai_thrift_remove_monitor_latency();
+  sai_thrift_status_t sai_thrift_set_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid, const sai_thrift_attribute_t& thrift_attr);
+  void send_sai_thrift_set_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid, const sai_thrift_attribute_t& thrift_attr);
+  sai_thrift_status_t recv_sai_thrift_set_monitor_latency_attribute();
+  void sai_thrift_get_monitor_latency_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_latency_oid);
+  void send_sai_thrift_get_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid);
+  void recv_sai_thrift_get_monitor_latency_attribute(sai_thrift_attribute_list_t& _return);
  protected:
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -35485,6 +37899,9 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_sai_thrift_create_next_hop_group_member(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_next_hop_group_member(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_get_next_hop_group_member_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_get_next_hop_group_member_attribute_ecmp(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_create_next_hop_group_members(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_remove_next_hop_group_members(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_create_lag(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_lag(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_set_lag_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -35567,8 +37984,10 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_sai_thrift_create_acl_counter(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_acl_counter(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_get_acl_counter_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_set_acl_counter_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_create_acl_range(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_acl_range(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_get_acl_range_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_create_hash(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_hash(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_set_hash_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -35586,6 +38005,9 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_sai_thrift_create_twamp_session(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_twamp_session(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_set_twamp_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_get_twamp_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_get_twamp_session_stats(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_clear_twamp_session_stats(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_create_mirror_session(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_mirror_session(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_set_mirror_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -35600,6 +38022,7 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_sai_thrift_get_policer_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_set_policer_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_get_policer_stats(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_get_policer_stats_ext(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_clear_policer_stats(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_create_scheduler_profile(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_scheduler_profile(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -35736,10 +38159,22 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_sai_thrift_remove_ptp_domain(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_set_ptp_domain_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_get_ptp_domain_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_create_synce(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_remove_synce(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_set_synce_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_get_synce_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_create_es(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_remove_es(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_set_es_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_sai_thrift_get_es_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_create_monitor_buffer(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_remove_monitor_buffer(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_set_monitor_buffer_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_get_monitor_buffer_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_create_monitor_latency(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_remove_monitor_latency(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_set_monitor_latency_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sai_thrift_get_monitor_latency_attribute(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   switch_sai_rpcProcessor(::std::shared_ptr<switch_sai_rpcIf> iface) :
     iface_(iface) {
@@ -35797,6 +38232,9 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["sai_thrift_create_next_hop_group_member"] = &switch_sai_rpcProcessor::process_sai_thrift_create_next_hop_group_member;
     processMap_["sai_thrift_remove_next_hop_group_member"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_next_hop_group_member;
     processMap_["sai_thrift_get_next_hop_group_member_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_next_hop_group_member_attribute;
+    processMap_["sai_thrift_get_next_hop_group_member_attribute_ecmp"] = &switch_sai_rpcProcessor::process_sai_thrift_get_next_hop_group_member_attribute_ecmp;
+    processMap_["sai_thrift_create_next_hop_group_members"] = &switch_sai_rpcProcessor::process_sai_thrift_create_next_hop_group_members;
+    processMap_["sai_thrift_remove_next_hop_group_members"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_next_hop_group_members;
     processMap_["sai_thrift_create_lag"] = &switch_sai_rpcProcessor::process_sai_thrift_create_lag;
     processMap_["sai_thrift_remove_lag"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_lag;
     processMap_["sai_thrift_set_lag_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_lag_attribute;
@@ -35879,8 +38317,10 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["sai_thrift_create_acl_counter"] = &switch_sai_rpcProcessor::process_sai_thrift_create_acl_counter;
     processMap_["sai_thrift_remove_acl_counter"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_acl_counter;
     processMap_["sai_thrift_get_acl_counter_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_acl_counter_attribute;
+    processMap_["sai_thrift_set_acl_counter_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_acl_counter_attribute;
     processMap_["sai_thrift_create_acl_range"] = &switch_sai_rpcProcessor::process_sai_thrift_create_acl_range;
     processMap_["sai_thrift_remove_acl_range"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_acl_range;
+    processMap_["sai_thrift_get_acl_range_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_acl_range_attribute;
     processMap_["sai_thrift_create_hash"] = &switch_sai_rpcProcessor::process_sai_thrift_create_hash;
     processMap_["sai_thrift_remove_hash"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_hash;
     processMap_["sai_thrift_set_hash_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_hash_attribute;
@@ -35898,6 +38338,9 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["sai_thrift_create_twamp_session"] = &switch_sai_rpcProcessor::process_sai_thrift_create_twamp_session;
     processMap_["sai_thrift_remove_twamp_session"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_twamp_session;
     processMap_["sai_thrift_set_twamp_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_twamp_attribute;
+    processMap_["sai_thrift_get_twamp_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_twamp_attribute;
+    processMap_["sai_thrift_get_twamp_session_stats"] = &switch_sai_rpcProcessor::process_sai_thrift_get_twamp_session_stats;
+    processMap_["sai_thrift_clear_twamp_session_stats"] = &switch_sai_rpcProcessor::process_sai_thrift_clear_twamp_session_stats;
     processMap_["sai_thrift_create_mirror_session"] = &switch_sai_rpcProcessor::process_sai_thrift_create_mirror_session;
     processMap_["sai_thrift_remove_mirror_session"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_mirror_session;
     processMap_["sai_thrift_set_mirror_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_mirror_attribute;
@@ -35912,6 +38355,7 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["sai_thrift_get_policer_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_policer_attribute;
     processMap_["sai_thrift_set_policer_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_policer_attribute;
     processMap_["sai_thrift_get_policer_stats"] = &switch_sai_rpcProcessor::process_sai_thrift_get_policer_stats;
+    processMap_["sai_thrift_get_policer_stats_ext"] = &switch_sai_rpcProcessor::process_sai_thrift_get_policer_stats_ext;
     processMap_["sai_thrift_clear_policer_stats"] = &switch_sai_rpcProcessor::process_sai_thrift_clear_policer_stats;
     processMap_["sai_thrift_create_scheduler_profile"] = &switch_sai_rpcProcessor::process_sai_thrift_create_scheduler_profile;
     processMap_["sai_thrift_remove_scheduler_profile"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_scheduler_profile;
@@ -36048,10 +38492,22 @@ class switch_sai_rpcProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["sai_thrift_remove_ptp_domain"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_ptp_domain;
     processMap_["sai_thrift_set_ptp_domain_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_ptp_domain_attribute;
     processMap_["sai_thrift_get_ptp_domain_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_ptp_domain_attribute;
+    processMap_["sai_thrift_create_synce"] = &switch_sai_rpcProcessor::process_sai_thrift_create_synce;
+    processMap_["sai_thrift_remove_synce"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_synce;
+    processMap_["sai_thrift_set_synce_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_synce_attribute;
+    processMap_["sai_thrift_get_synce_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_synce_attribute;
     processMap_["sai_thrift_create_es"] = &switch_sai_rpcProcessor::process_sai_thrift_create_es;
     processMap_["sai_thrift_remove_es"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_es;
     processMap_["sai_thrift_set_es_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_es_attribute;
     processMap_["sai_thrift_get_es_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_es_attribute;
+    processMap_["sai_thrift_create_monitor_buffer"] = &switch_sai_rpcProcessor::process_sai_thrift_create_monitor_buffer;
+    processMap_["sai_thrift_remove_monitor_buffer"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_monitor_buffer;
+    processMap_["sai_thrift_set_monitor_buffer_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_monitor_buffer_attribute;
+    processMap_["sai_thrift_get_monitor_buffer_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_monitor_buffer_attribute;
+    processMap_["sai_thrift_create_monitor_latency"] = &switch_sai_rpcProcessor::process_sai_thrift_create_monitor_latency;
+    processMap_["sai_thrift_remove_monitor_latency"] = &switch_sai_rpcProcessor::process_sai_thrift_remove_monitor_latency;
+    processMap_["sai_thrift_set_monitor_latency_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_set_monitor_latency_attribute;
+    processMap_["sai_thrift_get_monitor_latency_attribute"] = &switch_sai_rpcProcessor::process_sai_thrift_get_monitor_latency_attribute;
   }
 
   virtual ~switch_sai_rpcProcessor() {}
@@ -36583,6 +39039,36 @@ class switch_sai_rpcMultiface : virtual public switch_sai_rpcIf {
       ifaces_[i]->sai_thrift_get_next_hop_group_member_attribute(_return, nhop_group_member_oid);
     }
     ifaces_[i]->sai_thrift_get_next_hop_group_member_attribute(_return, nhop_group_member_oid);
+    return;
+  }
+
+  void sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t nhop_group_member_oid) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_get_next_hop_group_member_attribute_ecmp(_return, nhop_group_member_oid);
+    }
+    ifaces_[i]->sai_thrift_get_next_hop_group_member_attribute_ecmp(_return, nhop_group_member_oid);
+    return;
+  }
+
+  void sai_thrift_create_next_hop_group_members(sai_thrift_results_t& _return, const std::vector<sai_thrift_attribute_t> & thrift_attr_lists, const std::vector<int32_t> & thrift_attr_count_lists, const int8_t mode) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_create_next_hop_group_members(_return, thrift_attr_lists, thrift_attr_count_lists, mode);
+    }
+    ifaces_[i]->sai_thrift_create_next_hop_group_members(_return, thrift_attr_lists, thrift_attr_count_lists, mode);
+    return;
+  }
+
+  void sai_thrift_remove_next_hop_group_members(sai_thrift_status_list_t& _return, const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, const int8_t mode) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_remove_next_hop_group_members(_return, thrift_object_id_list, mode);
+    }
+    ifaces_[i]->sai_thrift_remove_next_hop_group_members(_return, thrift_object_id_list, mode);
     return;
   }
 
@@ -37342,14 +39828,23 @@ class switch_sai_rpcMultiface : virtual public switch_sai_rpcIf {
     return ifaces_[i]->sai_thrift_remove_acl_counter(acl_counter_id);
   }
 
-  void sai_thrift_get_acl_counter_attribute(std::vector<sai_thrift_attribute_value_t> & _return, const sai_thrift_object_id_t acl_counter_id, const std::vector<int32_t> & thrift_attr_ids) {
+  void sai_thrift_get_acl_counter_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_counter_id) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->sai_thrift_get_acl_counter_attribute(_return, acl_counter_id, thrift_attr_ids);
+      ifaces_[i]->sai_thrift_get_acl_counter_attribute(_return, acl_counter_id);
     }
-    ifaces_[i]->sai_thrift_get_acl_counter_attribute(_return, acl_counter_id, thrift_attr_ids);
+    ifaces_[i]->sai_thrift_get_acl_counter_attribute(_return, acl_counter_id);
     return;
+  }
+
+  sai_thrift_status_t sai_thrift_set_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const sai_thrift_attribute_t& thrift_attr) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_set_acl_counter_attribute(acl_counter_id, thrift_attr);
+    }
+    return ifaces_[i]->sai_thrift_set_acl_counter_attribute(acl_counter_id, thrift_attr);
   }
 
   sai_thrift_object_id_t sai_thrift_create_acl_range(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
@@ -37368,6 +39863,16 @@ class switch_sai_rpcMultiface : virtual public switch_sai_rpcIf {
       ifaces_[i]->sai_thrift_remove_acl_range(acl_range_id);
     }
     return ifaces_[i]->sai_thrift_remove_acl_range(acl_range_id);
+  }
+
+  void sai_thrift_get_acl_range_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_range_id) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_get_acl_range_attribute(_return, acl_range_id);
+    }
+    ifaces_[i]->sai_thrift_get_acl_range_attribute(_return, acl_range_id);
+    return;
   }
 
   sai_thrift_object_id_t sai_thrift_create_hash(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
@@ -37527,6 +40032,35 @@ class switch_sai_rpcMultiface : virtual public switch_sai_rpcIf {
     return ifaces_[i]->sai_thrift_set_twamp_attribute(thrift_twamp_session_id, thrift_attr);
   }
 
+  void sai_thrift_get_twamp_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t thrift_twamp_session_id) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_get_twamp_attribute(_return, thrift_twamp_session_id);
+    }
+    ifaces_[i]->sai_thrift_get_twamp_attribute(_return, thrift_twamp_session_id);
+    return;
+  }
+
+  void sai_thrift_get_twamp_session_stats(std::vector<int64_t> & _return, const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & counter_ids, const int32_t number_of_counters) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_get_twamp_session_stats(_return, twamp_id, counter_ids, number_of_counters);
+    }
+    ifaces_[i]->sai_thrift_get_twamp_session_stats(_return, twamp_id, counter_ids, number_of_counters);
+    return;
+  }
+
+  sai_thrift_status_t sai_thrift_clear_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & thrift_counter_ids, const int32_t number_of_counters) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_clear_twamp_session_stats(twamp_id, thrift_counter_ids, number_of_counters);
+    }
+    return ifaces_[i]->sai_thrift_clear_twamp_session_stats(twamp_id, thrift_counter_ids, number_of_counters);
+  }
+
   sai_thrift_object_id_t sai_thrift_create_mirror_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -37654,6 +40188,16 @@ class switch_sai_rpcMultiface : virtual public switch_sai_rpcIf {
       ifaces_[i]->sai_thrift_get_policer_stats(_return, thrift_policer_id, thrift_counter_ids);
     }
     ifaces_[i]->sai_thrift_get_policer_stats(_return, thrift_policer_id, thrift_counter_ids);
+    return;
+  }
+
+  void sai_thrift_get_policer_stats_ext(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids, const int8_t mode) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_get_policer_stats_ext(_return, thrift_policer_id, thrift_counter_ids, mode);
+    }
+    ifaces_[i]->sai_thrift_get_policer_stats_ext(_return, thrift_policer_id, thrift_counter_ids, mode);
     return;
   }
 
@@ -38473,13 +41017,13 @@ class switch_sai_rpcMultiface : virtual public switch_sai_rpcIf {
     return ifaces_[i]->sai_thrift_set_tunnel_term_table_entry_attribute(tunnel_term_table_entry_id, thrift_attr);
   }
 
-  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t switch_id) {
+  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->sai_thrift_get_cpu_packet_attribute(_return, switch_id);
+      ifaces_[i]->sai_thrift_get_cpu_packet_attribute(_return);
     }
-    ifaces_[i]->sai_thrift_get_cpu_packet_attribute(_return, switch_id);
+    ifaces_[i]->sai_thrift_get_cpu_packet_attribute(_return);
     return;
   }
 
@@ -38921,6 +41465,43 @@ class switch_sai_rpcMultiface : virtual public switch_sai_rpcIf {
     return;
   }
 
+  sai_thrift_object_id_t sai_thrift_create_synce(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_create_synce(thrift_attr_list);
+    }
+    return ifaces_[i]->sai_thrift_create_synce(thrift_attr_list);
+  }
+
+  sai_thrift_status_t sai_thrift_remove_synce(const sai_thrift_object_id_t synce_oid) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_remove_synce(synce_oid);
+    }
+    return ifaces_[i]->sai_thrift_remove_synce(synce_oid);
+  }
+
+  sai_thrift_status_t sai_thrift_set_synce_attribute(const sai_thrift_object_id_t synce_oid, const sai_thrift_attribute_t& thrift_attr) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_set_synce_attribute(synce_oid, thrift_attr);
+    }
+    return ifaces_[i]->sai_thrift_set_synce_attribute(synce_oid, thrift_attr);
+  }
+
+  void sai_thrift_get_synce_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t synce_oid) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_get_synce_attribute(_return, synce_oid);
+    }
+    ifaces_[i]->sai_thrift_get_synce_attribute(_return, synce_oid);
+    return;
+  }
+
   sai_thrift_object_id_t sai_thrift_create_es(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -38955,6 +41536,80 @@ class switch_sai_rpcMultiface : virtual public switch_sai_rpcIf {
       ifaces_[i]->sai_thrift_get_es_attribute(_return, es_oid);
     }
     ifaces_[i]->sai_thrift_get_es_attribute(_return, es_oid);
+    return;
+  }
+
+  sai_thrift_object_id_t sai_thrift_create_monitor_buffer(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_create_monitor_buffer(thrift_attr_list);
+    }
+    return ifaces_[i]->sai_thrift_create_monitor_buffer(thrift_attr_list);
+  }
+
+  sai_thrift_status_t sai_thrift_remove_monitor_buffer(const sai_thrift_object_id_t monitor_buffer_oid) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_remove_monitor_buffer(monitor_buffer_oid);
+    }
+    return ifaces_[i]->sai_thrift_remove_monitor_buffer(monitor_buffer_oid);
+  }
+
+  sai_thrift_status_t sai_thrift_set_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid, const sai_thrift_attribute_t& thrift_attr) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_set_monitor_buffer_attribute(monitor_buffer_oid, thrift_attr);
+    }
+    return ifaces_[i]->sai_thrift_set_monitor_buffer_attribute(monitor_buffer_oid, thrift_attr);
+  }
+
+  void sai_thrift_get_monitor_buffer_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_buffer_oid) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_get_monitor_buffer_attribute(_return, monitor_buffer_oid);
+    }
+    ifaces_[i]->sai_thrift_get_monitor_buffer_attribute(_return, monitor_buffer_oid);
+    return;
+  }
+
+  sai_thrift_object_id_t sai_thrift_create_monitor_latency(const std::vector<sai_thrift_attribute_t> & thrift_attr_list) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_create_monitor_latency(thrift_attr_list);
+    }
+    return ifaces_[i]->sai_thrift_create_monitor_latency(thrift_attr_list);
+  }
+
+  sai_thrift_status_t sai_thrift_remove_monitor_latency(const sai_thrift_object_id_t monitor_latency_oid) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_remove_monitor_latency(monitor_latency_oid);
+    }
+    return ifaces_[i]->sai_thrift_remove_monitor_latency(monitor_latency_oid);
+  }
+
+  sai_thrift_status_t sai_thrift_set_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid, const sai_thrift_attribute_t& thrift_attr) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_set_monitor_latency_attribute(monitor_latency_oid, thrift_attr);
+    }
+    return ifaces_[i]->sai_thrift_set_monitor_latency_attribute(monitor_latency_oid, thrift_attr);
+  }
+
+  void sai_thrift_get_monitor_latency_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_latency_oid) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sai_thrift_get_monitor_latency_attribute(_return, monitor_latency_oid);
+    }
+    ifaces_[i]->sai_thrift_get_monitor_latency_attribute(_return, monitor_latency_oid);
     return;
   }
 
@@ -39152,6 +41807,15 @@ class switch_sai_rpcConcurrentClient : virtual public switch_sai_rpcIf {
   void sai_thrift_get_next_hop_group_member_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t nhop_group_member_oid);
   int32_t send_sai_thrift_get_next_hop_group_member_attribute(const sai_thrift_object_id_t nhop_group_member_oid);
   void recv_sai_thrift_get_next_hop_group_member_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
+  void sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t nhop_group_member_oid);
+  int32_t send_sai_thrift_get_next_hop_group_member_attribute_ecmp(const sai_thrift_object_id_t nhop_group_member_oid);
+  void recv_sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_attribute_list_t& _return, const int32_t seqid);
+  void sai_thrift_create_next_hop_group_members(sai_thrift_results_t& _return, const std::vector<sai_thrift_attribute_t> & thrift_attr_lists, const std::vector<int32_t> & thrift_attr_count_lists, const int8_t mode);
+  int32_t send_sai_thrift_create_next_hop_group_members(const std::vector<sai_thrift_attribute_t> & thrift_attr_lists, const std::vector<int32_t> & thrift_attr_count_lists, const int8_t mode);
+  void recv_sai_thrift_create_next_hop_group_members(sai_thrift_results_t& _return, const int32_t seqid);
+  void sai_thrift_remove_next_hop_group_members(sai_thrift_status_list_t& _return, const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, const int8_t mode);
+  int32_t send_sai_thrift_remove_next_hop_group_members(const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, const int8_t mode);
+  void recv_sai_thrift_remove_next_hop_group_members(sai_thrift_status_list_t& _return, const int32_t seqid);
   sai_thrift_object_id_t sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   int32_t send_sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_lag(const int32_t seqid);
@@ -39395,15 +42059,21 @@ class switch_sai_rpcConcurrentClient : virtual public switch_sai_rpcIf {
   sai_thrift_status_t sai_thrift_remove_acl_counter(const sai_thrift_object_id_t acl_counter_id);
   int32_t send_sai_thrift_remove_acl_counter(const sai_thrift_object_id_t acl_counter_id);
   sai_thrift_status_t recv_sai_thrift_remove_acl_counter(const int32_t seqid);
-  void sai_thrift_get_acl_counter_attribute(std::vector<sai_thrift_attribute_value_t> & _return, const sai_thrift_object_id_t acl_counter_id, const std::vector<int32_t> & thrift_attr_ids);
-  int32_t send_sai_thrift_get_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const std::vector<int32_t> & thrift_attr_ids);
-  void recv_sai_thrift_get_acl_counter_attribute(std::vector<sai_thrift_attribute_value_t> & _return, const int32_t seqid);
+  void sai_thrift_get_acl_counter_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_counter_id);
+  int32_t send_sai_thrift_get_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id);
+  void recv_sai_thrift_get_acl_counter_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
+  sai_thrift_status_t sai_thrift_set_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const sai_thrift_attribute_t& thrift_attr);
+  int32_t send_sai_thrift_set_acl_counter_attribute(const sai_thrift_object_id_t acl_counter_id, const sai_thrift_attribute_t& thrift_attr);
+  sai_thrift_status_t recv_sai_thrift_set_acl_counter_attribute(const int32_t seqid);
   sai_thrift_object_id_t sai_thrift_create_acl_range(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   int32_t send_sai_thrift_create_acl_range(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_acl_range(const int32_t seqid);
   sai_thrift_status_t sai_thrift_remove_acl_range(const sai_thrift_object_id_t acl_range_id);
   int32_t send_sai_thrift_remove_acl_range(const sai_thrift_object_id_t acl_range_id);
   sai_thrift_status_t recv_sai_thrift_remove_acl_range(const int32_t seqid);
+  void sai_thrift_get_acl_range_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t acl_range_id);
+  int32_t send_sai_thrift_get_acl_range_attribute(const sai_thrift_object_id_t acl_range_id);
+  void recv_sai_thrift_get_acl_range_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
   sai_thrift_object_id_t sai_thrift_create_hash(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   int32_t send_sai_thrift_create_hash(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_hash(const int32_t seqid);
@@ -39455,6 +42125,15 @@ class switch_sai_rpcConcurrentClient : virtual public switch_sai_rpcIf {
   sai_thrift_status_t sai_thrift_set_twamp_attribute(const sai_thrift_object_id_t thrift_twamp_session_id, const sai_thrift_attribute_t& thrift_attr);
   int32_t send_sai_thrift_set_twamp_attribute(const sai_thrift_object_id_t thrift_twamp_session_id, const sai_thrift_attribute_t& thrift_attr);
   sai_thrift_status_t recv_sai_thrift_set_twamp_attribute(const int32_t seqid);
+  void sai_thrift_get_twamp_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t thrift_twamp_session_id);
+  int32_t send_sai_thrift_get_twamp_attribute(const sai_thrift_object_id_t thrift_twamp_session_id);
+  void recv_sai_thrift_get_twamp_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
+  void sai_thrift_get_twamp_session_stats(std::vector<int64_t> & _return, const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & counter_ids, const int32_t number_of_counters);
+  int32_t send_sai_thrift_get_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & counter_ids, const int32_t number_of_counters);
+  void recv_sai_thrift_get_twamp_session_stats(std::vector<int64_t> & _return, const int32_t seqid);
+  sai_thrift_status_t sai_thrift_clear_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & thrift_counter_ids, const int32_t number_of_counters);
+  int32_t send_sai_thrift_clear_twamp_session_stats(const sai_thrift_object_id_t twamp_id, const std::vector<sai_thrift_twamp_stat_counter_t> & thrift_counter_ids, const int32_t number_of_counters);
+  sai_thrift_status_t recv_sai_thrift_clear_twamp_session_stats(const int32_t seqid);
   sai_thrift_object_id_t sai_thrift_create_mirror_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   int32_t send_sai_thrift_create_mirror_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_mirror_session(const int32_t seqid);
@@ -39497,6 +42176,9 @@ class switch_sai_rpcConcurrentClient : virtual public switch_sai_rpcIf {
   void sai_thrift_get_policer_stats(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids);
   int32_t send_sai_thrift_get_policer_stats(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids);
   void recv_sai_thrift_get_policer_stats(std::vector<sai_thrift_uint64_t> & _return, const int32_t seqid);
+  void sai_thrift_get_policer_stats_ext(std::vector<sai_thrift_uint64_t> & _return, const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids, const int8_t mode);
+  int32_t send_sai_thrift_get_policer_stats_ext(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids, const int8_t mode);
+  void recv_sai_thrift_get_policer_stats_ext(std::vector<sai_thrift_uint64_t> & _return, const int32_t seqid);
   sai_thrift_status_t sai_thrift_clear_policer_stats(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids);
   int32_t send_sai_thrift_clear_policer_stats(const sai_thrift_object_id_t thrift_policer_id, const std::vector<sai_thrift_policer_stat_t> & thrift_counter_ids);
   sai_thrift_status_t recv_sai_thrift_clear_policer_stats(const int32_t seqid);
@@ -39761,8 +42443,8 @@ class switch_sai_rpcConcurrentClient : virtual public switch_sai_rpcIf {
   sai_thrift_status_t sai_thrift_set_tunnel_term_table_entry_attribute(const sai_thrift_object_id_t tunnel_term_table_entry_id, const sai_thrift_attribute_t& thrift_attr);
   int32_t send_sai_thrift_set_tunnel_term_table_entry_attribute(const sai_thrift_object_id_t tunnel_term_table_entry_id, const sai_thrift_attribute_t& thrift_attr);
   sai_thrift_status_t recv_sai_thrift_set_tunnel_term_table_entry_attribute(const int32_t seqid);
-  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t switch_id);
-  int32_t send_sai_thrift_get_cpu_packet_attribute(const sai_thrift_object_id_t switch_id);
+  void sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return);
+  int32_t send_sai_thrift_get_cpu_packet_attribute();
   void recv_sai_thrift_get_cpu_packet_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
   void sai_thrift_get_cpu_packet_count(sai_thrift_result_t& _return);
   int32_t send_sai_thrift_get_cpu_packet_count();
@@ -39905,6 +42587,18 @@ class switch_sai_rpcConcurrentClient : virtual public switch_sai_rpcIf {
   void sai_thrift_get_ptp_domain_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t ptp_oid);
   int32_t send_sai_thrift_get_ptp_domain_attribute(const sai_thrift_object_id_t ptp_oid);
   void recv_sai_thrift_get_ptp_domain_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
+  sai_thrift_object_id_t sai_thrift_create_synce(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  int32_t send_sai_thrift_create_synce(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  sai_thrift_object_id_t recv_sai_thrift_create_synce(const int32_t seqid);
+  sai_thrift_status_t sai_thrift_remove_synce(const sai_thrift_object_id_t synce_oid);
+  int32_t send_sai_thrift_remove_synce(const sai_thrift_object_id_t synce_oid);
+  sai_thrift_status_t recv_sai_thrift_remove_synce(const int32_t seqid);
+  sai_thrift_status_t sai_thrift_set_synce_attribute(const sai_thrift_object_id_t synce_oid, const sai_thrift_attribute_t& thrift_attr);
+  int32_t send_sai_thrift_set_synce_attribute(const sai_thrift_object_id_t synce_oid, const sai_thrift_attribute_t& thrift_attr);
+  sai_thrift_status_t recv_sai_thrift_set_synce_attribute(const int32_t seqid);
+  void sai_thrift_get_synce_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t synce_oid);
+  int32_t send_sai_thrift_get_synce_attribute(const sai_thrift_object_id_t synce_oid);
+  void recv_sai_thrift_get_synce_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
   sai_thrift_object_id_t sai_thrift_create_es(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   int32_t send_sai_thrift_create_es(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
   sai_thrift_object_id_t recv_sai_thrift_create_es(const int32_t seqid);
@@ -39917,6 +42611,30 @@ class switch_sai_rpcConcurrentClient : virtual public switch_sai_rpcIf {
   void sai_thrift_get_es_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t es_oid);
   int32_t send_sai_thrift_get_es_attribute(const sai_thrift_object_id_t es_oid);
   void recv_sai_thrift_get_es_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
+  sai_thrift_object_id_t sai_thrift_create_monitor_buffer(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  int32_t send_sai_thrift_create_monitor_buffer(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  sai_thrift_object_id_t recv_sai_thrift_create_monitor_buffer(const int32_t seqid);
+  sai_thrift_status_t sai_thrift_remove_monitor_buffer(const sai_thrift_object_id_t monitor_buffer_oid);
+  int32_t send_sai_thrift_remove_monitor_buffer(const sai_thrift_object_id_t monitor_buffer_oid);
+  sai_thrift_status_t recv_sai_thrift_remove_monitor_buffer(const int32_t seqid);
+  sai_thrift_status_t sai_thrift_set_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid, const sai_thrift_attribute_t& thrift_attr);
+  int32_t send_sai_thrift_set_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid, const sai_thrift_attribute_t& thrift_attr);
+  sai_thrift_status_t recv_sai_thrift_set_monitor_buffer_attribute(const int32_t seqid);
+  void sai_thrift_get_monitor_buffer_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_buffer_oid);
+  int32_t send_sai_thrift_get_monitor_buffer_attribute(const sai_thrift_object_id_t monitor_buffer_oid);
+  void recv_sai_thrift_get_monitor_buffer_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
+  sai_thrift_object_id_t sai_thrift_create_monitor_latency(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  int32_t send_sai_thrift_create_monitor_latency(const std::vector<sai_thrift_attribute_t> & thrift_attr_list);
+  sai_thrift_object_id_t recv_sai_thrift_create_monitor_latency(const int32_t seqid);
+  sai_thrift_status_t sai_thrift_remove_monitor_latency(const sai_thrift_object_id_t monitor_latency_oid);
+  int32_t send_sai_thrift_remove_monitor_latency(const sai_thrift_object_id_t monitor_latency_oid);
+  sai_thrift_status_t recv_sai_thrift_remove_monitor_latency(const int32_t seqid);
+  sai_thrift_status_t sai_thrift_set_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid, const sai_thrift_attribute_t& thrift_attr);
+  int32_t send_sai_thrift_set_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid, const sai_thrift_attribute_t& thrift_attr);
+  sai_thrift_status_t recv_sai_thrift_set_monitor_latency_attribute(const int32_t seqid);
+  void sai_thrift_get_monitor_latency_attribute(sai_thrift_attribute_list_t& _return, const sai_thrift_object_id_t monitor_latency_oid);
+  int32_t send_sai_thrift_get_monitor_latency_attribute(const sai_thrift_object_id_t monitor_latency_oid);
+  void recv_sai_thrift_get_monitor_latency_attribute(sai_thrift_attribute_list_t& _return, const int32_t seqid);
  protected:
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;

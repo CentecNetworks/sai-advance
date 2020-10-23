@@ -14,9 +14,27 @@
 #include "ctc_sai_next_hop.h"
 #include "ctc_sai_route.h"
 
-
 /*sdk include file*/
 #include "ctcs_api.h"
+
+enum ctc_sai_counter_resource_e
+{
+    CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON0 = 0,
+    CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1 = 1,
+    CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2 = 2,
+    CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3 = 3,
+    CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL0    = 4,
+    CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL1    = 5,
+    CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL2    = 6,
+    CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL3    = 7,
+
+    CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON0  = 0,
+    CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1  = 1,
+    CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON2  = 2,
+    CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON3  = 3,
+    CTC_SAI_COUNTER_RESOURCE_EGRESS_ACL0     = 4,
+};
+typedef enum ctc_sai_counter_resource_e ctc_sai_counter_resource_t;
 
 static sai_status_t
 _ctc_sai_counter_build_db(uint8 lchip, sai_object_id_t stats_id, ctc_sai_counter_t** oid_property)
@@ -73,10 +91,10 @@ _ctc_sai_counter_create_attr_check(uint8 lchip, uint32_t attr_count, const sai_a
     status = (ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_COUNTER_ATTR_TYPE, &attr_value, &index));
     if (!CTC_SAI_ERROR(status))
     {
-        if (attr_value->u32 != SAI_COUNTER_TYPE_REGULAR)
+        if (attr_value->s32 != SAI_COUNTER_TYPE_REGULAR)
         {
             return SAI_STATUS_INVALID_PARAMETER;
-        }        
+        }
     }
 
     return SAI_STATUS_SUCCESS;
@@ -91,6 +109,8 @@ _ctc_sai_counter_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
 
     CTC_SAI_LOG_ENTER(SAI_API_COUNTER);
     ctc_sai_oid_get_lchip(key->key.object_id, &lchip);
+    CTC_SAI_ERROR_RETURN(_ctc_sai_counter_create_attr_check(lchip, 1, attr));
+
     p_counter_info = ctc_sai_db_get_object_property(lchip, key->key.object_id);
     if (NULL == p_counter_info)
     {
@@ -99,13 +119,13 @@ _ctc_sai_counter_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
 
     switch (attr->id)
     {
-    case SAI_COUNTER_ATTR_TYPE:
-        {
-            p_counter_info->counter_type = attr->value.s32;
-        }
-        break;
-    default:
-        break;
+        case SAI_COUNTER_ATTR_TYPE:
+            {
+                p_counter_info->counter_type = attr->value.s32;
+            }
+            break;
+        default:
+            break;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -150,9 +170,9 @@ _ctc_sai_counter_wb_reload_cb(uint8 lchip, void* key, void* data)
 {
     ctc_object_id_t ctc_object_id;
     sai_object_id_t counter_obj_id = *(sai_object_id_t*)key;
-    
+
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, counter_obj_id, &ctc_object_id);
-    CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_COUNTER, ctc_object_id.value));  
+    CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_COUNTER, ctc_object_id.value));
 
     return SAI_STATUS_SUCCESS;
 }
@@ -190,7 +210,7 @@ _ctc_sai_counter_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_db_t
         sal_sprintf(queue_id, "%d", ctc_sai_counter_cur.statsinfo.hostif_queue.queue_id);
         sal_sprintf(cpu_reason, "/%d", ctc_sai_counter_cur.statsinfo.hostif_queue.cpu_reason);
         sal_strcat(queue_id, cpu_reason);
-        
+
         CTC_SAI_LOG_DUMP(p_file, "%-4d  0x%016"PRIx64 "  %-12d  %-14d  %-18s  %-18s\n",\
             num_cnt, counter_oid_cur, ctc_sai_counter_cur.ctc_sai_counter_type, ctc_sai_counter_cur.is_trap_stats, "-", queue_id);
 
@@ -207,8 +227,8 @@ _ctc_sai_counter_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_db_t
 
 #define ________INTERNAL_API________
 
-sai_status_t    
-ctc_sai_counter_id_hostif_trap_create(sai_object_id_t counter_id, ctc_sai_counter_type_t counter_type, uint16 cpu_reason, uint16 queue_id)
+sai_status_t
+ctc_sai_counter_id_hostif_trap_create(sai_object_id_t counter_id, ctc_sai_counter_type_t ctc_sai_counter_type, uint16 cpu_reason, uint16 queue_id)
 {
     uint8 lchip = 0;
     ctc_object_id_t counter_obj_id;
@@ -224,14 +244,28 @@ ctc_sai_counter_id_hostif_trap_create(sai_object_id_t counter_id, ctc_sai_counte
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    p_counter_info->counter_type = counter_type;
+    if (CTC_SAI_COUNTER_TYPE_HOSTIF != ctc_sai_counter_type)
+    {
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
+    if ((p_counter_info->ref_cnt > 0)
+        && ((ctc_sai_counter_type != p_counter_info->ctc_sai_counter_type)
+        || (p_counter_info->statsinfo.hostif_queue.cpu_reason != cpu_reason)
+        || (p_counter_info->statsinfo.hostif_queue.queue_id != queue_id)))
+    {
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
+    p_counter_info->ref_cnt++;
+    p_counter_info->ctc_sai_counter_type = ctc_sai_counter_type;
     p_counter_info->statsinfo.hostif_queue.cpu_reason = cpu_reason;
     p_counter_info->statsinfo.hostif_queue.queue_id = queue_id;
 
     return SAI_STATUS_SUCCESS;
 }
-sai_status_t    
-ctc_sai_counter_id_hostif_trap_remove(sai_object_id_t counter_id, ctc_sai_counter_type_t counter_type)
+sai_status_t
+ctc_sai_counter_id_hostif_trap_remove(sai_object_id_t counter_id, ctc_sai_counter_type_t ctc_sai_counter_type)
 {
     uint8 lchip = 0;
     ctc_object_id_t counter_obj_id;
@@ -247,16 +281,22 @@ ctc_sai_counter_id_hostif_trap_remove(sai_object_id_t counter_id, ctc_sai_counte
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    p_counter_info->counter_type = CTC_SAI_COUNTER_TYPE_MAX;
-    p_counter_info->statsinfo.hostif_queue.cpu_reason = 0;
-    p_counter_info->statsinfo.hostif_queue.queue_id = 0;
+    p_counter_info->ref_cnt--;
+    if (0 == p_counter_info->ref_cnt)
+    {
+        p_counter_info->ctc_sai_counter_type = CTC_SAI_COUNTER_TYPE_MAX;
+        p_counter_info->statsinfo.hostif_queue.cpu_reason = 0;
+        p_counter_info->statsinfo.hostif_queue.queue_id = 0;
+        p_counter_info->packet_count = 0;
+        p_counter_info->byte_count = 0;
+    }
 
     return SAI_STATUS_SUCCESS;
 }
 
 
-sai_status_t    
-ctc_sai_counter_id_create(sai_object_id_t counter_id, ctc_sai_counter_type_t counter_type, uint32* stats_id)
+sai_status_t
+ctc_sai_counter_id_create(sai_object_id_t counter_id, ctc_sai_counter_type_t ctc_sai_counter_type, uint32* stats_id)
 {
     ctc_stats_statsid_t stats_statsid;
     uint8 lchip = 0;
@@ -272,55 +312,78 @@ ctc_sai_counter_id_create(sai_object_id_t counter_id, ctc_sai_counter_type_t cou
     {
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
-        
-    if(counter_type == CTC_SAI_COUNTER_TYPE_ROUTE)
+
+    if (p_counter_info->ref_cnt > 0)
+    {
+        if (ctc_sai_counter_type != p_counter_info->ctc_sai_counter_type)
+        {
+            return SAI_STATUS_INVALID_PARAMETER;
+        }
+        *stats_id = p_counter_info->statsinfo.stats_id;
+        p_counter_info->ref_cnt++;
+        return SAI_STATUS_SUCCESS;
+    }
+
+    sal_memset(&stats_statsid, 0, sizeof(ctc_stats_statsid_t));
+    if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_ROUTE)
     {
         stats_statsid.type = CTC_STATS_STATSID_TYPE_IP;
         stats_statsid.dir = CTC_INGRESS;
     }
-    else if (counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP)
-    {
-        stats_statsid.type = CTC_STATS_STATSID_TYPE_NEXTHOP;
-        stats_statsid.dir = CTC_EGRESS;
-    }
-    else if (counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_PW)
+    else if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_PW)
     {
         stats_statsid.type = CTC_STATS_STATSID_TYPE_NEXTHOP_MPLS_PW;
         stats_statsid.dir = CTC_EGRESS;
     }
-    else if (counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_LSP)
+    else if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_LSP)
     {
         stats_statsid.type = CTC_STATS_STATSID_TYPE_NEXTHOP_MPLS_LSP;
         stats_statsid.dir = CTC_EGRESS;
     }
-    else if (counter_type == CTC_SAI_COUNTER_TYPE_ECMP)
+    else if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_ECMP)
     {
         stats_statsid.type = CTC_STATS_STATSID_TYPE_ECMP;
         stats_statsid.dir = CTC_INGRESS;
     }
-    else if (counter_type == CTC_SAI_COUNTER_TYPE_TUNNEL_IGS)
+    else if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_INSEG_MPLS_PW)
+    {
+        stats_statsid.type = CTC_STATS_STATSID_TYPE_MPLS_PW;
+        stats_statsid.dir = CTC_INGRESS;
+    }
+    else if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_INSEG_MPLS_LSP)
+    {
+        stats_statsid.statsid.is_vc_label = 0;
+        stats_statsid.type = CTC_STATS_STATSID_TYPE_MPLS;
+        stats_statsid.dir = CTC_INGRESS;
+    }
+    else if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_TUNNEL_IGS)
     {
         stats_statsid.type = CTC_STATS_STATSID_TYPE_TUNNEL;
         stats_statsid.dir = CTC_INGRESS;
-    }  
-    else if (counter_type == CTC_SAI_COUNTER_TYPE_TUNNEL_EGS)
+    }
+    else if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_TUNNEL_EGS)
     {
         stats_statsid.type = CTC_STATS_STATSID_TYPE_TUNNEL;
         stats_statsid.dir = CTC_EGRESS;
-    }  
-    
+    }
+    else
+    {
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
     CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_create_statsid(lchip, &stats_statsid));
-    
-    p_counter_info->statsinfo.stats_id = stats_statsid.stats_id;    
-    p_counter_info->ctc_sai_counter_type = counter_type;
+
+    p_counter_info->statsinfo.stats_id = stats_statsid.stats_id;
+    p_counter_info->ctc_sai_counter_type = ctc_sai_counter_type;
+    p_counter_info->ref_cnt++;
 
     *stats_id = stats_statsid.stats_id;
-        
+
     return SAI_STATUS_SUCCESS;
 }
 
-sai_status_t    
-ctc_sai_counter_id_remove(sai_object_id_t counter_id, ctc_sai_counter_type_t counter_type)
+sai_status_t
+ctc_sai_counter_id_remove(sai_object_id_t counter_id, ctc_sai_counter_type_t ctc_sai_counter_type)
 {
     uint8 lchip = 0;
     ctc_sai_counter_t* p_counter_info = NULL;
@@ -330,11 +393,12 @@ ctc_sai_counter_id_remove(sai_object_id_t counter_id, ctc_sai_counter_type_t cou
     {
         return SAI_STATUS_SUCCESS;
     }
-    if(counter_type == CTC_SAI_COUNTER_TYPE_HOSTIF)
+
+    if (ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_HOSTIF)
     {
         return SAI_STATUS_NOT_SUPPORTED;
     }
-    
+
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(counter_id, &lchip));
     p_counter_info = ctc_sai_db_get_object_property(lchip, counter_id);
     if (NULL == p_counter_info)
@@ -342,12 +406,86 @@ ctc_sai_counter_id_remove(sai_object_id_t counter_id, ctc_sai_counter_type_t cou
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_destroy_statsid(lchip, p_counter_info->statsinfo.stats_id));
-
-    p_counter_info->statsinfo.stats_id = 0;
-    p_counter_info->ctc_sai_counter_type = CTC_SAI_COUNTER_TYPE_MAX;
+    p_counter_info->ref_cnt--;
+    if (0 == p_counter_info->ref_cnt)
+    {
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_destroy_statsid(lchip, p_counter_info->statsinfo.stats_id));
+        p_counter_info->statsinfo.stats_id = 0;
+        p_counter_info->byte_count = 0;
+        p_counter_info->packet_count = 0;
+    }
 
     return SAI_STATUS_SUCCESS;
+}
+
+sai_status_t
+ctc_sai_counter_init_resource(uint8 lchip)
+{
+    ctc_stats_property_param_t stats_param;
+    ctc_stats_property_t stats_prop;
+
+    sal_memset(&stats_param, 0, sizeof(ctc_stats_property_param_t));
+    sal_memset(&stats_prop, 0, sizeof(ctc_stats_property_t));
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VLAN][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VLAN][CTC_EGRESS],             CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON3);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_L3IF][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_L3IF][CTC_EGRESS],             CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON3);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VRF][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_SCL][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_SCL][CTC_EGRESS],              CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_TUNNEL][CTC_INGRESS],          CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_TUNNEL][CTC_EGRESS],           CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MPLS][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MPLS_LSP][CTC_EGRESS], CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MPLS_PW][CTC_INGRESS],         CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MPLS_PW][CTC_EGRESS],  CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON2);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MCAST][CTC_INGRESS],   CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP][CTC_EGRESS],          CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON2);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_IP][CTC_INGRESS],              CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_FLOW_HASH][CTC_INGRESS],       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MAC][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER0][CTC_INGRESS],        CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON0);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER0][CTC_EGRESS],         CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON0);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER1][CTC_INGRESS],        CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER1][CTC_EGRESS],         CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+
+    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_ECMP][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[2][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL0);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[3][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL1);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[4][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL2);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[5][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL3);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[6][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[7][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[0][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_ACL0);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[1][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON0);
+
+    CTC_BIT_SET(stats_param.acl_ram_bmp[2][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+
+    stats_param.prop_type = CTC_STATS_PROPERTY_CLASSIFY_FLOW_STATS_RAM;
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_set_global_cfg(lchip, stats_param, stats_prop));
+
+    return CTC_E_NONE;
 }
 
 void ctc_sai_counter_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t *dump_grep_param)
@@ -383,8 +521,9 @@ sai_status_t ctc_sai_counter_create_counter (
          uint32_t attr_count,
          const sai_attribute_t *attr_list)
 {
-    sai_status_t           status = SAI_STATUS_SUCCESS;
+    sai_status_t status = SAI_STATUS_SUCCESS;
     uint8 lchip = 0;
+    uint8 counter_type = SAI_COUNTER_TYPE_REGULAR;
     uint32 stats_id = 0;
     uint32_t index = 0;
     sai_object_id_t counter_obj_id = 0;
@@ -395,24 +534,30 @@ sai_status_t ctc_sai_counter_create_counter (
     CTC_SAI_PTR_VALID_CHECK(counter_id);
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(switch_id, &lchip));
     CTC_SAI_ERROR_RETURN(_ctc_sai_counter_create_attr_check(lchip, attr_count, attr_list));
-    
+
     CTC_SAI_DB_LOCK(lchip);
-    
-    CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_COUNTER, &stats_id), status, out);
-    
-    counter_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_COUNTER, lchip, 0, 0, stats_id);
-    
-    CTC_SAI_LOG_INFO(SAI_API_COUNTER, "create counter_id = 0x%"PRIx64"\n", counter_obj_id);
-    CTC_SAI_ERROR_GOTO(_ctc_sai_counter_build_db(lchip, counter_obj_id, &p_counter_info), status, error1);
 
     status = (ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_COUNTER_ATTR_TYPE, &attr_value, &index));
     if (!CTC_SAI_ERROR(status))
     {
-        p_counter_info->counter_type = attr_value->u32;
+        if (SAI_COUNTER_TYPE_REGULAR != attr_value->u32)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_COUNTER, "Invalid attr SAI_COUNTER_ATTR_TYPE value!\n");
+            return SAI_STATUS_INVALID_PARAMETER;
+        }
+        else
+        {
+            counter_type = attr_value->u32;
+        }
     }
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_COUNTER, &stats_id), status, out);
+    counter_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_COUNTER, lchip, 0, 0, stats_id);
 
+    CTC_SAI_LOG_INFO(SAI_API_COUNTER, "create counter_id = 0x%"PRIx64"\n", counter_obj_id);
+    CTC_SAI_ERROR_GOTO(_ctc_sai_counter_build_db(lchip, counter_obj_id, &p_counter_info), status, error1);
+
+    p_counter_info->counter_type = counter_type;
     p_counter_info->ctc_sai_counter_type = CTC_SAI_COUNTER_TYPE_MAX;
-
     *counter_id = counter_obj_id;
 
     goto out;
@@ -424,8 +569,6 @@ error1:
 out:
     CTC_SAI_DB_UNLOCK(lchip);
     return status;
-    
-    
 }
 
 sai_status_t ctc_sai_counter_remove_counter(
@@ -442,20 +585,24 @@ sai_status_t ctc_sai_counter_remove_counter(
     p_counter_info = ctc_sai_db_get_object_property(lchip, counter_id);
     if (NULL == p_counter_info)
     {
-        return SAI_STATUS_ITEM_NOT_FOUND;
+        CTC_SAI_LOG_ERROR(SAI_API_COUNTER, "remove counter_id = 0x%llx, but not found!\n", counter_id);
+        status = SAI_STATUS_ITEM_NOT_FOUND;
+        goto error0;
     }
 
-    if(p_counter_info->ctc_sai_counter_type != CTC_SAI_COUNTER_TYPE_MAX)
-    {        
-        return SAI_STATUS_OBJECT_IN_USE;
+    if (p_counter_info->ref_cnt > 0)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_COUNTER, "remove counter_id = 0x%llx, but in use!\n", counter_id);
+        status = SAI_STATUS_OBJECT_IN_USE;
+        goto error0;
     }
 
-    //CTC_SAI_ERROR_GOTO(ctc_sai_counter_id_remove(counter_id, p_counter_info->counter_type), status, out);
+    //CTC_SAI_ERROR_GOTO(ctc_sai_counter_id_remove(counter_id, p_counter_info->ctc_sai_counter_type), status, out);
     ctc_sai_oid_get_counter_id(counter_id, &cnt_id);
-    CTC_SAI_ERROR_GOTO(ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_COUNTER, cnt_id), status, out);
-    CTC_SAI_ERROR_GOTO(_ctc_sai_counter_remove_db(lchip, counter_id), status, out);
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_COUNTER, cnt_id), status, error0);
+    CTC_SAI_ERROR_GOTO(_ctc_sai_counter_remove_db(lchip, counter_id), status, error0);
 
-out:
+error0:
     CTC_SAI_DB_UNLOCK(lchip);
     return status;
 }
@@ -477,7 +624,7 @@ sai_status_t ctc_sai_counter_set_counter_attribute(
     CTC_SAI_ERROR_GOTO(ctc_sai_set_attribute(&key, NULL, SAI_OBJECT_TYPE_COUNTER,  counter_attr_fn_entries, attr), status, out);
 
 out:
-    CTC_SAI_DB_UNLOCK(lchip);  
+    CTC_SAI_DB_UNLOCK(lchip);
     return status;
 }
 
@@ -533,13 +680,18 @@ sai_status_t ctc_sai_counter_get_counter_stats (
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    if(p_counter_info->ctc_sai_counter_type < CTC_SAI_COUNTER_TYPE_HOSTIF) 
+    if (0 == p_counter_info->ref_cnt)
+    {
+        goto GET_COUNTER_STATS;
+    }
+
+    if (p_counter_info->ctc_sai_counter_type < CTC_SAI_COUNTER_TYPE_HOSTIF)
     {
         CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_get_stats(lchip, p_counter_info->statsinfo.stats_id, &ctc_stats));
         packet_count = ctc_stats.packet_count;
         byte_count = ctc_stats.byte_count;
     }
-    else if(p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_HOSTIF)
+    else if (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_HOSTIF)
     {
         queue_stats.queue.queue_type = CTC_QUEUE_TYPE_EXCP_CPU;
         queue_stats.queue.queue_id = p_counter_info->statsinfo.hostif_queue.queue_id;
@@ -554,15 +706,16 @@ sai_status_t ctc_sai_counter_get_counter_stats (
         goto out;
     }
 
-    for(loop_i = 0;loop_i < number_of_counters;loop_i++)
+GET_COUNTER_STATS:
+    for (loop_i = 0; loop_i < number_of_counters; loop_i++)
     {
-        if(SAI_COUNTER_STAT_PACKETS == counter_ids[loop_i])
+        if (SAI_COUNTER_STAT_PACKETS == counter_ids[loop_i])
         {
-            counters[loop_i] = packet_count;
+            counters[loop_i] = packet_count - p_counter_info->packet_count;
         }
-        else if(SAI_COUNTER_STAT_BYTES == counter_ids[loop_i])
+        else if (SAI_COUNTER_STAT_BYTES == counter_ids[loop_i])
         {
-            counters[loop_i] = byte_count;
+            counters[loop_i] = byte_count - p_counter_info->byte_count;
         }
         else
         {
@@ -571,13 +724,12 @@ sai_status_t ctc_sai_counter_get_counter_stats (
         }
         CTC_SAI_LOG_INFO(SAI_API_COUNTER, "counters[%d] = %llu\n", loop_i, counters[loop_i]);
     }
-    
 
 out:
     return status;
 
 }
-        
+
 sai_status_t ctc_sai_counter_get_counter_stats_ext (
         sai_object_id_t counter_id,
         uint32_t number_of_counters,
@@ -603,19 +755,25 @@ sai_status_t ctc_sai_counter_get_counter_stats_ext (
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    if(SAI_STATS_MODE_READ == mode)
+    if (SAI_STATS_MODE_READ == mode)
     {
         status = SAI_STATUS_NOT_SUPPORTED;
         goto out;
     }
-    if(p_counter_info->ctc_sai_counter_type < CTC_SAI_COUNTER_TYPE_HOSTIF)
+
+    if (0 == p_counter_info->ref_cnt)
+    {
+        goto GET_COUNTER_STATS_EXT;
+    }
+
+    if (p_counter_info->ctc_sai_counter_type < CTC_SAI_COUNTER_TYPE_HOSTIF)
     {
         CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_get_stats(lchip, p_counter_info->statsinfo.stats_id, &ctc_stats));
         packet_count = ctc_stats.packet_count;
         byte_count = ctc_stats.byte_count;
         CTC_SAI_LOG_INFO(SAI_API_COUNTER, "Route/NextHop Counter.\n");
     }
-    else if(p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_HOSTIF)
+    else if (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_HOSTIF)
     {
         queue_stats.queue.queue_type = CTC_QUEUE_TYPE_EXCP_CPU;
         queue_stats.queue.queue_id = p_counter_info->statsinfo.hostif_queue.queue_id;
@@ -631,15 +789,16 @@ sai_status_t ctc_sai_counter_get_counter_stats_ext (
         goto out;
     }
 
-    for(loop_i = 0;loop_i < number_of_counters;loop_i++)
+GET_COUNTER_STATS_EXT:
+    for (loop_i = 0; loop_i < number_of_counters; loop_i++)
     {
         if(SAI_COUNTER_STAT_PACKETS == counter_ids[loop_i])
         {
-            counters[loop_i] = packet_count;
+            counters[loop_i] = packet_count - p_counter_info->packet_count;
         }
         else if(SAI_COUNTER_STAT_BYTES == counter_ids[loop_i])
         {
-            counters[loop_i] = byte_count;
+            counters[loop_i] = byte_count - p_counter_info->byte_count;
         }
         else
         {
@@ -649,12 +808,16 @@ sai_status_t ctc_sai_counter_get_counter_stats_ext (
         CTC_SAI_LOG_INFO(SAI_API_COUNTER, "counters[%d] = %llu\n", loop_i, counters[loop_i]);
     }
 
+    if (SAI_STATS_MODE_READ_AND_CLEAR == mode)
+    {
+        p_counter_info->packet_count = packet_count;
+        p_counter_info->byte_count = byte_count;
+    }
+
 out:
     return status;
-
 }
 
-        
 sai_status_t ctc_sai_counter_clear_counter_stats (
         sai_object_id_t counter_id,
         uint32_t number_of_counters,
@@ -691,11 +854,17 @@ sai_status_t ctc_sai_counter_clear_counter_stats (
             goto out;
         }
     }
-    
+
     if(pkt_clear && byte_clear)
     {
-        if((p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_ROUTE) || (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP))
-        {           
+        if ((p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_ROUTE)
+           || (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP)
+           || (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_TUNNEL_IGS)
+           || (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_TUNNEL_EGS)
+           || (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_PW)
+           || (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_LSP)
+           || (p_counter_info->ctc_sai_counter_type == CTC_SAI_COUNTER_TYPE_ECMP))
+        {
             CTC_SAI_LOG_INFO(SAI_OBJECT_TYPE_COUNTER, "clear route/nexthop stats_id = 0x%"PRIx64"\n", p_counter_info->statsinfo.stats_id);
             CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_clear_stats(lchip, p_counter_info->statsinfo.stats_id));
         }
@@ -712,8 +881,8 @@ sai_status_t ctc_sai_counter_clear_counter_stats (
         CTC_SAI_LOG_INFO(SAI_OBJECT_TYPE_COUNTER, "Only support clear both packets and bytes.\n");
         status = SAI_STATUS_NOT_SUPPORTED;
     }
-    
-out:    
+
+out:
     return status;
 
 }
@@ -750,7 +919,7 @@ ctc_sai_counter_db_init(uint8 lchip)
     wb_info.wb_reload_cb = _ctc_sai_counter_wb_reload_cb;
     ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_COUNTER, (void*)(&wb_info));
     /*warmboot end */
-    
+
     return SAI_STATUS_SUCCESS;
 }
 

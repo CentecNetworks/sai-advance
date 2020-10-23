@@ -751,6 +751,234 @@ class sai_thrift_route_entry_list_t(object):
         return not (self == other)
 
 
+class sai_thrift_u8_list_t(object):
+    """
+    Attributes:
+     - count
+     - u8list
+
+    """
+
+
+    def __init__(self, count=None, u8list=None,):
+        self.count = count
+        self.u8list = u8list
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.count = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.LIST:
+                    self.u8list = []
+                    (_etype38, _size35) = iprot.readListBegin()
+                    for _i39 in range(_size35):
+                        _elem40 = iprot.readByte()
+                        self.u8list.append(_elem40)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('sai_thrift_u8_list_t')
+        if self.count is not None:
+            oprot.writeFieldBegin('count', TType.I32, 1)
+            oprot.writeI32(self.count)
+            oprot.writeFieldEnd()
+        if self.u8list is not None:
+            oprot.writeFieldBegin('u8list', TType.LIST, 2)
+            oprot.writeListBegin(TType.BYTE, len(self.u8list))
+            for iter41 in self.u8list:
+                oprot.writeByte(iter41)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class sai_thrift_s8_list_t(object):
+    """
+    Attributes:
+     - count
+     - s8list
+
+    """
+
+
+    def __init__(self, count=None, s8list=None,):
+        self.count = count
+        self.s8list = s8list
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.count = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.LIST:
+                    self.s8list = []
+                    (_etype45, _size42) = iprot.readListBegin()
+                    for _i46 in range(_size42):
+                        _elem47 = iprot.readByte()
+                        self.s8list.append(_elem47)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('sai_thrift_s8_list_t')
+        if self.count is not None:
+            oprot.writeFieldBegin('count', TType.I32, 1)
+            oprot.writeI32(self.count)
+            oprot.writeFieldEnd()
+        if self.s8list is not None:
+            oprot.writeFieldBegin('s8list', TType.LIST, 2)
+            oprot.writeListBegin(TType.BYTE, len(self.s8list))
+            for iter48 in self.s8list:
+                oprot.writeByte(iter48)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class sai_thrift_u32_list_t(object):
+    """
+    Attributes:
+     - count
+     - u32list
+
+    """
+
+
+    def __init__(self, count=None, u32list=None,):
+        self.count = count
+        self.u32list = u32list
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.count = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.LIST:
+                    self.u32list = []
+                    (_etype52, _size49) = iprot.readListBegin()
+                    for _i53 in range(_size49):
+                        _elem54 = iprot.readI32()
+                        self.u32list.append(_elem54)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('sai_thrift_u32_list_t')
+        if self.count is not None:
+            oprot.writeFieldBegin('count', TType.I32, 1)
+            oprot.writeI32(self.count)
+            oprot.writeFieldEnd()
+        if self.u32list is not None:
+            oprot.writeFieldBegin('u32list', TType.LIST, 2)
+            oprot.writeListBegin(TType.I32, len(self.u32list))
+            for iter55 in self.u32list:
+                oprot.writeI32(iter55)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
 class sai_thrift_acl_mask_t(object):
     """
     Attributes:
@@ -763,11 +991,12 @@ class sai_thrift_acl_mask_t(object):
      - mac
      - ip4
      - ip6
+     - u8list
 
     """
 
 
-    def __init__(self, u8=None, s8=None, u16=None, s16=None, u32=None, s32=None, mac=None, ip4=None, ip6=None,):
+    def __init__(self, u8=None, s8=None, u16=None, s16=None, u32=None, s32=None, mac=None, ip4=None, ip6=None, u8list=None,):
         self.u8 = u8
         self.s8 = s8
         self.u16 = u16
@@ -777,6 +1006,7 @@ class sai_thrift_acl_mask_t(object):
         self.mac = mac
         self.ip4 = ip4
         self.ip6 = ip6
+        self.u8list = u8list
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -832,6 +1062,12 @@ class sai_thrift_acl_mask_t(object):
                     self.ip6 = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 10:
+                if ftype == TType.STRUCT:
+                    self.u8list = sai_thrift_u8_list_t()
+                    self.u8list.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -878,6 +1114,10 @@ class sai_thrift_acl_mask_t(object):
             oprot.writeFieldBegin('ip6', TType.STRING, 9)
             oprot.writeString(self.ip6.encode('utf-8') if sys.version_info[0] == 2 else self.ip6)
             oprot.writeFieldEnd()
+        if self.u8list is not None:
+            oprot.writeFieldBegin('u8list', TType.STRUCT, 10)
+            self.u8list.write(oprot)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
@@ -910,11 +1150,12 @@ class sai_thrift_acl_data_t(object):
      - ip6
      - oid
      - objlist
+     - u8list
 
     """
 
 
-    def __init__(self, u8=None, s8=None, u16=None, s16=None, u32=None, s32=None, mac=None, ip4=None, ip6=None, oid=None, objlist=None,):
+    def __init__(self, u8=None, s8=None, u16=None, s16=None, u32=None, s32=None, mac=None, ip4=None, ip6=None, oid=None, objlist=None, u8list=None,):
         self.u8 = u8
         self.s8 = s8
         self.u16 = u16
@@ -926,6 +1167,7 @@ class sai_thrift_acl_data_t(object):
         self.ip6 = ip6
         self.oid = oid
         self.objlist = objlist
+        self.u8list = u8list
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -992,6 +1234,12 @@ class sai_thrift_acl_data_t(object):
                     self.objlist.read(iprot)
                 else:
                     iprot.skip(ftype)
+            elif fid == 12:
+                if ftype == TType.STRUCT:
+                    self.u8list = sai_thrift_u8_list_t()
+                    self.u8list.read(iprot)
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1045,6 +1293,10 @@ class sai_thrift_acl_data_t(object):
         if self.objlist is not None:
             oprot.writeFieldBegin('objlist', TType.STRUCT, 11)
             self.objlist.write(oprot)
+            oprot.writeFieldEnd()
+        if self.u8list is not None:
+            oprot.writeFieldBegin('u8list', TType.STRUCT, 12)
+            self.u8list.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1382,234 +1634,6 @@ class sai_thrift_acl_action_data_t(object):
         return not (self == other)
 
 
-class sai_thrift_u8_list_t(object):
-    """
-    Attributes:
-     - count
-     - u8list
-
-    """
-
-
-    def __init__(self, count=None, u8list=None,):
-        self.count = count
-        self.u8list = u8list
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.I32:
-                    self.count = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.LIST:
-                    self.u8list = []
-                    (_etype38, _size35) = iprot.readListBegin()
-                    for _i39 in range(_size35):
-                        _elem40 = iprot.readByte()
-                        self.u8list.append(_elem40)
-                    iprot.readListEnd()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('sai_thrift_u8_list_t')
-        if self.count is not None:
-            oprot.writeFieldBegin('count', TType.I32, 1)
-            oprot.writeI32(self.count)
-            oprot.writeFieldEnd()
-        if self.u8list is not None:
-            oprot.writeFieldBegin('u8list', TType.LIST, 2)
-            oprot.writeListBegin(TType.BYTE, len(self.u8list))
-            for iter41 in self.u8list:
-                oprot.writeByte(iter41)
-            oprot.writeListEnd()
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-
-
-class sai_thrift_s8_list_t(object):
-    """
-    Attributes:
-     - count
-     - s8list
-
-    """
-
-
-    def __init__(self, count=None, s8list=None,):
-        self.count = count
-        self.s8list = s8list
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.I32:
-                    self.count = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.LIST:
-                    self.s8list = []
-                    (_etype45, _size42) = iprot.readListBegin()
-                    for _i46 in range(_size42):
-                        _elem47 = iprot.readByte()
-                        self.s8list.append(_elem47)
-                    iprot.readListEnd()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('sai_thrift_s8_list_t')
-        if self.count is not None:
-            oprot.writeFieldBegin('count', TType.I32, 1)
-            oprot.writeI32(self.count)
-            oprot.writeFieldEnd()
-        if self.s8list is not None:
-            oprot.writeFieldBegin('s8list', TType.LIST, 2)
-            oprot.writeListBegin(TType.BYTE, len(self.s8list))
-            for iter48 in self.s8list:
-                oprot.writeByte(iter48)
-            oprot.writeListEnd()
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-
-
-class sai_thrift_u32_list_t(object):
-    """
-    Attributes:
-     - count
-     - u32list
-
-    """
-
-
-    def __init__(self, count=None, u32list=None,):
-        self.count = count
-        self.u32list = u32list
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.I32:
-                    self.count = iprot.readI32()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.LIST:
-                    self.u32list = []
-                    (_etype52, _size49) = iprot.readListBegin()
-                    for _i53 in range(_size49):
-                        _elem54 = iprot.readI32()
-                        self.u32list.append(_elem54)
-                    iprot.readListEnd()
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('sai_thrift_u32_list_t')
-        if self.count is not None:
-            oprot.writeFieldBegin('count', TType.I32, 1)
-            oprot.writeI32(self.count)
-            oprot.writeFieldEnd()
-        if self.u32list is not None:
-            oprot.writeFieldBegin('u32list', TType.LIST, 2)
-            oprot.writeListBegin(TType.I32, len(self.u32list))
-            for iter55 in self.u32list:
-                oprot.writeI32(iter55)
-            oprot.writeListEnd()
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-
-
 class sai_thrift_qos_map_params_t(object):
     """
     Attributes:
@@ -1620,11 +1644,12 @@ class sai_thrift_qos_map_params_t(object):
      - pg
      - queue_index
      - color
+     - mpls_exp
 
     """
 
 
-    def __init__(self, tc=None, dscp=None, dot1p=None, prio=None, pg=None, queue_index=None, color=None,):
+    def __init__(self, tc=None, dscp=None, dot1p=None, prio=None, pg=None, queue_index=None, color=None, mpls_exp=None,):
         self.tc = tc
         self.dscp = dscp
         self.dot1p = dot1p
@@ -1632,6 +1657,7 @@ class sai_thrift_qos_map_params_t(object):
         self.pg = pg
         self.queue_index = queue_index
         self.color = color
+        self.mpls_exp = mpls_exp
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1677,6 +1703,11 @@ class sai_thrift_qos_map_params_t(object):
                     self.color = iprot.readByte()
                 else:
                     iprot.skip(ftype)
+            elif fid == 8:
+                if ftype == TType.BYTE:
+                    self.mpls_exp = iprot.readByte()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -1714,6 +1745,10 @@ class sai_thrift_qos_map_params_t(object):
         if self.color is not None:
             oprot.writeFieldBegin('color', TType.BYTE, 7)
             oprot.writeByte(self.color)
+            oprot.writeFieldEnd()
+        if self.mpls_exp is not None:
+            oprot.writeFieldBegin('mpls_exp', TType.BYTE, 8)
+            oprot.writeByte(self.mpls_exp)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1953,15 +1988,13 @@ class sai_thrift_timeoffset_t(object):
     Attributes:
      - flag
      - value
-     - type
 
     """
 
 
-    def __init__(self, flag=None, value=None, type=None,):
+    def __init__(self, flag=None, value=None,):
         self.flag = flag
         self.value = value
-        self.type = type
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -1982,11 +2015,6 @@ class sai_thrift_timeoffset_t(object):
                     self.value = iprot.readI32()
                 else:
                     iprot.skip(ftype)
-            elif fid == 3:
-                if ftype == TType.BYTE:
-                    self.type = iprot.readByte()
-                else:
-                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -2004,10 +2032,6 @@ class sai_thrift_timeoffset_t(object):
         if self.value is not None:
             oprot.writeFieldBegin('value', TType.I32, 2)
             oprot.writeI32(self.value)
-            oprot.writeFieldEnd()
-        if self.type is not None:
-            oprot.writeFieldBegin('type', TType.BYTE, 3)
-            oprot.writeByte(self.type)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -3658,6 +3682,24 @@ sai_thrift_route_entry_list_t.thrift_spec = (
     (1, TType.I32, 'count', None, None, ),  # 1
     (2, TType.LIST, 'thrift_route_entry_list', (TType.STRUCT, [sai_thrift_route_entry_t, None], False), None, ),  # 2
 )
+all_structs.append(sai_thrift_u8_list_t)
+sai_thrift_u8_list_t.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'count', None, None, ),  # 1
+    (2, TType.LIST, 'u8list', (TType.BYTE, None, False), None, ),  # 2
+)
+all_structs.append(sai_thrift_s8_list_t)
+sai_thrift_s8_list_t.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'count', None, None, ),  # 1
+    (2, TType.LIST, 's8list', (TType.BYTE, None, False), None, ),  # 2
+)
+all_structs.append(sai_thrift_u32_list_t)
+sai_thrift_u32_list_t.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'count', None, None, ),  # 1
+    (2, TType.LIST, 'u32list', (TType.I32, None, False), None, ),  # 2
+)
 all_structs.append(sai_thrift_acl_mask_t)
 sai_thrift_acl_mask_t.thrift_spec = (
     None,  # 0
@@ -3670,6 +3712,7 @@ sai_thrift_acl_mask_t.thrift_spec = (
     (7, TType.STRING, 'mac', 'UTF8', None, ),  # 7
     (8, TType.STRING, 'ip4', 'UTF8', None, ),  # 8
     (9, TType.STRING, 'ip6', 'UTF8', None, ),  # 9
+    (10, TType.STRUCT, 'u8list', [sai_thrift_u8_list_t, None], None, ),  # 10
 )
 all_structs.append(sai_thrift_acl_data_t)
 sai_thrift_acl_data_t.thrift_spec = (
@@ -3685,6 +3728,7 @@ sai_thrift_acl_data_t.thrift_spec = (
     (9, TType.STRING, 'ip6', 'UTF8', None, ),  # 9
     (10, TType.I64, 'oid', None, None, ),  # 10
     (11, TType.STRUCT, 'objlist', [sai_thrift_object_list_t, None], None, ),  # 11
+    (12, TType.STRUCT, 'u8list', [sai_thrift_u8_list_t, None], None, ),  # 12
 )
 all_structs.append(sai_thrift_acl_field_data_t)
 sai_thrift_acl_field_data_t.thrift_spec = (
@@ -3714,24 +3758,6 @@ sai_thrift_acl_action_data_t.thrift_spec = (
     (1, TType.BOOL, 'enable', None, None, ),  # 1
     (2, TType.STRUCT, 'parameter', [sai_thrift_acl_parameter_t, None], None, ),  # 2
 )
-all_structs.append(sai_thrift_u8_list_t)
-sai_thrift_u8_list_t.thrift_spec = (
-    None,  # 0
-    (1, TType.I32, 'count', None, None, ),  # 1
-    (2, TType.LIST, 'u8list', (TType.BYTE, None, False), None, ),  # 2
-)
-all_structs.append(sai_thrift_s8_list_t)
-sai_thrift_s8_list_t.thrift_spec = (
-    None,  # 0
-    (1, TType.I32, 'count', None, None, ),  # 1
-    (2, TType.LIST, 's8list', (TType.BYTE, None, False), None, ),  # 2
-)
-all_structs.append(sai_thrift_u32_list_t)
-sai_thrift_u32_list_t.thrift_spec = (
-    None,  # 0
-    (1, TType.I32, 'count', None, None, ),  # 1
-    (2, TType.LIST, 'u32list', (TType.I32, None, False), None, ),  # 2
-)
 all_structs.append(sai_thrift_qos_map_params_t)
 sai_thrift_qos_map_params_t.thrift_spec = (
     None,  # 0
@@ -3742,6 +3768,7 @@ sai_thrift_qos_map_params_t.thrift_spec = (
     (5, TType.BYTE, 'pg', None, None, ),  # 5
     (6, TType.BYTE, 'queue_index', None, None, ),  # 6
     (7, TType.BYTE, 'color', None, None, ),  # 7
+    (8, TType.BYTE, 'mpls_exp', None, None, ),  # 8
 )
 all_structs.append(sai_thrift_qos_map_t)
 sai_thrift_qos_map_t.thrift_spec = (
@@ -3766,7 +3793,6 @@ sai_thrift_timeoffset_t.thrift_spec = (
     None,  # 0
     (1, TType.BYTE, 'flag', None, None, ),  # 1
     (2, TType.I32, 'value', None, None, ),  # 2
-    (3, TType.BYTE, 'type', None, None, ),  # 3
 )
 all_structs.append(sai_thrift_timespec_t)
 sai_thrift_timespec_t.thrift_spec = (

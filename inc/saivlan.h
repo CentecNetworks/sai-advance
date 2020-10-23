@@ -385,15 +385,7 @@ typedef enum _sai_vlan_attr_t
      * SAI_VLAN_FLOOD_CONTROL_TYPE_COMBINED
      */
     SAI_VLAN_ATTR_BROADCAST_FLOOD_GROUP,
-
-    /**
-     * @brief set vlan domain id, and so far, only one domain is supported, the value cannot be 0
-     * @type sai_object_id_t
-     * @flags CREATE_AND_SET
-     * @default 1
-     */
-    SAI_VLAN_ATTR_PTP_DOMAIN_ID,
-
+    
     /**
      * @brief End of attributes
      */
@@ -415,6 +407,24 @@ typedef enum _sai_vlan_attr_t
     SAI_VLAN_ATTR_CUSTOM_IGMP_SNOOPING_ENABLE,
 
     /**
+     * @brief Vlan bind point for TAM object
+     *
+     * @type sai_object_list_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_TAM
+     * @default empty
+     */
+    SAI_VLAN_ATTR_TAM_OBJECT,
+
+    /**
+     * @brief set vlan domain id, and so far, only one domain is supported, the value cannot be 0
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @default 1
+     */
+    SAI_VLAN_ATTR_PTP_DOMAIN_ID,
+
+    /**
      * @brief vlan packet stats enable or disable control for VLAN 
      *
      * Packet stats control for VLAN. Default is
@@ -426,15 +436,18 @@ typedef enum _sai_vlan_attr_t
      */
     SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE,
 
-    /**
-     * @brief Vlan bind point for TAM object
+     /**
+     * @brief Attach/Detach policer to vlan
      *
-     * @type sai_object_list_t
+     * Set policer id = #SAI_NULL_OBJECT_ID to disable policer on vlan.
+     *
+     * @type sai_object_id_t
      * @flags CREATE_AND_SET
-     * @objects SAI_OBJECT_TYPE_TAM
-     * @default empty
+     * @objects SAI_OBJECT_TYPE_POLICER
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
      */
-    SAI_VLAN_ATTR_TAM_OBJECT,
+    SAI_VLAN_ATTR_POLICER_ID,
 
     /** End of custom range base */
     SAI_VLAN_ATTR_CUSTOM_RANGE_END

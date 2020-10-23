@@ -39,7 +39,7 @@
 \t  |  SAI_POLICER_ATTR_YELLOW_PACKET_ACTION                |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_POLICER_ATTR_RED_PACKET_ACTION                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_POLICER_ATTR_ENABLE_COUNTER_PACKET_ACTION_LIST   |              -                 |
-\t  |  SAI_POLICER_ATTR_ENABLE_COUNTER_LIST                 |            CTC7132             |
+\e  |  SAI_POLICER_ATTR_ENABLE_COUNTER_LIST                 |            CTC7132             |
 \b
 \p
  The Policer Stats supported by centec devices:
@@ -80,6 +80,7 @@ enum ctc_sai_qos_policer_type_e
     CTC_SAI_QOS_POLICER_TYPE_PORT,
     CTC_SAI_QOS_POLICER_TYPE_FLOW,
     CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE,
+    CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS,
     CTC_SAI_QOS_POLICER_TYPE_VLAN,
     CTC_SAI_QOS_POLICER_TYPE_COPP,
     CTC_SAI_QOS_POLICER_TYPE_MAX
@@ -99,9 +100,11 @@ typedef struct ctc_sai_policer_db_s
     uint32 pir;
     union
     {
-        uint32 port_id;  /*CTC_SAI_QOS_POLICER_TYPE_PORT*/
-        uint32 entry_id; /*CTC_SAI_QOS_POLICER_TYPE_FLOW*/
-        uint32 service_id; /*CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE, for bridge port service*/
+        uint32 port_id;    /*CTC_SAI_QOS_POLICER_TYPE_PORT*/
+        uint32 entry_id;   /*CTC_SAI_QOS_POLICER_TYPE_FLOW*/
+        uint32 service_id; /*CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE, for l2vpn bridge port */
+        uint32 label_id;   /*CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS */
+        uint32 vlan_id;    /*CTC_SAI_QOS_POLICER_TYPE_VLAN*/ 
     }id;
     uint8 type; /*refer to ctc_sai_qos_policer_type_t*/
     uint8 stats_en_id[3]; /*refer to sai_packet_color_t*/
@@ -131,6 +134,12 @@ ctc_sai_policer_acl_set_policer(uint8 lchip, uint32 entry_id, uint32 policer_id,
 
 extern sai_status_t
 ctc_sai_policer_bridge_service_set_policer(uint8 lchip, uint32 logic_port, uint32 policer_id, bool enable);
+
+extern sai_status_t
+ctc_sai_policer_vlan_set_policer(uint8 lchip, uint32 vlan, uint32 policer_id, bool enable);
+
+extern sai_status_t
+ctc_sai_policer_mpls_set_policer(uint8 lchip, uint32 label, uint32 policer_id, bool enable);
 
 extern sai_status_t
 ctc_sai_policer_port_set_stmctl(uint8 lchip, uint32 gport, uint32 policer_id, ctc_sai_stmctl_type_t stm_type, bool enable);

@@ -14,7 +14,7 @@
 #include "ctc_sai_lag.h"
 #include "ctc_sai_fdb.h"
 #include "ctc_sai_port.h"
-
+#include "ctc_sai_acl.h"
 
 /*sdk include file*/
 #include "ctcs_api.h"
@@ -270,9 +270,9 @@ _ctc_sai_router_interface_set_attr_hw(sai_object_id_t router_interface_id)
                 {
                     p_rif_info->ing_statsid = stats_statsid_in.stats_id;
                 }
-   
+
            }
-            
+
             stats_statsid_eg.dir = CTC_EGRESS;
             stats_statsid_eg.type = CTC_STATS_STATSID_TYPE_L3IF;
             status = ctcs_stats_create_statsid(lchip, &stats_statsid_eg);
@@ -293,7 +293,7 @@ _ctc_sai_router_interface_set_attr_hw(sai_object_id_t router_interface_id)
                     p_rif_info->egs_statsid = stats_statsid_eg.stats_id;
                 }
             }
-    
+
         }
         else if(!(p_rif_info->stats_state) && p_rif_info->ing_statsid && p_rif_info->egs_statsid)
         {
@@ -302,7 +302,7 @@ _ctc_sai_router_interface_set_attr_hw(sai_object_id_t router_interface_id)
             ctcs_l3if_set_property(lchip, l3if_id, CTC_L3IF_PROP_STATS, 0);
             ctcs_l3if_set_property(lchip, l3if_id, CTC_L3IF_PROP_EGS_STATS, 0);
             p_rif_info->ing_statsid = 0;
-            p_rif_info->ing_statsid = 0;            
+            p_rif_info->ing_statsid = 0;
         }
     }
     else
@@ -347,6 +347,9 @@ _ctc_sai_router_interface_set_attr(sai_object_key_t* key, const sai_attribute_t*
 {
     uint8 lchip = 0;
     ctc_sai_router_interface_t* p_rif_info = NULL;
+    bool enable = FALSE;
+    ctc_object_id_t ctc_oid;
+    ctc_object_id_t ctc_oid1;
 
     CTC_SAI_LOG_ENTER(SAI_API_ROUTER_INTERFACE);
     ctc_sai_oid_get_lchip(key->key.object_id, &lchip);
@@ -355,6 +358,8 @@ _ctc_sai_router_interface_set_attr(sai_object_key_t* key, const sai_attribute_t*
     {
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
+
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ROUTER_INTERFACE, key->key.object_id, &ctc_oid1);
 
     switch (attr->id)
     {
@@ -388,12 +393,6 @@ _ctc_sai_router_interface_set_attr(sai_object_key_t* key, const sai_attribute_t*
             return SAI_STATUS_INVALID_PARAMETER;
         }
         p_rif_info->mtu = attr->value.u32;
-        break;
-    case SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL:
-        return SAI_STATUS_NOT_SUPPORTED;
-        break;
-    case SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL:
-        return SAI_STATUS_NOT_SUPPORTED;
         break;
     case SAI_ROUTER_INTERFACE_ATTR_NEIGHBOR_MISS_PACKET_ACTION:
         if(p_rif_info->is_virtual)
@@ -429,7 +428,7 @@ _ctc_sai_router_interface_set_attr(sai_object_key_t* key, const sai_attribute_t*
             return SAI_STATUS_INVALID_PARAMETER;
         }
         else if(attr->value.u8 == CTC_SAI_RIF_NAT_ZONE_EXTERNAL)
-        {            
+        {
             p_rif_info->snat_en = 0;
             p_rif_info->nat_iftype = 0;
         }
@@ -438,6 +437,84 @@ _ctc_sai_router_interface_set_attr(sai_object_key_t* key, const sai_attribute_t*
             p_rif_info->snat_en = 1;
             p_rif_info->nat_iftype = 1;
         }
+        break;
+    case SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP:
+
+        if (SAI_NULL_OBJECT_ID != attr->value.oid)
+        {
+            enable = TRUE;
+        }
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_QOS_MAP, attr->value.oid, &ctc_oid);
+
+        if (enable)
+        {
+            if (ctc_oid.value == p_rif_info->dscp_to_tc_map_id)
+            {
+                return SAI_STATUS_SUCCESS;
+            }
+            else if (p_rif_info->dscp_to_tc_map_id)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_ROUTER_INTERFACE,"[DSCP_TO_TC_MAP] Already exsit! map_id:%d", p_rif_info->dscp_to_tc_map_id);
+                return SAI_STATUS_FAILURE;
+            }
+        }
+        CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_port_set_map(key->key.object_id,
+                                            enable ? ctc_oid.value : p_rif_info->dscp_to_tc_map_id,
+                                            SAI_QOS_MAP_TYPE_DSCP_TO_TC, enable));
+        p_rif_info->dscp_to_tc_map_id = enable ? ctc_oid.value : 0;
+        break;
+    case SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP:
+
+        if (SAI_NULL_OBJECT_ID != attr->value.oid)
+        {
+            enable = TRUE;
+        }
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_QOS_MAP, attr->value.oid, &ctc_oid);
+
+        if (enable)
+        {
+            if (ctc_oid.value == p_rif_info->dscp_to_color_map_id)
+            {
+                return SAI_STATUS_SUCCESS;
+            }
+            else if (p_rif_info->dscp_to_color_map_id)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_ROUTER_INTERFACE,"[DSCP_TO_COLOR_MAP] Already exsit! map_id:%d", p_rif_info->dscp_to_color_map_id);
+                return SAI_STATUS_FAILURE;
+            }
+        }
+        CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_port_set_map(key->key.object_id,
+                                            enable ? ctc_oid.value : p_rif_info->dscp_to_color_map_id,
+                                            SAI_QOS_MAP_TYPE_DSCP_TO_COLOR, enable));
+        p_rif_info->dscp_to_color_map_id = enable ? ctc_oid.value : 0;
+        break;
+    case SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP:
+
+        if (SAI_NULL_OBJECT_ID != attr->value.oid)
+        {
+            enable = TRUE;
+        }
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_QOS_MAP, attr->value.oid, &ctc_oid);
+
+        if (enable)
+        {
+            if (ctc_oid.value == p_rif_info->tc_color_to_dscp_map_id)
+            {
+                return SAI_STATUS_SUCCESS;
+            }
+            else if (p_rif_info->tc_color_to_dscp_map_id)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_ROUTER_INTERFACE,"[TC_AND_COLOR_TO_DSCP_MAP] Already exsit! map_id:%d", p_rif_info->tc_color_to_dscp_map_id);
+                return SAI_STATUS_FAILURE;
+            }
+        }
+        CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_port_set_map(key->key.object_id,
+                                            enable ? ctc_oid.value : p_rif_info->tc_color_to_dscp_map_id,
+                                            SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP, enable));
+        p_rif_info->tc_color_to_dscp_map_id = enable ? ctc_oid.value : 0;
+        break;
+    case SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP:
+        ctcs_l3if_set_property(lchip, ctc_oid1.value, CTC_L3IF_PROP_DSCP_SELECT_MODE, attr->value.booldata ? CTC_DSCP_SELECT_MAP : CTC_DSCP_SELECT_NONE);
         break;
     default:
         break;
@@ -450,8 +527,10 @@ static sai_status_t
 _ctc_sai_router_interface_get_attr(sai_object_key_t* key, sai_attribute_t* attr, uint32 attr_idx)
 {
     uint8 lchip = 0;
+    uint32 value = 0;
     ctc_sai_router_interface_t* p_rif_info = NULL;
     ctc_object_id_t ctc_object_id;
+    sai_object_id_t* p_bounded_oid = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_ROUTER_INTERFACE);
     ctc_sai_oid_get_lchip(key->key.object_id, &lchip);
@@ -460,13 +539,15 @@ _ctc_sai_router_interface_get_attr(sai_object_key_t* key, sai_attribute_t* attr,
     {
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
+
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ROUTER_INTERFACE, key->key.object_id, &ctc_object_id);
+
     switch (attr->id)
     {
     case SAI_ROUTER_INTERFACE_ATTR_VIRTUAL_ROUTER_ID:
         attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VIRTUAL_ROUTER, lchip, 0, 0, p_rif_info->vrf_id);
         break;
     case SAI_ROUTER_INTERFACE_ATTR_TYPE:
-        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ROUTER_INTERFACE, key->key.object_id, &ctc_object_id);
         attr->value.s32 = ctc_object_id.sub_type;
         break;
     case SAI_ROUTER_INTERFACE_ATTR_PORT_ID:
@@ -510,10 +591,12 @@ _ctc_sai_router_interface_get_attr(sai_object_key_t* key, sai_attribute_t* attr,
         attr->value.u32 = p_rif_info->mtu;
         break;
     case SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL:
-        return SAI_STATUS_NOT_SUPPORTED;
+        p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, (void*)(&key->key.object_id));
+        attr->value.oid = (p_bounded_oid ? *p_bounded_oid : SAI_NULL_OBJECT_ID);
         break;
     case SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL:
-        return SAI_STATUS_NOT_SUPPORTED;
+        p_bounded_oid = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS, (void*)(&key->key.object_id));
+        attr->value.oid = (p_bounded_oid ? *p_bounded_oid : SAI_NULL_OBJECT_ID);
         break;
     case SAI_ROUTER_INTERFACE_ATTR_NEIGHBOR_MISS_PACKET_ACTION:
         if(p_rif_info->is_virtual)
@@ -535,7 +618,7 @@ _ctc_sai_router_interface_get_attr(sai_object_key_t* key, sai_attribute_t* attr,
             return SAI_STATUS_INVALID_PARAMETER;
         }
         attr->value.booldata = p_rif_info->v6_mc_state;
-        break;   
+        break;
     case SAI_ROUTER_INTERFACE_ATTR_CUSTOM_STATS_STATE:
         if(p_rif_info->is_virtual)
         {
@@ -555,7 +638,23 @@ _ctc_sai_router_interface_get_attr(sai_object_key_t* key, sai_attribute_t* attr,
         else
         {
             return SAI_STATUS_INVALID_PARAMETER;
-        }        
+        }
+        break;
+    case SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP:
+        value = p_rif_info->dscp_to_tc_map_id;
+        attr->value.oid = value ? ctc_sai_create_object_id(SAI_OBJECT_TYPE_QOS_MAP,lchip, 0, 0, value) : SAI_NULL_OBJECT_ID;
+        break;
+    case SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP:
+        value = p_rif_info->dscp_to_color_map_id;
+        attr->value.oid = value ? ctc_sai_create_object_id(SAI_OBJECT_TYPE_QOS_MAP,lchip, 0, 0, value) : SAI_NULL_OBJECT_ID;
+        break;
+    case SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP:
+        value = p_rif_info->tc_color_to_dscp_map_id;
+        attr->value.oid = value ? ctc_sai_create_object_id(SAI_OBJECT_TYPE_QOS_MAP,lchip, 0, 0, value) : SAI_NULL_OBJECT_ID;
+        break;
+    case SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP:
+        ctcs_l3if_get_property(lchip, ctc_object_id.value, CTC_L3IF_PROP_DSCP_SELECT_MODE, &value);
+        attr->value.booldata = (bool)value;
         break;
     default:
         return SAI_STATUS_NOT_SUPPORTED;
@@ -573,14 +672,18 @@ _ctc_sai_router_interface_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, c
 
     CTC_SAI_LOG_ENTER(SAI_API_ROUTER_INTERFACE);
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ROUTER_INTERFACE, bucket_data->oid, &ctc_object_id);
+
+
     if ((CTC_SAI_RIF_SET_TYPE_PORT == user_data->set_type)
-        &&((SAI_ROUTER_INTERFACE_TYPE_PORT == ctc_object_id.sub_type)||(SAI_ROUTER_INTERFACE_TYPE_SUB_PORT == ctc_object_id.sub_type)))
+        &&((SAI_ROUTER_INTERFACE_TYPE_PORT == ctc_object_id.sub_type)||(SAI_ROUTER_INTERFACE_TYPE_SUB_PORT == ctc_object_id.sub_type)
+        ||(SAI_ROUTER_INTERFACE_TYPE_VLAN == ctc_object_id.sub_type)))
     {
         if (p_rif_info->gport != *(user_data->cmp_value))
         {
             return SAI_STATUS_SUCCESS;
         }
     }
+
     else if (CTC_SAI_RIF_SET_TYPE_VRF == user_data->set_type)
     {
         if (p_rif_info->vrf_id != *(user_data->cmp_value))
@@ -588,6 +691,12 @@ _ctc_sai_router_interface_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, c
             return SAI_STATUS_SUCCESS;
         }
     }
+    else
+    {
+        return SAI_STATUS_SUCCESS;
+    }
+
+
     if (CTC_L3IF_PROP_ROUTE_MAC_LOW_8BITS == user_data->l3if_prop)
     {
         ctc_l3if_router_mac_t router_mac;
@@ -595,7 +704,7 @@ _ctc_sai_router_interface_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, c
         sal_memcpy(p_rif_info->src_mac, user_data->p_value, sizeof(sai_mac_t));
         sal_memcpy(router_mac.mac[0], user_data->p_value, sizeof(sai_mac_t));
         CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_interface_router_mac(user_data->lchip, ctc_object_id.value, router_mac));
-		 
+
     }
     else if (CTC_L3IF_PROP_IPV4_UCAST == user_data->l3if_prop)
     {
@@ -609,7 +718,6 @@ _ctc_sai_router_interface_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, c
     }
     else
     {
-        //p_rif_info->v6_state = *(uint32*)(user_data->p_value);
         ctcs_l3if_set_property(user_data->lchip, ctc_object_id.value, user_data->l3if_prop, *(uint32*)(user_data->p_value));
     }
     return SAI_STATUS_SUCCESS;
@@ -820,6 +928,24 @@ static  ctc_sai_attr_fn_entry_t rif_attr_fn_entries[] = {
     { SAI_ROUTER_INTERFACE_ATTR_NAT_ZONE_ID,
       _ctc_sai_router_interface_get_attr,
       _ctc_sai_router_interface_set_attr},
+    { SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP,
+      _ctc_sai_router_interface_get_attr,
+      _ctc_sai_router_interface_set_attr},
+    { SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP,
+      _ctc_sai_router_interface_get_attr,
+      _ctc_sai_router_interface_set_attr},
+    { SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP,
+      _ctc_sai_router_interface_get_attr,
+      _ctc_sai_router_interface_set_attr},
+    { SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP,
+      _ctc_sai_router_interface_get_attr,
+      _ctc_sai_router_interface_set_attr},
+    { SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL,
+      _ctc_sai_router_interface_get_attr,
+      ctc_sai_acl_bind_point_set},
+    { SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL,
+      _ctc_sai_router_interface_get_attr,
+      ctc_sai_acl_bind_point_set},
     {CTC_SAI_FUNC_ATTR_END_ID,NULL,NULL}
 };
 
@@ -1009,7 +1135,7 @@ _ctc_sai_router_interface_wb_reload_cb(uint8 lchip, void* key, void* data)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_VIF, ctc_object_id.value));
     }
-    
+
     return status;
 }
 
@@ -1100,11 +1226,11 @@ const sai_stat_id_t *counter_ids, uint64_t *counters)
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_stats(lchip, p_rif_info->ing_statsid, &stats_igs), status, out);
     sal_memset(&stats_egs, 0, sizeof(ctc_stats_basic_t));
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_stats(lchip, p_rif_info->egs_statsid, &stats_egs), status, out);
-    
+
     for (index = 0; index < number_of_counters; index ++ )
     {
         if (0 != p_rif_info->ing_statsid && (SAI_ROUTER_INTERFACE_STAT_IN_OCTETS == counter_ids[index] || SAI_ROUTER_INTERFACE_STAT_IN_PACKETS == counter_ids[index]))
-        {  
+        {
             if (SAI_ROUTER_INTERFACE_STAT_IN_PACKETS == counter_ids[index])
             {
                 counters[index] = stats_igs.packet_count - p_rif_info->igs_packet_count;
@@ -1262,7 +1388,7 @@ const sai_stat_id_t *counter_ids)
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_stats(lchip, p_rif_info->ing_statsid, &stats_igs), status, out);
     sal_memset(&stats_egs, 0, sizeof(ctc_stats_basic_t));
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_stats(lchip, p_rif_info->egs_statsid, &stats_egs), status, out);
-    
+
     for (index = 0; index < number_of_counters; index++)
     {
         if (SAI_ROUTER_INTERFACE_STAT_IN_OCTETS == counter_ids[index] || SAI_ROUTER_INTERFACE_STAT_IN_PACKETS == counter_ids[index] )
@@ -1402,9 +1528,9 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
     rif_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_ROUTER_INTERFACE, lchip, sub_type, 0, l3if_id);
     CTC_SAI_LOG_INFO(SAI_API_ROUTER_INTERFACE, "create router_interface_id = 0x%"PRIx64"\n", rif_obj_id);
     CTC_SAI_ERROR_GOTO(_ctc_sai_router_interface_build_db(lchip, rif_obj_id, &p_rif_info), status, error1);
-    CTC_SAI_LOG_NOTICE(SAI_API_ROUTER_INTERFACE, "create router_interface_id func. type=0x%"PRIx64", %u, rif_obj_id=0x%"PRIx64", vifbypass:%u, status:%u\n", 
+    CTC_SAI_LOG_NOTICE(SAI_API_ROUTER_INTERFACE, "create router_interface_id func. type=0x%"PRIx64", %u, rif_obj_id=0x%"PRIx64", vifbypass:%u, status:%u\n",
                                                 attr_value->s32, l3if_id, rif_obj_id, vifbypass, status);
-    
+
     /* SONiC not all route interface will have this attr */
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_ROUTER_INTERFACE_ATTR_BRIDGE_ID, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
@@ -1415,7 +1541,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
     {
         dot1d_bridge_id = 0;
     }
-    
+
     if(vifbypass)
     {
         *router_interface_id = rif_obj_id;
@@ -1428,7 +1554,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
         }
         goto out;
     }
-    
+
     status = (ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_ROUTER_INTERFACE_ATTR_IS_VIRTUAL, &attr_value, &index));
     if (!CTC_SAI_ERROR(status))
     {
@@ -1449,7 +1575,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
         if (SAI_ROUTER_INTERFACE_TYPE_VLAN == sub_type)
         {
             ctc_sai_vlan_get_vlan_id(attr_value->oid, &l3if.vlan_id);
-            p_rif_info->vlan_oid = attr_value->oid;  
+            p_rif_info->vlan_oid = attr_value->oid;
         }
     }
     status = (ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_ROUTER_INTERFACE_ATTR_OUTER_VLAN_ID, &attr_value, &index));
@@ -1458,7 +1584,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
         if ((SAI_ROUTER_INTERFACE_TYPE_SUB_PORT == sub_type)||(SAI_ROUTER_INTERFACE_TYPE_QINQ_PORT == sub_type))
         {
             l3if.vlan_id = attr_value->u16;
-            p_rif_info->outer_vlan_id = attr_value->u16; 
+            p_rif_info->outer_vlan_id = attr_value->u16;
         }
     }
     status = (ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_ROUTER_INTERFACE_ATTR_PORT_ID, &attr_value, &index));
@@ -1496,7 +1622,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
     {
         CTC_SAI_CTC_ERROR_GOTO(ctcs_l3if_create(lchip, l3if_id, &l3if), status, error2);
     }
-    if (!p_rif_info->is_virtual)
+    if (!is_1d_bridge && !p_rif_info->is_virtual)
     {
         stats_statsid_in.dir = CTC_INGRESS;
         stats_statsid_in.type = CTC_STATS_STATSID_TYPE_L3IF;
@@ -1587,7 +1713,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
         ctc_port_scl_property_t port_scl_property;
         sal_memset(&port_scl_property, 0, sizeof(ctc_port_scl_property_t));
         port_scl_property.hash_type = CTC_PORT_IGS_SCL_HASH_TYPE_PORT_SVLAN;
-        
+
         if (CTC_IS_LINKAGG_PORT(l3if.gport))
         {
             CTC_SAI_CTC_ERROR_GOTO(ctcs_linkagg_get_member_ports(lchip, CTC_MAP_GPORT_TO_LPORT(l3if.gport), gports, &agg_member_cnt), status, error5);
@@ -1607,7 +1733,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
                 CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_scl_property(lchip, l3if.gport, &port_scl_property), status, error5);
             }
         }
-        
+
     }
 
     sal_memset(&key, 0, sizeof(key));
@@ -1638,7 +1764,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
         CTC_SAI_LOG_INFO(SAI_API_ROUTER_INTERFACE, "use SRC_MAC_ADDRESS on vr\n");
         sal_memcpy(p_rif_info->src_mac, src_mac, sizeof(sai_mac_t));
     }
-    
+
     CTC_SAI_ERROR_GOTO(_ctc_sai_router_interface_set_attr_hw(rif_obj_id), status, error6);
 
     if (port_valid && (CTC_CHIP_DUET2 == ctcs_get_chip_type(lchip)||CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)))
@@ -1769,6 +1895,7 @@ ctc_sai_router_interface_remove_rif(sai_object_id_t router_interface_id)
     ctc_sai_lag_info_t *p_db_lag = NULL;
     sai_object_id_t port_oid;
     ctc_sai_port_db_t* p_port_db = NULL;
+    uint8 is_bridge_rif = 0;
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(router_interface_id, &lchip));
     CTC_SAI_DB_LOCK(lchip);
@@ -1786,22 +1913,23 @@ ctc_sai_router_interface_remove_rif(sai_object_id_t router_interface_id)
     sal_memset(&l3if, 0, sizeof(ctc_l3if_t));
     l3if.l3if_type = MAX_L3IF_TYPE_NUM;
     ctc_sai_oid_get_l3if_id(router_interface_id, &l3if_id);
-    switch(ctc_object_id.sub_type)   
+    switch(ctc_object_id.sub_type)
     {
          case SAI_ROUTER_INTERFACE_TYPE_VLAN:
         l3if.l3if_type = CTC_L3IF_TYPE_VLAN_IF;
              break;
- 
+
          case SAI_ROUTER_INTERFACE_TYPE_PORT:
         l3if.l3if_type = CTC_L3IF_TYPE_PHY_IF;
              break;
- 
+
          case SAI_ROUTER_INTERFACE_TYPE_SUB_PORT:
         l3if.l3if_type = CTC_L3IF_TYPE_SUB_IF;
              break;
- 
+
          case SAI_ROUTER_INTERFACE_TYPE_BRIDGE:
              l3if.l3if_type = CTC_L3IF_TYPE_VLAN_IF;
+             is_bridge_rif = 1;
         _ctc_sai_router_interface_check_hw_exist(router_interface_id, &exist);/*must remove by bridge port*/
         if (exist)
         {
@@ -1809,7 +1937,7 @@ ctc_sai_router_interface_remove_rif(sai_object_id_t router_interface_id)
             goto out;
         }
              break;
- 
+
          case SAI_ROUTER_INTERFACE_TYPE_LOOPBACK:
          case SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER:
          case SAI_ROUTER_INTERFACE_TYPE_QINQ_PORT:
@@ -1822,7 +1950,7 @@ ctc_sai_router_interface_remove_rif(sai_object_id_t router_interface_id)
              goto out;
              break;
     }
- 
+
     if (!p_rif_info->is_virtual)
     {
         if ((CTC_L3IF_TYPE_VLAN_IF != l3if.l3if_type) && (MAX_L3IF_TYPE_NUM != l3if.l3if_type))
@@ -1862,7 +1990,7 @@ ctc_sai_router_interface_remove_rif(sai_object_id_t router_interface_id)
         ctc_port_scl_property_t port_scl_property;
         sal_memset(&port_scl_property, 0, sizeof(ctc_port_scl_property_t));
         port_scl_property.hash_type = CTC_PORT_IGS_SCL_HASH_TYPE_DISABLE;
-        
+
         if (CTC_IS_LINKAGG_PORT(l3if.gport))
         {
             ctcs_linkagg_get_member_ports(lchip, CTC_MAP_GPORT_TO_LPORT(l3if.gport), gports, &agg_member_cnt) ;
@@ -1888,13 +2016,13 @@ ctc_sai_router_interface_remove_rif(sai_object_id_t router_interface_id)
             }
         }
     }
-    else if (CTC_L3IF_TYPE_VLAN_IF == l3if.l3if_type && !p_rif_info->is_virtual)
+    else if (CTC_L3IF_TYPE_VLAN_IF == l3if.l3if_type && !p_rif_info->is_virtual && !is_bridge_rif)
     {
         ctc_sai_oid_get_vlanptr(p_rif_info->vlan_oid, &vlan_ptr);
         ctcs_vlan_set_property(lchip, vlan_ptr, CTC_VLAN_PROP_ARP_EXCP_TYPE, CTC_EXCP_NORMAL_FWD);
         ctcs_vlan_set_property(lchip, vlan_ptr, CTC_VLAN_PROP_DHCP_EXCP_TYPE, CTC_EXCP_NORMAL_FWD);
     }
-    if (MAX_L3IF_TYPE_NUM != l3if.l3if_type  && !p_rif_info->is_virtual)
+    if (MAX_L3IF_TYPE_NUM != l3if.l3if_type  && !p_rif_info->is_virtual && !is_bridge_rif)
     {
          ctcs_l3if_destory(lchip, l3if_id, &l3if);
     }
@@ -1920,7 +2048,7 @@ ctc_sai_router_interface_remove_rif(sai_object_id_t router_interface_id)
         }
     }
     _ctc_sai_router_interface_remove_db(lchip, router_interface_id);
- 
+
 out:
     CTC_SAI_DB_UNLOCK(lchip);
     return status;

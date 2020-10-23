@@ -38,8 +38,11 @@ This module defines SAI Queue.
 \t  |  SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID                 |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_QUEUE_ATTR_PAUSE_STATUS                         |              -                 |
 \t  |  SAI_QUEUE_ATTR_ENABLE_PFC_DLDR                      |           CTC7132              |
-\t  |  SAI_QUEUE_ATTR_SERVICE_ID                           |           CTC7132              |
+\t  |  SAI_QUEUE_ATTR_PFC_DLR_INIT                         |              -                 |
+\t  |  SAI_QUEUE_ATTR_TAM_OBJECT                           |              -                 |
+\e  |  SAI_QUEUE_ATTR_SERVICE_ID                           |           CTC7132              |
 \b
+
 \p
  The Queue Stats supported by centec devices:
 \p

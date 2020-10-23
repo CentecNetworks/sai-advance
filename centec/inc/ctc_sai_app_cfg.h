@@ -19,7 +19,7 @@ extern "C" {
 #include "ctc_init.h"
 
 extern int32
-ctc_app_get_config(uint8 lchip, char* init_config, char* data_cfg, ctc_init_cfg_t * p_init_config);
+ctc_app_get_config(uint8 lchip, char* init_config, char* data_cfg, char* mem_cfg, ctc_init_cfg_t * p_init_config, ctc_init_cfg_t * user_init_config);
 
 #ifdef __cplusplus
 }

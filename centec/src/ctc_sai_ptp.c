@@ -275,7 +275,6 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     ctc_object_id_t ctc_object_id;
     ctc_sai_ptp_db_t* p_ptp_db = NULL;
     sai_status_t status = SAI_STATUS_SUCCESS;
-    int32 ret = 0;
     ctc_ptp_time_t ts;
     ctc_ptp_capured_ts_t capured_ts;
     uint32 enable_basedon_port;
@@ -286,6 +285,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, key->key.object_id, &ctc_object_id);
     lchip = ctc_object_id.lchip;
 
+    sal_memset(&capured_ts, 0, sizeof(ctc_ptp_capured_ts_t));
     p_ptp_db = ctc_sai_db_get_object_property(lchip, key->key.object_id);
     if (NULL == p_ptp_db)
     {
@@ -295,7 +295,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     switch(attr->id)
     {
     case SAI_PTP_DOMAIN_ATTR_PTP_ENABLE_BASED_TYPE:
-        ret = ctcs_ptp_get_global_property(lchip, CTC_PTP_GLOBAL_PROP_PORT_BASED_PTP_EN, &enable_basedon_port);
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_global_property(lchip, CTC_PTP_GLOBAL_PROP_PORT_BASED_PTP_EN, &enable_basedon_port));
         if(enable_basedon_port)
             {
                 attr->value.s32 = SAI_PTP_ENABLE_BASED_ON_PORT;
@@ -307,7 +307,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         break;
 
     case SAI_PTP_DOMAIN_ATTR_DEVICE_TYPE:
-        ret = ctcs_ptp_get_device_type(lchip, &device_type);
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_device_type(lchip, &device_type));
         attr->value.s32 = device_type;
         break;
 
@@ -334,7 +334,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND:
         if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
         {
-            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.s8 = tod_interface_code.leap_second;            
         }
         else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
@@ -350,7 +350,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS:
         if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
         {
-            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.u8 = tod_interface_code.pps_status;       
         }
         else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
@@ -366,7 +366,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY:
         if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
         {
-            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.u8 = tod_interface_code.pps_accuracy;       
         }
         else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
@@ -382,7 +382,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK:
         if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
         {
-            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.u16 = tod_interface_code.gps_week;   
         }
         else
@@ -394,7 +394,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK:
         if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
         {
-            ret = ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code);
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.u32 = tod_interface_code.gps_second_time_of_week; 
         }
         else
@@ -404,13 +404,14 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         break;
         
     case SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP:
-        ret = ctcs_ptp_get_clock_timestamp(lchip, &ts);
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_clock_timestamp(lchip, &ts));
         attr->value.timespec.tv_nsec = ts.nanoseconds;
         attr->value.timespec.tv_sec = ts.seconds;
         break;
 
     case SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP:
-        ret = ctcs_ptp_get_captured_ts(lchip, &capured_ts);
+        //Should not use in TM
+        ctcs_ptp_get_captured_ts(lchip, &capured_ts);
         attr->value.captured_timespec.port_id = capured_ts.u.lport;
         attr->value.captured_timespec.secquence_id = capured_ts.seq_id;
         attr->value.captured_timespec.timestamp.tv_nsec= capured_ts.ts.nanoseconds;

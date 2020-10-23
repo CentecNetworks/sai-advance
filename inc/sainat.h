@@ -225,7 +225,7 @@ typedef enum _sai_nat_entry_attr_t
      * @default false
      * @validonly SAI_NAT_ENTRY_ATTR_NAT_TYPE == SAI_NAT_TYPE_DESTINATION_NAT
      */
-    SAI_NAT_ENTRY_ATTR_CUSTOM_DNAT_REROUTE,
+    SAI_NAT_ENTRY_ATTR_CUSTOM_DNAT_REROUTE = SAI_NAT_ENTRY_ATTR_CUSTOM_RANGE_START,
     
 
     /** End of custom range base */

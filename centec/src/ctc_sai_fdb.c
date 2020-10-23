@@ -186,6 +186,7 @@ sai_status_t  ctc_sai_fdb_get_fdb_info(  sai_object_key_t      *key,   sai_attri
     ctc_l2_fdb_query_t Query;
     uint8 lchip = 0;
     ctc_l2_addr_t fdb_info;
+    sai_object_id_t bridge_port_oid = SAI_NULL_OBJECT_ID;
 
     CTC_SAI_LOG_ENTER(SAI_API_FDB);
     ctc_sai_oid_get_lchip(key->key.fdb_entry.switch_id, &lchip);
@@ -236,11 +237,24 @@ sai_status_t  ctc_sai_fdb_get_fdb_info(  sai_object_key_t      *key,   sai_attri
     case SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID:
         if (TRUE == query_rst.buffer->is_logic_port)
         {
-            attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_SUB_PORT, 0, query_rst.buffer->gport);
-            if (NULL == ctc_sai_db_get_object_property(lchip, attr->value.oid))
+            bridge_port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_SUB_PORT, 0, query_rst.buffer->gport);
+            if (ctc_sai_db_get_object_property(lchip, bridge_port_oid))
             {
-                attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_TUNNEL, 0, query_rst.buffer->gport);
+                attr->value.oid = bridge_port_oid;
+                break;
             }
+            bridge_port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_TUNNEL, 0, query_rst.buffer->gport);
+            if (ctc_sai_db_get_object_property(lchip, bridge_port_oid))
+            {
+                attr->value.oid = bridge_port_oid;
+                break;
+            }
+            bridge_port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_FRR, 0, query_rst.buffer->gport);
+            if (ctc_sai_db_get_object_property(lchip, bridge_port_oid))
+            {
+                attr->value.oid = bridge_port_oid;
+                break;
+            }            
         }
         else
         {
@@ -272,6 +286,8 @@ static sai_status_t ctc_sai_fdb_set_fdb_info(  sai_object_key_t      *key, const
     sai_status_t status = SAI_STATUS_SUCCESS;
     uint8 lchip = 0;
     ctc_l2_addr_t fdb_info;
+    ctc_sai_bridge_port_t* p_bridge_port = NULL;
+    uint32 nh_id = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_FDB);
     ctc_sai_oid_get_lchip(key->key.fdb_entry.switch_id, &lchip);
@@ -332,12 +348,21 @@ static sai_status_t ctc_sai_fdb_set_fdb_info(  sai_object_key_t      *key, const
         break;
 
     case SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID:
+        
         sal_memcpy(&l2_addr, query_rst.buffer, sizeof(ctc_l2_addr_t));
+
+        p_bridge_port = ctc_sai_db_get_object_property(lchip, attr->value.oid);
+        if (NULL == p_bridge_port)
+        {
+            return SAI_STATUS_INVALID_OBJECT_ID;
+        }   
+        
         ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, attr->value.oid, &ctc_object_id);
-        if ((SAI_BRIDGE_PORT_TYPE_SUB_PORT == ctc_object_id.sub_type)
-            || (SAI_BRIDGE_PORT_TYPE_TUNNEL == ctc_object_id.sub_type))
+    
+        if ((SAI_BRIDGE_PORT_TYPE_SUB_PORT == ctc_object_id.sub_type) || (SAI_BRIDGE_PORT_TYPE_TUNNEL == ctc_object_id.sub_type) || (SAI_BRIDGE_PORT_TYPE_FRR == ctc_object_id.sub_type))
         {
             l2_addr.is_logic_port = TRUE;
+            nh_id = p_bridge_port->nh_id;
         }
         else
         {
@@ -360,7 +385,15 @@ static sai_status_t ctc_sai_fdb_set_fdb_info(  sai_object_key_t      *key, const
 
     }
 
-    CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_fdb(lchip, &l2_addr), status, out);
+    if(l2_addr.is_logic_port)
+    {
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_fdb_with_nexthop(lchip, &l2_addr, nh_id), status, out);
+    }
+    else
+    {
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_fdb(lchip, &l2_addr), status, out);
+    }
+   
     ctc_sai_neighbor_update_arp(lchip, &(key->key.fdb_entry), 0, 0);
 
 out:
@@ -644,8 +677,9 @@ ctc_sai_fdb_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t *dump
                 CTC_SAI_LOG_DUMP(p_file, "%-4d  %-14s  0x%016"PRIx64 "  %-8d  %-13d\n", num_cnt, mac_buf, bv_id, \
                 query_rst.buffer[index].gport, query_rst.buffer[index].is_logic_port);
                 sal_memset(&query_rst.buffer[index], 0, sizeof(ctc_l2_addr_t));
+                num_cnt++;
             }
-            num_cnt++;
+            
             sal_task_sleep(100);
         }
         while (query_rst.is_end == 0);

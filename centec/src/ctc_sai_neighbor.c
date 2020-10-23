@@ -196,7 +196,7 @@ _ctc_sai_neighbor_remove_db(uint8 lchip, sai_object_id_t rif_id, sai_ip_address_
 }
 
 static sai_status_t
-_ctc_sai_neighbor_add_arp_entry(uint8 lchip, sai_object_id_t rif_id, ctc_sai_neighbor_t* p_neighbor_info, uint8* p_is_add)
+_ctc_sai_neighbor_add_arp_entry(uint8 lchip, sai_object_id_t rif_id, ctc_sai_neighbor_t* p_neighbor_info)
 {
     sai_status_t           status = SAI_STATUS_SUCCESS;
     uint8 rif_type = 0;
@@ -277,7 +277,6 @@ error1:
         CTC_SAI_LOG_ERROR(SAI_API_NEIGHBOR, "rollback to error1\n");
         ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_ARP, arp_id);
     }
-    *p_is_add = is_add;
     return status;
 }
 
@@ -442,7 +441,6 @@ _ctc_sai_neighbor_add_nexthop(uint8 lchip, sai_object_id_t rif_id, ctc_sai_neigh
 {
     sai_status_t           status = SAI_STATUS_SUCCESS;
     uint8 rif_type = 0;
-    uint8 is_add = 0;
 
     CTC_SAI_ERROR_RETURN(ctc_sai_router_interface_get_rif_info(rif_id, &rif_type, NULL, NULL, NULL));
     if (SAI_ROUTER_INTERFACE_TYPE_BRIDGE == rif_type)
@@ -523,18 +521,11 @@ _ctc_sai_neighbor_add_nexthop(uint8 lchip, sai_object_id_t rif_id, ctc_sai_neigh
     }
     else
     {
-        CTC_SAI_ERROR_RETURN(_ctc_sai_neighbor_add_arp_entry(lchip, rif_id, p_neighbor_info, &(is_add)));
-        CTC_SAI_ERROR_GOTO(_ctc_sai_neighbor_add_ipuc_nexthop(lchip, rif_id, p_neighbor_info), status, error1);
+        CTC_SAI_ERROR_RETURN(_ctc_sai_neighbor_add_arp_entry(lchip, rif_id, p_neighbor_info));
     }
 
 
     return SAI_STATUS_SUCCESS;
-error1:
-    if (is_add)
-    {
-        _ctc_sai_neighbor_remove_arp_entry(lchip, p_neighbor_info);
-    }
-    return status;
 }
 
 static sai_status_t
@@ -550,7 +541,6 @@ _ctc_sai_neighbor_remove_nexthop(uint8 lchip, sai_object_id_t rif_id, ctc_sai_ne
     }
     else
     {
-        _ctc_sai_neighbor_remove_ipuc_nexthop(lchip, p_neighbor_info);
         _ctc_sai_neighbor_remove_arp_entry(lchip, p_neighbor_info);
     }
     return SAI_STATUS_SUCCESS;
@@ -662,6 +652,7 @@ _ctc_sai_neighbor_remove_neighbor(const sai_neighbor_entry_t *neighbor_entry)
     sai_status_t           status = SAI_STATUS_SUCCESS;
     uint8 lchip = 0;
     ctc_sai_neighbor_t* p_neighbor_info = NULL;
+    uint8 rif_type;
 
     CTC_SAI_LOG_ENTER(SAI_API_NEIGHBOR);
 
@@ -671,6 +662,7 @@ _ctc_sai_neighbor_remove_neighbor(const sai_neighbor_entry_t *neighbor_entry)
     }
     ctc_sai_oid_get_lchip(neighbor_entry->switch_id, &lchip);
 
+    ctc_sai_router_interface_get_rif_info(neighbor_entry->rif_id, &rif_type, NULL, NULL, NULL);
     p_neighbor_info = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_NEIGHBOR, (void*)neighbor_entry);
     if ((NULL == p_neighbor_info)||(!p_neighbor_info->neighbor_exists))
     {
@@ -679,6 +671,10 @@ _ctc_sai_neighbor_remove_neighbor(const sai_neighbor_entry_t *neighbor_entry)
     if (0 == p_neighbor_info->no_host_route)
     {
         _ctc_sai_neighbor_remove_host_route(lchip, neighbor_entry, p_neighbor_info);
+        if (SAI_ROUTER_INTERFACE_TYPE_BRIDGE != rif_type)
+        {
+            _ctc_sai_neighbor_remove_ipuc_nexthop(lchip, p_neighbor_info);
+        }
     }
     if (1 >= p_neighbor_info->ref_cnt)
     {
@@ -893,21 +889,46 @@ static  ctc_sai_attr_fn_entry_t neighbor_attr_fn_entries[] = {
 #define ________INTERNAL_API________
 
 sai_status_t
-ctc_sai_neighbor_alloc_ipuc_nexthop(uint8 lchip, sai_object_id_t rif_id, sai_ip_address_t* ip_address, uint32* nh_id)
+ctc_sai_neighbor_alloc_ipuc_nexthop(uint8 lchip, sai_object_id_t rif_id, sai_ip_address_t* ip_address, uint32 nh_id)
 {
     sai_status_t           status = SAI_STATUS_SUCCESS;
     ctc_sai_neighbor_t* p_neighbor_info = NULL;
+    uint8 rif_type;
+    ctc_ip_nh_param_t  nh_param;
+    ctc_misc_nh_param_t misc_nh;
+    ctc_nh_info_t nh_info;
+
+    sal_memset(&nh_param, 0 , sizeof(ctc_ip_nh_param_t));
+    sal_memset(&misc_nh, 0 , sizeof(ctc_misc_nh_param_t));
+    sal_memset(&nh_info, 0, sizeof(ctc_nh_info_t));
 
     CTC_SAI_LOG_ENTER(SAI_API_NEIGHBOR);
+    CTC_SAI_ERROR_RETURN(ctc_sai_router_interface_get_rif_info(rif_id, &rif_type, NULL, NULL, NULL));
     CTC_SAI_ERROR_RETURN(_ctc_sai_neighbor_build_db(lchip, rif_id, ip_address, &p_neighbor_info, 1));
     if (0 == p_neighbor_info->ref_cnt)/*not create neighbor before, obey action of rif*/
     {
         CTC_SAI_ERROR_GOTO(ctc_sai_router_interface_get_miss_action(rif_id, &p_neighbor_info->action), status, error1);
+        CTC_SAI_ERROR_GOTO(_ctc_sai_neighbor_add_nexthop(lchip, rif_id, p_neighbor_info, (uint8)ip_address->addr_family), status, error1);
     }
-    CTC_SAI_ERROR_GOTO(_ctc_sai_neighbor_add_nexthop(lchip, rif_id, p_neighbor_info, (uint8)ip_address->addr_family), status, error1);
-    *nh_id = p_neighbor_info->nh_id;
+    if (SAI_ROUTER_INTERFACE_TYPE_BRIDGE != rif_type)
+    {
+        nh_param.arp_id = p_neighbor_info->arp_id;
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_ipuc(lchip, nh_id, &nh_param), status, error2);
+    }
+    else
+    {
+        nh_info.p_nh_param = &misc_nh;
+        //nh_info.nh_type == CTC_NH_TYPE_MISC;
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_get_nh_info(lchip, p_neighbor_info->nh_id, &nh_info), status, error2);
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_misc(lchip, nh_id, &misc_nh), status, error2);
+    }
     p_neighbor_info->ref_cnt++;
     goto out;
+error2:
+    if (SAI_ROUTER_INTERFACE_TYPE_BRIDGE != rif_type)
+    {
+        _ctc_sai_neighbor_remove_nexthop(lchip, rif_id, p_neighbor_info);
+    }
 error1:
     _ctc_sai_neighbor_remove_db(lchip, rif_id, ip_address, 1);
 out:
@@ -919,9 +940,11 @@ ctc_sai_neighbor_free_ipuc_nexthop(uint8 lchip, sai_object_id_t rif_id, sai_ip_a
     sai_status_t           status = SAI_STATUS_SUCCESS;
     sai_neighbor_entry_t neighbor_entry;
     ctc_sai_neighbor_t* p_neighbor_info = NULL;
+    uint8 rif_type;
 
     CTC_SAI_LOG_ENTER(SAI_API_NEIGHBOR);
     sal_memset(&neighbor_entry, 0, sizeof(neighbor_entry));
+    ctc_sai_router_interface_get_rif_info(rif_id, &rif_type, NULL, NULL, NULL);
     neighbor_entry.rif_id = rif_id;
     sal_memcpy(&neighbor_entry.ip_address, ip_address, sizeof(sai_ip_address_t));
     p_neighbor_info = ctc_sai_db_entry_property_get(lchip, CTC_SAI_DB_ENTRY_TYPE_NEIGHBOR, &neighbor_entry);
@@ -929,9 +952,13 @@ ctc_sai_neighbor_free_ipuc_nexthop(uint8 lchip, sai_object_id_t rif_id, sai_ip_a
     {
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
-    if (p_neighbor_info->nh_id != nh_id)
+    if (SAI_ROUTER_INTERFACE_TYPE_BRIDGE != rif_type)
     {
-        return SAI_STATUS_INVALID_PARAMETER;
+        ctcs_nh_remove_ipuc(lchip, nh_id);
+    }
+    else
+    {
+        ctcs_nh_remove_misc(lchip, nh_id);
     }
     if (1 == p_neighbor_info->ref_cnt)
     {
@@ -1295,6 +1322,7 @@ ctc_sai_neighbor_create_neighbor(const sai_neighbor_entry_t *neighbor_entry,
     uint8 lchip = 0;
     const sai_attribute_value_t *attr_value;
     uint32_t index = 0;
+    uint8 rif_type;
     ctc_sai_switch_master_t* p_switch_master = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_NEIGHBOR);
@@ -1318,6 +1346,7 @@ ctc_sai_neighbor_create_neighbor(const sai_neighbor_entry_t *neighbor_entry,
         p_neighbor_info->action = attr_value->s32;
     }
 
+    ctc_sai_router_interface_get_rif_info(neighbor_entry->rif_id, &rif_type, NULL, NULL, NULL);
     CTC_SAI_ERROR_GOTO(_ctc_sai_neighbor_add_nexthop(lchip, neighbor_entry->rif_id, p_neighbor_info, (uint8)neighbor_entry->ip_address.addr_family), status, error1);
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NEIGHBOR_ENTRY_ATTR_NO_HOST_ROUTE, &attr_value, &index);
     if (SAI_STATUS_SUCCESS == status)/* create ipuc nexthop and host route */
@@ -1326,7 +1355,11 @@ ctc_sai_neighbor_create_neighbor(const sai_neighbor_entry_t *neighbor_entry,
     }
     if (0 == p_neighbor_info->no_host_route)
     {
-        CTC_SAI_ERROR_GOTO(_ctc_sai_neighbor_add_host_route(lchip, neighbor_entry, p_neighbor_info), status, error2);
+        if (SAI_ROUTER_INTERFACE_TYPE_BRIDGE != rif_type)
+        {
+            CTC_SAI_ERROR_GOTO(_ctc_sai_neighbor_add_ipuc_nexthop(lchip, neighbor_entry->rif_id, p_neighbor_info), status, error2);
+        }
+        CTC_SAI_ERROR_GOTO(_ctc_sai_neighbor_add_host_route(lchip, neighbor_entry, p_neighbor_info), status, error3);
     }
     p_neighbor_info->ref_cnt++;
 
@@ -1335,6 +1368,12 @@ ctc_sai_neighbor_create_neighbor(const sai_neighbor_entry_t *neighbor_entry,
 
     goto out;
 
+error3:
+    CTC_SAI_LOG_ERROR(SAI_API_NEIGHBOR, "rollback to error3\n");
+    if (SAI_ROUTER_INTERFACE_TYPE_BRIDGE != rif_type)
+    {
+        _ctc_sai_neighbor_remove_ipuc_nexthop(lchip, p_neighbor_info);
+    }
 error2:
     CTC_SAI_LOG_ERROR(SAI_API_NEIGHBOR, "rollback to error2\n");
     _ctc_sai_neighbor_remove_nexthop(lchip, neighbor_entry->rif_id, p_neighbor_info);

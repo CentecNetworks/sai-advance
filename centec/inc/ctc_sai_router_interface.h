@@ -47,7 +47,11 @@ This module defines SAI Routing Interface.
 \t  |  SAI_ROUTER_INTERFACE_ATTR_BRIDGE_ID                       |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_ROUTER_INTERFACE_ATTR_IS_VIRTUAL                      |         CTC7148,CTC7132        |
 \t  |  SAI_ROUTER_INTERFACE_ATTR_NAT_ZONE_ID                     |            CTC7132             |
-\t  |  SAI_ROUTER_INTERFACE_ATTR_CUSTOM_STATS_STATE              |            CTC7132             |
+\e  |  SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP              |            CTC7132             |
+\e  |  SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP           |            CTC7132             |
+\e  |  SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP    |            CTC7132             |
+\e  |  SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP                     |            CTC7132             |
+\e  |  SAI_ROUTER_INTERFACE_ATTR_CUSTOM_STATS_STATE              |            CTC7132             |
 \b
 
 */
@@ -113,7 +117,13 @@ typedef struct  ctc_sai_router_interface_s
    uint64 egs_packet_count;
    uint64 egs_byte_count;
    uint16 outer_vlan_id;
-   uint16 inner_vlan_id;
+   uint16 inner_vlan_id;        
+
+   uint32 tc_color_to_dscp_map_id;
+   uint32 dscp_to_tc_map_id;
+   uint32 dscp_to_color_map_id;
+
+   
 }ctc_sai_router_interface_t;
 
 extern sai_status_t
@@ -148,6 +158,10 @@ ctc_sai_router_interface_update_bridge_rif(uint8 lchip, uint16 l3if_id, uint16 v
 
 extern void
 ctc_sai_router_interface_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t *dump_grep_param);
+
+extern sai_status_t
+ctc_sai_qos_map_port_set_map(sai_object_id_t port_or_l3if_oid, uint32 map_id, sai_qos_map_type_t map_type, bool enable);
+
 
 #endif /*_CTC_SAI_ROUTER_INTERFACE_H*/
 

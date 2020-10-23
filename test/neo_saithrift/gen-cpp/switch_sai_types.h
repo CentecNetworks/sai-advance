@@ -47,6 +47,8 @@ typedef int32_t sai_thrift_next_hop_type_t;
 
 typedef int32_t sai_thrift_vlan_stat_counter_t;
 
+typedef int32_t sai_thrift_twamp_stat_counter_t;
+
 typedef int32_t sai_thrift_bridge_port_stat_counter_t;
 
 typedef int32_t sai_thrift_router_interface_stat_counter_t;
@@ -89,6 +91,12 @@ class sai_thrift_status_list_t;
 
 class sai_thrift_route_entry_list_t;
 
+class sai_thrift_u8_list_t;
+
+class sai_thrift_s8_list_t;
+
+class sai_thrift_u32_list_t;
+
 class sai_thrift_acl_mask_t;
 
 class sai_thrift_acl_data_t;
@@ -98,12 +106,6 @@ class sai_thrift_acl_field_data_t;
 class sai_thrift_acl_parameter_t;
 
 class sai_thrift_acl_action_data_t;
-
-class sai_thrift_u8_list_t;
-
-class sai_thrift_s8_list_t;
-
-class sai_thrift_u32_list_t;
 
 class sai_thrift_qos_map_params_t;
 
@@ -637,8 +639,152 @@ void swap(sai_thrift_route_entry_list_t &a, sai_thrift_route_entry_list_t &b);
 
 std::ostream& operator<<(std::ostream& out, const sai_thrift_route_entry_list_t& obj);
 
+typedef struct _sai_thrift_u8_list_t__isset {
+  _sai_thrift_u8_list_t__isset() : count(false), u8list(false) {}
+  bool count :1;
+  bool u8list :1;
+} _sai_thrift_u8_list_t__isset;
+
+class sai_thrift_u8_list_t : public virtual ::apache::thrift::TBase {
+ public:
+
+  sai_thrift_u8_list_t(const sai_thrift_u8_list_t&);
+  sai_thrift_u8_list_t& operator=(const sai_thrift_u8_list_t&);
+  sai_thrift_u8_list_t() : count(0) {
+  }
+
+  virtual ~sai_thrift_u8_list_t() noexcept;
+  int32_t count;
+  std::vector<int8_t>  u8list;
+
+  _sai_thrift_u8_list_t__isset __isset;
+
+  void __set_count(const int32_t val);
+
+  void __set_u8list(const std::vector<int8_t> & val);
+
+  bool operator == (const sai_thrift_u8_list_t & rhs) const
+  {
+    if (!(count == rhs.count))
+      return false;
+    if (!(u8list == rhs.u8list))
+      return false;
+    return true;
+  }
+  bool operator != (const sai_thrift_u8_list_t &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const sai_thrift_u8_list_t & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(sai_thrift_u8_list_t &a, sai_thrift_u8_list_t &b);
+
+std::ostream& operator<<(std::ostream& out, const sai_thrift_u8_list_t& obj);
+
+typedef struct _sai_thrift_s8_list_t__isset {
+  _sai_thrift_s8_list_t__isset() : count(false), s8list(false) {}
+  bool count :1;
+  bool s8list :1;
+} _sai_thrift_s8_list_t__isset;
+
+class sai_thrift_s8_list_t : public virtual ::apache::thrift::TBase {
+ public:
+
+  sai_thrift_s8_list_t(const sai_thrift_s8_list_t&);
+  sai_thrift_s8_list_t& operator=(const sai_thrift_s8_list_t&);
+  sai_thrift_s8_list_t() : count(0) {
+  }
+
+  virtual ~sai_thrift_s8_list_t() noexcept;
+  int32_t count;
+  std::vector<int8_t>  s8list;
+
+  _sai_thrift_s8_list_t__isset __isset;
+
+  void __set_count(const int32_t val);
+
+  void __set_s8list(const std::vector<int8_t> & val);
+
+  bool operator == (const sai_thrift_s8_list_t & rhs) const
+  {
+    if (!(count == rhs.count))
+      return false;
+    if (!(s8list == rhs.s8list))
+      return false;
+    return true;
+  }
+  bool operator != (const sai_thrift_s8_list_t &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const sai_thrift_s8_list_t & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(sai_thrift_s8_list_t &a, sai_thrift_s8_list_t &b);
+
+std::ostream& operator<<(std::ostream& out, const sai_thrift_s8_list_t& obj);
+
+typedef struct _sai_thrift_u32_list_t__isset {
+  _sai_thrift_u32_list_t__isset() : count(false), u32list(false) {}
+  bool count :1;
+  bool u32list :1;
+} _sai_thrift_u32_list_t__isset;
+
+class sai_thrift_u32_list_t : public virtual ::apache::thrift::TBase {
+ public:
+
+  sai_thrift_u32_list_t(const sai_thrift_u32_list_t&);
+  sai_thrift_u32_list_t& operator=(const sai_thrift_u32_list_t&);
+  sai_thrift_u32_list_t() : count(0) {
+  }
+
+  virtual ~sai_thrift_u32_list_t() noexcept;
+  int32_t count;
+  std::vector<int32_t>  u32list;
+
+  _sai_thrift_u32_list_t__isset __isset;
+
+  void __set_count(const int32_t val);
+
+  void __set_u32list(const std::vector<int32_t> & val);
+
+  bool operator == (const sai_thrift_u32_list_t & rhs) const
+  {
+    if (!(count == rhs.count))
+      return false;
+    if (!(u32list == rhs.u32list))
+      return false;
+    return true;
+  }
+  bool operator != (const sai_thrift_u32_list_t &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const sai_thrift_u32_list_t & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(sai_thrift_u32_list_t &a, sai_thrift_u32_list_t &b);
+
+std::ostream& operator<<(std::ostream& out, const sai_thrift_u32_list_t& obj);
+
 typedef struct _sai_thrift_acl_mask_t__isset {
-  _sai_thrift_acl_mask_t__isset() : u8(false), s8(false), u16(false), s16(false), u32(false), s32(false), mac(false), ip4(false), ip6(false) {}
+  _sai_thrift_acl_mask_t__isset() : u8(false), s8(false), u16(false), s16(false), u32(false), s32(false), mac(false), ip4(false), ip6(false), u8list(false) {}
   bool u8 :1;
   bool s8 :1;
   bool u16 :1;
@@ -648,6 +794,7 @@ typedef struct _sai_thrift_acl_mask_t__isset {
   bool mac :1;
   bool ip4 :1;
   bool ip6 :1;
+  bool u8list :1;
 } _sai_thrift_acl_mask_t__isset;
 
 class sai_thrift_acl_mask_t : public virtual ::apache::thrift::TBase {
@@ -668,6 +815,7 @@ class sai_thrift_acl_mask_t : public virtual ::apache::thrift::TBase {
   sai_thrift_mac_t mac;
   sai_thrift_ip4_t ip4;
   sai_thrift_ip6_t ip6;
+  sai_thrift_u8_list_t u8list;
 
   _sai_thrift_acl_mask_t__isset __isset;
 
@@ -688,6 +836,8 @@ class sai_thrift_acl_mask_t : public virtual ::apache::thrift::TBase {
   void __set_ip4(const sai_thrift_ip4_t& val);
 
   void __set_ip6(const sai_thrift_ip6_t& val);
+
+  void __set_u8list(const sai_thrift_u8_list_t& val);
 
   bool operator == (const sai_thrift_acl_mask_t & rhs) const
   {
@@ -727,6 +877,10 @@ class sai_thrift_acl_mask_t : public virtual ::apache::thrift::TBase {
       return false;
     else if (__isset.ip6 && !(ip6 == rhs.ip6))
       return false;
+    if (__isset.u8list != rhs.__isset.u8list)
+      return false;
+    else if (__isset.u8list && !(u8list == rhs.u8list))
+      return false;
     return true;
   }
   bool operator != (const sai_thrift_acl_mask_t &rhs) const {
@@ -746,7 +900,7 @@ void swap(sai_thrift_acl_mask_t &a, sai_thrift_acl_mask_t &b);
 std::ostream& operator<<(std::ostream& out, const sai_thrift_acl_mask_t& obj);
 
 typedef struct _sai_thrift_acl_data_t__isset {
-  _sai_thrift_acl_data_t__isset() : u8(false), s8(false), u16(false), s16(false), u32(false), s32(false), mac(false), ip4(false), ip6(false), oid(false), objlist(false) {}
+  _sai_thrift_acl_data_t__isset() : u8(false), s8(false), u16(false), s16(false), u32(false), s32(false), mac(false), ip4(false), ip6(false), oid(false), objlist(false), u8list(false) {}
   bool u8 :1;
   bool s8 :1;
   bool u16 :1;
@@ -758,6 +912,7 @@ typedef struct _sai_thrift_acl_data_t__isset {
   bool ip6 :1;
   bool oid :1;
   bool objlist :1;
+  bool u8list :1;
 } _sai_thrift_acl_data_t__isset;
 
 class sai_thrift_acl_data_t : public virtual ::apache::thrift::TBase {
@@ -780,6 +935,7 @@ class sai_thrift_acl_data_t : public virtual ::apache::thrift::TBase {
   sai_thrift_ip6_t ip6;
   sai_thrift_object_id_t oid;
   sai_thrift_object_list_t objlist;
+  sai_thrift_u8_list_t u8list;
 
   _sai_thrift_acl_data_t__isset __isset;
 
@@ -804,6 +960,8 @@ class sai_thrift_acl_data_t : public virtual ::apache::thrift::TBase {
   void __set_oid(const sai_thrift_object_id_t val);
 
   void __set_objlist(const sai_thrift_object_list_t& val);
+
+  void __set_u8list(const sai_thrift_u8_list_t& val);
 
   bool operator == (const sai_thrift_acl_data_t & rhs) const
   {
@@ -850,6 +1008,10 @@ class sai_thrift_acl_data_t : public virtual ::apache::thrift::TBase {
     if (__isset.objlist != rhs.__isset.objlist)
       return false;
     else if (__isset.objlist && !(objlist == rhs.objlist))
+      return false;
+    if (__isset.u8list != rhs.__isset.u8list)
+      return false;
+    else if (__isset.u8list && !(u8list == rhs.u8list))
       return false;
     return true;
   }
@@ -1095,152 +1257,8 @@ void swap(sai_thrift_acl_action_data_t &a, sai_thrift_acl_action_data_t &b);
 
 std::ostream& operator<<(std::ostream& out, const sai_thrift_acl_action_data_t& obj);
 
-typedef struct _sai_thrift_u8_list_t__isset {
-  _sai_thrift_u8_list_t__isset() : count(false), u8list(false) {}
-  bool count :1;
-  bool u8list :1;
-} _sai_thrift_u8_list_t__isset;
-
-class sai_thrift_u8_list_t : public virtual ::apache::thrift::TBase {
- public:
-
-  sai_thrift_u8_list_t(const sai_thrift_u8_list_t&);
-  sai_thrift_u8_list_t& operator=(const sai_thrift_u8_list_t&);
-  sai_thrift_u8_list_t() : count(0) {
-  }
-
-  virtual ~sai_thrift_u8_list_t() noexcept;
-  int32_t count;
-  std::vector<int8_t>  u8list;
-
-  _sai_thrift_u8_list_t__isset __isset;
-
-  void __set_count(const int32_t val);
-
-  void __set_u8list(const std::vector<int8_t> & val);
-
-  bool operator == (const sai_thrift_u8_list_t & rhs) const
-  {
-    if (!(count == rhs.count))
-      return false;
-    if (!(u8list == rhs.u8list))
-      return false;
-    return true;
-  }
-  bool operator != (const sai_thrift_u8_list_t &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const sai_thrift_u8_list_t & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(sai_thrift_u8_list_t &a, sai_thrift_u8_list_t &b);
-
-std::ostream& operator<<(std::ostream& out, const sai_thrift_u8_list_t& obj);
-
-typedef struct _sai_thrift_s8_list_t__isset {
-  _sai_thrift_s8_list_t__isset() : count(false), s8list(false) {}
-  bool count :1;
-  bool s8list :1;
-} _sai_thrift_s8_list_t__isset;
-
-class sai_thrift_s8_list_t : public virtual ::apache::thrift::TBase {
- public:
-
-  sai_thrift_s8_list_t(const sai_thrift_s8_list_t&);
-  sai_thrift_s8_list_t& operator=(const sai_thrift_s8_list_t&);
-  sai_thrift_s8_list_t() : count(0) {
-  }
-
-  virtual ~sai_thrift_s8_list_t() noexcept;
-  int32_t count;
-  std::vector<int8_t>  s8list;
-
-  _sai_thrift_s8_list_t__isset __isset;
-
-  void __set_count(const int32_t val);
-
-  void __set_s8list(const std::vector<int8_t> & val);
-
-  bool operator == (const sai_thrift_s8_list_t & rhs) const
-  {
-    if (!(count == rhs.count))
-      return false;
-    if (!(s8list == rhs.s8list))
-      return false;
-    return true;
-  }
-  bool operator != (const sai_thrift_s8_list_t &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const sai_thrift_s8_list_t & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(sai_thrift_s8_list_t &a, sai_thrift_s8_list_t &b);
-
-std::ostream& operator<<(std::ostream& out, const sai_thrift_s8_list_t& obj);
-
-typedef struct _sai_thrift_u32_list_t__isset {
-  _sai_thrift_u32_list_t__isset() : count(false), u32list(false) {}
-  bool count :1;
-  bool u32list :1;
-} _sai_thrift_u32_list_t__isset;
-
-class sai_thrift_u32_list_t : public virtual ::apache::thrift::TBase {
- public:
-
-  sai_thrift_u32_list_t(const sai_thrift_u32_list_t&);
-  sai_thrift_u32_list_t& operator=(const sai_thrift_u32_list_t&);
-  sai_thrift_u32_list_t() : count(0) {
-  }
-
-  virtual ~sai_thrift_u32_list_t() noexcept;
-  int32_t count;
-  std::vector<int32_t>  u32list;
-
-  _sai_thrift_u32_list_t__isset __isset;
-
-  void __set_count(const int32_t val);
-
-  void __set_u32list(const std::vector<int32_t> & val);
-
-  bool operator == (const sai_thrift_u32_list_t & rhs) const
-  {
-    if (!(count == rhs.count))
-      return false;
-    if (!(u32list == rhs.u32list))
-      return false;
-    return true;
-  }
-  bool operator != (const sai_thrift_u32_list_t &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const sai_thrift_u32_list_t & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(sai_thrift_u32_list_t &a, sai_thrift_u32_list_t &b);
-
-std::ostream& operator<<(std::ostream& out, const sai_thrift_u32_list_t& obj);
-
 typedef struct _sai_thrift_qos_map_params_t__isset {
-  _sai_thrift_qos_map_params_t__isset() : tc(false), dscp(false), dot1p(false), prio(false), pg(false), queue_index(false), color(false) {}
+  _sai_thrift_qos_map_params_t__isset() : tc(false), dscp(false), dot1p(false), prio(false), pg(false), queue_index(false), color(false), mpls_exp(false) {}
   bool tc :1;
   bool dscp :1;
   bool dot1p :1;
@@ -1248,6 +1266,7 @@ typedef struct _sai_thrift_qos_map_params_t__isset {
   bool pg :1;
   bool queue_index :1;
   bool color :1;
+  bool mpls_exp :1;
 } _sai_thrift_qos_map_params_t__isset;
 
 class sai_thrift_qos_map_params_t : public virtual ::apache::thrift::TBase {
@@ -1255,7 +1274,7 @@ class sai_thrift_qos_map_params_t : public virtual ::apache::thrift::TBase {
 
   sai_thrift_qos_map_params_t(const sai_thrift_qos_map_params_t&);
   sai_thrift_qos_map_params_t& operator=(const sai_thrift_qos_map_params_t&);
-  sai_thrift_qos_map_params_t() : tc(0), dscp(0), dot1p(0), prio(0), pg(0), queue_index(0), color(0) {
+  sai_thrift_qos_map_params_t() : tc(0), dscp(0), dot1p(0), prio(0), pg(0), queue_index(0), color(0), mpls_exp(0) {
   }
 
   virtual ~sai_thrift_qos_map_params_t() noexcept;
@@ -1266,6 +1285,7 @@ class sai_thrift_qos_map_params_t : public virtual ::apache::thrift::TBase {
   int8_t pg;
   int8_t queue_index;
   int8_t color;
+  int8_t mpls_exp;
 
   _sai_thrift_qos_map_params_t__isset __isset;
 
@@ -1283,6 +1303,8 @@ class sai_thrift_qos_map_params_t : public virtual ::apache::thrift::TBase {
 
   void __set_color(const int8_t val);
 
+  void __set_mpls_exp(const int8_t val);
+
   bool operator == (const sai_thrift_qos_map_params_t & rhs) const
   {
     if (!(tc == rhs.tc))
@@ -1298,6 +1320,8 @@ class sai_thrift_qos_map_params_t : public virtual ::apache::thrift::TBase {
     if (!(queue_index == rhs.queue_index))
       return false;
     if (!(color == rhs.color))
+      return false;
+    if (!(mpls_exp == rhs.mpls_exp))
       return false;
     return true;
   }
@@ -1462,10 +1486,9 @@ void swap(sai_thrift_u32_range_t &a, sai_thrift_u32_range_t &b);
 std::ostream& operator<<(std::ostream& out, const sai_thrift_u32_range_t& obj);
 
 typedef struct _sai_thrift_timeoffset_t__isset {
-  _sai_thrift_timeoffset_t__isset() : flag(false), value(false), type(false) {}
+  _sai_thrift_timeoffset_t__isset() : flag(false), value(false) {}
   bool flag :1;
   bool value :1;
-  bool type :1;
 } _sai_thrift_timeoffset_t__isset;
 
 class sai_thrift_timeoffset_t : public virtual ::apache::thrift::TBase {
@@ -1473,13 +1496,12 @@ class sai_thrift_timeoffset_t : public virtual ::apache::thrift::TBase {
 
   sai_thrift_timeoffset_t(const sai_thrift_timeoffset_t&);
   sai_thrift_timeoffset_t& operator=(const sai_thrift_timeoffset_t&);
-  sai_thrift_timeoffset_t() : flag(0), value(0), type(0) {
+  sai_thrift_timeoffset_t() : flag(0), value(0) {
   }
 
   virtual ~sai_thrift_timeoffset_t() noexcept;
   int8_t flag;
   int32_t value;
-  int8_t type;
 
   _sai_thrift_timeoffset_t__isset __isset;
 
@@ -1487,15 +1509,11 @@ class sai_thrift_timeoffset_t : public virtual ::apache::thrift::TBase {
 
   void __set_value(const int32_t val);
 
-  void __set_type(const int8_t val);
-
   bool operator == (const sai_thrift_timeoffset_t & rhs) const
   {
     if (!(flag == rhs.flag))
       return false;
     if (!(value == rhs.value))
-      return false;
-    if (!(type == rhs.type))
       return false;
     return true;
   }

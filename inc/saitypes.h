@@ -973,6 +973,9 @@ typedef enum _sai_outseg_type_t
     /** Out segment of intermediate node, label stack depth is one */
     SAI_OUTSEG_TYPE_SWAP,
 
+    /** Out segment of last but one node, label stack depth is zero */
+    SAI_OUTSEG_TYPE_PHP,
+
 } sai_outseg_type_t;
 
 /**

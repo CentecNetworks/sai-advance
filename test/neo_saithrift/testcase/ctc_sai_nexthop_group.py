@@ -291,7 +291,7 @@ class fun_07_get_nexthop_group_attribute_count_fn(sai_base_test.ThriftInterfaceD
                     for i in a.value.objlist.object_id_list:
                         sys_logging("get the %dth group member oid" %(n+1))
                         sys_logging("the group member oid = 0x%x" %i)
-                        assert (nhop_gmember_list[n] == i)
+                        assert (i in nhop_gmember_list)
                         n = n+1
 
         finally:

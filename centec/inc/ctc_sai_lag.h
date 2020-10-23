@@ -39,8 +39,8 @@
 \t  |  SAI_LAG_ATTR_DEFAULT_VLAN_PRIORITY                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_LAG_ATTR_DROP_UNTAGGED                           |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_LAG_ATTR_DROP_TAGGED                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_ATTR_MODE                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM                   |            CTC7132             |
+\e  |  SAI_LAG_ATTR_MODE                                    |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM                   |            CTC7132             |
 \b 
 
 \p
@@ -89,7 +89,8 @@ typedef struct ctc_sai_lag_info_s
     int32 bind_bridge_port_type; // 0 mean not binded, 1 mean binded port , 2 mean binded sub port    
     bool drop_tagged;
     bool drop_untagged;
-    int32 sub_port_ref_cnt;
+    int32 scl0_ref_cnt;
+    int32 scl1_ref_cnt;
 
     uint16 max_lag_member;
     ctc_sai_lag_member_change_notification_fn cb[CTC_SAI_LAG_MEM_CHANGE_TYPE_MAX];

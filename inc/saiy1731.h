@@ -141,6 +141,15 @@ typedef enum _sai_y1731_remote_mep_attr_t
     SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS,
 
     /**
+     * @brief Y1731 remote mep is enabled
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default TRUE
+     */
+    SAI_Y1731_REMOTE_MEP_ATTR_ENABLE,
+
+    /**
      * @brief Y1731 receive the correct ccm from remote mep
      * @indicate the connection to remote mep has been established
      *
@@ -148,6 +157,40 @@ typedef enum _sai_y1731_remote_mep_attr_t
      * @flags READ_ONLY
      */
     SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED,
+
+    /**
+     * @brief The hw protection next hop group id
+     *  set to SAI_OBJECT_TYPE_NEXT_HOP_GROUP, only for SAI_NEXT_HOP_GROUP_TYPE_PROTECTION
+     *  used for hardware protection switch
+     *  set to SAI_NULL_OBJECT_ID to disable hw protection
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID,
+
+    /**
+     * @brief indicate the path y1731 rmep monitored is protecting path or working path
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @validonly SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID != SAI_NULL_OBJECT_ID
+     * @default 0
+     */
+    SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH,
+
+    /**
+     * @brief indicate the y1731 rmep session hw protection is enabled or not
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @validonly SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID != SAI_NULL_OBJECT_ID
+     * @default 0
+     */
+    SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN,
     
     /**
      * @brief End of attributes
@@ -321,6 +364,15 @@ typedef enum _sai_y1731_session_attr_t
      * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
      */
     SAI_Y1731_SESSION_ATTR_LOCAL_MEP_ID,
+
+    /**
+     * @brief Y1731 session is enabled
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default TRUE
+     */
+    SAI_Y1731_SESSION_ATTR_ENABLE,
     
     /**
      * @brief Y1731 session ccm period 3.3ms/10ms/100ms/1s/10s/1min/10min
@@ -451,8 +503,7 @@ typedef enum _sai_y1731_session_attr_t
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
      */
-    SAI_Y1731_SESSION_ATTR_NEXT_HOP_ID,
-    
+    SAI_Y1731_SESSION_ATTR_NEXT_HOP_ID,   
     
     /**
      * @brief End of attributes

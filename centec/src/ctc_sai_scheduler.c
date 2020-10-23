@@ -30,11 +30,6 @@ _ctc_sai_scheduler_map_attr_to_db(const sai_attribute_t* attr_list, uint32 attr_
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_SCHEDULER_ATTR_SCHEDULING_WEIGHT, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        if (!sch_type_valid || (p_scheduler->sch_type != SAI_SCHEDULING_TYPE_DWRR))
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "Weight need DWRR algorithm!\n");
-            return SAI_STATUS_INVALID_PARAMETER;
-        }
         p_scheduler->weight = attr_value->u8;
     }
 
@@ -137,9 +132,32 @@ _ctc_sai_scheduler_queue_map_scheduler(uint8 lchip, uint32 gport, uint16 ctc_que
     shape.shape.queue_shape.queue.gport = gport;
     shape.shape.queue_shape.queue.service_id = service_id;
 
+    if(service_id)
+    {
+        queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_SERVICE, ctc_queue_id, gport);
+        p_queue = ctc_sai_db_get_object_property(lchip, queue_oid);
+    }
+    else
+    {
+        queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_ALL, ctc_queue_id, gport);
+        p_queue = ctc_sai_db_get_object_property(lchip, queue_oid);
+        if (!p_queue || !p_queue->sch_id)
+        {
+            queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_UNICAST, ctc_queue_id, gport);
+            p_queue = ctc_sai_db_get_object_property(lchip, queue_oid);                     
+        }
+    }
+
     if (!enable)
     {
-        CTC_SAI_ERROR_RETURN(_ctc_sai_scheduler_queue_set_ctc_sched(lchip, gport, cfg_queue_id, cfg_queue_id, service_id, 1));
+        if (SAI_NULL_OBJECT_ID != p_queue->sch_grp)
+        {
+                           
+            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_SCHEDULER_GROUP, p_queue->sch_grp, &ctc_oid);
+            group_index_base = ctc_sai_scheduler_group_get_group_index_base(lchip, service_id);
+            
+            CTC_SAI_ERROR_RETURN(_ctc_sai_scheduler_queue_set_ctc_sched(lchip, gport, cfg_queue_id, ctc_oid.value2-group_index_base, service_id, 1));
+        }
         shape.shape.queue_shape.enable = 0;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_shape(lchip, &shape));
         return SAI_STATUS_SUCCESS;
@@ -177,21 +195,7 @@ _ctc_sai_scheduler_queue_map_scheduler(uint8 lchip, uint32 gport, uint16 ctc_que
     else
     {//wdrr
         //cfg weight
-        if(service_id)
-        {
-            queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_SERVICE, ctc_queue_id, gport);
-            p_queue = ctc_sai_db_get_object_property(lchip, queue_oid);
-        }
-        else
-        {
-            queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_ALL, ctc_queue_id, gport);
-            p_queue = ctc_sai_db_get_object_property(lchip, queue_oid);
-            if (!p_queue || !p_queue->sch_id)
-            {
-                queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_UNICAST, ctc_queue_id, gport);
-                p_queue = ctc_sai_db_get_object_property(lchip, queue_oid);                     
-            }
-        }
+        
 
         if (NULL == p_queue)
         {
@@ -392,7 +396,14 @@ _ctc_sai_scheduler_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
             p_scheduler->weight = attr->value.u8;
             break;
         case SAI_SCHEDULER_ATTR_METER_TYPE:
-            return SAI_STATUS_SUCCESS;
+            if(SAI_METER_TYPE_BYTES != attr->value.u8)
+            {
+                return SAI_STATUS_NOT_SUPPORTED;
+            }
+            else
+            {
+                return SAI_STATUS_SUCCESS;
+            }
             break;
         case SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_RATE:
             if (p_scheduler->min_rate == attr->value.u64)
@@ -432,8 +443,12 @@ _ctc_sai_scheduler_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
     CTC_SAI_CTC_ERROR_RETURN(ctcs_get_gchip_id(lchip, &gchip));
     for (port_idx = 0; port_idx < local_panel_ports.count; port_idx++)
     {
-        port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, CTC_MAP_LPORT_TO_GPORT(gchip, port_idx));
+        port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]));
         p_port_db = ctc_sai_db_get_object_property(lchip, port_oid);
+        if(!p_port_db)
+        {
+            continue;
+        }
         if (p_port_db && (p_port_db->sched_id == ctc_oid.value))
         {
             attr_temp.id = SAI_PORT_ATTR_QOS_SCHEDULER_PROFILE_ID;
@@ -444,11 +459,11 @@ _ctc_sai_scheduler_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
         //update basic queue
         for (queue_idx = 0; queue_idx < CTC_QOS_BASIC_Q_NUM; queue_idx++)
         {
-            queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_ALL, queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, port_idx));
+            queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_ALL, queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]));
             p_queue_db = ctc_sai_db_get_object_property(lchip, queue_oid);
             if (!p_queue_db || !p_queue_db->sch_id)
             {
-                queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_UNICAST, queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, port_idx));
+                queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_UNICAST, queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]));
                 p_queue_db = ctc_sai_db_get_object_property(lchip, queue_oid);
                 if (!p_queue_db || !p_queue_db->sch_id)
                 {
@@ -474,7 +489,7 @@ _ctc_sai_scheduler_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
                         
             for (queue_idx = 0; queue_idx < CTC_QOS_EXT_Q_NUM; queue_idx++)
             {
-                queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_SERVICE, (p_service_id_node->service_id << 6) + queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, port_idx));
+                queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_SERVICE, (p_service_id_node->service_id << 6) + queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]));
                 p_queue_db = ctc_sai_db_get_object_property(lchip, queue_oid);
                 if (!p_queue_db || !p_queue_db->sch_grp)
                 {
@@ -603,6 +618,7 @@ ctc_sai_scheduler_port_set_scheduler(sai_object_id_t port_id, const sai_attribut
     sal_memset(&shape, 0, sizeof(shape));
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(port_id, &gport));
 
+    ctc_sai_oid_get_lchip(port_id, &lchip);
     p_port_db = ctc_sai_db_get_object_property(lchip, port_id);
     if (NULL == p_port_db)
     {
@@ -881,11 +897,11 @@ ctc_sai_scheduler_group_set_scheduler(sai_object_id_t sch_group_id, const sai_at
             // basic queue
             for (queue_idx = 0; queue_idx < CTC_QOS_BASIC_Q_NUM; queue_idx++)
             {
-                queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_ALL, queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, port_idx));
+                queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_ALL, queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]));
                 p_queue_db = ctc_sai_db_get_object_property(lchip, queue_oid);
                 if (!p_queue_db || !p_queue_db->sch_grp)
                 {
-                    queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_UNICAST, queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, port_idx));
+                    queue_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_QUEUE, lchip, SAI_QUEUE_TYPE_UNICAST, queue_idx, CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]));
                     p_queue_db = ctc_sai_db_get_object_property(lchip, queue_oid);
                     if (!p_queue_db || !p_queue_db->sch_grp)
                     {
@@ -896,7 +912,7 @@ ctc_sai_scheduler_group_set_scheduler(sai_object_id_t sch_group_id, const sai_at
             }
 
             //service queue
-            port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, CTC_MAP_LPORT_TO_GPORT(gchip, port_idx));
+            port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]));
             _ctc_sai_port_get_port_db(port_id, &p_port_db);
             
             CTC_SLIST_LOOP(p_port_db->service_id_list, node)
@@ -918,7 +934,7 @@ ctc_sai_scheduler_group_set_scheduler(sai_object_id_t sch_group_id, const sai_at
 
         if (old_sched_id)
         {//update old db
-            p_scheduler_db = ctc_sai_db_get_object_property(lchip, ctc_sai_create_object_id(SAI_OBJECT_TYPE_SCHEDULER, lchip, 0, 0, old_sched_id));
+            p_scheduler_db = ctc_sai_db_get_object_property(lchip, old_sched_id);
             if (NULL == p_scheduler_db)
             {
                 CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "Not Found old Scheduler DB!\n");
@@ -967,7 +983,7 @@ _ctc_sai_scheduler_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_db
         return SAI_STATUS_SUCCESS;
     }
 
-    CTC_SAI_LOG_DUMP(p_file, "%-4d 0x%-16"PRIx64" %-7d %-4d %-6d %-10d %-10d %-10d %-10d\n",
+    CTC_SAI_LOG_DUMP(p_file, "%-4d 0x%-16"PRIx64" %-7d %-4d %-6d %-16"PRIx64" %-16"PRIx64" %-16"PRIx64" %-16"PRIx64"\n",
                         *cnt,sched_id,p_db->ref_cnt, p_db->sch_type,p_db->weight,
                         p_db->min_rate,p_db->min_burst_rate,p_db->max_rate,p_db->max_burst_rate);
     (*cnt)++;

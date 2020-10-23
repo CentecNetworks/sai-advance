@@ -1,5 +1,4 @@
-#include "ctc_error.h"
-#include "ctc_macro.h"
+#include "api/include/ctc_api.h"
 #include "ctc_sai_app_cfg_datapath_profile.h"
 #include "ctc_sai_app_cfg_parse.h"
 
@@ -72,6 +71,7 @@ ctc_app_read_datapath_profile_serdes_info(ctc_app_parse_file_t* pfile, ctc_datap
     static uint32   serdes_mode[CTC_DATAPATH_SERDES_NUM] = {0};
     static uint32   serdes_id[CTC_DATAPATH_SERDES_NUM] = {0} ;
     static uint32   serdes_group[CTC_DATAPATH_SERDES_NUM] = {0} ;
+    static uint32   is_xpipe[CTC_DATAPATH_SERDES_NUM] = {0} ;
     int      ret = 0;
 
     entry_num = CTC_DATAPATH_SERDES_NUM;
@@ -111,6 +111,12 @@ ctc_app_read_datapath_profile_serdes_info(ctc_app_parse_file_t* pfile, ctc_datap
                        serdes_group,
                        &entry_num);
 
+    ret = ctc_app_parse_file(pfile,
+                       "SERDES_ITEM",
+                       "SERDES_XPIPE",
+                       is_xpipe,
+                       &entry_num);    
+
     for(cnt = 0; cnt < CTC_DATAPATH_SERDES_NUM; cnt++)
     {
         p_datapath_cfg->serdes[cnt].mode = serdes_mode[cnt];
@@ -118,6 +124,7 @@ ctc_app_read_datapath_profile_serdes_info(ctc_app_parse_file_t* pfile, ctc_datap
         p_datapath_cfg->serdes[cnt].tx_polarity = tx_polarity[cnt];
         p_datapath_cfg->serdes[cnt].is_dynamic= is_dynamic[cnt];
         p_datapath_cfg->serdes[cnt].group = serdes_group[cnt];
+        p_datapath_cfg->serdes[cnt].is_xpipe= is_xpipe[cnt];
     }
 
     return ret;

@@ -65,7 +65,6 @@ class func_01_create_fdb_entry_fn_1q(sai_base_test.ThriftInterfaceDataPlane):
             
         warmboot(self.client)
         try:
-            pdb.set_trace()
             status = sai_thrift_create_fdb(self.client, vlan_oid, mac2, port2, mac_action)
             assert( SAI_STATUS_SUCCESS == status)
             self.ctc_send_packet(0, str(pkt))
@@ -163,9 +162,7 @@ class func_02_create_fdb_entry_fn_1d_subport(sai_base_test.ThriftInterfaceDataPl
             self.client.sai_thrift_remove_bridge_port(sub_port_id1)
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
-            sai_thrift_create_bridge_port(self.client, port3)           
+          
             self.client.sai_thrift_remove_bridge(bridge_id1)  
         
         
@@ -1209,9 +1206,7 @@ class scenario_02_fdb_learning_and_aging_sub_port(sai_base_test.ThriftInterfaceD
             self.client.sai_thrift_remove_bridge_port(sub_port_id1)
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
-            sai_thrift_create_bridge_port(self.client, port3)           
+          
             self.client.sai_thrift_remove_bridge(bridge_id1)  
 
 
@@ -1680,9 +1675,7 @@ class scenario_05_fdb_fdb_entry_cover_02(sai_base_test.ThriftInterfaceDataPlane)
             self.client.sai_thrift_remove_bridge_port(sub_port_id1)
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)            
-            sai_thrift_create_bridge_port(self.client, port1)
-            sai_thrift_create_bridge_port(self.client, port2)
-            sai_thrift_create_bridge_port(self.client, port3)           
+        
             self.client.sai_thrift_remove_bridge(bridge_id1)
 
 
@@ -3333,7 +3326,7 @@ class scenario_23_bridge_sub_port_is_lag(sai_base_test.ThriftInterfaceDataPlane)
             self.client.sai_thrift_remove_bridge_port(subport1)
             
             self.client.sai_thrift_remove_bridge_port(subport2)
-            sai_thrift_create_bridge_port(self.client, port3)            
+          
             
             sai_thrift_remove_lag_member(self.client, lag_member_id1)
             sai_thrift_remove_lag_member(self.client, lag_member_id2)            

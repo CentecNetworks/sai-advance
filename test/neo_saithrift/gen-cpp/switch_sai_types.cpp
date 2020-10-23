@@ -1258,6 +1258,402 @@ void sai_thrift_route_entry_list_t::printTo(std::ostream& out) const {
 }
 
 
+sai_thrift_u8_list_t::~sai_thrift_u8_list_t() noexcept {
+}
+
+
+void sai_thrift_u8_list_t::__set_count(const int32_t val) {
+  this->count = val;
+}
+
+void sai_thrift_u8_list_t::__set_u8list(const std::vector<int8_t> & val) {
+  this->u8list = val;
+}
+std::ostream& operator<<(std::ostream& out, const sai_thrift_u8_list_t& obj)
+{
+  obj.printTo(out);
+  return out;
+}
+
+
+uint32_t sai_thrift_u8_list_t::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  ::apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->count);
+          this->__isset.count = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
+          {
+            this->u8list.clear();
+            uint32_t _size50;
+            ::apache::thrift::protocol::TType _etype53;
+            xfer += iprot->readListBegin(_etype53, _size50);
+            this->u8list.resize(_size50);
+            uint32_t _i54;
+            for (_i54 = 0; _i54 < _size50; ++_i54)
+            {
+              xfer += iprot->readByte(this->u8list[_i54]);
+            }
+            xfer += iprot->readListEnd();
+          }
+          this->__isset.u8list = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t sai_thrift_u8_list_t::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("sai_thrift_u8_list_t");
+
+  xfer += oprot->writeFieldBegin("count", ::apache::thrift::protocol::T_I32, 1);
+  xfer += oprot->writeI32(this->count);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("u8list", ::apache::thrift::protocol::T_LIST, 2);
+  {
+    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_BYTE, static_cast<uint32_t>(this->u8list.size()));
+    std::vector<int8_t> ::const_iterator _iter55;
+    for (_iter55 = this->u8list.begin(); _iter55 != this->u8list.end(); ++_iter55)
+    {
+      xfer += oprot->writeByte((*_iter55));
+    }
+    xfer += oprot->writeListEnd();
+  }
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(sai_thrift_u8_list_t &a, sai_thrift_u8_list_t &b) {
+  using ::std::swap;
+  swap(a.count, b.count);
+  swap(a.u8list, b.u8list);
+  swap(a.__isset, b.__isset);
+}
+
+sai_thrift_u8_list_t::sai_thrift_u8_list_t(const sai_thrift_u8_list_t& other56) {
+  count = other56.count;
+  u8list = other56.u8list;
+  __isset = other56.__isset;
+}
+sai_thrift_u8_list_t& sai_thrift_u8_list_t::operator=(const sai_thrift_u8_list_t& other57) {
+  count = other57.count;
+  u8list = other57.u8list;
+  __isset = other57.__isset;
+  return *this;
+}
+void sai_thrift_u8_list_t::printTo(std::ostream& out) const {
+  using ::apache::thrift::to_string;
+  out << "sai_thrift_u8_list_t(";
+  out << "count=" << to_string(count);
+  out << ", " << "u8list=" << to_string(u8list);
+  out << ")";
+}
+
+
+sai_thrift_s8_list_t::~sai_thrift_s8_list_t() noexcept {
+}
+
+
+void sai_thrift_s8_list_t::__set_count(const int32_t val) {
+  this->count = val;
+}
+
+void sai_thrift_s8_list_t::__set_s8list(const std::vector<int8_t> & val) {
+  this->s8list = val;
+}
+std::ostream& operator<<(std::ostream& out, const sai_thrift_s8_list_t& obj)
+{
+  obj.printTo(out);
+  return out;
+}
+
+
+uint32_t sai_thrift_s8_list_t::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  ::apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->count);
+          this->__isset.count = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
+          {
+            this->s8list.clear();
+            uint32_t _size58;
+            ::apache::thrift::protocol::TType _etype61;
+            xfer += iprot->readListBegin(_etype61, _size58);
+            this->s8list.resize(_size58);
+            uint32_t _i62;
+            for (_i62 = 0; _i62 < _size58; ++_i62)
+            {
+              xfer += iprot->readByte(this->s8list[_i62]);
+            }
+            xfer += iprot->readListEnd();
+          }
+          this->__isset.s8list = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t sai_thrift_s8_list_t::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("sai_thrift_s8_list_t");
+
+  xfer += oprot->writeFieldBegin("count", ::apache::thrift::protocol::T_I32, 1);
+  xfer += oprot->writeI32(this->count);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("s8list", ::apache::thrift::protocol::T_LIST, 2);
+  {
+    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_BYTE, static_cast<uint32_t>(this->s8list.size()));
+    std::vector<int8_t> ::const_iterator _iter63;
+    for (_iter63 = this->s8list.begin(); _iter63 != this->s8list.end(); ++_iter63)
+    {
+      xfer += oprot->writeByte((*_iter63));
+    }
+    xfer += oprot->writeListEnd();
+  }
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(sai_thrift_s8_list_t &a, sai_thrift_s8_list_t &b) {
+  using ::std::swap;
+  swap(a.count, b.count);
+  swap(a.s8list, b.s8list);
+  swap(a.__isset, b.__isset);
+}
+
+sai_thrift_s8_list_t::sai_thrift_s8_list_t(const sai_thrift_s8_list_t& other64) {
+  count = other64.count;
+  s8list = other64.s8list;
+  __isset = other64.__isset;
+}
+sai_thrift_s8_list_t& sai_thrift_s8_list_t::operator=(const sai_thrift_s8_list_t& other65) {
+  count = other65.count;
+  s8list = other65.s8list;
+  __isset = other65.__isset;
+  return *this;
+}
+void sai_thrift_s8_list_t::printTo(std::ostream& out) const {
+  using ::apache::thrift::to_string;
+  out << "sai_thrift_s8_list_t(";
+  out << "count=" << to_string(count);
+  out << ", " << "s8list=" << to_string(s8list);
+  out << ")";
+}
+
+
+sai_thrift_u32_list_t::~sai_thrift_u32_list_t() noexcept {
+}
+
+
+void sai_thrift_u32_list_t::__set_count(const int32_t val) {
+  this->count = val;
+}
+
+void sai_thrift_u32_list_t::__set_u32list(const std::vector<int32_t> & val) {
+  this->u32list = val;
+}
+std::ostream& operator<<(std::ostream& out, const sai_thrift_u32_list_t& obj)
+{
+  obj.printTo(out);
+  return out;
+}
+
+
+uint32_t sai_thrift_u32_list_t::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  ::apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->count);
+          this->__isset.count = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
+          {
+            this->u32list.clear();
+            uint32_t _size66;
+            ::apache::thrift::protocol::TType _etype69;
+            xfer += iprot->readListBegin(_etype69, _size66);
+            this->u32list.resize(_size66);
+            uint32_t _i70;
+            for (_i70 = 0; _i70 < _size66; ++_i70)
+            {
+              xfer += iprot->readI32(this->u32list[_i70]);
+            }
+            xfer += iprot->readListEnd();
+          }
+          this->__isset.u32list = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t sai_thrift_u32_list_t::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("sai_thrift_u32_list_t");
+
+  xfer += oprot->writeFieldBegin("count", ::apache::thrift::protocol::T_I32, 1);
+  xfer += oprot->writeI32(this->count);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("u32list", ::apache::thrift::protocol::T_LIST, 2);
+  {
+    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>(this->u32list.size()));
+    std::vector<int32_t> ::const_iterator _iter71;
+    for (_iter71 = this->u32list.begin(); _iter71 != this->u32list.end(); ++_iter71)
+    {
+      xfer += oprot->writeI32((*_iter71));
+    }
+    xfer += oprot->writeListEnd();
+  }
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+void swap(sai_thrift_u32_list_t &a, sai_thrift_u32_list_t &b) {
+  using ::std::swap;
+  swap(a.count, b.count);
+  swap(a.u32list, b.u32list);
+  swap(a.__isset, b.__isset);
+}
+
+sai_thrift_u32_list_t::sai_thrift_u32_list_t(const sai_thrift_u32_list_t& other72) {
+  count = other72.count;
+  u32list = other72.u32list;
+  __isset = other72.__isset;
+}
+sai_thrift_u32_list_t& sai_thrift_u32_list_t::operator=(const sai_thrift_u32_list_t& other73) {
+  count = other73.count;
+  u32list = other73.u32list;
+  __isset = other73.__isset;
+  return *this;
+}
+void sai_thrift_u32_list_t::printTo(std::ostream& out) const {
+  using ::apache::thrift::to_string;
+  out << "sai_thrift_u32_list_t(";
+  out << "count=" << to_string(count);
+  out << ", " << "u32list=" << to_string(u32list);
+  out << ")";
+}
+
+
 sai_thrift_acl_mask_t::~sai_thrift_acl_mask_t() noexcept {
 }
 
@@ -1305,6 +1701,11 @@ __isset.ip4 = true;
 void sai_thrift_acl_mask_t::__set_ip6(const sai_thrift_ip6_t& val) {
   this->ip6 = val;
 __isset.ip6 = true;
+}
+
+void sai_thrift_acl_mask_t::__set_u8list(const sai_thrift_u8_list_t& val) {
+  this->u8list = val;
+__isset.u8list = true;
 }
 std::ostream& operator<<(std::ostream& out, const sai_thrift_acl_mask_t& obj)
 {
@@ -1406,6 +1807,14 @@ uint32_t sai_thrift_acl_mask_t::read(::apache::thrift::protocol::TProtocol* ipro
           xfer += iprot->skip(ftype);
         }
         break;
+      case 10:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->u8list.read(iprot);
+          this->__isset.u8list = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -1468,6 +1877,11 @@ uint32_t sai_thrift_acl_mask_t::write(::apache::thrift::protocol::TProtocol* opr
     xfer += oprot->writeString(this->ip6);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.u8list) {
+    xfer += oprot->writeFieldBegin("u8list", ::apache::thrift::protocol::T_STRUCT, 10);
+    xfer += this->u8list.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -1484,32 +1898,35 @@ void swap(sai_thrift_acl_mask_t &a, sai_thrift_acl_mask_t &b) {
   swap(a.mac, b.mac);
   swap(a.ip4, b.ip4);
   swap(a.ip6, b.ip6);
+  swap(a.u8list, b.u8list);
   swap(a.__isset, b.__isset);
 }
 
-sai_thrift_acl_mask_t::sai_thrift_acl_mask_t(const sai_thrift_acl_mask_t& other50) {
-  u8 = other50.u8;
-  s8 = other50.s8;
-  u16 = other50.u16;
-  s16 = other50.s16;
-  u32 = other50.u32;
-  s32 = other50.s32;
-  mac = other50.mac;
-  ip4 = other50.ip4;
-  ip6 = other50.ip6;
-  __isset = other50.__isset;
+sai_thrift_acl_mask_t::sai_thrift_acl_mask_t(const sai_thrift_acl_mask_t& other74) {
+  u8 = other74.u8;
+  s8 = other74.s8;
+  u16 = other74.u16;
+  s16 = other74.s16;
+  u32 = other74.u32;
+  s32 = other74.s32;
+  mac = other74.mac;
+  ip4 = other74.ip4;
+  ip6 = other74.ip6;
+  u8list = other74.u8list;
+  __isset = other74.__isset;
 }
-sai_thrift_acl_mask_t& sai_thrift_acl_mask_t::operator=(const sai_thrift_acl_mask_t& other51) {
-  u8 = other51.u8;
-  s8 = other51.s8;
-  u16 = other51.u16;
-  s16 = other51.s16;
-  u32 = other51.u32;
-  s32 = other51.s32;
-  mac = other51.mac;
-  ip4 = other51.ip4;
-  ip6 = other51.ip6;
-  __isset = other51.__isset;
+sai_thrift_acl_mask_t& sai_thrift_acl_mask_t::operator=(const sai_thrift_acl_mask_t& other75) {
+  u8 = other75.u8;
+  s8 = other75.s8;
+  u16 = other75.u16;
+  s16 = other75.s16;
+  u32 = other75.u32;
+  s32 = other75.s32;
+  mac = other75.mac;
+  ip4 = other75.ip4;
+  ip6 = other75.ip6;
+  u8list = other75.u8list;
+  __isset = other75.__isset;
   return *this;
 }
 void sai_thrift_acl_mask_t::printTo(std::ostream& out) const {
@@ -1524,6 +1941,7 @@ void sai_thrift_acl_mask_t::printTo(std::ostream& out) const {
   out << ", " << "mac="; (__isset.mac ? (out << to_string(mac)) : (out << "<null>"));
   out << ", " << "ip4="; (__isset.ip4 ? (out << to_string(ip4)) : (out << "<null>"));
   out << ", " << "ip6="; (__isset.ip6 ? (out << to_string(ip6)) : (out << "<null>"));
+  out << ", " << "u8list="; (__isset.u8list ? (out << to_string(u8list)) : (out << "<null>"));
   out << ")";
 }
 
@@ -1585,6 +2003,11 @@ __isset.oid = true;
 void sai_thrift_acl_data_t::__set_objlist(const sai_thrift_object_list_t& val) {
   this->objlist = val;
 __isset.objlist = true;
+}
+
+void sai_thrift_acl_data_t::__set_u8list(const sai_thrift_u8_list_t& val) {
+  this->u8list = val;
+__isset.u8list = true;
 }
 std::ostream& operator<<(std::ostream& out, const sai_thrift_acl_data_t& obj)
 {
@@ -1702,6 +2125,14 @@ uint32_t sai_thrift_acl_data_t::read(::apache::thrift::protocol::TProtocol* ipro
           xfer += iprot->skip(ftype);
         }
         break;
+      case 12:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->u8list.read(iprot);
+          this->__isset.u8list = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -1774,6 +2205,11 @@ uint32_t sai_thrift_acl_data_t::write(::apache::thrift::protocol::TProtocol* opr
     xfer += this->objlist.write(oprot);
     xfer += oprot->writeFieldEnd();
   }
+  if (this->__isset.u8list) {
+    xfer += oprot->writeFieldBegin("u8list", ::apache::thrift::protocol::T_STRUCT, 12);
+    xfer += this->u8list.write(oprot);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -1792,36 +2228,39 @@ void swap(sai_thrift_acl_data_t &a, sai_thrift_acl_data_t &b) {
   swap(a.ip6, b.ip6);
   swap(a.oid, b.oid);
   swap(a.objlist, b.objlist);
+  swap(a.u8list, b.u8list);
   swap(a.__isset, b.__isset);
 }
 
-sai_thrift_acl_data_t::sai_thrift_acl_data_t(const sai_thrift_acl_data_t& other52) {
-  u8 = other52.u8;
-  s8 = other52.s8;
-  u16 = other52.u16;
-  s16 = other52.s16;
-  u32 = other52.u32;
-  s32 = other52.s32;
-  mac = other52.mac;
-  ip4 = other52.ip4;
-  ip6 = other52.ip6;
-  oid = other52.oid;
-  objlist = other52.objlist;
-  __isset = other52.__isset;
+sai_thrift_acl_data_t::sai_thrift_acl_data_t(const sai_thrift_acl_data_t& other76) {
+  u8 = other76.u8;
+  s8 = other76.s8;
+  u16 = other76.u16;
+  s16 = other76.s16;
+  u32 = other76.u32;
+  s32 = other76.s32;
+  mac = other76.mac;
+  ip4 = other76.ip4;
+  ip6 = other76.ip6;
+  oid = other76.oid;
+  objlist = other76.objlist;
+  u8list = other76.u8list;
+  __isset = other76.__isset;
 }
-sai_thrift_acl_data_t& sai_thrift_acl_data_t::operator=(const sai_thrift_acl_data_t& other53) {
-  u8 = other53.u8;
-  s8 = other53.s8;
-  u16 = other53.u16;
-  s16 = other53.s16;
-  u32 = other53.u32;
-  s32 = other53.s32;
-  mac = other53.mac;
-  ip4 = other53.ip4;
-  ip6 = other53.ip6;
-  oid = other53.oid;
-  objlist = other53.objlist;
-  __isset = other53.__isset;
+sai_thrift_acl_data_t& sai_thrift_acl_data_t::operator=(const sai_thrift_acl_data_t& other77) {
+  u8 = other77.u8;
+  s8 = other77.s8;
+  u16 = other77.u16;
+  s16 = other77.s16;
+  u32 = other77.u32;
+  s32 = other77.s32;
+  mac = other77.mac;
+  ip4 = other77.ip4;
+  ip6 = other77.ip6;
+  oid = other77.oid;
+  objlist = other77.objlist;
+  u8list = other77.u8list;
+  __isset = other77.__isset;
   return *this;
 }
 void sai_thrift_acl_data_t::printTo(std::ostream& out) const {
@@ -1838,6 +2277,7 @@ void sai_thrift_acl_data_t::printTo(std::ostream& out) const {
   out << ", " << "ip6="; (__isset.ip6 ? (out << to_string(ip6)) : (out << "<null>"));
   out << ", " << "oid="; (__isset.oid ? (out << to_string(oid)) : (out << "<null>"));
   out << ", " << "objlist="; (__isset.objlist ? (out << to_string(objlist)) : (out << "<null>"));
+  out << ", " << "u8list="; (__isset.u8list ? (out << to_string(u8list)) : (out << "<null>"));
   out << ")";
 }
 
@@ -1951,17 +2391,17 @@ void swap(sai_thrift_acl_field_data_t &a, sai_thrift_acl_field_data_t &b) {
   swap(a.__isset, b.__isset);
 }
 
-sai_thrift_acl_field_data_t::sai_thrift_acl_field_data_t(const sai_thrift_acl_field_data_t& other54) {
-  enable = other54.enable;
-  mask = other54.mask;
-  data = other54.data;
-  __isset = other54.__isset;
+sai_thrift_acl_field_data_t::sai_thrift_acl_field_data_t(const sai_thrift_acl_field_data_t& other78) {
+  enable = other78.enable;
+  mask = other78.mask;
+  data = other78.data;
+  __isset = other78.__isset;
 }
-sai_thrift_acl_field_data_t& sai_thrift_acl_field_data_t::operator=(const sai_thrift_acl_field_data_t& other55) {
-  enable = other55.enable;
-  mask = other55.mask;
-  data = other55.data;
-  __isset = other55.__isset;
+sai_thrift_acl_field_data_t& sai_thrift_acl_field_data_t::operator=(const sai_thrift_acl_field_data_t& other79) {
+  enable = other79.enable;
+  mask = other79.mask;
+  data = other79.data;
+  __isset = other79.__isset;
   return *this;
 }
 void sai_thrift_acl_field_data_t::printTo(std::ostream& out) const {
@@ -2241,33 +2681,33 @@ void swap(sai_thrift_acl_parameter_t &a, sai_thrift_acl_parameter_t &b) {
   swap(a.__isset, b.__isset);
 }
 
-sai_thrift_acl_parameter_t::sai_thrift_acl_parameter_t(const sai_thrift_acl_parameter_t& other56) {
-  u8 = other56.u8;
-  s8 = other56.s8;
-  u16 = other56.u16;
-  s16 = other56.s16;
-  u32 = other56.u32;
-  s32 = other56.s32;
-  mac = other56.mac;
-  ip4 = other56.ip4;
-  ip6 = other56.ip6;
-  oid = other56.oid;
-  objlist = other56.objlist;
-  __isset = other56.__isset;
+sai_thrift_acl_parameter_t::sai_thrift_acl_parameter_t(const sai_thrift_acl_parameter_t& other80) {
+  u8 = other80.u8;
+  s8 = other80.s8;
+  u16 = other80.u16;
+  s16 = other80.s16;
+  u32 = other80.u32;
+  s32 = other80.s32;
+  mac = other80.mac;
+  ip4 = other80.ip4;
+  ip6 = other80.ip6;
+  oid = other80.oid;
+  objlist = other80.objlist;
+  __isset = other80.__isset;
 }
-sai_thrift_acl_parameter_t& sai_thrift_acl_parameter_t::operator=(const sai_thrift_acl_parameter_t& other57) {
-  u8 = other57.u8;
-  s8 = other57.s8;
-  u16 = other57.u16;
-  s16 = other57.s16;
-  u32 = other57.u32;
-  s32 = other57.s32;
-  mac = other57.mac;
-  ip4 = other57.ip4;
-  ip6 = other57.ip6;
-  oid = other57.oid;
-  objlist = other57.objlist;
-  __isset = other57.__isset;
+sai_thrift_acl_parameter_t& sai_thrift_acl_parameter_t::operator=(const sai_thrift_acl_parameter_t& other81) {
+  u8 = other81.u8;
+  s8 = other81.s8;
+  u16 = other81.u16;
+  s16 = other81.s16;
+  u32 = other81.u32;
+  s32 = other81.s32;
+  mac = other81.mac;
+  ip4 = other81.ip4;
+  ip6 = other81.ip6;
+  oid = other81.oid;
+  objlist = other81.objlist;
+  __isset = other81.__isset;
   return *this;
 }
 void sai_thrift_acl_parameter_t::printTo(std::ostream& out) const {
@@ -2380,15 +2820,15 @@ void swap(sai_thrift_acl_action_data_t &a, sai_thrift_acl_action_data_t &b) {
   swap(a.__isset, b.__isset);
 }
 
-sai_thrift_acl_action_data_t::sai_thrift_acl_action_data_t(const sai_thrift_acl_action_data_t& other58) {
-  enable = other58.enable;
-  parameter = other58.parameter;
-  __isset = other58.__isset;
+sai_thrift_acl_action_data_t::sai_thrift_acl_action_data_t(const sai_thrift_acl_action_data_t& other82) {
+  enable = other82.enable;
+  parameter = other82.parameter;
+  __isset = other82.__isset;
 }
-sai_thrift_acl_action_data_t& sai_thrift_acl_action_data_t::operator=(const sai_thrift_acl_action_data_t& other59) {
-  enable = other59.enable;
-  parameter = other59.parameter;
-  __isset = other59.__isset;
+sai_thrift_acl_action_data_t& sai_thrift_acl_action_data_t::operator=(const sai_thrift_acl_action_data_t& other83) {
+  enable = other83.enable;
+  parameter = other83.parameter;
+  __isset = other83.__isset;
   return *this;
 }
 void sai_thrift_acl_action_data_t::printTo(std::ostream& out) const {
@@ -2396,402 +2836,6 @@ void sai_thrift_acl_action_data_t::printTo(std::ostream& out) const {
   out << "sai_thrift_acl_action_data_t(";
   out << "enable=" << to_string(enable);
   out << ", " << "parameter=" << to_string(parameter);
-  out << ")";
-}
-
-
-sai_thrift_u8_list_t::~sai_thrift_u8_list_t() noexcept {
-}
-
-
-void sai_thrift_u8_list_t::__set_count(const int32_t val) {
-  this->count = val;
-}
-
-void sai_thrift_u8_list_t::__set_u8list(const std::vector<int8_t> & val) {
-  this->u8list = val;
-}
-std::ostream& operator<<(std::ostream& out, const sai_thrift_u8_list_t& obj)
-{
-  obj.printTo(out);
-  return out;
-}
-
-
-uint32_t sai_thrift_u8_list_t::read(::apache::thrift::protocol::TProtocol* iprot) {
-
-  ::apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
-  uint32_t xfer = 0;
-  std::string fname;
-  ::apache::thrift::protocol::TType ftype;
-  int16_t fid;
-
-  xfer += iprot->readStructBegin(fname);
-
-  using ::apache::thrift::protocol::TProtocolException;
-
-
-  while (true)
-  {
-    xfer += iprot->readFieldBegin(fname, ftype, fid);
-    if (ftype == ::apache::thrift::protocol::T_STOP) {
-      break;
-    }
-    switch (fid)
-    {
-      case 1:
-        if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->count);
-          this->__isset.count = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 2:
-        if (ftype == ::apache::thrift::protocol::T_LIST) {
-          {
-            this->u8list.clear();
-            uint32_t _size60;
-            ::apache::thrift::protocol::TType _etype63;
-            xfer += iprot->readListBegin(_etype63, _size60);
-            this->u8list.resize(_size60);
-            uint32_t _i64;
-            for (_i64 = 0; _i64 < _size60; ++_i64)
-            {
-              xfer += iprot->readByte(this->u8list[_i64]);
-            }
-            xfer += iprot->readListEnd();
-          }
-          this->__isset.u8list = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      default:
-        xfer += iprot->skip(ftype);
-        break;
-    }
-    xfer += iprot->readFieldEnd();
-  }
-
-  xfer += iprot->readStructEnd();
-
-  return xfer;
-}
-
-uint32_t sai_thrift_u8_list_t::write(::apache::thrift::protocol::TProtocol* oprot) const {
-  uint32_t xfer = 0;
-  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-  xfer += oprot->writeStructBegin("sai_thrift_u8_list_t");
-
-  xfer += oprot->writeFieldBegin("count", ::apache::thrift::protocol::T_I32, 1);
-  xfer += oprot->writeI32(this->count);
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldBegin("u8list", ::apache::thrift::protocol::T_LIST, 2);
-  {
-    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_BYTE, static_cast<uint32_t>(this->u8list.size()));
-    std::vector<int8_t> ::const_iterator _iter65;
-    for (_iter65 = this->u8list.begin(); _iter65 != this->u8list.end(); ++_iter65)
-    {
-      xfer += oprot->writeByte((*_iter65));
-    }
-    xfer += oprot->writeListEnd();
-  }
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldStop();
-  xfer += oprot->writeStructEnd();
-  return xfer;
-}
-
-void swap(sai_thrift_u8_list_t &a, sai_thrift_u8_list_t &b) {
-  using ::std::swap;
-  swap(a.count, b.count);
-  swap(a.u8list, b.u8list);
-  swap(a.__isset, b.__isset);
-}
-
-sai_thrift_u8_list_t::sai_thrift_u8_list_t(const sai_thrift_u8_list_t& other66) {
-  count = other66.count;
-  u8list = other66.u8list;
-  __isset = other66.__isset;
-}
-sai_thrift_u8_list_t& sai_thrift_u8_list_t::operator=(const sai_thrift_u8_list_t& other67) {
-  count = other67.count;
-  u8list = other67.u8list;
-  __isset = other67.__isset;
-  return *this;
-}
-void sai_thrift_u8_list_t::printTo(std::ostream& out) const {
-  using ::apache::thrift::to_string;
-  out << "sai_thrift_u8_list_t(";
-  out << "count=" << to_string(count);
-  out << ", " << "u8list=" << to_string(u8list);
-  out << ")";
-}
-
-
-sai_thrift_s8_list_t::~sai_thrift_s8_list_t() noexcept {
-}
-
-
-void sai_thrift_s8_list_t::__set_count(const int32_t val) {
-  this->count = val;
-}
-
-void sai_thrift_s8_list_t::__set_s8list(const std::vector<int8_t> & val) {
-  this->s8list = val;
-}
-std::ostream& operator<<(std::ostream& out, const sai_thrift_s8_list_t& obj)
-{
-  obj.printTo(out);
-  return out;
-}
-
-
-uint32_t sai_thrift_s8_list_t::read(::apache::thrift::protocol::TProtocol* iprot) {
-
-  ::apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
-  uint32_t xfer = 0;
-  std::string fname;
-  ::apache::thrift::protocol::TType ftype;
-  int16_t fid;
-
-  xfer += iprot->readStructBegin(fname);
-
-  using ::apache::thrift::protocol::TProtocolException;
-
-
-  while (true)
-  {
-    xfer += iprot->readFieldBegin(fname, ftype, fid);
-    if (ftype == ::apache::thrift::protocol::T_STOP) {
-      break;
-    }
-    switch (fid)
-    {
-      case 1:
-        if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->count);
-          this->__isset.count = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 2:
-        if (ftype == ::apache::thrift::protocol::T_LIST) {
-          {
-            this->s8list.clear();
-            uint32_t _size68;
-            ::apache::thrift::protocol::TType _etype71;
-            xfer += iprot->readListBegin(_etype71, _size68);
-            this->s8list.resize(_size68);
-            uint32_t _i72;
-            for (_i72 = 0; _i72 < _size68; ++_i72)
-            {
-              xfer += iprot->readByte(this->s8list[_i72]);
-            }
-            xfer += iprot->readListEnd();
-          }
-          this->__isset.s8list = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      default:
-        xfer += iprot->skip(ftype);
-        break;
-    }
-    xfer += iprot->readFieldEnd();
-  }
-
-  xfer += iprot->readStructEnd();
-
-  return xfer;
-}
-
-uint32_t sai_thrift_s8_list_t::write(::apache::thrift::protocol::TProtocol* oprot) const {
-  uint32_t xfer = 0;
-  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-  xfer += oprot->writeStructBegin("sai_thrift_s8_list_t");
-
-  xfer += oprot->writeFieldBegin("count", ::apache::thrift::protocol::T_I32, 1);
-  xfer += oprot->writeI32(this->count);
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldBegin("s8list", ::apache::thrift::protocol::T_LIST, 2);
-  {
-    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_BYTE, static_cast<uint32_t>(this->s8list.size()));
-    std::vector<int8_t> ::const_iterator _iter73;
-    for (_iter73 = this->s8list.begin(); _iter73 != this->s8list.end(); ++_iter73)
-    {
-      xfer += oprot->writeByte((*_iter73));
-    }
-    xfer += oprot->writeListEnd();
-  }
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldStop();
-  xfer += oprot->writeStructEnd();
-  return xfer;
-}
-
-void swap(sai_thrift_s8_list_t &a, sai_thrift_s8_list_t &b) {
-  using ::std::swap;
-  swap(a.count, b.count);
-  swap(a.s8list, b.s8list);
-  swap(a.__isset, b.__isset);
-}
-
-sai_thrift_s8_list_t::sai_thrift_s8_list_t(const sai_thrift_s8_list_t& other74) {
-  count = other74.count;
-  s8list = other74.s8list;
-  __isset = other74.__isset;
-}
-sai_thrift_s8_list_t& sai_thrift_s8_list_t::operator=(const sai_thrift_s8_list_t& other75) {
-  count = other75.count;
-  s8list = other75.s8list;
-  __isset = other75.__isset;
-  return *this;
-}
-void sai_thrift_s8_list_t::printTo(std::ostream& out) const {
-  using ::apache::thrift::to_string;
-  out << "sai_thrift_s8_list_t(";
-  out << "count=" << to_string(count);
-  out << ", " << "s8list=" << to_string(s8list);
-  out << ")";
-}
-
-
-sai_thrift_u32_list_t::~sai_thrift_u32_list_t() noexcept {
-}
-
-
-void sai_thrift_u32_list_t::__set_count(const int32_t val) {
-  this->count = val;
-}
-
-void sai_thrift_u32_list_t::__set_u32list(const std::vector<int32_t> & val) {
-  this->u32list = val;
-}
-std::ostream& operator<<(std::ostream& out, const sai_thrift_u32_list_t& obj)
-{
-  obj.printTo(out);
-  return out;
-}
-
-
-uint32_t sai_thrift_u32_list_t::read(::apache::thrift::protocol::TProtocol* iprot) {
-
-  ::apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
-  uint32_t xfer = 0;
-  std::string fname;
-  ::apache::thrift::protocol::TType ftype;
-  int16_t fid;
-
-  xfer += iprot->readStructBegin(fname);
-
-  using ::apache::thrift::protocol::TProtocolException;
-
-
-  while (true)
-  {
-    xfer += iprot->readFieldBegin(fname, ftype, fid);
-    if (ftype == ::apache::thrift::protocol::T_STOP) {
-      break;
-    }
-    switch (fid)
-    {
-      case 1:
-        if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->count);
-          this->__isset.count = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      case 2:
-        if (ftype == ::apache::thrift::protocol::T_LIST) {
-          {
-            this->u32list.clear();
-            uint32_t _size76;
-            ::apache::thrift::protocol::TType _etype79;
-            xfer += iprot->readListBegin(_etype79, _size76);
-            this->u32list.resize(_size76);
-            uint32_t _i80;
-            for (_i80 = 0; _i80 < _size76; ++_i80)
-            {
-              xfer += iprot->readI32(this->u32list[_i80]);
-            }
-            xfer += iprot->readListEnd();
-          }
-          this->__isset.u32list = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
-      default:
-        xfer += iprot->skip(ftype);
-        break;
-    }
-    xfer += iprot->readFieldEnd();
-  }
-
-  xfer += iprot->readStructEnd();
-
-  return xfer;
-}
-
-uint32_t sai_thrift_u32_list_t::write(::apache::thrift::protocol::TProtocol* oprot) const {
-  uint32_t xfer = 0;
-  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
-  xfer += oprot->writeStructBegin("sai_thrift_u32_list_t");
-
-  xfer += oprot->writeFieldBegin("count", ::apache::thrift::protocol::T_I32, 1);
-  xfer += oprot->writeI32(this->count);
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldBegin("u32list", ::apache::thrift::protocol::T_LIST, 2);
-  {
-    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I32, static_cast<uint32_t>(this->u32list.size()));
-    std::vector<int32_t> ::const_iterator _iter81;
-    for (_iter81 = this->u32list.begin(); _iter81 != this->u32list.end(); ++_iter81)
-    {
-      xfer += oprot->writeI32((*_iter81));
-    }
-    xfer += oprot->writeListEnd();
-  }
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldStop();
-  xfer += oprot->writeStructEnd();
-  return xfer;
-}
-
-void swap(sai_thrift_u32_list_t &a, sai_thrift_u32_list_t &b) {
-  using ::std::swap;
-  swap(a.count, b.count);
-  swap(a.u32list, b.u32list);
-  swap(a.__isset, b.__isset);
-}
-
-sai_thrift_u32_list_t::sai_thrift_u32_list_t(const sai_thrift_u32_list_t& other82) {
-  count = other82.count;
-  u32list = other82.u32list;
-  __isset = other82.__isset;
-}
-sai_thrift_u32_list_t& sai_thrift_u32_list_t::operator=(const sai_thrift_u32_list_t& other83) {
-  count = other83.count;
-  u32list = other83.u32list;
-  __isset = other83.__isset;
-  return *this;
-}
-void sai_thrift_u32_list_t::printTo(std::ostream& out) const {
-  using ::apache::thrift::to_string;
-  out << "sai_thrift_u32_list_t(";
-  out << "count=" << to_string(count);
-  out << ", " << "u32list=" << to_string(u32list);
   out << ")";
 }
 
@@ -2826,6 +2870,10 @@ void sai_thrift_qos_map_params_t::__set_queue_index(const int8_t val) {
 
 void sai_thrift_qos_map_params_t::__set_color(const int8_t val) {
   this->color = val;
+}
+
+void sai_thrift_qos_map_params_t::__set_mpls_exp(const int8_t val) {
+  this->mpls_exp = val;
 }
 std::ostream& operator<<(std::ostream& out, const sai_thrift_qos_map_params_t& obj)
 {
@@ -2911,6 +2959,14 @@ uint32_t sai_thrift_qos_map_params_t::read(::apache::thrift::protocol::TProtocol
           xfer += iprot->skip(ftype);
         }
         break;
+      case 8:
+        if (ftype == ::apache::thrift::protocol::T_BYTE) {
+          xfer += iprot->readByte(this->mpls_exp);
+          this->__isset.mpls_exp = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -2956,6 +3012,10 @@ uint32_t sai_thrift_qos_map_params_t::write(::apache::thrift::protocol::TProtoco
   xfer += oprot->writeByte(this->color);
   xfer += oprot->writeFieldEnd();
 
+  xfer += oprot->writeFieldBegin("mpls_exp", ::apache::thrift::protocol::T_BYTE, 8);
+  xfer += oprot->writeByte(this->mpls_exp);
+  xfer += oprot->writeFieldEnd();
+
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -2970,6 +3030,7 @@ void swap(sai_thrift_qos_map_params_t &a, sai_thrift_qos_map_params_t &b) {
   swap(a.pg, b.pg);
   swap(a.queue_index, b.queue_index);
   swap(a.color, b.color);
+  swap(a.mpls_exp, b.mpls_exp);
   swap(a.__isset, b.__isset);
 }
 
@@ -2981,6 +3042,7 @@ sai_thrift_qos_map_params_t::sai_thrift_qos_map_params_t(const sai_thrift_qos_ma
   pg = other84.pg;
   queue_index = other84.queue_index;
   color = other84.color;
+  mpls_exp = other84.mpls_exp;
   __isset = other84.__isset;
 }
 sai_thrift_qos_map_params_t& sai_thrift_qos_map_params_t::operator=(const sai_thrift_qos_map_params_t& other85) {
@@ -2991,6 +3053,7 @@ sai_thrift_qos_map_params_t& sai_thrift_qos_map_params_t::operator=(const sai_th
   pg = other85.pg;
   queue_index = other85.queue_index;
   color = other85.color;
+  mpls_exp = other85.mpls_exp;
   __isset = other85.__isset;
   return *this;
 }
@@ -3004,6 +3067,7 @@ void sai_thrift_qos_map_params_t::printTo(std::ostream& out) const {
   out << ", " << "pg=" << to_string(pg);
   out << ", " << "queue_index=" << to_string(queue_index);
   out << ", " << "color=" << to_string(color);
+  out << ", " << "mpls_exp=" << to_string(mpls_exp);
   out << ")";
 }
 
@@ -3375,10 +3439,6 @@ void sai_thrift_timeoffset_t::__set_flag(const int8_t val) {
 void sai_thrift_timeoffset_t::__set_value(const int32_t val) {
   this->value = val;
 }
-
-void sai_thrift_timeoffset_t::__set_type(const int8_t val) {
-  this->type = val;
-}
 std::ostream& operator<<(std::ostream& out, const sai_thrift_timeoffset_t& obj)
 {
   obj.printTo(out);
@@ -3423,14 +3483,6 @@ uint32_t sai_thrift_timeoffset_t::read(::apache::thrift::protocol::TProtocol* ip
           xfer += iprot->skip(ftype);
         }
         break;
-      case 3:
-        if (ftype == ::apache::thrift::protocol::T_BYTE) {
-          xfer += iprot->readByte(this->type);
-          this->__isset.type = true;
-        } else {
-          xfer += iprot->skip(ftype);
-        }
-        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -3456,10 +3508,6 @@ uint32_t sai_thrift_timeoffset_t::write(::apache::thrift::protocol::TProtocol* o
   xfer += oprot->writeI32(this->value);
   xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("type", ::apache::thrift::protocol::T_BYTE, 3);
-  xfer += oprot->writeByte(this->type);
-  xfer += oprot->writeFieldEnd();
-
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -3469,20 +3517,17 @@ void swap(sai_thrift_timeoffset_t &a, sai_thrift_timeoffset_t &b) {
   using ::std::swap;
   swap(a.flag, b.flag);
   swap(a.value, b.value);
-  swap(a.type, b.type);
   swap(a.__isset, b.__isset);
 }
 
 sai_thrift_timeoffset_t::sai_thrift_timeoffset_t(const sai_thrift_timeoffset_t& other98) {
   flag = other98.flag;
   value = other98.value;
-  type = other98.type;
   __isset = other98.__isset;
 }
 sai_thrift_timeoffset_t& sai_thrift_timeoffset_t::operator=(const sai_thrift_timeoffset_t& other99) {
   flag = other99.flag;
   value = other99.value;
-  type = other99.type;
   __isset = other99.__isset;
   return *this;
 }
@@ -3491,7 +3536,6 @@ void sai_thrift_timeoffset_t::printTo(std::ostream& out) const {
   out << "sai_thrift_timeoffset_t(";
   out << "flag=" << to_string(flag);
   out << ", " << "value=" << to_string(value);
-  out << ", " << "type=" << to_string(type);
   out << ")";
 }
 

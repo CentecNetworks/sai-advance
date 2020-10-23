@@ -13,8 +13,29 @@
 #include "ctc_sai_twamp.h"
 #include "ctcs_api.h"
 
+
 static uint32_t twamp_oam_maid_ref_cnt = 0;
-static uint32_t twamp_reserved_acl_group_id = 0;
+
+typedef struct ctc_sai_twamp_master_s
+{
+    uint32 twamp_reserved_ingress_acl_group_id;
+    
+} ctc_sai_twamp_master_t;
+
+ctc_sai_twamp_master_t* p_ctc_sai_twamp[CTC_MAX_LOCAL_CHIP_NUM] = {NULL};
+
+
+typedef struct  ctc_sai_twamp_master_wb_s
+{
+    /*key*/
+    uint32 lchip;
+    uint32 calc_key_len[0];
+    
+    /*data*/    
+    uint32 twamp_reserved_ingress_acl_group_id;
+    
+}ctc_sai_twamp_master_wb_t;
+
 
 
 uint8 twamp_pkt_ipv4_header[9600] =
@@ -110,15 +131,7 @@ _ctc_sai_calculate_udp_header_checsum(uint8 addr_family, int32 *checksum_ptr , u
     // udp data            
     for (i = 0; i < pkt_len - twamp_data_offset ; i = i + 2 )
     {   
-        j = i + twamp_data_offset;
-
-        // data is inc byte mode 
-        if(j>(twamp_data_offset+41))
-        {
-            pkt[j] = pkt[j-1] + 1;
-            pkt[j+1] = pkt[j] + 1;
-        }
-                    
+        j = i + twamp_data_offset;                    
         buff[a++] = (pkt[j]<<8) + pkt[j+1];
     }
     
@@ -451,14 +464,7 @@ _ctc_sai_twamp_create_e2iloop_nexthop_for_oam(ctc_sai_twamp_t *p_twamp_attr, sai
      ctc_loopback_nexthop_param_t iloop_nh;
      sal_memset(&iloop_nh, 0, sizeof(ctc_loopback_nexthop_param_t));
      ret = ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, &nhid);  
-
-/*
-    if ((p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI || p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_NNI ) && p_twamp_attr->role == SAI_TWAMP_SESSION_REFLECTOR)
-    {
-        iloop_nh.inner_packet_type_valid = 1;
-        iloop_nh.inner_packet_type = CTC_PARSER_PKT_TYPE_IP_OR_IPV6;
-    }
-*/         
+       
      iloop_nh.lpbk_lport = port_assign.inter_port;
      ret = ctcs_nh_add_iloop(lchip, nhid, &iloop_nh);
      if (ret)
@@ -501,12 +507,17 @@ _ctc_sai_twamp_create_e2iloop_nexthop_for_oam(ctc_sai_twamp_t *p_twamp_attr, sai
      nh_param.type = CTC_MISC_NH_TYPE_FLEX_EDIT_HDR;
      nh_param.gport = port_assign.inter_port;
 
+     nh_param.misc_param.flex_edit.packet_type = CTC_MISC_NH_PACKET_TYPE_UDPORTCP;
+     
      nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_REPLACE_IP_HDR;
      nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_SWAP_IP;         
-     nh_param.misc_param.flex_edit.packet_type = CTC_MISC_NH_PACKET_TYPE_UDPORTCP;
+
      nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_REPLACE_L4_HDR;
      nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_SWAP_L4_PORT;
+     
      nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_REPLACE_UDP_PORT;
+
+     nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_UPDATE_UDP_CHKSUM;
      
      nh_param.misc_param.flex_edit.dscp_select = CTC_NH_DSCP_SELECT_NONE;
      
@@ -514,11 +525,6 @@ _ctc_sai_twamp_create_e2iloop_nexthop_for_oam(ctc_sai_twamp_t *p_twamp_attr, sai
      {
          nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_IPV4;
      }
-
-/*
-     nh_param.type = CTC_MISC_NH_TYPE_FLEX_EDIT_HDR;
-     nh_param.gport = port_assign.inter_port;
-*/
 
      ret = ctcs_nh_add_misc(lchip, nhid, &nh_param);
      if (ret)
@@ -613,13 +619,14 @@ _ctc_sai_twamp_create_oam_mep_index(ctc_sai_twamp_t *p_twamp_attr, sai_object_id
     sai_status_t    status = SAI_STATUS_SUCCESS;
     uint8           lchip = 0;
     int32           ret = 0;
-    uint32          global_port = 0;
     ctc_oam_maid_t  maid;
     char            md_name[] = "npm";
     char            ma_name[] = "twamp";
     ctc_oam_lmep_t  lmep;
     ctc_oam_y1731_lmep_t* p_y1731_lmep  = &lmep.u.y1731_lmep;
     uint32 nexthop_id_tmp = 0;
+    uint32 bit_cnt = 0;
+    uint8  gchip = 0;    
 
     CTC_SAI_PTR_VALID_CHECK(p_twamp_attr);
 
@@ -629,12 +636,25 @@ _ctc_sai_twamp_create_oam_mep_index(ctc_sai_twamp_t *p_twamp_attr, sai_object_id
     maid.mep_type = CTC_OAM_MEP_TYPE_ETH_1AG;  // need to get from ctcs_oam_add_maid
     
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(switch_id, &lchip));
+
+    ctcs_get_gchip_id(lchip, &gchip);
+
     
-    if (p_twamp_attr->receive_port_id)
+    if( p_twamp_attr->receive_port_count )
     {
-        CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(p_twamp_attr->receive_port_id, &global_port));
-        lmep.key.u.eth.gport = global_port;          
+    
+        for (bit_cnt = 0; bit_cnt < sizeof(p_twamp_attr->receive_port_bits)*8; bit_cnt++)
+        {
+            if (CTC_BMP_ISSET(p_twamp_attr->receive_port_bits, bit_cnt))
+            {
+                lmep.key.u.eth.gport = CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt); 
+                break;
+            }
+        }
     }
+
+
+
     
     lmep.key.u.eth.md_level = TWAMP_ADD_MEP_KEY_RESERVED_LEVEL;
     lmep.key.u.eth.l2vpn_oam_id = TWAMP_ADD_MEP_KEY_RESERVED_FID + twamp_id;
@@ -690,21 +710,34 @@ _ctc_sai_twamp_remove_oam_mep_index(ctc_sai_twamp_t *p_twamp_attr, sai_object_id
     sai_status_t    status = SAI_STATUS_SUCCESS;
     uint8           lchip = 0;
     int32           ret = 0;
-    uint32          global_port = 0;
     uint32          session_id_tmp = 0;
     ctc_oam_lmep_t  lmep;
+    uint32 bit_cnt = 0;
+    uint8  gchip = 0; 
 
     CTC_SAI_PTR_VALID_CHECK(p_twamp_attr);
 
+    ctc_sai_oid_get_lchip(session_id, &lchip);
     status = ctc_sai_oid_get_twamp_session_id(session_id, &session_id_tmp);
 
+    ctcs_get_gchip_id(lchip, &gchip);
+    
     sal_memset(&lmep, 0, sizeof(lmep));
     lmep.key.mep_type = CTC_OAM_MEP_TYPE_ETH_1AG;
-    if (p_twamp_attr->receive_port_id)
+    
+    if( p_twamp_attr->receive_port_count )
     {
-        CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(p_twamp_attr->receive_port_id, &global_port));
-        lmep.key.u.eth.gport = global_port;          
+    
+        for (bit_cnt = 0; bit_cnt < sizeof(p_twamp_attr->receive_port_bits)*8; bit_cnt++)
+        {
+            if (CTC_BMP_ISSET(p_twamp_attr->receive_port_bits, bit_cnt))
+            {
+                lmep.key.u.eth.gport = CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt); 
+                break;
+            }
+        }
     }
+
     
     lmep.key.u.eth.md_level = TWAMP_ADD_MEP_KEY_RESERVED_LEVEL; 
     lmep.key.u.eth.l2vpn_oam_id = TWAMP_ADD_MEP_KEY_RESERVED_FID + session_id_tmp;
@@ -740,8 +773,9 @@ _ctc_sai_twamp_update_oam_mep(ctc_sai_twamp_t *p_twamp_attr, uint32_t session_id
     sai_status_t    status = SAI_STATUS_SUCCESS;
     int32           ret = 0;    
     uint32          oam_session_id = 0xff;
-    uint32          global_port = 0;
     ctc_oam_update_t    lmep_update;
+    uint32 bit_cnt = 0;
+    uint8  gchip = 0; 
 
     sal_memset(&lmep_update, 0, sizeof(lmep_update));
     
@@ -749,11 +783,20 @@ _ctc_sai_twamp_update_oam_mep(ctc_sai_twamp_t *p_twamp_attr, uint32_t session_id
 
     oam_session_id = session_id;
 
+    ctcs_get_gchip_id(lchip, &gchip);
 
-    if (p_twamp_attr->receive_port_id)
+
+    if( p_twamp_attr->receive_port_count )
     {
-        CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(p_twamp_attr->receive_port_id, &global_port));
-        lmep_update.key.u.eth.gport = global_port; 
+    
+        for (bit_cnt = 0; bit_cnt < sizeof(p_twamp_attr->receive_port_bits)*8; bit_cnt++)
+        {
+            if (CTC_BMP_ISSET(p_twamp_attr->receive_port_bits, bit_cnt))
+            {
+                lmep_update.key.u.eth.gport = CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt); 
+                break;
+            }
+        }
     }
 
     lmep_update.key.u.eth.l2vpn_oam_id = TWAMP_ADD_MEP_KEY_RESERVED_FID + session_id;
@@ -821,7 +864,6 @@ ctc_sai_twamp_acl_build_param_field(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_par
             sal_memset(&field_key, 0, sizeof(ctc_field_key_t));
 
             field_key.type = CTC_FIELD_KEY_IP_SA;
-            //field_key.data = p_twamp_attr->dst_ip.addr.ip4;
             ipv4_sa = sal_htonl(p_twamp_attr->dst_ip.addr.ip4);
             field_key.data = ipv4_sa;
             field_key.mask = 0xFFFFFFFF;
@@ -898,7 +940,6 @@ ctc_sai_twamp_acl_build_param_field(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_par
             sal_memset(&field_key, 0, sizeof(ctc_field_key_t));
 
             field_key.type = CTC_FIELD_KEY_IP_SA;
-            //field_key.data = p_twamp_attr->src_ip.addr.ip4;
             ipv4_sa = sal_htonl(p_twamp_attr->src_ip.addr.ip4);
             field_key.data = ipv4_sa;
             field_key.mask = 0xFFFFFFFF;
@@ -908,7 +949,6 @@ ctc_sai_twamp_acl_build_param_field(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_par
             sal_memset(&field_key, 0, sizeof(ctc_field_key_t));
 
             field_key.type = CTC_FIELD_KEY_IP_DA;
-            //field_key.data = p_twamp_attr->dst_ip.addr.ip4;
             ipv4_da = sal_htonl(p_twamp_attr->dst_ip.addr.ip4);
             field_key.data = ipv4_da;
             field_key.mask = 0xFFFFFFFF;
@@ -970,6 +1010,7 @@ ctc_sai_twamp_acl_build_param_field(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_par
         }
     }
 
+    
     if (p_twamp_attr->priority)
     {
         sal_memset(&field_key, 0, sizeof(ctc_field_key_t));
@@ -980,6 +1021,7 @@ ctc_sai_twamp_acl_build_param_field(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_par
 
         rc = ctcs_acl_add_key_field(lchip, entry_id, &field_key);
     }
+    
 
     if (p_twamp_attr->is_loop_swap_ip)
     {
@@ -1059,54 +1101,40 @@ ctc_sai_twamp_acl_build_param(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_param_t *
     {
         acl_entry->key.u.ipv4_key.l3_type = CTC_PARSER_L3_TYPE_IPV4;
         acl_entry->key.u.ipv4_key.l3_type_mask = 0xf;
-        acl_entry->key.u.ipv4_key.eth_type = 0x0800;
-        acl_entry->key.u.ipv4_key.eth_type_mask = 0xFFFF;
+        //acl_entry->key.u.ipv4_key.eth_type = 0x0800;
+        //acl_entry->key.u.ipv4_key.eth_type_mask = 0xFFFF;
+        CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L3_TYPE);
     }
     else
     {
-        acl_entry->key.u.ipv4_key.l3_type = CTC_PARSER_L3_TYPE_IPV6;
-        acl_entry->key.u.ipv4_key.l3_type_mask = 0xf;
-        acl_entry->key.u.ipv4_key.eth_type = 0x86DD;
-        acl_entry->key.u.ipv4_key.eth_type_mask = 0xFFFF;
+        acl_entry->key.u.ipv6_key.l3_type = CTC_PARSER_L3_TYPE_IPV6;
+        acl_entry->key.u.ipv6_key.l3_type_mask = 0xf;
+        //acl_entry->key.u.ipv6_key.eth_type = 0x86DD;
+        //acl_entry->key.u.ipv6_key.eth_type_mask = 0xFFFF;
+        CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L3_TYPE);
     }
 
-    CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L3_TYPE);
-
+    
     if (p_twamp_attr->is_loop_swap_ip)
     {
         if (SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->src_ip.addr_family || SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->dst_ip.addr_family)
         {
-            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv4_key.l3_type = CTC_PARSER_L3_TYPE_IPV4;
-            acl_entry->key.u.ipv4_key.l3_type_mask = 0xf;
-            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_IP_SA);
-
-            // loop for match swap ip and udp port 
+            
+            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_IP_SA); 
             acl_entry->key.u.ipv4_key.ip_sa = sal_htonl(p_twamp_attr->dst_ip.addr.ip4);
             acl_entry->key.u.ipv4_key.ip_sa_mask = 0xFFFFFFFF;
-
-            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv4_key.l3_type = CTC_PARSER_L3_TYPE_IPV4;
-            acl_entry->key.u.ipv4_key.l3_type_mask = 0xf;
+            
             CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_IP_DA);
-
             acl_entry->key.u.ipv4_key.ip_da = sal_htonl(p_twamp_attr->src_ip.addr.ip4);
             acl_entry->key.u.ipv4_key.ip_da_mask = 0xFFFFFFFF;
-
-            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv4_key.l3_type = CTC_PARSER_L3_TYPE_IPV4;
-            acl_entry->key.u.ipv4_key.l3_type_mask = 0xf;
+            
             CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L4_PROTOCOL);
             acl_entry->key.u.ipv4_key.l4_protocol = 17;
             acl_entry->key.u.ipv4_key.l4_protocol_mask = 0xFF;
         }
         else if (SAI_IP_ADDR_FAMILY_IPV6 == p_twamp_attr->src_ip.addr_family || SAI_IP_ADDR_FAMILY_IPV6 == p_twamp_attr->dst_ip.addr_family)
         {
-            CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv6_key.l3_type = CTC_PARSER_L3_TYPE_IPV6;
-            acl_entry->key.u.ipv6_key.l3_type_mask = 0xf;
 
-            // loop for match swap ip and udp port 
             CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_IP_SA);
             sal_memcpy(ipv6_sa_addr, &p_twamp_attr->dst_ip.addr.ip6, sizeof(ipv6_addr_t));
             ipv6_sa_addr[0] = sal_htonl(ipv6_sa_addr[0]);
@@ -1116,11 +1144,6 @@ ctc_sai_twamp_acl_build_param(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_param_t *
             sal_memcpy(&acl_entry->key.u.ipv6_key.ip_sa, ipv6_sa_addr, sizeof(ipv6_addr_t));
             sal_memset(&acl_entry->key.u.ipv6_key.ip_sa_mask, 0xff, sizeof(ipv6_addr_t));
 
-            CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv6_key.l3_type = CTC_PARSER_L3_TYPE_IPV6;
-            acl_entry->key.u.ipv6_key.l3_type_mask = 0xf;
-
-            // loop for match swap ip and udp port 
             CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_IP_DA);
             sal_memcpy(ipv6_da_addr, &p_twamp_attr->src_ip.addr.ip6, sizeof(ipv6_addr_t));
             ipv6_da_addr[0] = sal_htonl(ipv6_da_addr[0]);
@@ -1129,10 +1152,7 @@ ctc_sai_twamp_acl_build_param(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_param_t *
             ipv6_da_addr[3] = sal_htonl(ipv6_da_addr[3]);
             sal_memcpy(&acl_entry->key.u.ipv6_key.ip_da, ipv6_da_addr, sizeof(ipv6_addr_t));
             sal_memset(&acl_entry->key.u.ipv6_key.ip_da_mask, 0xff, sizeof(ipv6_addr_t));
-
-            CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv6_key.l3_type = CTC_PARSER_L3_TYPE_IPV6;
-            acl_entry->key.u.ipv6_key.l3_type_mask = 0xf;
+            
             CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L4_PROTOCOL);
             acl_entry->key.u.ipv6_key.l4_protocol = 17;
             acl_entry->key.u.ipv6_key.l4_protocol_mask = 0xFF;
@@ -1142,36 +1162,22 @@ ctc_sai_twamp_acl_build_param(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_param_t *
     {
         if (SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->src_ip.addr_family || SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->dst_ip.addr_family)
         {
-            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv4_key.l3_type = CTC_PARSER_L3_TYPE_IPV4;
-            acl_entry->key.u.ipv4_key.l3_type_mask = 0xf;
+            
             CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_IP_SA);
-
             acl_entry->key.u.ipv4_key.ip_sa = sal_htonl(p_twamp_attr->src_ip.addr.ip4);
             acl_entry->key.u.ipv4_key.ip_sa_mask = 0xFFFFFFFF;
-
-            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv4_key.l3_type = CTC_PARSER_L3_TYPE_IPV4;
-            acl_entry->key.u.ipv4_key.l3_type_mask = 0xf;
+            
             CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_IP_DA);
-
             acl_entry->key.u.ipv4_key.ip_da = sal_htonl(p_twamp_attr->dst_ip.addr.ip4);
             acl_entry->key.u.ipv4_key.ip_da_mask = 0xFFFFFFFF;
-
-            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv4_key.l3_type = CTC_PARSER_L3_TYPE_IPV4;
-            acl_entry->key.u.ipv4_key.l3_type_mask = 0xf;
+            
             CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_L4_PROTOCOL);
             acl_entry->key.u.ipv4_key.l4_protocol = 17;
             acl_entry->key.u.ipv4_key.l4_protocol_mask = 0xFF;
         }
         else if (SAI_IP_ADDR_FAMILY_IPV6 == p_twamp_attr->src_ip.addr_family || SAI_IP_ADDR_FAMILY_IPV6 == p_twamp_attr->dst_ip.addr_family)
         {
-            CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv6_key.l3_type = CTC_PARSER_L3_TYPE_IPV6;
-            acl_entry->key.u.ipv6_key.l3_type_mask = 0xf;
             CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_IP_SA);
-
             sal_memcpy(ipv6_sa_addr, &p_twamp_attr->src_ip.addr.ip6, sizeof(ipv6_addr_t));
             ipv6_sa_addr[0] = sal_htonl(ipv6_sa_addr[0]);
             ipv6_sa_addr[1] = sal_htonl(ipv6_sa_addr[1]);
@@ -1180,11 +1186,7 @@ ctc_sai_twamp_acl_build_param(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_param_t *
             sal_memcpy(&acl_entry->key.u.ipv6_key.ip_sa, ipv6_sa_addr, sizeof(ipv6_addr_t));
             sal_memset(&acl_entry->key.u.ipv6_key.ip_sa_mask, 0xff, sizeof(ipv6_addr_t));
 
-            CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv6_key.l3_type = CTC_PARSER_L3_TYPE_IPV6;
-            acl_entry->key.u.ipv6_key.l3_type_mask = 0xf;
             CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_IP_DA);
-
             sal_memcpy(ipv6_da_addr, &p_twamp_attr->dst_ip.addr.ip6, sizeof(ipv6_addr_t));
             ipv6_da_addr[0] = sal_htonl(ipv6_da_addr[0]);
             ipv6_da_addr[1] = sal_htonl(ipv6_da_addr[1]);
@@ -1193,28 +1195,28 @@ ctc_sai_twamp_acl_build_param(ctc_sai_twamp_t *p_twamp_attr, twamp_acl_param_t *
             sal_memcpy(&acl_entry->key.u.ipv6_key.ip_da, ipv6_da_addr, sizeof(ipv6_addr_t));
             sal_memset(&acl_entry->key.u.ipv6_key.ip_da_mask, 0xff, sizeof(ipv6_addr_t));
 
-            CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L3_TYPE);
-            acl_entry->key.u.ipv6_key.l3_type = CTC_PARSER_L3_TYPE_IPV6;
-            acl_entry->key.u.ipv6_key.l3_type_mask = 0xf;
             CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_L4_PROTOCOL);
             acl_entry->key.u.ipv6_key.l4_protocol = 17;
             acl_entry->key.u.ipv6_key.l4_protocol_mask = 0xFF;
         }
     }
-
+    
     if (p_twamp_attr->priority)
     {
         if (SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->src_ip.addr_family || SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->dst_ip.addr_family)
         {
+            CTC_SET_FLAG(acl_entry->key.u.ipv4_key.flag, CTC_ACL_IPV4_KEY_FLAG_DSCP);
             acl_entry->key.u.ipv4_key.dscp = p_twamp_attr->priority;
             acl_entry->key.u.ipv4_key.dscp_mask = 0xFF;
         }
         else if (SAI_IP_ADDR_FAMILY_IPV6 == p_twamp_attr->src_ip.addr_family || SAI_IP_ADDR_FAMILY_IPV6 == p_twamp_attr->dst_ip.addr_family)
         {
+            CTC_SET_FLAG(acl_entry->key.u.ipv6_key.flag, CTC_ACL_IPV6_KEY_FLAG_DSCP);
             acl_entry->key.u.ipv6_key.dscp = p_twamp_attr->priority;
             acl_entry->key.u.ipv6_key.dscp_mask = 0xFF;
         }
     }
+    
 
     if (p_twamp_attr->is_loop_swap_ip)
     {
@@ -1428,14 +1430,6 @@ _ctc_sai_twamp_create_e2iloop_nexthop_for_hw_lookup(ctc_sai_twamp_t *p_twamp_att
     sal_memset(&iloop_nh, 0, sizeof(ctc_loopback_nexthop_param_t));
     ret = ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, &nhid);    
     iloop_nh.lpbk_lport = port_assign.inter_port;
-
-/*
-    if ((p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI || p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_NNI ) && p_twamp_attr->role == SAI_TWAMP_SESSION_REFLECTOR)
-    {
-        iloop_nh.inner_packet_type_valid = 1;
-        iloop_nh.inner_packet_type = CTC_PARSER_PKT_TYPE_IP_OR_IPV6;
-    }
-*/
     
     ret = ctcs_nh_add_iloop(lchip, nhid, &iloop_nh);
     if (ret)
@@ -1501,27 +1495,21 @@ _ctc_sai_twamp_create_e2iloop_nexthop_for_hw_lookup(ctc_sai_twamp_t *p_twamp_att
     {
         nh_param.type = CTC_MISC_NH_TYPE_FLEX_EDIT_HDR;
         nh_param.gport = port_assign.inter_port;
-    }
+        
+        nh_param.misc_param.flex_edit.dscp_select = CTC_NH_DSCP_SELECT_NONE;
+    
+        nh_param.misc_param.flex_edit.packet_type = CTC_MISC_NH_PACKET_TYPE_UDPORTCP;
+        
+        nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_UPDATE_UDP_CHKSUM;
 
-/*
-
-    nh_param.type = CTC_MISC_NH_TYPE_FLEX_EDIT_HDR;
-    nh_param.gport = port_assign.inter_port;
-    
-    nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_REPLACE_IP_HDR;
-    nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_SWAP_IP;         
-    nh_param.misc_param.flex_edit.packet_type = CTC_MISC_NH_PACKET_TYPE_UDPORTCP;
-    nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_REPLACE_L4_HDR;
-    nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_SWAP_L4_PORT;
-    nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_REPLACE_UDP_PORT;
-    
-    nh_param.misc_param.flex_edit.dscp_select = CTC_NH_DSCP_SELECT_NONE;
-    
-    if (SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->src_ip.addr_family )
-    {
-        nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_IPV4;
+        if (SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->src_ip.addr_family)
+        {
+            nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_IPV4;         // just for match sdk api (use 6w)
+        }
+           
+        nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_REPLACE_IP_HDR;   // just for match sdk api
+        
     }
-*/
 
     ret = ctcs_nh_add_misc(lchip, nhid, &nh_param);
     if (ret)
@@ -1637,7 +1625,7 @@ ctc_sai_twamp_acl_add(sai_object_id_t twamp_session_id, ctc_sai_twamp_t *p_twamp
     p_twamp_attr->loop_acl_entry_id = entry_id;
   
     acl_entry.entry_id = p_twamp_attr->loop_acl_entry_id;
-    group_index = twamp_reserved_acl_group_id; 
+    group_index = p_ctc_sai_twamp[lchip]->twamp_reserved_ingress_acl_group_id; 
 
     acl_entry.mode = 1;
     acl_entry.key_type = CTC_ACL_KEY_FWD;
@@ -1730,7 +1718,7 @@ ctc_sai_twamp_global_acl_add(sai_object_id_t twamp_session_id, ctc_sai_twamp_t *
     p_twamp_attr->oam_acl_entry_id = entry_id;
     
     acl_entry.entry_id = p_twamp_attr->oam_acl_entry_id; 
-    group_index = twamp_reserved_acl_group_id; 
+    group_index = p_ctc_sai_twamp[lchip]->twamp_reserved_ingress_acl_group_id; 
 
     if ((rc = ctcs_acl_add_entry(lchip, group_index, &acl_entry)))
     {
@@ -1820,13 +1808,13 @@ ctc_sai_twamp_global_acl_init(void)
     uint32_t    group_index = 0;
 
     ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_SDK_ACL_GROUP_ID, &group_index);
-    twamp_reserved_acl_group_id = group_index; 
+    p_ctc_sai_twamp[lchip]->twamp_reserved_ingress_acl_group_id = group_index;     
 
     sal_memset(&acl_group, 0, sizeof(acl_group));
     acl_group.priority = TWAMP_PORT_ACL_LOOKUP_PRIORITY;
     acl_group.type     = CTC_ACL_GROUP_TYPE_NONE;
     acl_group.dir      = CTC_INGRESS;
-    group_id           = twamp_reserved_acl_group_id;
+    group_id           = p_ctc_sai_twamp[lchip]->twamp_reserved_ingress_acl_group_id;
     rc = ctcs_acl_create_group(lchip, group_id, &acl_group);
     if (rc)
     {
@@ -1971,8 +1959,8 @@ _ctc_sai_twamp_mapping_npm_session(ctc_sai_twamp_t *p_twamp_attr, ctc_npm_cfg_t 
         return status;
     }
     
-    // sdk only support assign dest_gport
-    p_npm_cfg->dest_gport = p_twamp_attr->eloop_port;
+    p_npm_cfg->flag |= CTC_NPM_CFG_FLAG_NHID_VALID;  
+    p_npm_cfg->nh_id = p_twamp_attr->eloop_nexthop; 
 
     if (SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->src_ip.addr_family || SAI_IP_ADDR_FAMILY_IPV4 == p_twamp_attr->dst_ip.addr_family)
     {
@@ -2137,8 +2125,8 @@ _ctc_sai_twamp_mapping_npm_session(ctc_sai_twamp_t *p_twamp_attr, ctc_npm_cfg_t 
         p_npm_cfg->pkt_format.frame_size = p_twamp_attr->packet_length;
 
         // default to use the pattern 
-        p_npm_cfg->pkt_format.pattern_type = CTC_NPM_PATTERN_TYPE_INC_BYTE;
-        p_npm_cfg->pkt_format.repeat_pattern = 0x01;
+        p_npm_cfg->pkt_format.pattern_type = CTC_NPM_PATTERN_TYPE_REPEAT;
+        p_npm_cfg->pkt_format.repeat_pattern = 0x00;
     }
 
     // twamp sender need to record the stats
@@ -2159,6 +2147,13 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
     sai_status_t            status = SAI_STATUS_SUCCESS;
     uint32_t                index = 0;
     const sai_attribute_value_t     *attr_value = NULL;
+    sai_object_id_t   tmp_port_id = 0;
+    ctc_object_id_t tmp_ctc_oid;
+    uint32 i = 0;
+
+    sal_memset(&tmp_port_id, 0, sizeof(sai_object_id_t));
+    sal_memset(&tmp_ctc_oid, 0, sizeof(ctc_object_id_t));  
+    
 
     CTC_SAI_PTR_VALID_CHECK(p_twamp_attr);
 
@@ -2202,16 +2197,33 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
         // Do not care twamp port
     }
     
+ 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT, &attr_value, &index);
     if (SAI_STATUS_SUCCESS == status)
     {
-        p_twamp_attr->receive_port_id = attr_value->oid;
+        p_twamp_attr->receive_port_count = attr_value->objlist.count;
+
+        if ( p_twamp_attr->receive_port_count == 0 )
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_NPM, "receive port list can not be empty");
+            return  SAI_STATUS_INVALID_PARAMETER;
+        }
+        
+        for (i = 0; i < p_twamp_attr->receive_port_count; i++)
+        {
+            tmp_port_id = attr_value->objlist.list[i];
+            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, tmp_port_id, &tmp_ctc_oid);
+            CTC_BMP_SET(p_twamp_attr->receive_port_bits, CTC_MAP_GPORT_TO_LPORT(tmp_ctc_oid.value));   
+        }        
     }
     else
     {
-        CTC_SAI_LOG_ERROR(SAI_API_TWAMP, "mandatory attribute missing\n");
+        CTC_SAI_LOG_ERROR(SAI_API_NPM, "mandatory attribute missing\n");
         return  SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
-    }  
+    } 
+
+    
+
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_UDP_SRC_PORT, &attr_value, &index);
     if (SAI_STATUS_SUCCESS == status)
@@ -2426,6 +2438,76 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
     return SAI_STATUS_SUCCESS;
 }
 
+
+static sai_status_t
+_ctc_sai_twamp_wb_sync_cb1(uint8 lchip)
+{
+    sai_status_t status = SAI_STATUS_SUCCESS;
+    sai_status_t ret = 0;
+    ctc_wb_data_t wb_data;
+    ctc_sai_twamp_master_wb_t twamp_master_wb;
+    
+    CTC_WB_ALLOC_BUFFER(&wb_data.buffer);
+    
+    CTC_WB_INIT_DATA_T((&wb_data),ctc_sai_twamp_master_wb_t, CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_TWAMP_GLOBAL);
+    twamp_master_wb.lchip = lchip;
+    twamp_master_wb.twamp_reserved_ingress_acl_group_id = p_ctc_sai_twamp[lchip]->twamp_reserved_ingress_acl_group_id;
+
+    sal_memcpy((uint8*)wb_data.buffer, (uint8*)&twamp_master_wb, sizeof(ctc_sai_twamp_master_wb_t));
+
+    wb_data.valid_cnt = 1;
+    CTC_SAI_CTC_ERROR_GOTO(ctc_wb_add_entry(&wb_data), status, out);
+
+done:
+out:
+    CTC_WB_FREE_BUFFER(wb_data.buffer);
+    return status;
+}
+
+
+static sai_status_t
+_ctc_sai_twamp_wb_reload_cb1(uint8 lchip)
+{
+    sai_status_t ret = 0;
+    ctc_wb_query_t wb_query;
+    ctc_sai_twamp_master_wb_t twamp_master_wb;
+    uint32 entry_cnt = 0;
+
+    sal_memset(&twamp_master_wb, 0, sizeof(ctc_sai_twamp_master_wb_t));
+
+    sal_memset(&wb_query, 0, sizeof(wb_query));
+    wb_query.buffer = mem_malloc(MEM_SYSTEM_MODULE,  CTC_WB_DATA_BUFFER_LENGTH);
+    if (NULL == wb_query.buffer)
+    {
+        return CTC_E_NO_MEMORY;
+    }
+    sal_memset(wb_query.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
+    
+    CTC_WB_INIT_QUERY_T((&wb_query), ctc_sai_twamp_master_wb_t, CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_TWAMP_GLOBAL);
+    CTC_SAI_CTC_ERROR_GOTO(ctc_wb_query_entry(&wb_query), ret, out);
+
+    if (wb_query.valid_cnt != 0)
+    {
+        sal_memcpy((uint8*)&twamp_master_wb, (uint8*)(wb_query.buffer)+entry_cnt*(wb_query.key_len + wb_query.data_len),
+            (wb_query.key_len+wb_query.data_len));
+
+        p_ctc_sai_twamp[lchip]->twamp_reserved_ingress_acl_group_id = twamp_master_wb.twamp_reserved_ingress_acl_group_id;     
+    }
+
+
+    CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_SDK_ACL_GROUP_ID, p_ctc_sai_twamp[lchip]->twamp_reserved_ingress_acl_group_id));
+
+out:    
+    if (wb_query.buffer)
+    {
+        mem_free(wb_query.buffer);
+    }
+            
+    return SAI_STATUS_SUCCESS;
+}
+
+
+
 static sai_status_t
 _ctc_sai_twamp_wb_reload_cb(uint8 lchip, void* key, void* data)
 {
@@ -2441,7 +2523,6 @@ _ctc_sai_twamp_wb_reload_cb(uint8 lchip, void* key, void* data)
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, p_db_twamp->iloop_nexthop));
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, p_db_twamp->eloop_nexthop));    
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_ACL_ENTRY_INDEX, p_db_twamp->oam_acl_entry_id));
-    CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_SDK_ACL_GROUP_ID, twamp_reserved_acl_group_id));
 
     if (SAI_TWAMP_SESSION_REFLECTOR == p_db_twamp->role)
     {
@@ -2515,12 +2596,18 @@ ctc_sai_twamp_create_twamp_session(sai_object_id_t *twamp_session_id,  sai_objec
     ctc_sai_twamp_t         *p_twamp_info = NULL;
     uint8_t                 session_id = 0;
     ctc_acl_property_t acl_prop;
-    uint32          global_port = 0;
+    uint32 bit_cnt = 0;
+    uint8 gchip = 0;
+
+    
 
     CTC_SAI_PTR_VALID_CHECK(twamp_session_id);
     CTC_SAI_PTR_VALID_CHECK(attr_list);
 
     ctc_sai_oid_get_lchip(switch_id, &lchip);
+
+    ctcs_get_gchip_id(lchip, &gchip);
+    
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_TWAMP, &twamp_id));
     twamp_tmp_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_TWAMP, lchip, 0, 0, twamp_id);
 
@@ -2552,29 +2639,38 @@ ctc_sai_twamp_create_twamp_session(sai_object_id_t *twamp_session_id,  sai_objec
         CTC_SAI_ERROR_GOTO(_ctc_sai_twamp_create_e2iloop_nexthop_for_hw_lookup(&twamp_attr, switch_id),status, error3);
     }
 
-    CTC_SAI_ERROR_GOTO(ctc_sai_oid_get_gport(twamp_attr.receive_port_id, &global_port),status, error4);
     if (SAI_TWAMP_SESSION_SENDER == twamp_attr.role)
     {
-        if (twamp_attr.receive_port_id)
+
+        // for sender receive port enable acl match to oam engine
+        sal_memset(&npm_cfg, 0, sizeof(npm_cfg));
+        sal_memset(&acl_prop, 0, sizeof(acl_prop));
+        acl_prop.acl_en = 1;
+        acl_prop.acl_priority = TWAMP_PORT_ACL_LOOKUP_PRIORITY;
+        acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_L2_L3;
+
+        if( twamp_attr.receive_port_count )
         {
-            // for sender receive port enable acl match to oam engine
-            sal_memset(&npm_cfg, 0, sizeof(npm_cfg));
-            sal_memset(&acl_prop, 0, sizeof(acl_prop));
-            acl_prop.acl_en = 1;
-            acl_prop.acl_priority = TWAMP_PORT_ACL_LOOKUP_PRIORITY;
-            acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_L2_L3;
-
-            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, global_port, &acl_prop),status, error4);
-
-            twamp_attr.is_loop_swap_ip = 1;
-            ret = ctc_sai_twamp_global_acl_add(twamp_tmp_oid, &twamp_attr);
-            if (ret)
+        
+            for (bit_cnt = 0; bit_cnt < sizeof(twamp_attr.receive_port_bits)*8; bit_cnt++)
             {
-                CTC_SAI_LOG_ERROR(SAI_API_TWAMP, "%% %s \n", ctc_get_error_desc(ret));
-                status = ctc_sai_mapping_error_ctc(ret);
-                goto error5;
+                if (CTC_BMP_ISSET(twamp_attr.receive_port_bits, bit_cnt))
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &acl_prop),status, error4);    
+                }
             }
         }
+
+
+        twamp_attr.is_loop_swap_ip = 1;
+        ret = ctc_sai_twamp_global_acl_add(twamp_tmp_oid, &twamp_attr);
+        if (ret)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_TWAMP, "%% %s \n", ctc_get_error_desc(ret));
+            status = ctc_sai_mapping_error_ctc(ret);
+            goto error5;
+        }
+
 
         if (SAI_IP_ADDR_FAMILY_IPV4 == twamp_attr.src_ip.addr_family) 
         {
@@ -2620,7 +2716,18 @@ ctc_sai_twamp_create_twamp_session(sai_object_id_t *twamp_session_id,  sai_objec
         acl_prop.acl_priority = TWAMP_PORT_ACL_LOOKUP_PRIORITY;
         acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_FORWARD;
 
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, global_port, &acl_prop),status, error4);
+        if( twamp_attr.receive_port_count )
+        {
+        
+            for (bit_cnt = 0; bit_cnt < sizeof(twamp_attr.receive_port_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(twamp_attr.receive_port_bits, bit_cnt))
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &acl_prop),status, error4);    
+                }
+            }
+        }
+
 
         sal_memset(&acl_prop, 0, sizeof(acl_prop));                    
         acl_prop.acl_en = 1;
@@ -2670,7 +2777,17 @@ error6:
 error5:     
     acl_prop.acl_en = 0;
     acl_prop.acl_priority = TWAMP_PORT_ACL_LOOKUP_PRIORITY; 
-    ctcs_port_set_acl_property(lchip, global_port, &acl_prop);
+    if( twamp_attr.receive_port_count )
+    {
+    
+        for (bit_cnt = 0; bit_cnt < sizeof(twamp_attr.receive_port_bits)*8; bit_cnt++)
+        {
+            if (CTC_BMP_ISSET(twamp_attr.receive_port_bits, bit_cnt))
+            {
+               ctcs_port_set_acl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &acl_prop);
+            }
+        }
+    }            
     ctcs_port_set_acl_property(lchip, twamp_attr.iloop_port, &acl_prop);     
 error4:
     _ctc_sai_twamp_remove_e2iloop_nexthop_for_hw_lookup(&twamp_attr, lchip);    
@@ -2702,11 +2819,18 @@ ctc_sai_twamp_remove_twamp_session(sai_object_id_t twamp_session_oid)
     uint8               session_id_tmp = 0;
     int32               ret = 0;
     ctc_acl_property_t acl_prop;
-    uint32          global_port = 0;
+    uint32 bit_cnt = 0;
+    uint8 gchip = 0;
+
+
+    
 
     CTC_SAI_LOG_ENTER(SAI_API_TWAMP);
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(twamp_session_oid, &lchip));
+
+    ctcs_get_gchip_id(lchip, &gchip);
+    
     p_twamp_info = ctc_sai_db_get_object_property(lchip, twamp_session_oid);
     if (NULL == p_twamp_info)
     {
@@ -2714,10 +2838,10 @@ ctc_sai_twamp_remove_twamp_session(sai_object_id_t twamp_session_oid)
         goto error1; 
     }
 
-    CTC_SAI_ERROR_GOTO(ctc_sai_oid_get_gport(p_twamp_info->receive_port_id, &global_port), status, error1);
 
     status = ctc_sai_oid_get_twamp_session_id(twamp_session_oid, &session_id);
     session_id_tmp = session_id & 0xFF;
+    
     if (SAI_TWAMP_SESSION_SENDER == p_twamp_info->role)
     {
         CTC_SAI_CTC_ERROR_GOTO(ctcs_npm_set_transmit_en(lchip, session_id_tmp, 0), status, error1);
@@ -2725,7 +2849,19 @@ ctc_sai_twamp_remove_twamp_session(sai_object_id_t twamp_session_oid)
         sal_memset(&acl_prop, 0, sizeof(acl_prop));
         acl_prop.acl_en = 0;
         acl_prop.acl_priority = TWAMP_PORT_ACL_LOOKUP_PRIORITY;
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, global_port, &acl_prop), status, error1);
+
+        if( p_twamp_info->receive_port_count )
+        {
+        
+            for (bit_cnt = 0; bit_cnt < sizeof(p_twamp_info->receive_port_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_twamp_info->receive_port_bits, bit_cnt))
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &acl_prop),status, error1);    
+                }
+            }
+        }
+        
 
         ret = ctc_sai_twamp_global_acl_del(p_twamp_info->oam_acl_entry_id, lchip);
         if (ret)
@@ -2740,7 +2876,19 @@ ctc_sai_twamp_remove_twamp_session(sai_object_id_t twamp_session_oid)
         sal_memset(&acl_prop, 0, sizeof(acl_prop));
         acl_prop.acl_en = 0;
         acl_prop.acl_priority = TWAMP_PORT_ACL_LOOKUP_PRIORITY;
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, global_port, &acl_prop), status, error1);
+        
+        if( p_twamp_info->receive_port_count )
+        {
+        
+            for (bit_cnt = 0; bit_cnt < sizeof(p_twamp_info->receive_port_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_twamp_info->receive_port_bits, bit_cnt))
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &acl_prop),status, error1);    
+                }
+            }
+        }
+
 
         ret = ctc_sai_twamp_acl_del(p_twamp_info->loop_acl_entry_id, lchip);
         if (ret)
@@ -2806,10 +2954,18 @@ ctc_sai_twamp_get_twamp_session_attr(sai_object_key_t *key, sai_attribute_t* att
     sai_status_t        status = SAI_STATUS_SUCCESS;
     uint8               lchip = 0;
     ctc_sai_twamp_t     *p_twamp_info = NULL;
+    uint32 bit_cnt = 0;
+    uint8 gchip = 0;
+    uint32 port_num = 0;
+    sai_object_id_t* receive_ports;
+    
 
     CTC_SAI_LOG_ENTER(SAI_API_TWAMP);
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
+
+    ctcs_get_gchip_id(lchip, &gchip);
+    
     p_twamp_info = ctc_sai_db_get_object_property(lchip, key->key.object_id);
     if (NULL == p_twamp_info)
     {
@@ -2823,9 +2979,28 @@ ctc_sai_twamp_get_twamp_session_attr(sai_object_key_t *key, sai_attribute_t* att
             break;
 
         case SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT:
-            attr->value.oid = p_twamp_info->receive_port_id;
+            receive_ports =  mem_malloc(MEM_SYSTEM_MODULE, sizeof(sai_object_id_t)*p_twamp_info->receive_port_count);
+            if (NULL == receive_ports)
+            {
+                return SAI_STATUS_NO_MEMORY;
+            }
+            sal_memset(receive_ports, 0, sizeof(sai_object_id_t)*p_twamp_info->receive_port_count);
+
+            
+            for (bit_cnt = 0; bit_cnt < sizeof(p_twamp_info->receive_port_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_twamp_info->receive_port_bits, bit_cnt))
+                {
+                    receive_ports[port_num] = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, SAI_PORT_TYPE_LOGICAL, 0, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt));
+                    port_num++;
+                }
+            }
+            
+            status = ctc_sai_fill_object_list(sizeof(sai_object_id_t), receive_ports, port_num, &attr->value.objlist);
+            mem_free(receive_ports);
+            
             break;
-        
+
         case SAI_TWAMP_SESSION_ATTR_SESSION_ROLE:
             attr->value.s32 = p_twamp_info->role;
             break;
@@ -3142,6 +3317,12 @@ ctc_sai_twamp_get_twamp_session_stats(sai_object_id_t twamp_session_id,
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
+    if(p_twamp_info->role != SAI_TWAMP_SESSION_SENDER)
+    {
+        return SAI_STATUS_INVALID_PARAMETER;        
+    }
+
+
     status = ctc_sai_oid_get_twamp_session_id(twamp_session_id, &tmp_session_id);
     session_id = tmp_session_id & 0xFF;
     
@@ -3244,6 +3425,11 @@ ctc_sai_twamp_clear_twamp_session_stats( sai_object_id_t twamp_session_oid, uint
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
+    if(p_twamp_info->role != SAI_TWAMP_SESSION_SENDER)
+    {
+        return SAI_STATUS_INVALID_PARAMETER;        
+    }
+
     status = ctc_sai_oid_get_twamp_session_id(twamp_session_oid, &session_id_tmp);
     session_id = session_id_tmp & 0xFF;
     
@@ -3285,7 +3471,26 @@ ctc_sai_twamp_db_init(uint8 lchip)
     wb_info.data_len = sizeof(ctc_sai_twamp_t);
     wb_info.wb_sync_cb = NULL;
     wb_info.wb_reload_cb = _ctc_sai_twamp_wb_reload_cb;
+
+    wb_info.wb_sync_cb1 = _ctc_sai_twamp_wb_sync_cb1;
+    wb_info.wb_reload_cb1 = _ctc_sai_twamp_wb_reload_cb1;
+    
+
     ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_TWAMP, (void*)(&wb_info));
+
+    if(NULL != p_ctc_sai_twamp[lchip])
+    {
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
+    p_ctc_sai_twamp[lchip] = mem_malloc(MEM_OAM_MODULE, sizeof(ctc_sai_twamp_master_t));
+    if (NULL == p_ctc_sai_twamp[lchip])
+    {
+        return SAI_STATUS_NO_MEMORY;
+    }
+
+    sal_memset(p_ctc_sai_twamp[lchip], 0, sizeof(ctc_sai_twamp_master_t));
+
 
     CTC_SAI_WARMBOOT_STATUS_CHECK(lchip);
 
@@ -3298,5 +3503,25 @@ ctc_sai_twamp_db_init(uint8 lchip)
     } 
     
     return SAI_STATUS_SUCCESS;
+}
+
+
+sai_status_t
+ctc_sai_twamp_db_deinit(uint8 lchip)
+{
+    sai_status_t status = SAI_STATUS_SUCCESS;
+
+
+    if(NULL == p_ctc_sai_twamp[lchip])
+    {
+        return status;
+    }
+    
+    if(NULL != p_ctc_sai_twamp[lchip])
+    {
+        mem_free(p_ctc_sai_twamp[lchip]);
+    }
+
+    return status;
 }
 

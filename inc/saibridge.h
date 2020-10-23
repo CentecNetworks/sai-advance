@@ -88,6 +88,9 @@ typedef enum _sai_bridge_port_type_t
     /** Bridge FRR port */
     SAI_BRIDGE_PORT_TYPE_FRR,
 
+    /** Bridge Double Vlan port */
+    SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT,
+    
 } sai_bridge_port_type_t;
 
 /**
@@ -103,6 +106,22 @@ typedef enum _sai_bridge_port_tagging_mode_t
 
 } sai_bridge_port_tagging_mode_t;
 
+/**
+ * @brief Attribute data for #SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE
+ */
+typedef enum _sai_bridge_port_outgoing_service_vlan_cos_mode_t
+{
+    /** Keep mode */
+    SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_KEEP,
+
+    /** Map mode */
+    SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_MAP,
+
+    /** Assign mode */
+    SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_ASSIGN,
+    
+} sai_bridge_port_outgoing_service_vlan_cos_mode_t;
+    
 /**
  * @brief SAI attributes for Bridge Port
  */
@@ -150,7 +169,7 @@ typedef enum _sai_bridge_port_attr_t
      * @type sai_uint16_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @isvlan true
-     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
      */
     SAI_BRIDGE_PORT_ATTR_VLAN_ID,
 
@@ -261,7 +280,15 @@ typedef enum _sai_bridge_port_attr_t
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
      */
-    SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP,
+    SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP,    
+    
+    /**
+     * @brief End of attributes
+     */
+    SAI_BRIDGE_PORT_ATTR_END,
+
+    /** Custom range base value */
+    SAI_BRIDGE_PORT_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
      * @brief Cross connect bridge port
@@ -272,7 +299,7 @@ typedef enum _sai_bridge_port_attr_t
      * @default SAI_NULL_OBJECT_ID
      * @validonly SAI_BRIDGE_ATTR_TYPE == SAI_BRIDGE_TYPE_CROSS_CONNECT
      */
-    SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT,
+    SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT = SAI_BRIDGE_PORT_ATTR_CUSTOM_RANGE_START,
 
     /**
      * @brief enable oam for sub port
@@ -330,12 +357,43 @@ typedef enum _sai_bridge_port_attr_t
     SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID,
 
     /**
-     * @brief End of attributes
+     * @brief Outgoing Service Vlan
+     * @type sai_uint16_t
+     * @flags CREATE_ONLY
+     * @isvlan true
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or 
+     * SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
      */
-    SAI_BRIDGE_PORT_ATTR_END,
+    SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID,
+    
+    /**
+     * @brief Outgoing Service Vlan CoS mode
+     * @type sai_bridge_port_outgoing_service_vlan_cos_mode_t
+     * @flags CREATE_ONLY
+     * @isvlan true
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or 
+     * SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
+     */
+    SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE,
+    
+    /**
+     * @brief Outgoing Service Vlan CoS
+     * @type sai_uint8_t
+     * @flags CREATE_ONLY
+     * @isvlan true
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
+     * and SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE == SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_ASSIGN 
+     */
+    SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS,
 
-    /** Custom range base value */
-    SAI_BRIDGE_PORT_ATTR_CUSTOM_RANGE_START = 0x10000000,
+    /**
+     * @brief Customer Vlan for forwarding instance mapping
+     * @type sai_uint16_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @isvlan true
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
+     */
+    SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID,
 
     /** End of custom range base */
     SAI_BRIDGE_PORT_ATTR_CUSTOM_RANGE_END

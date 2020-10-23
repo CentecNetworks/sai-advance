@@ -15,11 +15,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "ctc_const.h"
-#include "ctc_init.h"
-
-
-
 
 
 struct ctc_phy_info_s
@@ -35,21 +30,21 @@ struct ctc_init_chip_info_s
     uint8 local_chip_num;
 
     uint8 queue_num_per_network_port;
-    uint8 queue_num_per_static_int_port;
-    uint8 queue_num_per_fabric;
-    uint8 max_internal_port_id;
-
     uint8 queue_num_per_internal_port;
-    uint8 queue_num_per_ingress_service;
-    uint8 queue_num_per_egress_service;
+    uint8 h_ecmp_en;
 
     uint8 profile_type;
     uint8 nh_dedit_mode;
     uint8 fdb_hw_learning_mode;
+    uint8 policer_merge_mode;
 
+    uint8 policer_svc_mode;
+    uint8 service_queue_mode;
     uint16 policer_num;
     uint16 ingress_vlan_policer_num;
     uint16 egress_vlan_policer_num;
+    uint16 igs_macro_policer_num;
+    uint16 egs_macro_policer_num;
     uint32 logic_port_num;
 
     uint32 ext_nexthop_num;
@@ -84,7 +79,9 @@ struct ctc_init_chip_info_s
     uint8 cpu_port_en;
     uint8 ecc_recover_en;
 
+    uint8 lb_hash_mode;
     uint8 tcam_scan_en;
+    uint8 sdb_en;
     uint8 queue_num_for_cpu_reason;
     uint8 cpu_que_shp_profile_num;
     uint8 stp_mode;
@@ -93,10 +90,13 @@ struct ctc_init_chip_info_s
     uint8 stacking_mode;
     uint8 trie_sort_en;
     uint8 lag_gb_gg_interconnect_en;
-    uint8 rsv;
+    uint32 irq;
+    uint8 stacking_learning_mode;
 
     uint32 init_flag;
     uint32 cut_through_bitmap;
+    uint64  alpm_affinity_mask;                  /**< [TM] Set affinity mask for alpm task */
+    uint64  normal_affinity_mask;                /**< [TM] Set affinity mask for normal task such as DMA,Stats... */
 };
 typedef struct ctc_init_chip_info_s ctc_init_chip_info_t;
 

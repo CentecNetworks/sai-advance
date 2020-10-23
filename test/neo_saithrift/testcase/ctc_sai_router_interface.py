@@ -59,7 +59,6 @@ class fun_01_create_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id1)
         vlan_oid2 = sai_thrift_create_vlan(self.client, vlan_id2)
         sys_logging("======create 6 type router interface======")
-        pdb.set_trace()
         vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
         rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port1, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlan_id1)
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_VLAN, 0, vlan_oid2, v4_enabled, v6_enabled, mac)
@@ -113,7 +112,6 @@ class fun_01_create_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
         finally:
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_router_interface(rif_id1)
-            pdb.set_trace()
             self.client.sai_thrift_remove_router_interface(rif_id2)
             self.client.sai_thrift_remove_router_interface(rif_id3)
             self.client.sai_thrift_remove_router_interface(rif_id4)

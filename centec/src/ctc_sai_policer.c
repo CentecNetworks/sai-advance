@@ -132,6 +132,10 @@ _ctc_sai_policer_db_map_policer(uint8 lchip, ctc_sai_policer_db_t* psai_policer,
     }
     else if (psai_policer->mode == SAI_POLICER_MODE_TR_TCM)
     {
+        pctc_policer->policer.policer_mode = CTC_QOS_POLICER_MODE_RFC2698;
+    }
+    else if (psai_policer->mode == SAI_POLICER_MODE_ENHANCED_TR_TCM)
+    {
         pctc_policer->policer.policer_mode = CTC_QOS_POLICER_MODE_RFC4115;
     }
     else if (psai_policer->mode == SAI_POLICER_MODE_STORM_CONTROL)
@@ -252,7 +256,7 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
     {
         CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
 
-        if (CTC_QOS_POLICER_TYPE_PORT == p_policer_db->type)
+        if (CTC_SAI_QOS_POLICER_TYPE_PORT == p_policer_db->type)
         {
             ctc_policer.dir = CTC_INGRESS;
             ctc_policer.enable = 1;
@@ -261,7 +265,16 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
 
             CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
         }
-        else if (CTC_QOS_POLICER_TYPE_FLOW == p_policer_db->type)
+        else if (CTC_SAI_QOS_POLICER_TYPE_VLAN == p_policer_db->type)
+        {
+            ctc_policer.dir = CTC_INGRESS;
+            ctc_policer.enable = 1;
+            ctc_policer.id.vlan_id = p_policer_db->id.vlan_id;
+            ctc_policer.type = CTC_QOS_POLICER_TYPE_VLAN;
+
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+        }
+        else if ((CTC_SAI_QOS_POLICER_TYPE_FLOW == p_policer_db->type) || (CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS == p_policer_db->type) || (CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE == p_policer_db->type))
         {
             ctc_policer.dir = CTC_INGRESS;
             ctc_policer.enable = 1;
@@ -270,17 +283,9 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
 
             CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
         }
-        else if (CTC_QOS_POLICER_TYPE_SERVICE == p_policer_db->type)
-        {
-            ctc_policer.dir = CTC_INGRESS;
-            ctc_policer.enable = 1;
-            ctc_policer.id.policer_id = ctc_object_id.value;
-            ctc_policer.type = CTC_QOS_POLICER_TYPE_SERVICE;
 
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-        }
         else if (((ctcs_get_chip_type(lchip) == CTC_CHIP_DUET2) || (ctcs_get_chip_type(lchip) == CTC_CHIP_TSINGMA))
-            && (CTC_QOS_POLICER_TYPE_COPP == p_policer_db->type))
+            && (CTC_SAI_QOS_POLICER_TYPE_COPP == p_policer_db->type))
         {
             ctc_policer.dir = CTC_INGRESS;
             ctc_policer.id.policer_id = ctc_object_id.value;
@@ -793,6 +798,148 @@ ctc_sai_policer_bridge_service_set_policer(uint8 lchip, uint32 logic_port, uint3
 }
 
 sai_status_t
+ctc_sai_policer_vlan_set_policer(uint8 lchip, uint32 vlan, uint32 policer_id, bool enable)
+{
+    sai_object_id_t sai_policer_id;
+    ctc_sai_policer_db_t* p_policer_db = NULL;
+    ctc_qos_policer_t  ctc_policer;
+
+    CTC_SAI_LOG_ENTER(SAI_API_POLICER);
+    CTC_SAI_LOG_INFO(SAI_API_POLICER, "vlan:0x%x  ctc_policer_id:0x%x OP:%s\n", vlan, policer_id, enable?"SET":"UNSET");
+    sal_memset(&ctc_policer, 0, sizeof(ctc_qos_policer_t));
+
+    sai_policer_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_POLICER, lchip, 0, 0, policer_id);
+    p_policer_db = ctc_sai_db_get_object_property(lchip, sai_policer_id);
+    if (NULL == p_policer_db)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer DB not Found!\n");
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
+    if (p_policer_db->mode == SAI_POLICER_MODE_STORM_CONTROL)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer mode is stormctl!\n");
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
+    ctc_policer.dir = CTC_INGRESS;
+    ctc_policer.id.vlan_id = vlan;
+    ctc_policer.type = CTC_QOS_POLICER_TYPE_VLAN;
+    if (enable)
+    {
+        if (vlan == p_policer_db->id.vlan_id)
+        {
+            if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_VLAN)
+            {
+                return SAI_STATUS_OBJECT_IN_USE;
+            }
+        }
+        else if (CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.port_id)
+        {
+            return SAI_STATUS_OBJECT_IN_USE;
+        }
+
+        CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
+        ctc_policer.enable = 1;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+
+        p_policer_db->id.vlan_id = vlan;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_VLAN;
+    }
+    else
+    {
+
+        if (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.vlan_id)
+        {
+            return SAI_STATUS_SUCCESS;
+        }
+        if (vlan != p_policer_db->id.vlan_id)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Port not apply the policer!\n");
+            return SAI_STATUS_INVALID_PARAMETER;
+        }
+
+        ctc_policer.enable = 0;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+
+        p_policer_db->id.vlan_id = CTC_SAI_POLICER_APPLY_DEFAULT;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
+    }
+
+    return SAI_STATUS_SUCCESS;
+}
+
+sai_status_t
+ctc_sai_policer_mpls_set_policer(uint8 lchip, uint32 label, uint32 policer_id, bool enable)
+{
+    sai_object_id_t sai_policer_id;
+    ctc_sai_policer_db_t* p_policer_db = NULL;
+    ctc_qos_policer_t  ctc_policer;
+
+    CTC_SAI_LOG_ENTER(SAI_API_POLICER);
+    CTC_SAI_LOG_INFO(SAI_API_POLICER, "label:0x%x  ctc_policer_id:0x%x OP:%s\n", label, policer_id, enable?"SET":"UNSET");
+    sal_memset(&ctc_policer, 0, sizeof(ctc_qos_policer_t));
+
+    sai_policer_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_POLICER, lchip, 0, 0, policer_id);
+    p_policer_db = ctc_sai_db_get_object_property(lchip, sai_policer_id);
+    if (NULL == p_policer_db)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer DB not Found!\n");
+        return SAI_STATUS_ITEM_NOT_FOUND;
+    }
+    if (p_policer_db->mode == SAI_POLICER_MODE_STORM_CONTROL)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer mode is stormctl!\n");
+        return SAI_STATUS_INVALID_PARAMETER;
+    }
+
+    ctc_policer.dir = CTC_INGRESS;
+    ctc_policer.id.policer_id = policer_id;
+    ctc_policer.type = CTC_QOS_POLICER_TYPE_FLOW;
+    if (enable)
+    {
+        if (label == p_policer_db->id.label_id)
+        {
+            if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS)
+            {
+                return SAI_STATUS_OBJECT_IN_USE;
+            }
+        }
+        else if (CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.label_id)
+        {
+            return SAI_STATUS_OBJECT_IN_USE;
+        }
+
+        CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
+        ctc_policer.enable = 1;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+
+        p_policer_db->id.label_id = label;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS;
+    }
+    else
+    {
+
+        if (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.label_id)
+        {
+            return SAI_STATUS_SUCCESS;
+        }
+        if (label != p_policer_db->id.label_id)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Port not apply the policer!\n");
+            return SAI_STATUS_INVALID_PARAMETER;
+        }
+
+        ctc_policer.enable = 0;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+
+        p_policer_db->id.label_id = CTC_SAI_POLICER_APPLY_DEFAULT;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
+    }
+
+    return SAI_STATUS_SUCCESS;
+}
+
+sai_status_t
 ctc_sai_policer_revert_policer(uint8 lchip, uint32 policer_id)
 {
     sai_object_id_t sai_policer_id;
@@ -1070,24 +1217,25 @@ ctc_sai_policer_get_stats(
         return SAI_STATUS_NOT_IMPLEMENTED;
     }
 
-    if (CTC_QOS_POLICER_TYPE_PORT == p_policer_db->type)
+    if (CTC_SAI_QOS_POLICER_TYPE_PORT == p_policer_db->type)
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_PORT;
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.gport = p_policer_db->id.port_id;
     }
-    else if (CTC_QOS_POLICER_TYPE_FLOW == p_policer_db->type)
+    else if (CTC_SAI_QOS_POLICER_TYPE_VLAN == p_policer_db->type)
+    {
+        policer_stats.type = CTC_QOS_POLICER_TYPE_VLAN;
+        policer_stats.dir = CTC_INGRESS;
+        policer_stats.id.vlan_id = p_policer_db->id.vlan_id;
+    }
+    else if ((CTC_SAI_QOS_POLICER_TYPE_FLOW == p_policer_db->type) || (CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS == p_policer_db->type) || (CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE == p_policer_db->type))
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_FLOW;
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.policer_id = ctc_object_id.value;
     }
-    else if (CTC_QOS_POLICER_TYPE_SERVICE == p_policer_db->type)
-    {
-        policer_stats.type = CTC_QOS_POLICER_TYPE_SERVICE;
-        policer_stats.dir = CTC_INGRESS;
-        policer_stats.id.policer_id = ctc_object_id.value;
-    }
+
     else
     {
         return SAI_STATUS_NOT_SUPPORTED;
@@ -1172,24 +1320,25 @@ ctc_sai_policer_get_stats_ext(
         return SAI_STATUS_NOT_IMPLEMENTED;
     }
 
-    if (CTC_QOS_POLICER_TYPE_PORT == p_policer_db->type)
+    if (CTC_SAI_QOS_POLICER_TYPE_PORT == p_policer_db->type)
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_PORT;
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.gport = p_policer_db->id.port_id;
     }
-    else if (CTC_QOS_POLICER_TYPE_FLOW == p_policer_db->type)
+    else if (CTC_SAI_QOS_POLICER_TYPE_VLAN == p_policer_db->type)
+    {
+        policer_stats.type = CTC_QOS_POLICER_TYPE_VLAN;
+        policer_stats.dir = CTC_INGRESS;
+        policer_stats.id.vlan_id = p_policer_db->id.vlan_id;
+    }
+    else if ((CTC_SAI_QOS_POLICER_TYPE_FLOW == p_policer_db->type) || (CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS == p_policer_db->type) || (CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE == p_policer_db->type))
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_FLOW;
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.policer_id = ctc_object_id.value;
     }
-    else if (CTC_QOS_POLICER_TYPE_SERVICE == p_policer_db->type)
-    {
-        policer_stats.type = CTC_QOS_POLICER_TYPE_SERVICE;
-        policer_stats.dir = CTC_INGRESS;
-        policer_stats.id.policer_id = ctc_object_id.value;
-    }
+
     else
     {
         return SAI_STATUS_NOT_SUPPORTED;
@@ -1286,24 +1435,25 @@ ctc_sai_policer_clear_stats(
         return SAI_STATUS_NOT_IMPLEMENTED;
     }
 
-    if (CTC_QOS_POLICER_TYPE_PORT == p_policer_db->type)
+    if (CTC_SAI_QOS_POLICER_TYPE_PORT == p_policer_db->type)
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_PORT;
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.gport = p_policer_db->id.port_id;
     }
-    else if (CTC_QOS_POLICER_TYPE_FLOW == p_policer_db->type)
+    else if (CTC_SAI_QOS_POLICER_TYPE_VLAN == p_policer_db->type)
+    {
+        policer_stats.type = CTC_QOS_POLICER_TYPE_VLAN;
+        policer_stats.dir = CTC_INGRESS;
+        policer_stats.id.vlan_id = p_policer_db->id.vlan_id;
+    }
+    else if ((CTC_SAI_QOS_POLICER_TYPE_FLOW == p_policer_db->type) || (CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS == p_policer_db->type) || (CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE == p_policer_db->type))
     {
         policer_stats.type = CTC_QOS_POLICER_TYPE_FLOW;
         policer_stats.dir = CTC_INGRESS;
         policer_stats.id.policer_id = ctc_object_id.value;
     }
-    else if (CTC_QOS_POLICER_TYPE_SERVICE == p_policer_db->type)
-    {
-        policer_stats.type = CTC_QOS_POLICER_TYPE_SERVICE;
-        policer_stats.dir = CTC_INGRESS;
-        policer_stats.id.policer_id = ctc_object_id.value;
-    }
+
     else
     {
         return SAI_STATUS_NOT_SUPPORTED;

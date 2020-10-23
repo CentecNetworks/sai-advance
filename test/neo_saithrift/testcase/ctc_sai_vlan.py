@@ -25,20 +25,25 @@ from scapy.layers.all import *
 
 
 class func_01_create_vlan_fn(sai_base_test.ThriftInterfaceDataPlane):
+
     def runTest(self):
     
         sys_logging("###create vlan###")
         
         switch_init(self.client)
-        first_vlan_oid = 8589934630
+        
         vlan_id = 100
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id)
-        sys_logging("###vlan_oid1 = %d###" %vlan_oid1)             
+        sys_logging("###vlan_oid1 = %d###" %vlan_oid1)  
+        
         warmboot(self.client)
+        
         try:
-            if vlan_oid1 != first_vlan_oid:
+        
+            if vlan_oid1 == SAI_NULL_OBJECT_ID:
                 raise NotImplementedError()
         finally:
+        
             self.client.sai_thrift_remove_vlan(vlan_oid1)
             
             
@@ -1139,7 +1144,7 @@ class func_12_get_vlan_stats_fn(sai_base_test.ThriftInterfaceDataPlane):
                                 pktlen=100)                                                                                                    
         warmboot(self.client)
         try:    
-            counter_ids = [SAI_VLAN_STAT_IN_OCTETS, SAI_VLAN_STAT_IN_PACKETS, SAI_VLAN_STAT_OUT_OCTETS, SAI_VLAN_STAT_OUT_PACKETS, SAI_VLAN_STAT_IN_UCAST_PKTS]
+            counter_ids = [SAI_VLAN_STAT_IN_OCTETS, SAI_VLAN_STAT_IN_PACKETS, SAI_VLAN_STAT_OUT_OCTETS, SAI_VLAN_STAT_OUT_PACKETS]
             list1 = self.client.sai_thrift_get_vlan_stats(vlan_oid1, counter_ids, 5) 
             sys_logging("###list1[0]= %d###" %list1[0])
             sys_logging("###list1[1]= %d###" %list1[1])

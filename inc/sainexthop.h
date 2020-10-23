@@ -292,6 +292,14 @@ typedef enum _sai_next_hop_attr_t
      * @validonly SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS and SAI_NEXT_HOP_ATTR_OUTSEG_TYPE == SAI_OUTSEG_TYPE_PUSH and SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE == SAI_OUTSEG_TTL_MODE_UNIFORM
      */
     SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP,
+    
+    /**
+     * @brief End of attributes
+     */
+    SAI_NEXT_HOP_ATTR_END,
+
+    /** Custom range base value */
+    SAI_NEXT_HOP_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
      * @brief Next hop entry tunnel-id for MPLS PUSH
@@ -302,7 +310,7 @@ typedef enum _sai_next_hop_attr_t
      * @condition SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS or ( SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_TUNNEL_ENCAP and SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2 )
      * @allownull
      */
-     SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID,
+     SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID = SAI_NEXT_HOP_ATTR_CUSTOM_RANGE_START,
 
     /**
      * @brief Next hop id
@@ -313,14 +321,6 @@ typedef enum _sai_next_hop_attr_t
      * @default null
      */
     SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID,
-
-    /**
-     * @brief End of attributes
-     */
-    SAI_NEXT_HOP_ATTR_END,
-
-    /** Custom range base value */
-    SAI_NEXT_HOP_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /** End of custom range base */
     SAI_NEXT_HOP_ATTR_CUSTOM_RANGE_END

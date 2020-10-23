@@ -10,17 +10,17 @@
 
 | Module | Number | Module | Number | Module | Number | Module | Number |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: | :----: |
-| acl | 29 | bfd | 36 | bridge | 62 | counter | 8 |
-| debug_counter | 7 | fdb | 35 | hash | 11 | hostif | 12 |
-| h-qos | 4 | ipmc | 55 | l2mc | 66 | lag | 34 |
-| mirror | 19 | mpls | 78 | mplsvpn | 12 | nat | 6 |
-| neighbor | 26 | nexthop | 12 | nexthop_group | 18 | policer | 35 |
-| port | 69 | ptp | 5 | qosmap | 12 | queue | 4 |
-| ptp | 5 | qosmap | 12 | queue | 4 | route | 71 |
-| router_interface | 21 | scheduler | 5 | scheduler_group | 4 | samplepacket | 8 |
-| stp | 23 | switch | 75 | tunnel | 15 | twamp | 20 |
-| udf | 14 | virtual_router | 7 | vlan | 50 | wred | 8 |
-| y1731 | 58 | Total | 1093 |  |  |  |  |
+| acl | 134 | aps | 29 | bfd | 36 | bridge | 62 |
+| buffer | 18 | counter | 25 | debug_counter | 7 | fdb | 35 |
+| hash | 115 | hostif | 12 | h-qos | 4 | ipmc | 55 |
+| l2mc | 66 | lag | 34 | mirror | 19 | monitor | 61 |
+| mpls | 87 | mplsvpn | 15 | nat | 6 | neighbor | 26 |
+| nexthop | 12 | nexthop_group | 19 | npm | 35 | oam_aps | 29 |
+| policer | 43 | port | 69 | ptp | 35 | qosmap | 56 |
+| queue | 18 | route | 71 | router_interface | 22 | scheduler | 13 |
+| scheduler_group | 19 | samplepacket | 8 | stp | 23 | switch | 75 |
+| tunnel | 15 | twamp | 20 | udf | 16 | virtual_router | 7 |
+| vlan | 50 | wred | 19 | y1731 | 58 | Total | 1578 |
 
 #Basic Module Test Script
 

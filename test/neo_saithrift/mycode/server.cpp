@@ -682,6 +682,9 @@ public:
                 case SAI_ROUTER_INTERFACE_ATTR_PORT_ID:
                 case SAI_ROUTER_INTERFACE_ATTR_VLAN_ID:
                 case SAI_ROUTER_INTERFACE_ATTR_BRIDGE_ID:
+                case SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP:
+                case SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP:
+                case SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP:                    
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
                 case SAI_ROUTER_INTERFACE_ATTR_TYPE:
@@ -700,6 +703,7 @@ public:
                 case SAI_ROUTER_INTERFACE_ATTR_V6_MCAST_ENABLE:
                 case SAI_ROUTER_INTERFACE_ATTR_IS_VIRTUAL:
                 case SAI_ROUTER_INTERFACE_ATTR_CUSTOM_STATS_STATE:
+                case SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP:
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
                 case SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL:
@@ -731,6 +735,7 @@ public:
                 case SAI_NEXT_HOP_ATTR_TYPE:
                 case SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE:
                 case SAI_NEXT_HOP_ATTR_OUTSEG_EXP_MODE:
+                case SAI_NEXT_HOP_ATTR_OUTSEG_TYPE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
                 case SAI_NEXT_HOP_ATTR_IP:
@@ -1023,6 +1028,9 @@ public:
                 case SAI_HOSTIF_TRAP_ATTR_TRAP_GROUP:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
+                case SAI_HOSTIF_TRAP_ATTR_COUNTER_ID:
+                    attr_list[i].value.oid = attribute.value.oid;
+                    break;
                 default:
                     SAI_THRIFT_LOG_ERR("Failed to parse attribute.");
                     break;
@@ -1061,23 +1069,28 @@ public:
             {
                 case SAI_INSEG_ENTRY_ATTR_NUM_OF_POP:
                 case SAI_INSEG_ENTRY_ATTR_FRR_CONFIGURED_ROLE:
-                case SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE:
-                case SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE:
                 case SAI_INSEG_ENTRY_ATTR_QOS_TC:
                     attr_list[i].value.u8 = attribute.value.u8;
                     break;
                 case SAI_INSEG_ENTRY_ATTR_PACKET_ACTION:
                 case SAI_INSEG_ENTRY_ATTR_PSC_TYPE:
+                case SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE:
+                case SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE:                    
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
                 case SAI_INSEG_ENTRY_ATTR_TRAP_PRIORITY:
                     attr_list[i].value.u8 = attribute.value.u8;
+                    break;
+                case SAI_INSEG_ENTRY_ATTR_SERVICE_ID:
+                    attr_list[i].value.u16 = attribute.value.u16;
                     break;
                 case SAI_INSEG_ENTRY_ATTR_NEXT_HOP_ID:
                 case SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID:
                 case SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP:
                 case SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP:
                 case SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP:
+                case SAI_INSEG_ENTRY_ATTR_COUNTER_ID:
+                case SAI_INSEG_ENTRY_ATTR_POLICER_ID:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
                 case SAI_INSEG_ENTRY_ATTR_FRR_INACTIVE_RX_DISCARD:
@@ -1422,6 +1435,7 @@ public:
     
                 case SAI_VLAN_ATTR_INGRESS_ACL:
                 case SAI_VLAN_ATTR_EGRESS_ACL:
+                case SAI_VLAN_ATTR_POLICER_ID:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
                 case SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE:
@@ -1450,6 +1464,8 @@ public:
                 case SAI_BRIDGE_PORT_ATTR_TAGGING_MODE:
                 case SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE:
                 case SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_LIMIT_VIOLATION_PACKET_ACTION:
+                case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS:
+                case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
     
@@ -1464,6 +1480,8 @@ public:
                     break;
                 case SAI_BRIDGE_PORT_ATTR_VLAN_ID:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID:
+                case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID:
+                case SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID:
                     attr_list[i].value.u16 = attribute.value.u16;
                     break;
                 case SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP:
@@ -1662,6 +1680,7 @@ public:
                 case SAI_TUNNEL_ATTR_DECAP_MPLS_PW_WITH_CW:
                 case SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID:
                 case SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID:
+                case SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE:
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
                 case SAI_TUNNEL_ATTR_ENCAP_GRE_KEY:
@@ -2117,6 +2136,9 @@ public:
     
         sai_attrs[i].id = SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE;
         i++;
+
+        sai_attrs[i].id = SAI_VLAN_ATTR_POLICER_ID;
+        i++;
     	//sai_attrs[].id = SAI_VLAN_ATTR_TAM_OBJECT;
     
     
@@ -2196,6 +2218,12 @@ public:
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_booldata(sai_attrs[j].value.booldata);
         thrift_attr_list.attr_list.push_back(thrift_attr);
+        j++;
+
+        thrift_attr.id        = sai_attrs[j].id;
+        thrift_attr.value.__set_oid(sai_attrs[j].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+    	
     
         free(sai_attrs[1].value.objlist.list);
     
@@ -3048,6 +3076,7 @@ public:
         attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_V4_MCAST_ENABLE;
         attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_V6_MCAST_ENABLE;
         attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_CUSTOM_STATS_STATE;
+		attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP;
         status = rif_api->get_router_interface_attribute(rif_id, attr_cnt, attr);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -3061,7 +3090,9 @@ public:
         attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_VIRTUAL_ROUTER_ID;
         attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_PORT_ID;
         attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_VLAN_ID;
-        
+		attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP;
+		attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP;
+		attr[attr_cnt++].id = SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP;
         status = rif_api->get_router_interface_attribute(rif_id, attr_cnt, attr);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -3253,6 +3284,7 @@ public:
         
 	    sai_uint32_t     *buffer_profile_list1 = NULL;
         sai_attribute_t *attr_list = (sai_attribute_t *) malloc(sizeof(sai_attribute_t) * thrift_attr_list.size());
+        memset(attr_list, 0, sizeof(sai_attribute_t) * thrift_attr_list.size());
         sai_thrift_parse_next_hop_attributes(thrift_attr_list, attr_list, &buffer_profile_list1);
         uint32_t attr_count = thrift_attr_list.size();
         status = nhop_api->create_next_hop(&nhop_id, gSwitchId, attr_count, attr_list);
@@ -3285,6 +3317,37 @@ public:
         }
         return status;
     }
+    sai_thrift_status_t sai_thrift_set_next_hop_attribute(const sai_thrift_object_id_t next_hop_id, const sai_thrift_attribute_t& thrift_attr)
+    {
+        printf("sai_thrift_set_next_hop_attribute\n");
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_next_hop_api_t *nhop_api;
+        sai_attribute_t attr;
+        const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
+    
+        status = sai_api_query(SAI_API_NEXT_HOP, (void **) &nhop_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("failed to set next hop attributes, status:%d", status);
+            return status;
+        }
+        memset(&attr, 0, sizeof(sai_attribute_t));
+        sai_uint32_t     *buffer_profile_list1 = NULL;
+        sai_thrift_parse_next_hop_attributes(thrift_attr_list, &attr, &buffer_profile_list1);
+    
+        status = nhop_api->set_next_hop_attribute(next_hop_id, &attr);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("failed to set next hop attributes, status:%d", status);
+            return status;
+        }
+        if (buffer_profile_list1)
+        {
+            free(buffer_profile_list1);
+        }
+        return status;
+    }
+
 
 
     void sai_thrift_get_next_hop_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t next_hop_id)
@@ -3292,7 +3355,7 @@ public:
         printf("sai_thrift_get_next_hop_attribute\n");
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_next_hop_api_t *nhop_api;
-        sai_attribute_t attr[SAI_NEXT_HOP_ATTR_END];
+        sai_attribute_t attr[25];
         sai_thrift_attribute_t thrift_attr;
         
         thrift_attr_list.attr_count = 0;
@@ -4908,6 +4971,56 @@ public:
                 case SAI_SWITCH_ATTR_BFD_SESSION_STATE_CHANGE_NOTIFY:
                 case SAI_SWITCH_ATTR_Y1731_SESSION_EVENT_NOTIFY:
                     break;
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_OVERTHRD_EVENT:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_PERIODIC_MONITOR_ENABLE:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_PERIODIC_MONITOR_ENABLE:
+                    thrift_attr.id        = attribute.id;
+                    thrift_attr.value.__set_booldata (attribute.value.booldata);
+                    thrift_attr_list.attr_list.push_back(thrift_attr);
+                    break;
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK:
+                case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
+                case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
+                case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
+                    thrift_attr.id        = attribute.id;
+                    thrift_attr.value.__set_u32 (attribute.value.u32);
+                    thrift_attr_list.attr_list.push_back(thrift_attr);
+                    break;
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD:
+                    {
+                        sai_thrift_attribute_t thrift_attr_mon_buffer;
+                        thrift_attr_mon_buffer.id        = attribute.id;
+                        thrift_attr_mon_buffer.value.u32list.count = attribute.value.u32list.count;
+
+                        std :: vector < sai_int32_t > & mon_buffer_list = thrift_attr_mon_buffer.value.u32list.u32list;
+                        for (int index = 0; index < attribute.value.u32list.count; index++)
+                        {
+                            mon_buffer_list.push_back((sai_int32_t)attribute.value.u32list.list[index]);
+                        }
+                        thrift_attr_mon_buffer.value.__isset.u32list=true;
+                        thrift_attr_list.attr_list.push_back(thrift_attr_mon_buffer);
+                        break;
+                    }
+                case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD:
+                    {
+                        sai_thrift_attribute_t thrift_attr_mon_latency;
+                        thrift_attr_mon_latency.id        = attribute.id;
+                        thrift_attr_mon_latency.value.u32list.count = attribute.value.u32list.count;
+    
+                        std :: vector < sai_int32_t > & mon_buffer_list = thrift_attr_mon_latency.value.u32list.u32list;
+                        for (int index = 0; index < attribute.value.u32list.count; index++)
+                        {
+                            mon_buffer_list.push_back((sai_int32_t)attribute.value.u32list.list[index]);
+                        }
+                        thrift_attr_mon_latency.value.__isset.u32list=true;
+                        thrift_attr_list.attr_list.push_back(thrift_attr_mon_latency);
+                        break;
+                    }
             }
         }
         return;
@@ -4985,6 +5098,14 @@ public:
                 attr_list[i].value.s32list.count = 10;
                 attr_list[i].value.s32list.list = (int32_t *) malloc(sizeof(int32_t) * 10);
                 break;
+             case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD:
+                attr_list[i].value.u32list.count = 8;
+                attr_list[i].value.u32list.list = (int32_t *) malloc(sizeof(int32_t) * 8);
+                break;
+             case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD:
+                attr_list[i].value.u32list.count = 8;
+                attr_list[i].value.u32list.list = (int32_t *) malloc(sizeof(int32_t) * 8);
+                break;
             default:
                 break;
             }
@@ -5046,6 +5167,14 @@ public:
             {
                 free(attr_list[i].value.s32list.list);
             }
+            if ((SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD == attr_list[i].id) && (attr_list[i].value.u32list.list))
+            {
+                free(attr_list[i].value.u32list.list);
+            }
+            if ((SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD == attr_list[i].id) && (attr_list[i].value.u32list.list))
+            {
+                free(attr_list[i].value.u32list.list);
+            }
         }
         
  	    if(attr_list)
@@ -5103,8 +5232,17 @@ public:
             case SAI_SWITCH_ATTR_FDB_AGING_TIME:
             case SAI_SWITCH_ATTR_MAX_LEARNED_ADDRESSES:
             case SAI_SWITCH_ATTR_MAX_TWAMP_SESSION:
+	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
+	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
+	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL:
+	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK:
+	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK:
+	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
+	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
+	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
                 attr->value.u32 = thrift_attr.value.u32;
                 break;
+				
             case SAI_SWITCH_ATTR_QOS_DEFAULT_TC:
                 attr->value.u8 = thrift_attr.value.u8;
                 break;
@@ -5126,6 +5264,12 @@ public:
             case SAI_SWITCH_ATTR_PRE_SHUTDOWN:
             case SAI_SWITCH_ATTR_CRC_CHECK_ENABLE:
             case SAI_SWITCH_ATTR_CRC_RECALCULATION_ENABLE:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_OVERTHRD_EVENT:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_PERIODIC_MONITOR_ENABLE:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_PERIODIC_MONITOR_ENABLE:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_QUEUE_PERIODIC_MONITOR_ENABLE:
+            case SAI_SWITCH_ATTR_ECN_ACTION_ENABLE:
                 attr->value.booldata = thrift_attr.value.booldata;
                 break;
             case SAI_SWITCH_ATTR_VXLAN_DEFAULT_PORT:
@@ -5133,6 +5277,22 @@ public:
             case SAI_SWITCH_ATTR_TPID_INNER_VLAN:
                 attr->value.u16 = thrift_attr.value.u16;
                 break;
+
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD:
+            case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD:
+            	{
+			int count = thrift_attr.value.u32list.u32list.size();
+			sai_uint32_t *u32_list = NULL;
+			std::vector<sai_int32_t>::const_iterator it = thrift_attr.value.u32list.u32list.begin();
+			u32_list = (sai_uint32_t *) malloc(sizeof(sai_uint32_t) * count);
+			for(int j = 0; j < count; j++, it++)
+			*(u32_list + j) = (sai_uint32_t) *it;
+			attr->value.u32list.list = u32_list;
+			attr->value.u32list.count = count;
+            	}
+                break;                                        
+            default:
+                break;	
         }
     }
 
@@ -6163,7 +6323,7 @@ public:
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_hostif_api_t *hostif_api = nullptr;
         uint32_t attr_count = 0;
-        sai_attribute_t attr[4];
+        sai_attribute_t attr[10];
 	    sai_thrift_attribute_t thrift_attr;
         
         SAI_THRIFT_FUNC_LOG();
@@ -6181,8 +6341,9 @@ public:
         attr[1].id = SAI_HOSTIF_TRAP_ATTR_PACKET_ACTION;
         attr[2].id = SAI_HOSTIF_TRAP_ATTR_TRAP_PRIORITY;
 	    attr[3].id = SAI_HOSTIF_TRAP_ATTR_TRAP_GROUP;
-        attr_count = 4;
-        
+	    attr[4].id = SAI_HOSTIF_TRAP_ATTR_COUNTER_ID;
+        attr_count = 5;
+
         status = hostif_api->get_hostif_trap_attribute(thrift_hostif_trap_id, attr_count, attr);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -6201,6 +6362,9 @@ public:
 	    thrift_attr_list.attr_list.push_back(thrift_attr);
 	    thrift_attr.id = attr[3].id;
 	    thrift_attr.value.__set_oid(attr[3].value.oid);
+	    thrift_attr_list.attr_list.push_back(thrift_attr);
+	    thrift_attr.id = attr[4].id;
+	    thrift_attr.value.__set_oid(attr[4].value.oid);
 	    thrift_attr_list.attr_list.push_back(thrift_attr);
     }
 
@@ -6484,7 +6648,7 @@ public:
                     attr_list[i].value.aclfield.enable = attribute.value.aclfield.enable;
                     attr_list[i].value.aclfield.data.u8 = attribute.value.aclfield.data.u8;
                     attr_list[i].value.aclfield.mask.u8 = attribute.value.aclfield.mask.u8;
-                    break;                    
+                    break;                     
                 case SAI_ACL_ENTRY_ATTR_FIELD_OUTER_VLAN_PRI:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_FIELD_OUTER_VLAN_PRI\n", __FUNCTION__, __LINE__);
                     attr_list[i].value.aclfield.enable = attribute.value.aclfield.enable;
@@ -6602,8 +6766,8 @@ public:
                 case SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_FRAG:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_FRAG\n", __FUNCTION__, __LINE__);
                     attr_list[i].value.aclfield.enable = attribute.value.aclfield.enable;
-                    attr_list[i].value.aclfield.data.u8 = attribute.value.aclfield.data.u8;
-                    attr_list[i].value.aclfield.mask.u8 = attribute.value.aclfield.mask.u8;
+                    attr_list[i].value.aclfield.data.s32 = attribute.value.aclfield.data.s32;
+                    attr_list[i].value.aclfield.mask.s32 = attribute.value.aclfield.mask.s32;
                     break;
                 case SAI_ACL_ENTRY_ATTR_FIELD_TC:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_FIELD_TC\n", __FUNCTION__, __LINE__);
@@ -6743,6 +6907,18 @@ public:
                     attr_list[i].value.aclfield.data.booldata = attribute.value.aclfield.data.u8;
                     attr_list[i].value.aclfield.mask.u8 = attribute.value.aclfield.mask.u8;
                     break;
+                case SAI_ACL_ENTRY_ATTR_FIELD_PORT_USER_META:
+                    printf("%s %d, SAI_ACL_ENTRY_ATTR_FIELD_PORT_USER_META\n", __FUNCTION__, __LINE__);
+                    attr_list[i].value.aclfield.enable = attribute.value.aclfield.enable;
+                    attr_list[i].value.aclfield.data.u32 = attribute.value.aclfield.data.u32;
+                    attr_list[i].value.aclfield.mask.u32 = attribute.value.aclfield.mask.u32;
+                    break;  
+                case SAI_ACL_ENTRY_ATTR_FIELD_VLAN_USER_META:
+                    printf("%s %d, SAI_ACL_ENTRY_ATTR_FIELD_VLAN_USER_META\n", __FUNCTION__, __LINE__);
+                    attr_list[i].value.aclfield.enable = attribute.value.aclfield.enable;
+                    attr_list[i].value.aclfield.data.u32 = attribute.value.aclfield.data.u32;
+                    attr_list[i].value.aclfield.mask.u32 = attribute.value.aclfield.mask.u32;
+                    break;                     
                 case SAI_ACL_ENTRY_ATTR_ACTION_INGRESS_SAMPLEPACKET_ENABLE:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_INGRESS_SAMPLEPACKET_ENABLE\n", __FUNCTION__, __LINE__);
                     attr_list[i].value.aclaction.enable = attribute.value.aclaction.enable;
@@ -6781,12 +6957,12 @@ public:
                 case SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER\n", __FUNCTION__, __LINE__);
                     attr_list[i].value.aclaction.enable = attribute.value.aclaction.enable;
-                    attr_list[i].value.aclfield.data.oid = attribute.value.aclfield.data.oid;
+                    attr_list[i].value.aclaction.parameter.oid = attribute.value.aclaction.parameter.oid;
                     break;
                 case SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_COUNTER\n", __FUNCTION__, __LINE__);
                     attr_list[i].value.aclaction.enable = attribute.value.aclaction.enable;
-                    attr_list[i].value.aclfield.data.oid = attribute.value.aclfield.data.oid;
+                    attr_list[i].value.aclaction.parameter.oid = attribute.value.aclaction.parameter.oid;
                     break;
                 case SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION\n", __FUNCTION__, __LINE__);
@@ -6813,15 +6989,34 @@ public:
                     attr_list[i].value.aclaction.enable        = attribute.value.aclaction.enable;
                     attr_list[i].value.aclaction.parameter.u8 = attribute.value.aclaction.parameter.u8;
                     break;
+                    
+               case SAI_ACL_ENTRY_ATTR_ACTION_SET_DSCP:
+                    printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_SET_DSCP\n", __FUNCTION__, __LINE__);
+                    attr_list[i].value.aclaction.enable        = attribute.value.aclaction.enable;
+                    attr_list[i].value.aclaction.parameter.u8 = attribute.value.aclaction.parameter.u8;
+                    break;    
+               case SAI_ACL_ENTRY_ATTR_ACTION_SET_ECN:
+                    printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_SET_ECN\n", __FUNCTION__, __LINE__);
+                    attr_list[i].value.aclaction.enable        = attribute.value.aclaction.enable;
+                    attr_list[i].value.aclaction.parameter.u8 = attribute.value.aclaction.parameter.u8;
+                    break;
+
+                    
                 case SAI_ACL_ENTRY_ATTR_ACTION_SET_DO_NOT_LEARN:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_SET_DO_NOT_LEARN\n", __FUNCTION__, __LINE__);
                     attr_list[i].value.aclaction.enable        = attribute.value.aclaction.enable;
+                    attr_list[i].value.aclaction.parameter.u32 = attribute.value.aclaction.parameter.u32;                
                     break;
                 case SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT\n", __FUNCTION__, __LINE__);
                     attr_list[i].value.aclaction.enable        = attribute.value.aclaction.enable;
                     attr_list[i].value.aclaction.parameter.oid = attribute.value.aclaction.parameter.oid;
                     break;
+                case SAI_ACL_ENTRY_ATTR_ACTION_SET_USER_TRAP_ID:
+                    printf("%s %d, SAI_ACL_ENTRY_ATTR_ACTION_SET_USER_TRAP_ID\n", __FUNCTION__, __LINE__);
+                    attr_list[i].value.aclaction.enable        = attribute.value.aclaction.enable;
+                    attr_list[i].value.aclaction.parameter.oid = attribute.value.aclaction.parameter.oid;
+                    break;                    
                 case SAI_ACL_ENTRY_ATTR_FIELD_ACL_RANGE_TYPE:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_FIELD_ACL_RANGE_TYPE\n", __FUNCTION__, __LINE__);
                     {
@@ -6835,6 +7030,10 @@ public:
                         attr_list[i].value.aclfield.data.objlist.list =  oid_list;
                         attr_list[i].value.aclfield.data.objlist.count =  count;
                     }
+                    break;
+                case SAI_ACL_ENTRY_ATTR_ACTION_SET_PACKET_COLOR:
+                    attr_list[i].value.aclaction.enable = attribute.value.aclaction.enable;
+                    attr_list[i].value.aclaction.parameter.s32 = attribute.value.aclaction.parameter.s32;
                     break;
                 default:
                     if (attribute.id >= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN
@@ -7009,6 +7208,7 @@ public:
         if (status != SAI_STATUS_SUCCESS)
         {
             printf("create acl table fail !\n");
+            return SAI_NULL_OBJECT_ID;
         }
         free(attr_list);
         return acl_table;
@@ -7362,7 +7562,7 @@ public:
                     thrift_attr.value.aclfield.data.u16 = attr_list[index].value.aclfield.data.u16;
                     thrift_attr.value.__isset.aclfield = true;
                     thrift_attr.value.aclfield.data.__isset.u16 = true;
-                    break;
+                    break;                   
                 case SAI_ACL_ENTRY_ATTR_FIELD_OUTER_VLAN_PRI:
                     thrift_attr.value.aclfield.data.u8 = attr_list[index].value.aclfield.data.u8;
                     thrift_attr.value.__isset.aclfield = true;
@@ -7604,6 +7804,9 @@ public:
                     thrift_attr.value.aclaction.parameter.__isset.oid = true;
                     break;
                 case SAI_ACL_ENTRY_ATTR_ACTION_SET_DO_NOT_LEARN :    /* need revise */
+                    thrift_attr.value.aclaction.parameter.u32 = attr_list[index].value.aclaction.parameter.u32;
+                    thrift_attr.value.__isset.aclaction = true;
+                    thrift_attr.value.aclaction.parameter.__isset.u32 = true;                    
                     break;
             }
         
@@ -8389,8 +8592,8 @@ public:
         }
     
         sai_attrs[SAI_UDF_GROUP_ATTR_UDF_LIST].id = SAI_UDF_GROUP_ATTR_UDF_LIST;
-        sai_attrs[SAI_UDF_GROUP_ATTR_UDF_LIST].value.objlist.list = (sai_object_id_t *) malloc(sizeof(sai_object_id_t) * 4);
-        sai_attrs[SAI_UDF_GROUP_ATTR_UDF_LIST].value.objlist.count = 4;
+        sai_attrs[SAI_UDF_GROUP_ATTR_UDF_LIST].value.objlist.list = (sai_object_id_t *) malloc(sizeof(sai_object_id_t) * 16);
+        sai_attrs[SAI_UDF_GROUP_ATTR_UDF_LIST].value.objlist.count = 16;
     
         status = udf_api->get_udf_group_attribute(udf_group_id, SAI_UDF_GROUP_ATTR_END, sai_attrs);
         if (status != SAI_STATUS_SUCCESS)
@@ -8743,7 +8946,7 @@ public:
         thrift_attr_list.attr_list.push_back(thrift_attr);
         
         thrift_attr.id        = sai_attrs[2].id;  /* SAI_UDF_ATTR_BASE */
-        thrift_attr.value.__set_u8(sai_attrs[2].value.u8);
+        thrift_attr.value.__set_s32(sai_attrs[2].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
         
         thrift_attr.id        = sai_attrs[3].id;  /* SAI_UDF_ATTR_OFFSET */
@@ -8857,8 +9060,131 @@ public:
         }
     }
 
+
+    void sai_thrift_parse_npm_session_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
+                                                   sai_attribute_t *attr_list,
+                                                   sai_object_id_t **receive_port_list)
+    {
+        std::vector < sai_thrift_attribute_t > ::const_iterator it = thrift_attr_list.begin();
+        sai_thrift_attribute_t attribute;
+        for (uint32_t i = 0; i < thrift_attr_list.size(); i++, it++)
+        {
+            attribute = (sai_thrift_attribute_t)*it;
+            attr_list[i].id = attribute.id;
+            switch (attribute.id)
+            {
+
+
+                case SAI_NPM_SESSION_ATTR_SESSION_ROLE:
+                    attr_list[i].value.s32 = attribute.value.s32;
+                    break;
+                case SAI_NPM_SESSION_ATTR_NPM_ENCAPSULATION_TYPE:
+                    attr_list[i].value.s32 = attribute.value.s32;
+                    break;                    
+                case SAI_NPM_SESSION_ATTR_NPM_TEST_PORT:
+                    attr_list[i].value.oid = attribute.value.oid;
+                    break;                   
+                case SAI_NPM_SESSION_ATTR_NPM_RECEIVE_PORT:                   
+                {
+                    *receive_port_list = (sai_object_id_t *) malloc(sizeof(sai_object_id_t) * attribute.value.objlist.count);
+                    std::vector<sai_thrift_object_id_t>::const_iterator it2 = attribute.value.objlist.object_id_list.begin();
+                    for (uint32_t j = 0; j < attribute.value.objlist.object_id_list.size(); j++, *it2++)
+                    {
+                        (*receive_port_list)[j] = (sai_object_id_t) *it2;
+                    }
+                    attr_list[i].value.objlist.count = attribute.value.objlist.count;
+                    attr_list[i].value.objlist.list=*receive_port_list;
+                    break;
+                }
+
+
+                case SAI_NPM_SESSION_ATTR_SRC_MAC:
+                    sai_thrift_string_to_mac(attribute.value.mac, attr_list[i].value.mac);
+                    break;
+
+
+                case SAI_NPM_SESSION_ATTR_DST_MAC:
+                    sai_thrift_string_to_mac(attribute.value.mac, attr_list[i].value.mac);
+                    break;
+
+
+                case SAI_NPM_SESSION_ATTR_OUTER_VLANID:
+                    attr_list[i].value.u16 = attribute.value.u16;
+                    break; 
+                
+                case SAI_NPM_SESSION_ATTR_INNER_VLANID:
+                    attr_list[i].value.u16 = attribute.value.u16;
+                    break; 
+
+                case SAI_NPM_SESSION_ATTR_SRC_IP:
+                    sai_thrift_parse_ip_address(attribute.value.ipaddr, &attr_list[i].value.ipaddr);
+                    break;
+
+                case SAI_NPM_SESSION_ATTR_DST_IP:
+                    sai_thrift_parse_ip_address(attribute.value.ipaddr, &attr_list[i].value.ipaddr);
+                    break;
+                
+
+                case SAI_NPM_SESSION_ATTR_UDP_SRC_PORT:
+                    attr_list[i].value.u32 = attribute.value.u32;
+                    break;
+                case SAI_NPM_SESSION_ATTR_UDP_DST_PORT:
+                    attr_list[i].value.u32 = attribute.value.u32;
+                    break;
+
+                case SAI_NPM_SESSION_ATTR_TTL:
+                    attr_list[i].value.u8 = attribute.value.u8;
+                    break;
+
+                case SAI_NPM_SESSION_ATTR_TC:
+                    attr_list[i].value.u8 = attribute.value.u8;
+                    break;
+
+                case SAI_NPM_SESSION_ATTR_SESSION_ENABLE_TRANSMIT:
+                    attr_list[i].value.booldata = attribute.value.booldata;
+                    break;
+                
+                case SAI_NPM_SESSION_ATTR_VPN_VIRTUAL_ROUTER:
+                    attr_list[i].value.oid = attribute.value.oid;
+                    break;
+
+                case SAI_NPM_SESSION_ATTR_HW_LOOKUP_VALID:
+                    attr_list[i].value.booldata = attribute.value.booldata;
+                    break;
+                
+                case SAI_NPM_SESSION_ATTR_PACKET_LENGTH:
+                    attr_list[i].value.u32 = attribute.value.u32;
+                    break;
+
+                case SAI_NPM_SESSION_ATTR_TX_RATE:
+                    attr_list[i].value.u32 = attribute.value.u32;
+                    break;
+                
+                case SAI_NPM_SESSION_ATTR_PKT_TX_MODE:
+                    attr_list[i].value.s32 = attribute.value.s32;
+                    break;  
+                
+                case SAI_NPM_SESSION_ATTR_TX_PKT_PERIOD:
+                    attr_list[i].value.u32 = attribute.value.u32;
+                    break;
+                
+                case SAI_NPM_SESSION_ATTR_TX_PKT_CNT:
+                    attr_list[i].value.u32 = attribute.value.u32;
+                    break;
+                
+                case SAI_NPM_SESSION_ATTR_TX_PKT_DURATION:
+                    attr_list[i].value.u32 = attribute.value.u32;
+                    break;              
+                default:
+                    break;
+            }
+        }
+    }
+
+
     void sai_thrift_parse_twamp_session_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
-                                                   sai_attribute_t *attr_list)
+                                                   sai_attribute_t *attr_list,
+                                                   sai_object_id_t **receive_port_list)
     {
         std::vector < sai_thrift_attribute_t > ::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -8872,8 +9198,17 @@ public:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;                   
                 case SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT:
-                    attr_list[i].value.oid = attribute.value.oid;
-                    break;                    
+                {
+                    *receive_port_list = (sai_object_id_t *) malloc(sizeof(sai_object_id_t) * attribute.value.objlist.count);
+                    std::vector<sai_thrift_object_id_t>::const_iterator it2 = attribute.value.objlist.object_id_list.begin();
+                    for (uint32_t j = 0; j < attribute.value.objlist.object_id_list.size(); j++, *it2++)
+                    {
+                        (*receive_port_list)[j] = (sai_object_id_t) *it2;
+                    }
+                    attr_list[i].value.objlist.count = attribute.value.objlist.count;
+                    attr_list[i].value.objlist.list=*receive_port_list;
+                    break;
+                }                  
                 case SAI_TWAMP_SESSION_ATTR_SESSION_ROLE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
@@ -8940,19 +9275,399 @@ public:
         }
     }
 
+
+
+    sai_thrift_object_id_t sai_thrift_create_npm_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    {
+        SAI_THRIFT_LOG_DBG("Called.");
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_npm_api_t *npm_api = nullptr;
+        sai_object_id_t session_id = 0;
+        sai_object_id_t *receive_port_list = NULL;
+        status = sai_api_query(SAI_API_NPM, (void **) &npm_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            return status;
+        }
+        sai_attribute_t *attr_list = (sai_attribute_t *) malloc(sizeof(sai_attribute_t) * thrift_attr_list.size());
+        sai_thrift_parse_npm_session_attributes(thrift_attr_list, attr_list, &receive_port_list);
+        uint32_t attr_count = thrift_attr_list.size();
+        status = npm_api->create_npm_session(&session_id, gSwitchId, attr_count, attr_list);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("failed to create npm session, status:%d", status);
+        }
+        free (attr_list);
+
+        if (receive_port_list)
+        {
+            free(receive_port_list);
+        }
+        
+        return session_id;
+    }
+    
+
+    sai_thrift_status_t sai_thrift_remove_npm_session(const sai_thrift_object_id_t session_id)
+    {
+        SAI_THRIFT_LOG_DBG("Called.");
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_npm_api_t *npm_api = nullptr;
+        status = sai_api_query(SAI_API_NPM, (void **) &npm_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            return status;
+        }
+        status = npm_api->remove_npm_session((sai_object_id_t) session_id);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to remove npm session.");
+        }
+        return status;
+    }
+    
+    sai_thrift_status_t sai_thrift_set_npm_attribute(const sai_thrift_object_id_t npm_session_id, const sai_thrift_attribute_t &thrift_attr)
+    {
+        SAI_THRIFT_LOG_DBG("Called.");
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_npm_api_t *npm_api = nullptr;
+        sai_object_id_t *receive_port_list = NULL;        
+        status = sai_api_query(SAI_API_NPM, (void **) &npm_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            return status;
+        }
+    
+        std::vector < sai_thrift_attribute_t > thrift_attr_list;
+        thrift_attr_list.push_back(thrift_attr);
+    
+        sai_attribute_t *attr_list = nullptr;
+        sai_uint32_t attr_size = 1;
+        sai_thrift_alloc_attr(attr_list, attr_size);
+        sai_thrift_parse_npm_session_attributes(thrift_attr_list, attr_list, &receive_port_list);
+        status = npm_api->set_npm_session_attribute((sai_object_id_t)npm_session_id, attr_list);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to set npm attributes.");
+        }
+
+        if (receive_port_list)
+        {
+            free(receive_port_list);
+        }
+        
+        return status;
+    }
+
+
+    void sai_thrift_get_npm_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t npm_session_id)
+    {
+        SAI_THRIFT_LOG_DBG("Called.");
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_npm_api_t *npm_api = nullptr;
+        sai_attribute_t attr[SAI_NPM_SESSION_ATTR_END];
+        sai_thrift_attribute_t thrift_attr;
+        sai_thrift_attribute_t thrift_receive_port_list_attribute;
+        sai_object_list_t *receive_port_list_object;   
+        uint32_t i = 0;
+        thrift_attr_list.attr_count = 0;
+        
+        SAI_THRIFT_FUNC_LOG();
+              
+        status = sai_api_query(SAI_API_NPM, (void **) &npm_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            return;
+        }
+
+        memset(attr, 0, sizeof(attr));
+        
+        attr[i++].id = SAI_NPM_SESSION_ATTR_SESSION_ROLE;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_NPM_ENCAPSULATION_TYPE;        
+        attr[i++].id = SAI_NPM_SESSION_ATTR_NPM_TEST_PORT;
+        
+        attr[i].id = SAI_NPM_SESSION_ATTR_NPM_RECEIVE_PORT;
+        attr[i].value.objlist.count = 256;
+        attr[i].value.objlist.list = (sai_object_id_t *) malloc(sizeof(sai_object_id_t) * 256);
+        i++;
+
+        attr[i++].id = SAI_NPM_SESSION_ATTR_SRC_MAC;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_DST_MAC;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_OUTER_VLANID;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_INNER_VLANID;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_SRC_IP;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_DST_IP;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_UDP_SRC_PORT;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_UDP_DST_PORT;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_TTL;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_TC;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_SESSION_ENABLE_TRANSMIT;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_VPN_VIRTUAL_ROUTER;        
+        attr[i++].id = SAI_NPM_SESSION_ATTR_HW_LOOKUP_VALID;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_PACKET_LENGTH;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_TX_RATE;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_PKT_TX_MODE;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_TX_PKT_PERIOD;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_TX_PKT_CNT;
+        attr[i++].id = SAI_NPM_SESSION_ATTR_TX_PKT_DURATION;
+        
+        status = npm_api->get_npm_session_attribute(npm_session_id, i, attr);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("failed to get npm attr, status:%d", status);
+            return;
+        }
+
+        i = 0;
+
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_s32(attr[i].value.s32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_s32(attr[i].value.s32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+        
+        thrift_attr.id = attr[i].id;
+        thrift_attr.value.__set_oid(attr[i].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+
+
+    	thrift_attr_list.attr_count = 1;
+        std::vector < sai_thrift_attribute_t > & attr_list = thrift_attr_list.attr_list;
+        thrift_receive_port_list_attribute.id = SAI_NPM_SESSION_ATTR_NPM_RECEIVE_PORT;
+        thrift_receive_port_list_attribute.value.objlist.count = attr[i].value.objlist.count;
+        std::vector < sai_thrift_object_id_t > & receive_port_list = thrift_receive_port_list_attribute.value.objlist.object_id_list;
+        receive_port_list_object = &attr[i].value.objlist;
+        for (int index = 0; index < attr[i].value.objlist.count; index++)
+        {
+            receive_port_list.push_back((sai_thrift_object_id_t) receive_port_list_object->list[index]);
+        }
+        thrift_receive_port_list_attribute.value.__isset.objlist = true;
+        attr_list.push_back(thrift_receive_port_list_attribute);
+        i++;
+
+
+        thrift_attr.id = attr[i].id;
+        thrift_attr.value.mac = sai_thrift_mac_to_string(attr[i].value.mac);
+        thrift_attr.value.__isset.mac = true;
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;        
+        
+        thrift_attr.id = attr[i].id;
+        thrift_attr.value.mac = sai_thrift_mac_to_string(attr[i].value.mac);
+        thrift_attr.value.__isset.mac = true;
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;    
+
+        thrift_attr.id = attr[i].id;
+        thrift_attr.value.__set_u16(attr[i].value.u16);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        thrift_attr.id = attr[i].id;
+        thrift_attr.value.__set_u16(attr[i].value.u16);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.ipaddr.addr_family = attr[i].value.ipaddr.addr_family;
+        if (SAI_IP_ADDR_FAMILY_IPV4 == thrift_attr.value.ipaddr.addr_family)
+        {
+            thrift_attr.value.ipaddr.addr.ip4 = sai_thrift_v4_ip_to_string(attr[i].value.ipaddr.addr.ip4);
+            thrift_attr.value.ipaddr.addr.__isset.ip4 = true;
+        }
+        else
+        {
+            thrift_attr.value.ipaddr.addr.ip6 = sai_thrift_v6_ip_to_string(attr[i].value.ipaddr.addr.ip6);
+            thrift_attr.value.ipaddr.addr.__isset.ip6 = true;        
+        }
+        
+        thrift_attr.value.__isset.ipaddr = true;
+        thrift_attr.value.ipaddr.__isset.addr_family = true;
+        thrift_attr.value.ipaddr.__isset.addr = true;
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.ipaddr.addr_family = attr[i].value.ipaddr.addr_family;
+        if (SAI_IP_ADDR_FAMILY_IPV4 == thrift_attr.value.ipaddr.addr_family)
+        {
+            thrift_attr.value.ipaddr.addr.ip4 = sai_thrift_v4_ip_to_string(attr[i].value.ipaddr.addr.ip4);
+            thrift_attr.value.ipaddr.addr.__isset.ip4 = true;
+        }
+        else
+        {
+            thrift_attr.value.ipaddr.addr.ip6 = sai_thrift_v6_ip_to_string(attr[i].value.ipaddr.addr.ip6);
+            thrift_attr.value.ipaddr.addr.__isset.ip6 = true;           
+        }
+        
+        thrift_attr.value.__isset.ipaddr = true;
+        thrift_attr.value.ipaddr.__isset.addr_family = true;
+        thrift_attr.value.ipaddr.__isset.addr = true;
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u32(attr[i].value.u32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u32(attr[i].value.u32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+        
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u8(attr[i].value.u8);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u8(attr[i].value.u8);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+        
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_booldata(attr[i].value.booldata);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_oid(attr[i].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+        
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_booldata(attr[i].value.booldata);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+            
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u32(attr[i].value.u32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u32(attr[i].value.u32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+        
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_s32(attr[i].value.s32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+                         
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u32(attr[i].value.u32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+            
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u32(attr[i].value.u32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+            
+        thrift_attr.id        = attr[i].id;
+        thrift_attr.value.__set_u32(attr[i].value.u32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        i++;
+
+
+       if (attr[3].value.objlist.list )
+       {
+           free(attr[3].value.objlist.list);
+       }
+       
+    }
+
+
+    void sai_thrift_get_npm_session_stats(std::vector<int64_t> &thrift_counters,
+                                   const sai_thrift_object_id_t npm_id,
+                                   const std::vector<sai_thrift_npm_stat_counter_t> &thrift_counter_ids,
+                                   const int32_t number_of_counters)
+    {
+        printf("sai_thrift_get_npm_session_stats\n");
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_npm_api_t *npm_api;
+        status = sai_api_query(SAI_API_NPM, (void **) &npm_api);
+
+        if (status != SAI_STATUS_SUCCESS) { return; }
+
+        sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(_sai_npm_session_stats_t) * thrift_counter_ids.size());
+        std::vector<int32_t>::const_iterator it = thrift_counter_ids.begin();
+        uint64_t *counters = (uint64_t *) malloc(sizeof(uint64_t) * thrift_counter_ids.size());
+        memset(counters, 0, sizeof(uint64_t) * thrift_counter_ids.size());
+        for(uint32_t i = 0; i < thrift_counter_ids.size(); i++, it++)
+        { counter_ids[i] = (_sai_npm_session_stats_t) *it; }
+
+        status = npm_api->get_npm_session_stats(npm_id,
+                                          number_of_counters,
+                                          counter_ids,
+                                          counters);
+
+        for (uint32_t i = 0; i < thrift_counter_ids.size(); i++) { thrift_counters.push_back(counters[i]); }
+
+        free(counter_ids);
+        free(counters);
+
+        return;
+    }
+
+
+    sai_thrift_status_t sai_thrift_clear_npm_session_stats(const sai_thrift_object_id_t npm_id,
+                                                    const std::vector<sai_thrift_npm_stat_counter_t> &thrift_counter_ids,
+                                                    int32_t number_of_counters)
+    {
+        printf("sai_thrift_clear_npm_session_stats\n");
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_npm_api_t *npm_api;
+        status = sai_api_query(SAI_API_NPM, (void **) &npm_api);
+
+        if (status != SAI_STATUS_SUCCESS) { return status; }
+
+        sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(_sai_npm_session_stats_t) * thrift_counter_ids.size());
+        std::vector<int32_t>::const_iterator it = thrift_counter_ids.begin();
+        uint64_t *counters = (uint64_t *) malloc(sizeof(uint64_t) * thrift_counter_ids.size());
+        memset(counter_ids, 0, sizeof(_sai_npm_session_stats_t) * thrift_counter_ids.size());
+        memset(counters, 0, sizeof(uint64_t) * thrift_counter_ids.size());
+
+        for(uint32_t i = 0; i < thrift_counter_ids.size(); i++, it++)
+        {
+            counter_ids[i] = (_sai_npm_session_stats_t) *it;
+        }
+
+        status = npm_api->clear_npm_session_stats(npm_id,
+                                          number_of_counters,
+                                          counter_ids);
+
+        free(counter_ids);
+        free(counters);
+
+        return status;
+    }
+
+
     sai_thrift_object_id_t sai_thrift_create_twamp_session(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
         SAI_THRIFT_LOG_DBG("Called.");
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_twamp_api_t *twamp_api = nullptr;
         sai_object_id_t session_id = 0;
+        sai_object_id_t *receive_port_list = NULL;        
         status = sai_api_query(SAI_API_TWAMP, (void **) &twamp_api);
         if (status != SAI_STATUS_SUCCESS)
         {
             return status;
         }
         sai_attribute_t *attr_list = (sai_attribute_t *) malloc(sizeof(sai_attribute_t) * thrift_attr_list.size());
-        sai_thrift_parse_twamp_session_attributes(thrift_attr_list, attr_list);
+        sai_thrift_parse_twamp_session_attributes(thrift_attr_list, attr_list, &receive_port_list);
         uint32_t attr_count = thrift_attr_list.size();
         status = twamp_api->create_twamp_session(&session_id, gSwitchId, attr_count, attr_list);
         if (status != SAI_STATUS_SUCCESS)
@@ -8960,6 +9675,13 @@ public:
             SAI_THRIFT_LOG_ERR("failed to create twamp session, status:%d", status);
         }
         free (attr_list);
+
+
+        if (receive_port_list)
+        {
+            free(receive_port_list);
+        }
+        
         return session_id;
     }
 
@@ -8986,6 +9708,7 @@ public:
         SAI_THRIFT_LOG_DBG("Called.");
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_twamp_api_t *twamp_api = nullptr;
+        sai_object_id_t *receive_port_list = NULL;          
         status = sai_api_query(SAI_API_TWAMP, (void **) &twamp_api);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -8998,12 +9721,18 @@ public:
         sai_attribute_t *attr_list = nullptr;
         sai_uint32_t attr_size = 1;
         sai_thrift_alloc_attr(attr_list, attr_size);
-        sai_thrift_parse_twamp_session_attributes(thrift_attr_list, attr_list);
+        sai_thrift_parse_twamp_session_attributes(thrift_attr_list, attr_list,&receive_port_list);
         status = twamp_api->set_twamp_session_attribute((sai_object_id_t)twamp_session_id, attr_list);
         if (status != SAI_STATUS_SUCCESS)
         {
             SAI_THRIFT_LOG_ERR("Failed to set twamp attributes.");
         }
+
+        if (receive_port_list)
+        {
+            free(receive_port_list);
+        }
+        
         return status;
     }
 
@@ -9014,6 +9743,8 @@ public:
         sai_twamp_api_t *twamp_api = nullptr;
         sai_attribute_t attr[SAI_TWAMP_SESSION_ATTR_END];
         sai_thrift_attribute_t thrift_attr;
+        sai_thrift_attribute_t thrift_receive_port_list_attribute;
+        sai_object_list_t *receive_port_list_object;           
         uint32_t i = 0;
         thrift_attr_list.attr_count = 0;
         
@@ -9027,8 +9758,13 @@ public:
 
         memset(attr, 0, sizeof(attr));
         
-        attr[i++].id = SAI_TWAMP_SESSION_ATTR_TWAMP_PORT;
-        attr[i++].id = SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT;        
+        attr[i++].id = SAI_TWAMP_SESSION_ATTR_TWAMP_PORT; 
+
+        attr[i].id = SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT;
+        attr[i].value.objlist.count = 256;
+        attr[i].value.objlist.list = (sai_object_id_t *) malloc(sizeof(sai_object_id_t) * 256);
+        i++;
+        
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_SESSION_ROLE;
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_UDP_SRC_PORT;
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_UDP_DST_PORT;
@@ -9064,10 +9800,20 @@ public:
         thrift_attr_list.attr_list.push_back(thrift_attr);
         i++;
         
-        thrift_attr.id = attr[i].id;
-        thrift_attr.value.__set_oid(attr[i].value.oid);
-        thrift_attr_list.attr_list.push_back(thrift_attr);
+    	thrift_attr_list.attr_count = 1;
+        std::vector < sai_thrift_attribute_t > & attr_list = thrift_attr_list.attr_list;
+        thrift_receive_port_list_attribute.id = SAI_TWAMP_SESSION_ATTR_RECEIVE_PORT;
+        thrift_receive_port_list_attribute.value.objlist.count = attr[i].value.objlist.count;
+        std::vector < sai_thrift_object_id_t > & receive_port_list = thrift_receive_port_list_attribute.value.objlist.object_id_list;
+        receive_port_list_object = &attr[i].value.objlist;
+        for (int index = 0; index < attr[i].value.objlist.count; index++)
+        {
+            receive_port_list.push_back((sai_thrift_object_id_t) receive_port_list_object->list[index]);
+        }
+        thrift_receive_port_list_attribute.value.__isset.objlist = true;
+        attr_list.push_back(thrift_receive_port_list_attribute);
         i++;
+
             
         thrift_attr.id        = attr[i].id;
         thrift_attr.value.__set_s32(attr[i].value.s32);
@@ -9199,7 +9945,10 @@ public:
         thrift_attr.value.__set_s32(attr[i].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
 
-        
+       if (attr[1].value.objlist.list )
+       {
+           free(attr[1].value.objlist.list);
+       }        
     }
 
 
@@ -9707,7 +10456,7 @@ public:
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_mpls_api_t *mpls_api;
         sai_inseg_entry_t inseg_entry;
-        sai_attribute_t attr[SAI_INSEG_ENTRY_ATTR_END];
+        sai_attribute_t attr[20];
         sai_thrift_attribute_t thrift_attr;
         uint32_t attr_cnt = 0;
     
@@ -9731,6 +10480,9 @@ public:
         attr[attr_cnt++].id = SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP;
         attr[attr_cnt++].id = SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE;
         attr[attr_cnt++].id = SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE;
+        attr[attr_cnt++].id = SAI_INSEG_ENTRY_ATTR_COUNTER_ID;
+        attr[attr_cnt++].id = SAI_INSEG_ENTRY_ATTR_POLICER_ID;
+        attr[attr_cnt++].id = SAI_INSEG_ENTRY_ATTR_SERVICE_ID;
     
         status = mpls_api->get_inseg_entry_attribute(&inseg_entry, attr_cnt, attr);
         if (status != SAI_STATUS_SUCCESS)
@@ -9779,7 +10531,19 @@ public:
         thrift_attr.id        = attr[9].id;                 /* SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE */
         thrift_attr.value.__set_s32(attr[9].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
+
+        thrift_attr.id        = attr[10].id;                 /* SAI_INSEG_ENTRY_ATTR_COUNTER_ID */
+        thrift_attr.value.__set_oid(attr[10].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+
+        thrift_attr.id        = attr[11].id;                 /* SAI_INSEG_ENTRY_ATTR_POLICER_ID */
+        thrift_attr.value.__set_oid(attr[11].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+
+        thrift_attr.id        = attr[12].id;                 /* SAI_INSEG_ENTRY_ATTR_SERVICE_ID */
+        thrift_attr.value.__set_u16(attr[12].value.u16);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        return;
     }
 
     sai_thrift_status_t sai_thrift_dump_log(const std::string& dump_file_name)
@@ -10235,12 +10999,14 @@ public:
 	    attr[3].id = SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_BURST_RATE;
         attr[4].id = SAI_SCHEDULER_ATTR_MAX_BANDWIDTH_RATE;
 	    attr[5].id = SAI_SCHEDULER_ATTR_MAX_BANDWIDTH_BURST_RATE;
-        attr_count = 6;
+	    attr[6].id = SAI_SCHEDULER_ATTR_METER_TYPE;
+        attr_count = 7;
         
         status = scheduler_api->get_scheduler_attribute(thrift_scheduler_id, attr_count, attr);
         if (status != SAI_STATUS_SUCCESS)
         {
             SAI_THRIFT_LOG_ERR("failed to get scheduler attr, status:%d", status);
+            thrift_attr_list.status = status;
             return;
         }
         
@@ -10262,6 +11028,9 @@ public:
 	    thrift_attr.id = attr[5].id;
 	    thrift_attr.value.__set_u64(attr[5].value.u64);
 	    thrift_attr_list.attr_list.push_back(thrift_attr);
+	    thrift_attr.id = attr[6].id;
+	    thrift_attr.value.__set_s32(attr[6].value.s32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
     }
 
     sai_thrift_status_t sai_thrift_set_scheduler_attribute(const sai_thrift_object_id_t thrift_scheduler_id, 
@@ -10397,6 +11166,7 @@ public:
         if (status != SAI_STATUS_SUCCESS)
         {
             SAI_THRIFT_LOG_ERR("failed to get scheduler group attr, status:%d", status);
+            thrift_attr_list.status = status;
             return;
         }
         
@@ -11187,6 +11957,22 @@ public:
         thrift_es.value.__set_oid(es.value.oid);
         attr_list.push_back(thrift_es);
         
+        sai_attribute_t ing_acl_oid;
+        sai_thrift_attribute_t thrift_ing_acl_oid;
+        ing_acl_oid.id = SAI_PORT_ATTR_INGRESS_ACL;
+        port_api->get_port_attribute(port_id, 1, &ing_acl_oid);
+        thrift_ing_acl_oid.id = SAI_PORT_ATTR_INGRESS_ACL;
+        thrift_ing_acl_oid.value.__set_oid(ing_acl_oid.value.oid);
+        attr_list.push_back(thrift_ing_acl_oid);
+        
+        sai_attribute_t eg_acl_oid;
+        sai_thrift_attribute_t thrift_eg_acl_oid;
+        eg_acl_oid.id = SAI_PORT_ATTR_EGRESS_ACL;
+        port_api->get_port_attribute(port_id, 1, &eg_acl_oid);
+        thrift_eg_acl_oid.id = SAI_PORT_ATTR_EGRESS_ACL;
+        thrift_eg_acl_oid.value.__set_oid(eg_acl_oid.value.oid);
+        attr_list.push_back(thrift_eg_acl_oid);
+
         
         sai_attribute_t ptp_mode;
         sai_thrift_attribute_t thrift_ptp_mode;
@@ -11321,16 +12107,20 @@ public:
                     attr_list[i].value.u32 = attribute.value.u32;
                     break;
                 case SAI_QUEUE_ATTR_INDEX:
-                	  attr_list[i].value.u8 = attribute.value.u8;
+                	attr_list[i].value.u8 = attribute.value.u8;
                     break;
                 case SAI_QUEUE_ATTR_SERVICE_ID:
-                	  attr_list[i].value.u16 = attribute.value.u16;
+                	attr_list[i].value.u16 = attribute.value.u16;
+                    break;
+                case SAI_QUEUE_ATTR_ENABLE_PFC_DLDR:
+                    attr_list[i].value.booldata = attribute.value.booldata;
                     break;
                 case SAI_QUEUE_ATTR_PORT:
                 case SAI_QUEUE_ATTR_PARENT_SCHEDULER_NODE:
                 case SAI_QUEUE_ATTR_WRED_PROFILE_ID:
                 case SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID:
-                	  attr_list[i].value.oid = attribute.value.oid;
+                case SAI_QUEUE_ATTR_BUFFER_PROFILE_ID:
+                	attr_list[i].value.oid = attribute.value.oid;
                     break;
                 default:
                     SAI_THRIFT_LOG_ERR("Failed to parse attribute.");
@@ -11405,6 +12195,7 @@ public:
             SAI_THRIFT_LOG_ERR("failed to obtain queue_api, status:%d", status);
             return;
         }
+        memset(&attr, 0, sizeof(attr));
         
         attr[0].id = SAI_QUEUE_ATTR_TYPE;
         attr[1].id = SAI_QUEUE_ATTR_PORT;
@@ -11414,7 +12205,8 @@ public:
 	    attr[5].id = SAI_QUEUE_ATTR_SCHEDULER_PROFILE_ID;
 	    attr[6].id = SAI_QUEUE_ATTR_BUFFER_PROFILE_ID;
         attr[7].id = SAI_QUEUE_ATTR_SERVICE_ID;
-        attr_count = 8;
+        attr[8].id = SAI_QUEUE_ATTR_ENABLE_PFC_DLDR;
+        attr_count = 9;
         
         status = queue_api->get_queue_attribute(queue_id, attr_count, attr);
         if (status != SAI_STATUS_SUCCESS)
@@ -11445,7 +12237,10 @@ public:
 	    thrift_attr.value.__set_oid(attr[6].value.oid);
 	    thrift_attr_list.attr_list.push_back(thrift_attr);
         thrift_attr.id = attr[7].id;
-	    thrift_attr.value.__set_u16(attr[7].value.u32);
+	    thrift_attr.value.__set_u16(attr[7].value.u16);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        thrift_attr.id = attr[8].id;
+	    thrift_attr.value.__set_booldata(attr[8].value.booldata);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     }
 
@@ -11461,10 +12256,14 @@ public:
           {
               return status;
           }
-        sai_attribute_t attr;
-        attr.id = thrift_attr.id;
-        attr.value.oid = thrift_attr.value.oid;
-        status = queue_api->set_queue_attribute((sai_object_id_t)queue_id, &attr);
+          
+        const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
+        sai_attribute_t *attr_list = nullptr;
+        sai_size_t attr_size = thrift_attr_list.size();
+        
+        sai_thrift_alloc_array(attr_list, attr_size);
+        sai_thrift_parse_queue_attributes(attr_list, thrift_attr_list);
+        status = queue_api->set_queue_attribute((sai_object_id_t)queue_id, attr_list);
         return status;
     }
 
@@ -11538,13 +12337,13 @@ public:
                     attr_list[i].value.s8 = attribute.value.s8;
                     break;
                 case SAI_BUFFER_PROFILE_ATTR_SHARED_STATIC_TH:
-                    attr_list[i].value.u32 = attribute.value.u32;
+                    attr_list[i].value.u64 = attribute.value.u64;
                     break;
                 case SAI_BUFFER_PROFILE_ATTR_XOFF_TH:
-                    attr_list[i].value.u32 = attribute.value.u32;
+                    attr_list[i].value.u64 = attribute.value.u64;
                     break;
                 case SAI_BUFFER_PROFILE_ATTR_XON_TH:
-                    attr_list[i].value.u32 = attribute.value.u32;
+                    attr_list[i].value.u64 = attribute.value.u64;
                     break;
             }
         }
@@ -11619,13 +12418,13 @@ public:
 	    thrift_attr.value.__set_s8(attr[3].value.s8);
         thrift_attr_list.attr_list.push_back(thrift_attr);
 	    thrift_attr.id = attr[4].id;
-	    thrift_attr.value.__set_u32(attr[4].value.u32);
+	    thrift_attr.value.__set_u64(attr[4].value.u64);
 	    thrift_attr_list.attr_list.push_back(thrift_attr);
 	    thrift_attr.id = attr[5].id;
-	    thrift_attr.value.__set_u32(attr[5].value.u32);
+	    thrift_attr.value.__set_u64(attr[5].value.u64);
 	    thrift_attr_list.attr_list.push_back(thrift_attr);
 	    thrift_attr.id = attr[6].id;
-	    thrift_attr.value.__set_u32(attr[6].value.u32);
+	    thrift_attr.value.__set_u64(attr[6].value.u64);
 	    thrift_attr_list.attr_list.push_back(thrift_attr);
     }
 
@@ -12214,7 +13013,7 @@ public:
         }
         
 	    thrift_attr.id = attr[0].id;
-	    thrift_attr.value.__set_u32(attr[0].value.u32);
+	    thrift_attr.value.__set_s32(attr[0].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
         
 	    thrift_attr.id = attr[1].id;
@@ -14351,6 +15150,7 @@ public:
                 case SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_TAGGED_VLAN:
                 case SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID:
                 case SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID:
+                case SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE:
                 case SAI_TUNNEL_ATTR_DECAP_EXP_MODE:
                 case SAI_TUNNEL_ATTR_ENCAP_EXP_MODE:
                 case SAI_TUNNEL_ATTR_ENCAP_EXP_VAL:
@@ -14440,6 +15240,7 @@ public:
                 case SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_WITH_CW:
                 case SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID:
                 case SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID:
+                case SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE:
 	    			thrift_attr.id        = attr_list[i].id;
                     thrift_attr.value.__set_booldata(attr_list[i].value.booldata);
                     thrift_attr_list.attr_list.push_back(thrift_attr);
@@ -15378,7 +16179,7 @@ public:
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_nat_api_t *nat_api;
         sai_nat_entry_t nat_entry;
-        sai_attribute_t attr[SAI_NAT_ENTRY_ATTR_END];
+        sai_attribute_t attr[20];
         sai_thrift_attribute_t thrift_attr;
         uint32_t attr_cnt = 0;
         
@@ -15459,6 +16260,7 @@ public:
                 case SAI_BFD_SESSION_ATTR_OFFLOAD_TYPE:
                 case SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
                 case SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                case SAI_BFD_SESSION_ATTR_STATE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
                 case SAI_BFD_SESSION_ATTR_LOCAL_DISCRIMINATOR:
@@ -15477,12 +16279,15 @@ public:
                 case SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID:
                 case SAI_BFD_SESSION_ATTR_TP_CV_ENABLE:
                 case SAI_BFD_SESSION_ATTR_TP_WITHOUT_GAL:
+                case SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH:
+                case SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN:                    
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
                 case SAI_BFD_SESSION_ATTR_VIRTUAL_ROUTER:
                 case SAI_BFD_SESSION_ATTR_PORT:
                 case SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID:
                 case SAI_BFD_SESSION_ATTR_NEXT_HOP_ID:
+                case SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID:                    
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
                 case SAI_BFD_SESSION_ATTR_TC:
@@ -15599,7 +16404,7 @@ public:
         uint32 attr_id = 0, hw_lkp_valid = 0, mpls_encap = 0, ach_header_valid = 0, tp_oam = 0;
         sai_bfd_api_t *bfd_api = nullptr;
         uint32_t attr_count = 0;
-        sai_attribute_t attr[SAI_BFD_SESSION_ATTR_END];
+        sai_attribute_t attr[65];
         sai_thrift_attribute_t thrift_attr;
         
         SAI_THRIFT_FUNC_LOG();
@@ -15724,6 +16529,8 @@ public:
         attr_id++;
         attr[attr_id].id = SAI_BFD_SESSION_ATTR_REMOTE_MULTIPLIER;
         attr_id++;
+        attr[attr_id].id = SAI_BFD_SESSION_ATTR_REMOTE_STATE;
+        attr_id++;        
         attr[attr_id].id = SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE;
         attr_id++;
         if(mpls_encap)
@@ -15761,6 +16568,18 @@ public:
         
         attr[attr_id].id = SAI_BFD_SESSION_ATTR_NEXT_HOP_ID;
         attr_id++;
+
+
+        attr[attr_id].id = SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID;
+        attr_id++;
+
+        attr[attr_id].id = SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH;
+        attr_id++;
+
+        attr[attr_id].id = SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN;
+        attr_id++;        
+
+
         
         attr_count = attr_id;
         status = bfd_api->get_bfd_session_attribute(sess_oid, attr_count, attr);
@@ -15975,6 +16794,12 @@ public:
         thrift_attr.value.__set_u8(attr[attr_id].value.u8);
         thrift_attr_list.attr_list.push_back(thrift_attr);
         attr_id++;
+
+        //SAI_BFD_SESSION_ATTR_REMOTE_STATE
+        thrift_attr.id = attr[attr_id].id;
+        thrift_attr.value.__set_s32(attr[attr_id].value.s32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        attr_id++;
         
         //SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE
         thrift_attr.id = attr[attr_id].id;
@@ -16058,6 +16883,26 @@ public:
         thrift_attr.value.__set_oid(attr[attr_id].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
         attr_id++;
+
+        //SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID
+        thrift_attr.id = attr[attr_id].id;
+        thrift_attr.value.__set_oid(attr[attr_id].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        attr_id++;
+
+        //SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH
+        thrift_attr.id = attr[attr_id].id;
+        thrift_attr.value.__set_booldata(attr[attr_id].value.booldata);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        attr_id++;
+
+        
+        //SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN
+        thrift_attr.id = attr[attr_id].id;
+        thrift_attr.value.__set_booldata(attr[attr_id].value.booldata);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        attr_id++;
+        
     }
 
     void sai_thrift_parse_y1731_meg_attributes(const std_sai_thrift_attr_vctr_t &thrift_attr_list, sai_attribute_t *attr_list)
@@ -16607,6 +17452,7 @@ public:
             switch (attribute.id)
             {
                 case SAI_Y1731_REMOTE_MEP_ATTR_Y1731_SESSION_ID:
+                case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID:                    
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
                 case SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_ID:
@@ -16616,6 +17462,8 @@ public:
                     sai_thrift_string_to_mac(attribute.value.mac, attr_list[i].value.mac);
                     break;
                 case SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED:
+                case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH:
+                case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN:                    
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
                 default:
@@ -16697,7 +17545,7 @@ public:
     {
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_y1731_api_t *y1731_api = nullptr;
-        uint32_t attr_count = 4, index = 0;
+        uint32_t attr_count = 7, index = 0;
         sai_attribute_t attr[SAI_Y1731_REMOTE_MEP_ATTR_END];
         sai_thrift_attribute_t thrift_attr;
     
@@ -16717,6 +17565,10 @@ public:
         attr[2].id = SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS;
         attr[3].id = SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED;
     
+        attr[4].id = SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID;
+        attr[5].id = SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH;
+        attr[6].id = SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN;
+
         status = y1731_api->get_y1731_remote_mep_attribute(y1731_meg_oid, attr_count, attr);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -16741,6 +17593,19 @@ public:
         thrift_attr.id = attr[3].id;
         thrift_attr.value.__set_booldata(attr[3].value.booldata);
         thrift_attr_list.attr_list.push_back(thrift_attr);
+
+        thrift_attr.id = attr[4].id;
+        thrift_attr.value.__set_oid(attr[4].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+
+        thrift_attr.id = attr[5].id;
+        thrift_attr.value.__set_booldata(attr[5].value.booldata);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        
+        thrift_attr.id = attr[6].id;
+        thrift_attr.value.__set_booldata(attr[6].value.booldata);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+
     
     }
 
@@ -16796,6 +17661,7 @@ public:
             {
                 case SAI_HOSTIF_PACKET_ATTR_HOSTIF_TX_TYPE:
                 case SAI_HOSTIF_PACKET_ATTR_CUSTOM_OAM_TX_TYPE:
+                case SAI_HOSTIF_PACKET_ATTR_CUSTOM_PTP_TX_PACKET_OP_TYPE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
                 case SAI_HOSTIF_PACKET_ATTR_EGRESS_PORT_OR_LAG:
@@ -16805,7 +17671,11 @@ public:
                 case SAI_HOSTIF_PACKET_ATTR_CUSTOM_TIMESTAMP_OFFSET:
                     attr_list[i].value.u32 = attribute.value.u32;
                     break;
-        
+                case SAI_HOSTIF_PACKET_ATTR_TX_TIMESTAMP:
+                    attr_list[i].value.timespec.tv_sec = attribute.value.timespec.tv_sec;
+                    attr_list[i].value.timespec.tv_nsec = attribute.value.timespec.tv_nsec;
+                    break;
+                    
                 default:
                     SAI_THRIFT_LOG_ERR("Failed to parse attribute.");
                     break;
@@ -17055,26 +17925,10 @@ public:
             attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_TOD_INTF_MODE;
             attr_id++;
             
-            attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND;
-            attr_id++;
-            
-            attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS;
-            attr_id++;
-            
-            attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY;
-            attr_id++;
-
-            attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK;
-            attr_id++;
-
-            attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK;
-            attr_id++;
             
             attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP;
             attr_id++;
-            
-            attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP;
-            attr_id++;
+
             attr_count = attr_id;
             
             
@@ -17138,36 +17992,6 @@ public:
             thrift_attr_list.attr_list.push_back(thrift_attr);
             attr_id++;
             
-            //SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND
-            thrift_attr.id = attr[attr_id].id;
-            thrift_attr.value.__set_s8(attr[attr_id].value.s8);
-            thrift_attr_list.attr_list.push_back(thrift_attr);
-            attr_id++;
-            
-            //SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS
-            thrift_attr.id = attr[attr_id].id;
-            thrift_attr.value.__set_u8(attr[attr_id].value.u8);
-            thrift_attr_list.attr_list.push_back(thrift_attr);
-            attr_id++;
-            
-            //SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY
-            thrift_attr.id = attr[attr_id].id;
-            thrift_attr.value.__set_u8(attr[attr_id].value.u8);
-            thrift_attr_list.attr_list.push_back(thrift_attr);
-            attr_id++;
-
-    	    //SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK
-            thrift_attr.id = attr[attr_id].id;
-            thrift_attr.value.__set_u16(attr[attr_id].value.u16);
-            thrift_attr_list.attr_list.push_back(thrift_attr);
-            attr_id++;
-
-    	    //SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK
-            thrift_attr.id = attr[attr_id].id;
-            thrift_attr.value.__set_u32(attr[attr_id].value.u32);
-            thrift_attr_list.attr_list.push_back(thrift_attr);
-            attr_id++;
-            
             //?SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP
             thrift_attr.id = attr[attr_id].id;
             thrift_attr.value.timespec.tv_sec = attr[attr_id].value.timespec.tv_sec;
@@ -17178,20 +18002,6 @@ public:
             thrift_attr_list.attr_list.push_back(thrift_attr);
             attr_id++;
             
-            //?SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP
-            thrift_attr.id = attr[attr_id].id;
-            thrift_attr.value.captured_timespec.port_id= attr[attr_id].value.captured_timespec.port_id;
-            thrift_attr.value.captured_timespec.__isset.port_id = true;
-            thrift_attr.value.captured_timespec.secquence_id = attr[attr_id].value.captured_timespec.secquence_id;
-            thrift_attr.value.captured_timespec.__isset.secquence_id = true;
-            thrift_attr.value.captured_timespec.timestamp.tv_sec = attr[attr_id].value.captured_timespec.timestamp.tv_sec;
-            thrift_attr.value.captured_timespec.timestamp.__isset.tv_sec = true;
-            thrift_attr.value.captured_timespec.timestamp.tv_nsec = attr[attr_id].value.captured_timespec.timestamp.tv_nsec;
-            thrift_attr.value.captured_timespec.timestamp.__isset.tv_nsec = true;
-            thrift_attr.value.captured_timespec.__isset.timestamp = true;
-            thrift_attr.value.__isset.captured_timespec = true;
-            thrift_attr_list.attr_list.push_back(thrift_attr);
-            attr_id++;
         }
 
         else
@@ -17230,8 +18040,6 @@ public:
             attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_TAI_TIMESTAMP;
             attr_id++;
             
-            attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP;
-            attr_id++;
             attr_count = attr_id;
             
             
@@ -17323,20 +18131,6 @@ public:
             thrift_attr_list.attr_list.push_back(thrift_attr);
             attr_id++;
             
-            //?SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP
-            thrift_attr.id = attr[attr_id].id;
-            thrift_attr.value.captured_timespec.port_id= attr[attr_id].value.captured_timespec.port_id;
-            thrift_attr.value.captured_timespec.__isset.port_id = true;
-            thrift_attr.value.captured_timespec.secquence_id = attr[attr_id].value.captured_timespec.secquence_id;
-            thrift_attr.value.captured_timespec.__isset.secquence_id = true;
-            thrift_attr.value.captured_timespec.timestamp.tv_sec = attr[attr_id].value.captured_timespec.timestamp.tv_sec;
-            thrift_attr.value.captured_timespec.timestamp.__isset.tv_sec = true;
-            thrift_attr.value.captured_timespec.timestamp.tv_nsec = attr[attr_id].value.captured_timespec.timestamp.tv_nsec;
-            thrift_attr.value.captured_timespec.timestamp.__isset.tv_nsec = true;
-            thrift_attr.value.captured_timespec.__isset.timestamp = true;
-            thrift_attr.value.__isset.captured_timespec = true;
-            thrift_attr_list.attr_list.push_back(thrift_attr);
-            attr_id++;
         }        
 
 
@@ -17652,6 +18446,7 @@ public:
 			break;
                 case SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
 			attr_list[i].value.oid = attribute.value.oid;
+			break;
                 default:
                       SAI_THRIFT_LOG_ERR("Failed to parse monitor buffer attributes");
                       break;
@@ -17788,7 +18583,7 @@ public:
             
 	//SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT
 	thrift_attr.id = attr[attr_id].id;
-	thrift_attr.value.__set_u32(attr[attr_id].value.u32);
+	thrift_attr.value.__set_oid(attr[attr_id].value.oid);
 	thrift_attr_list.attr_list.push_back(thrift_attr);
 	attr_id++;
             
@@ -17964,6 +18759,7 @@ public:
         uint32 attr_id = 0;
         sai_attribute_t attr[SAI_MONITOR_LATENCY_MONITOR_ATTR_END];
         sai_thrift_attribute_t thrift_attr;
+	 sai_thrift_attribute_t thrift_attr1;
         
         SAI_THRIFT_FUNC_LOG();
         
@@ -18009,19 +18805,19 @@ public:
 	}
             
 	attr_id = 0;
-            
+
 	//SAI_MONITOR_LATENCY_MONITOR_ATTR_PORT
 	thrift_attr.id = attr[attr_id].id;
-	thrift_attr.value.__set_u32(attr[attr_id].value.u32);
+	thrift_attr.value.__set_oid(attr[attr_id].value.oid);
 	thrift_attr_list.attr_list.push_back(thrift_attr);
 	attr_id++;
-            
+
 	//SAI_MONITOR_LATENCY_MONITOR_ATTR_MB_ENABLE
 	thrift_attr.id = attr[attr_id].id;
 	thrift_attr.value.__set_booldata(attr[attr_id].value.booldata);
 	thrift_attr_list.attr_list.push_back(thrift_attr);
        attr_id++;
-            
+
 	//SAI_MONITOR_LATENCY_MONITOR_ATTR_MB_LEVEL_OVERTHRD_EVENT
 	thrift_attr.id = attr[attr_id].id;
 	thrift_attr.value.boollist.count = attr[attr_id].value.boollist.count;
@@ -18039,25 +18835,33 @@ public:
 	thrift_attr.value.__set_booldata(attr[attr_id].value.booldata);
 	thrift_attr_list.attr_list.push_back(thrift_attr);
 	attr_id++;
-    		
+
 	//SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD
-	thrift_attr.id = attr[attr_id].id;
-	thrift_attr.value.boollist.count = attr[attr_id].value.boollist.count;
-	std::vector < bool > & discard_list = thrift_attr.value.boollist.boollist;
+	thrift_attr1.id = attr[attr_id].id;
+	thrift_attr1.value.boollist.count = attr[attr_id].value.boollist.count;
+	std::vector < bool > & discard_list = thrift_attr1.value.boollist.boollist;
 	for (int index = 0; index < attr[attr_id].value.boollist.count; index++)
 	{
             discard_list.push_back((bool) attr[attr_id].value.boollist.list[index]);
 	}
-	thrift_attr.value.__isset.boollist = true;
-	thrift_attr_list.attr_list.push_back(thrift_attr);
+	thrift_attr1.value.__isset.boollist = true;
+	thrift_attr_list.attr_list.push_back(thrift_attr1);
 	attr_id++;
-            
+
 	//SAI_MONITOR_LATENCY_MONITOR_ATTR_PORT_WATERMARK
        thrift_attr.id = attr[attr_id].id;
 	thrift_attr.value.__set_u32(attr[attr_id].value.u32);
        thrift_attr_list.attr_list.push_back(thrift_attr);
        attr_id++;
-      
+
+	if (attr[2].value.boollist.list)
+	{
+          free(attr[2].value.boollist.list);
+	}
+	if (attr[4].value.boollist.list)
+	{
+          free(attr[4].value.boollist.list);
+	}    
 	};
 };
 
@@ -18204,6 +19008,125 @@ void on_y1731_event(_In_ uint32_t count,
         for(j = 0; j < data[index].session_event_list.count; j++)
         {
              printf("=== event num:%d, event id: %d ===\r\n", j, data[index].session_event_list.list[j]);
+        }
+    }
+}
+
+void on_ptp_tx_event(_In_ uint32_t count,
+                    _In_ sai_packet_event_ptp_tx_notification_t *data)
+{
+    int index = 0, j = 0;
+
+    printf ("\r\n===ptp tx event occur ===\r\n");
+
+    for(index = 0; index < count ; index++)
+    {
+        printf("\r\n===NO. %d ptp tx port id 0x%lx ===\r\n", index, data[index].tx_port);
+
+        printf("\r\n===ptp tx msg type %d, seq id %d ===\r\n", data[index].msg_type, data[index].ptp_seq_id);
+
+        printf("\r\n===ptp tx ts sec %d, ns %d ===\r\n", data[index].tx_timestamp.tv_sec, data[index].tx_timestamp.tv_nsec);
+
+    }
+}
+
+void on_buffer_monitor_event(_In_ uint32_t count,
+                    _In_ sai_monitor_buffer_notification_data_t *data)
+{
+    int index = 0, j = 0;
+
+    printf ("\r\n===buffer monitor event occur ===\r\n");
+
+    for(index = 0; index < count ; index++)
+    {
+        printf("\r\n===NO. %d monitor buffer id 0x%lx ===\r\n", index, data[index].monitor_buffer_id);
+
+        if (data[index].buffer_monitor_based_on_type == SAI_MONITOR_BUFFER_BASED_ON_PORT)
+        {
+        	printf("\r\n===buffer monitor based on type: SAI_MONITOR_BUFFER_BASED_ON_PORT = %d ===\r\n", data[index].buffer_monitor_based_on_type);
+        }
+
+        if (data[index].buffer_monitor_based_on_type == SAI_MONITOR_BUFFER_BASED_ON_TOTAL)
+        {
+        	printf("\r\n===buffer monitor based on type: SAI_MONITOR_BUFFER_BASED_ON_TOTAL = %d ===\r\n", data[index].buffer_monitor_based_on_type);
+        }
+
+        if (data[index].buffer_monitor_message_type == SAI_MONITOR_BUFFER_EVENT_MESSAGE)
+        {
+        	printf("\r\n===buffer monitor message type: SAI_MONITOR_BUFFER_EVENT_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
+
+        	printf("\r\n===NO. %d buffer monitor event port 0x%lx ===\r\n", index, data[index].u.buffer_event.buffer_monitor_event_port);
+
+        	printf("\r\n===buffer monitor event total cnt %d ===\r\n", data[index].u.buffer_event.buffer_monitor_event_total_cnt);
+
+        	printf("\r\n===buffer monitor event port unicast cnt %d ===\r\n", data[index].u.buffer_event.buffer_monitor_event_port_unicast_cnt);
+
+        	printf("\r\n===buffer monitor event port multicast cnt %d ===\r\n", data[index].u.buffer_event.buffer_monitor_event_port_multicast_cnt);
+
+        	printf("\r\n===buffer monitor event stats %d ===\r\n", data[index].u.buffer_event.buffer_monitor_event_state);
+        }
+
+        if (data[index].buffer_monitor_message_type == SAI_MONITOR_BUFFER_STATS_MESSAGE)
+        {
+        	printf("\r\n===buffer monitor message type: SAI_MONITOR_BUFFER_STATS_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
+
+        	printf("\r\n===NO. %d buffer monitor stats port 0x%lx ===\r\n", index, data[index].u.buffer_stats.buffer_monitor_stats_port);
+
+        	printf("\r\n===buffer monitor stats direction %d ===\r\n", data[index].u.buffer_stats.buffer_monitor_stats_direction);
+
+        	printf("\r\n===buffer monitor stats port cnt %d ===\r\n", data[index].u.buffer_stats.buffer_monitor_stats_port_cnt);
+        }
+
+        if (data[index].buffer_monitor_message_type == SAI_MONITOR_MICORBURST_STATS_MESSAGE)
+        {
+        	printf("\r\n===buffer monitor message type: SAI_MONITOR_MICORBURST_STATS_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
+
+        	printf("\r\n===NO. %d buffer monitor microburst port 0x%lx ===\r\n", index, data[index].u.microburst_stats.buffer_monitor_microburst_port);
+
+        	for(j = 0; j < SAI_MONITOR_MICROBURST_THRD_LEVEL ; j++)
+        	{
+        		printf("\r\n===NO. %d buffer monitor microburst threshold cnt %d ===\r\n", j, data[index].u.microburst_stats.buffer_monitor_microburst_threshold_cnt[j]);
+        	}
+        }
+    }
+}
+
+void on_latency_monitor_event(_In_ uint32_t count,
+                    _In_ sai_monitor_latency_notification_data_t *data)
+{
+    int index = 0, j = 0;
+
+    printf ("\r\n===latency monitor event occur ===\r\n");
+
+    for(index = 0; index < count ; index++)
+    {
+        printf("\r\n===NO. %d monitor latency id 0x%lx ===\r\n", index, data[index].monitor_latency_id);
+
+        if (data[index].latency_monitor_message_type == SAI_MONITOR_LATENCY_EVENT_MESSAGE)
+        {
+        	printf("\r\n===latency monitor message type: SAI_MONITOR_LATENCY_EVENT_MESSAGE = %d ===\r\n", data[index].latency_monitor_message_type);
+
+        	printf("\r\n===NO. %d latency monitor event port 0x%lx ===\r\n", index, data[index].u.latency_event.latency_monitor_event_port);
+
+        	printf("\r\n===latency monitor event latency %d ===\r\n", data[index].u.latency_event.latency_monitor_event_latency);
+
+        	printf("\r\n===latency monitor event level %d ===\r\n", data[index].u.latency_event.latency_monitor_event_level);
+			
+        	printf("\r\n===latency monitor event state %d ===\r\n", data[index].u.latency_event.latency_monitor_event_state);
+
+        	printf("\r\n===latency monitor event source port %d ===\r\n", data[index].u.latency_event.latency_monitor_event_source_port);
+        }
+
+        if (data[index].latency_monitor_message_type == SAI_MONITOR_LATENCY_STATS_MESSAGE)
+        {
+        	printf("\r\n===latency monitor message type: SAI_MONITOR_LATENCY_STATS_MESSAGE = %d ===\r\n", data[index].latency_monitor_message_type);
+
+        	printf("\r\n===NO. %d latency monitor stats port 0x%lx ===\r\n", index, data[index].u.latency_stats.latency_monitor_stats_port);
+
+        	for(j = 0; j < SAI_MONITOR_LATENCY_THRD_LEVEL ; j++)
+        	{
+        		printf("\r\n===NO. %d latency monitor stats level cnt %d ===\r\n", j, data[index].u.latency_stats.latency_monitor_stats_level_cnt[j]);
+        	}
         }
     }
 }
@@ -18612,7 +19535,7 @@ main(int argc, char* argv[])
     sai_api_initialize(0, &test_services);
     sai_api_query(SAI_API_SWITCH, (void**)&sai_switch_api);
 
-    constexpr std::uint32_t attrSz = 8;
+    constexpr std::uint32_t attrSz = 11;
 
     sai_attribute_t attr[attrSz];
     std::memset(attr, '\0', sizeof(attr));
@@ -18640,6 +19563,15 @@ main(int argc, char* argv[])
 
     attr[7].id = SAI_SWITCH_ATTR_Y1731_SESSION_EVENT_NOTIFY;
     attr[7].value.ptr = reinterpret_cast<sai_pointer_t>(&on_y1731_event);
+
+    attr[8].id = SAI_SWITCH_ATTR_PTP_PACKET_TX_EVENT_NOTIFY;
+    attr[8].value.ptr = reinterpret_cast<sai_pointer_t>(&on_ptp_tx_event);
+
+    attr[9].id = SAI_SWITCH_ATTR_MONITOR_BUFFER_NOTIFY;
+    attr[9].value.ptr = reinterpret_cast<sai_pointer_t>(&on_buffer_monitor_event);
+
+    attr[10].id = SAI_SWITCH_ATTR_MONITOR_LATENCY_NOTIFY;
+    attr[10].value.ptr = reinterpret_cast<sai_pointer_t>(&on_latency_monitor_event);
 
     sai_status_t status = sai_switch_api->create_switch(&gSwitchId, attrSz, attr);
     if (status != SAI_STATUS_SUCCESS)
@@ -18685,7 +19617,7 @@ main(int argc, char* argv[])
     signal(SIGINT, myexit);
     mythread->detach();
 
-    ctc_master_cli(ctc_shell_mode);
+    //ctc_master_cli(ctc_shell_mode); //do not need, init in create switch
     ctc_cli_read(ctc_shell_mode);
     rv= ctc_cli_start(ctc_shell_mode);
 

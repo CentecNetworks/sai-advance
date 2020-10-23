@@ -4,6 +4,7 @@
 #include "ctc_sai_virtual_router.h"
 #include "ctc_sai_route.h"
 #include "ctc_sai_next_hop.h"
+#include "ctc_sai_next_hop_group.h"
 #include "ctc_sai_mpls.h"
 #include "ctc_sai_y1731.h"
 
@@ -732,6 +733,9 @@ ctc_sai_y1731_session_get_info(sai_object_key_t *key, sai_attribute_t* attr, uin
         case SAI_Y1731_SESSION_ATTR_LOCAL_MEP_ID:
             attr->value.u32 = p_y1731_session_info->lmep_id;
             break;
+        case SAI_Y1731_SESSION_ATTR_ENABLE:
+            attr->value.booldata = p_y1731_session_info->mep_en;
+            break;
         case SAI_Y1731_SESSION_ATTR_CCM_PERIOD:
             attr->value.s32 = p_y1731_session_info->ccm_period;
             break;
@@ -843,6 +847,13 @@ ctc_sai_y1731_session_set_info(sai_object_key_t *key, const sai_attribute_t* att
          
             p_y1731_session_info->lmep_id = attr->value.u32;
             break;
+        case SAI_Y1731_SESSION_ATTR_ENABLE:
+            update_lmep.update_type = CTC_OAM_Y1731_LMEP_UPDATE_TYPE_MEP_EN;
+            update_lmep.update_value = attr->value.booldata;
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_lmep(lchip, &update_lmep), status, out);
+         
+            p_y1731_session_info->mep_en = attr->value.booldata;
+            break;
         case SAI_Y1731_SESSION_ATTR_CCM_PERIOD:            
             update_lmep.update_type = CTC_OAM_Y1731_LMEP_UPDATE_TYPE_CCM_INTERVAL;
             update_lmep.update_value = attr->value.s32;
@@ -928,7 +939,8 @@ ctc_sai_y1731_session_set_info(sai_object_key_t *key, const sai_attribute_t* att
             }
             else if( SAI_OBJECT_TYPE_NEXT_HOP_GROUP == ctc_object_id.type)
             {
-                //TODO
+                //TODO, not support, no sdk update api for protection path flag
+                return SAI_STATUS_INVALID_ATTRIBUTE_0;
             }
             else
             {
@@ -964,6 +976,9 @@ static ctc_sai_attr_fn_entry_t  y1731_session_attr_fn_entries[] =
       ctc_sai_y1731_session_get_info,
       NULL},
     { SAI_Y1731_SESSION_ATTR_LOCAL_MEP_ID,
+      ctc_sai_y1731_session_get_info,
+      ctc_sai_y1731_session_set_info},
+    { SAI_Y1731_SESSION_ATTR_ENABLE,
       ctc_sai_y1731_session_get_info,
       ctc_sai_y1731_session_set_info},
     { SAI_Y1731_SESSION_ATTR_CCM_PERIOD,
@@ -1096,8 +1111,20 @@ ctc_sai_y1731_rmep_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32
         case SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS:
             sal_memcpy(&attr->value.mac, mep_info.rmep.y1731_rmep.mac_sa, sizeof(sai_mac_t));
             break;
+        case SAI_Y1731_REMOTE_MEP_ATTR_ENABLE:
+            attr->value.booldata = p_y1731_rmep_info->rmep_en;
+            break;
         case SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED:
             attr->value.booldata = mep_info.rmep.y1731_rmep.first_pkt_rx;
+            break;
+        case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID:
+            attr->value.oid = p_y1731_rmep_info->hw_binding_aps_group;
+            break;
+        case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH:
+            attr->value.booldata = p_y1731_rmep_info->hw_binding_is_protecting_path;
+            break;
+        case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN:
+            attr->value.booldata = p_y1731_rmep_info->hw_binding_aps_en;
             break;
         default:
             break;
@@ -1115,10 +1142,15 @@ ctc_sai_y1731_rmep_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     sai_object_id_t y1731_rmep_id = 0;
     ctc_sai_y1731_rmep_t* p_y1731_rmep_info = NULL;
     ctc_sai_y1731_session_t* p_y1731_session_info = NULL;
+    ctc_object_id_t ctc_object_id;
+    ctc_oam_hw_aps_t  oam_aps;
+    ctc_sai_next_hop_grp_t* p_next_hop_grp_info = NULL;
 
     ctc_oam_update_t  update_rmep;   
 
     sal_memset(&update_rmep, 0, sizeof(ctc_oam_update_t));
+    sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
+    sal_memset(&oam_aps, 0, sizeof(ctc_oam_hw_aps_t));
 
     y1731_rmep_id = key->key.object_id;
 
@@ -1154,6 +1186,91 @@ ctc_sai_y1731_rmep_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
          
             CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_rmep), status, out);         
             break;
+        case SAI_Y1731_REMOTE_MEP_ATTR_ENABLE:            
+            update_rmep.update_type = CTC_OAM_Y1731_RMEP_UPDATE_TYPE_MEP_EN;
+            update_rmep.update_value = attr->value.booldata;
+            update_rmep.rmep_id = p_y1731_rmep_info->rmep_id;
+         
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_rmep), status, out);         
+            break;
+        case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID:            
+            if(SAI_NULL_OBJECT_ID == attr->value.oid)
+            {
+                //enable hw aps
+                update_rmep.is_local = 0;
+                update_rmep.update_type = CTC_OAM_Y1731_RMEP_UPDATE_TYPE_HW_APS_EN;
+                update_rmep.update_value = 0;
+                update_rmep.rmep_id = p_y1731_rmep_info->rmep_id;
+
+                p_y1731_rmep_info->hw_binding_aps_en = 0;
+                p_y1731_rmep_info->hw_binding_aps_group = SAI_NULL_OBJECT_ID;
+            }
+            else
+            {
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, attr->value.oid, &ctc_object_id);
+                if( SAI_NEXT_HOP_GROUP_TYPE_PROTECTION != ctc_object_id.sub_type)
+                {
+                    status = SAI_STATUS_INVALID_OBJECT_TYPE;
+                    goto out;
+                }
+                p_next_hop_grp_info = ctc_sai_db_get_object_property(lchip, attr->value.oid);
+                if(NULL == p_next_hop_grp_info)
+                {
+                    status = SAI_STATUS_ITEM_NOT_FOUND;
+                    goto out;
+                }
+            
+                p_y1731_rmep_info->hw_binding_aps_group = attr->value.oid;
+                
+                update_rmep.is_local = 0;
+                update_rmep.update_type = CTC_OAM_Y1731_RMEP_UPDATE_TYPE_HW_APS;
+                update_rmep.rmep_id = p_y1731_rmep_info->rmep_id;
+                            
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, p_y1731_rmep_info->hw_binding_aps_group, &ctc_object_id);
+                oam_aps.aps_group_id = ctc_object_id.value2;
+                oam_aps.protection_path = p_y1731_rmep_info->hw_binding_is_protecting_path;
+                update_rmep.p_update_value = &oam_aps;                                
+                
+            }
+         
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_rmep), status, out);         
+            break;
+        case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH:   
+            if( SAI_NULL_OBJECT_ID == p_y1731_rmep_info->hw_binding_aps_group)
+            {
+                status = SAI_STATUS_INVALID_ATTRIBUTE_0;
+                goto out;
+            }
+            p_y1731_rmep_info->hw_binding_is_protecting_path = attr->value.booldata;
+            
+            update_rmep.is_local = 0;
+            update_rmep.update_type = CTC_OAM_Y1731_RMEP_UPDATE_TYPE_HW_APS;
+            update_rmep.rmep_id = p_y1731_rmep_info->rmep_id;
+                        
+            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, p_y1731_rmep_info->hw_binding_aps_group, &ctc_object_id);
+            oam_aps.aps_group_id = ctc_object_id.value2;
+            oam_aps.protection_path = p_y1731_rmep_info->hw_binding_is_protecting_path;
+            update_rmep.p_update_value = &oam_aps;
+
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_rmep), status, out); 
+            break;
+
+        case SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN:   
+            if( SAI_NULL_OBJECT_ID == p_y1731_rmep_info->hw_binding_aps_group)
+            {
+                status = SAI_STATUS_INVALID_ATTRIBUTE_0;
+                goto out;
+            }
+            p_y1731_rmep_info->hw_binding_aps_en = attr->value.booldata;
+            
+            //enable hw aps
+            update_rmep.is_local = 0;
+            update_rmep.update_type = CTC_OAM_Y1731_RMEP_UPDATE_TYPE_HW_APS_EN;
+            update_rmep.update_value = p_y1731_rmep_info->hw_binding_aps_en;
+            update_rmep.rmep_id = p_y1731_rmep_info->rmep_id;
+            
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_rmep), status, out); 
+            break;
         default:
             break;
     }
@@ -1173,9 +1290,21 @@ static ctc_sai_attr_fn_entry_t  y1731_rmep_attr_fn_entries[] =
     { SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS,
       ctc_sai_y1731_rmep_get_info,
       ctc_sai_y1731_rmep_set_info},
+    { SAI_Y1731_REMOTE_MEP_ATTR_ENABLE,
+      ctc_sai_y1731_rmep_get_info,
+      ctc_sai_y1731_rmep_set_info},
     { SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED,
       ctc_sai_y1731_rmep_get_info,
       NULL},
+    { SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID,
+      ctc_sai_y1731_rmep_get_info,
+      ctc_sai_y1731_rmep_set_info},
+    { SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH,
+      ctc_sai_y1731_rmep_get_info,
+      ctc_sai_y1731_rmep_set_info},
+    { SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN,
+      ctc_sai_y1731_rmep_get_info,
+      ctc_sai_y1731_rmep_set_info},      
     { CTC_SAI_FUNC_ATTR_END_ID,
       NULL,
       NULL }
@@ -1664,6 +1793,21 @@ sai_status_t ctc_sai_y1731_create_y1731_session( sai_object_id_t *sai_y1731_sess
         p_y1731_session_info->lmep_id = attr_value->u32;
     }
 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_ENABLE, &attr_value, &index);
+    if (!CTC_SAI_ERROR(status))
+    {        
+        p_y1731_session_info->mep_en = attr_value->booldata;
+        if(p_y1731_session_info->mep_en)
+        {
+            oam_lmep.u.y1731_lmep.flag |= CTC_OAM_Y1731_LMEP_FLAG_MEP_EN;
+        }
+    }
+    else
+    {
+        oam_lmep.u.y1731_lmep.flag |= CTC_OAM_Y1731_LMEP_FLAG_MEP_EN;
+        p_y1731_session_info->mep_en = 1;
+    }
+
     
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_CCM_PERIOD, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
@@ -1771,7 +1915,10 @@ sai_status_t ctc_sai_y1731_create_y1731_session( sai_object_id_t *sai_y1731_sess
         }
         else if( SAI_OBJECT_TYPE_NEXT_HOP_GROUP == ctc_object_id.type)
         {
-            //TODO
+            //Do not need, use NH is enough
+            
+            //p_y1731_session_info->nh_oid = attr_value->oid;
+            //oam_lmep.u.y1731_lmep.nhid = ctc_object_id.value;            
         }
         else
         {
@@ -1785,7 +1932,7 @@ sai_status_t ctc_sai_y1731_create_y1731_session( sai_object_id_t *sai_y1731_sess
         oam_lmep.u.y1731_lmep.flag |= CTC_OAM_Y1731_LMEP_FLAG_P2P_MODE;
     }    
     
-    oam_lmep.u.y1731_lmep.flag |= CTC_OAM_Y1731_LMEP_FLAG_MEP_EN;
+    //oam_lmep.u.y1731_lmep.flag |= CTC_OAM_Y1731_LMEP_FLAG_MEP_EN;
     oam_lmep.u.y1731_lmep.tpid_index = CTC_PARSER_L2_TPID_SVLAN_TPID_0;
     sal_memcpy(&oam_lmep.key, &oam_key, sizeof(ctc_oam_key_t));
     CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_add_lmep(lchip, &oam_lmep), status, error2);
@@ -1945,8 +2092,16 @@ sai_status_t ctc_sai_y1731_create_y1731_remote_mep( sai_object_id_t *sai_y1731_r
     ctc_slistnode_t *node = NULL;
     ctc_sai_y1731_rmep_id_t *p_rmep_node_data = NULL;
     ctc_sai_y1731_rmep_id_t *p_rmep_node = NULL;
+    ctc_object_id_t ctc_object_id;
+    ctc_sai_next_hop_grp_t* p_next_hop_grp_info = NULL;
+    ctc_oam_update_t update_lmep;
+    ctc_oam_hw_aps_t  oam_aps;
 
     sal_memset(&oam_rmep, 0, sizeof(ctc_oam_rmep_t));
+    sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
+
+    sal_memset(&update_lmep, 0, sizeof(ctc_oam_update_t));
+    sal_memset(&oam_aps, 0, sizeof(ctc_oam_hw_aps_t));
 
     CTC_SAI_LOG_ENTER(SAI_API_Y1731);
     CTC_SAI_PTR_VALID_CHECK(sai_y1731_rmep_id);
@@ -1983,12 +2138,98 @@ sai_status_t ctc_sai_y1731_create_y1731_remote_mep( sai_object_id_t *sai_y1731_r
         sal_memcpy(&oam_rmep.u.y1731_rmep.rmep_mac, &attr_value->mac, sizeof(sai_mac_t));
     }
 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_REMOTE_MEP_ATTR_ENABLE, &attr_value, &index);
+    if (!CTC_SAI_ERROR(status))
+    {        
+        p_y1731_rmep_info->rmep_en = attr_value->booldata;
+        if(p_y1731_session_info->mep_en)
+        {
+            oam_rmep.u.y1731_rmep.flag |= CTC_OAM_Y1731_RMEP_FLAG_MEP_EN;
+        }
+    }
+    else
+    {
+        oam_rmep.u.y1731_rmep.flag |= CTC_OAM_Y1731_RMEP_FLAG_MEP_EN;
+        p_y1731_rmep_info->rmep_en = 1;
+    }
+
     sal_memcpy(&oam_rmep.key, &p_y1731_session_info->oam_key, sizeof(ctc_oam_key_t));
-    oam_rmep.u.y1731_rmep.flag |= CTC_OAM_Y1731_RMEP_FLAG_MEP_EN;
     
     CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_add_rmep(lchip, &oam_rmep), status, error2);
 
     p_y1731_rmep_info->rmep_index = oam_rmep.rmep_index;
+
+    
+    //hw aps binding
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID, &attr_value, &index);
+    if (!CTC_SAI_ERROR(status))
+    {
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, attr_value->oid, &ctc_object_id);
+        if( SAI_NEXT_HOP_GROUP_TYPE_PROTECTION != ctc_object_id.sub_type)
+        {
+            status = SAI_STATUS_INVALID_OBJECT_TYPE;
+            goto error2;
+        }
+        p_next_hop_grp_info = ctc_sai_db_get_object_property(lchip, attr_value->oid);
+        if(NULL == p_next_hop_grp_info)
+        {
+            status = SAI_STATUS_ITEM_NOT_FOUND;
+            goto error2;
+        }
+        p_y1731_rmep_info->hw_binding_aps_group = attr_value->oid;     
+    }
+    
+    if(p_y1731_rmep_info->hw_binding_aps_group)
+    {
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH, &attr_value, &index);
+        if (!CTC_SAI_ERROR(status))
+        {
+            p_y1731_rmep_info->hw_binding_is_protecting_path = attr_value->booldata;
+        }
+        else
+        {
+            p_y1731_rmep_info->hw_binding_is_protecting_path = 0;
+        }
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN, &attr_value, &index);
+        if (!CTC_SAI_ERROR(status))
+        {
+            p_y1731_rmep_info->hw_binding_aps_en = attr_value->booldata;
+        }
+        else
+        {
+            p_y1731_rmep_info->hw_binding_aps_en = 0;
+        }
+    }
+
+    if(p_y1731_rmep_info->hw_binding_aps_group)
+    {
+        sal_memcpy(&(update_lmep.key), &p_y1731_session_info->oam_key, sizeof(ctc_oam_key_t));
+        
+        //configure hw aps group and is protecting path
+
+        update_lmep.rmep_id = p_y1731_rmep_info->rmep_id;
+        
+        update_lmep.is_local = 0;
+        update_lmep.update_type = CTC_OAM_Y1731_RMEP_UPDATE_TYPE_HW_APS;
+        
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, p_y1731_rmep_info->hw_binding_aps_group, &ctc_object_id);
+        oam_aps.aps_group_id = ctc_object_id.value2;
+        oam_aps.protection_path = p_y1731_rmep_info->hw_binding_is_protecting_path;
+        
+        update_lmep.p_update_value = &oam_aps;
+        
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_lmep), status, error3);
+
+        //enable hw aps
+        update_lmep.is_local = 0;
+        update_lmep.update_type = CTC_OAM_Y1731_RMEP_UPDATE_TYPE_HW_APS_EN;
+        update_lmep.p_update_value = NULL;
+        update_lmep.update_value = p_y1731_rmep_info->hw_binding_aps_en;
+                
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_oam_update_rmep(lchip, &update_lmep), status, error3);
+    }
+    
     
     /* add rmep into session list */
     CTC_SLIST_LOOP(p_y1731_session_info->rmep_head, node)
@@ -2011,6 +2252,8 @@ sai_status_t ctc_sai_y1731_create_y1731_remote_mep( sai_object_id_t *sai_y1731_r
     ctc_slist_add_tail(p_y1731_session_info->rmep_head, &(p_rmep_node->node));
 
     *sai_y1731_rmep_id = rmep_obj_id;
+
+    status = SAI_STATUS_SUCCESS;
 
     goto out;
 

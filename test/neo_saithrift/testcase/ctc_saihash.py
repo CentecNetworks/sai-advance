@@ -1210,7 +1210,7 @@ class HashMPLSUseLabelLagSetTest(sai_base_test.ThriftInterfaceDataPlane):
         hash_id_ecmp = 0x1C
         field_list = [SAI_NATIVE_HASH_FIELD_MPLS_LABEL_STACK]
 
-        lag_id1 = sai_thrift_create_lag(self.client, [])
+        lag_id1 = sai_thrift_create_lag(self.client)
         print"lag:%u" %lag_id1
         print"lag:%lu" %lag_id1
         print"lag:%lx" %lag_id1

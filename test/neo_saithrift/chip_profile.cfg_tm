@@ -55,7 +55,7 @@
 
 #-----------------  Stats Init Parameter --------------
 [STATS_PORT_EN]         = 0
-[STATS_ECMP_EN]         = 0
+[STATS_ECMP_EN]         = 1
 
 #-----------------  BPE Init Parameter --------------
 [BPE_BR_PORT_EXTENDER_EN]  = 0
@@ -82,7 +82,7 @@
 [QOS_PORT_EXT_QUEUE_NUM] = 0
 #QoS CPU reason queue number support 128/64/32, default 128
 [QOS_CPU_QUEUE_NUM] = 128
-[QOS_INGRESS_VLAN_POLICER_NUM] = 0
+[QOS_INGRESS_VLAN_POLICER_NUM] = 32
 [QOS_EGRESS_VLAN_POLICER_NUM] = 0
 [QOS_POLICER_MERGE_MODE] = 0
 #QOS service queue mode, default 0,0:logic scr port + dstport enq 1:service id + dstport enq

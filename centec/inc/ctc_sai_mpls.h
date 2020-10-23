@@ -30,17 +30,20 @@ This module defines SAI MPLS.
 \t  |  SAI_INSEG_ENTRY_ATTR_PACKET_ACTION                   |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_INSEG_ENTRY_ATTR_TRAP_PRIORITY                   |              -                 |
 \t  |  SAI_INSEG_ENTRY_ATTR_NEXT_HOP_ID                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID                 |    CTC8096,CTC7148,CTC7132     |
 \t  |  SAI_INSEG_ENTRY_ATTR_PSC_TYPE                        |            CTC7132             |
 \t  |  SAI_INSEG_ENTRY_ATTR_QOS_TC                          |            CTC7132             |
 \t  |  SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP              |            CTC7132             |
 \t  |  SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP           |            CTC7132             |
 \t  |  SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE                    |            CTC7132             |
 \t  |  SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE                    |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP                     |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_FRR_CONFIGURED_ROLE             |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_FRR_OBSERVED_ROLE               |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_FRR_INACTIVE_RX_DISCARD         |            CTC7132             |
+\e  |  SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID                 |    CTC8096,CTC7148,CTC7132     |
+\e  |  SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP                     |            CTC7132             |
+\e  |  SAI_INSEG_ENTRY_ATTR_FRR_CONFIGURED_ROLE             |            CTC7132             |
+\e  |  SAI_INSEG_ENTRY_ATTR_FRR_OBSERVED_ROLE               |            CTC7132             |
+\e  |  SAI_INSEG_ENTRY_ATTR_FRR_INACTIVE_RX_DISCARD         |            CTC7132             |
+\e  |  SAI_INSEG_ENTRY_ATTR_COUNTER_ID                      |            CTC7132             |
+\e  |  SAI_INSEG_ENTRY_ATTR_POLICER_ID                      |            CTC7132             |
+\e  |  SAI_INSEG_ENTRY_ATTR_SERVICE_ID                      |            CTC7132             |
 \b
 
 */
@@ -61,6 +64,7 @@ typedef struct  ctc_sai_mpls_s
     sai_object_id_t nexthop_oid;
     sai_object_id_t decap_tunnel_oid;
     sai_object_id_t frr_nhp_grp_oid;
+    sai_object_id_t counter_oid;
     uint8 frr_configured_role;
     bool frr_rx_discard;
     bool is_es;
@@ -70,7 +74,10 @@ typedef struct  ctc_sai_mpls_s
     uint8 qos_tc;
     uint8 exp_to_tc_map_id;
     uint8 exp_to_color_map_id;
-        
+    uint8 qos_domain_id;
+    uint32 policer_id;
+    uint16 service_id;  //only for insegment with tunnel(pw label)
+
 }ctc_sai_mpls_t;
 
 typedef enum _sai_mpls_db_op_t

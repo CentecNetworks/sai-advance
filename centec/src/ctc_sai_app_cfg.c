@@ -16,9 +16,10 @@
  *
  ***************************************************************/
 #include "sal.h"
-#include "dal.h"
-#include "ctc_error.h"
+#include "api/include/ctc_api.h"
+#include "ctc_app.h"
 #include "ctc_sai_app_cfg_chip_profile.h"
+#include "ctc_sai_app_cfg_ftm_profile.h"
 #include "ctc_sai_app_cfg_datapath_profile.h"
 #include "sai.h"
 #include "ctc_sai.h"
@@ -28,6 +29,13 @@
  *  Defines and Macros
  *
  ***************************************************************/
+
+#define MEM_CONFIG_PROFILE          "./mem_profile.cfg"
+#define CTC_CHIP_CONFIG             "./chip_profile.cfg"
+#define CTC_PHY_MAP                 "./phy_mapping.cfg"
+#define CTC_DATAPATH_CONFIG         "./datapath_cfg.txt"
+#define CTC_RESRC_CONFIG            "./resrc_profile.cfg"
+
 #define MAX_EXTERNAL_NHNUM          16384
 #define ACL_REDIRECT_FWD_PTR_NUM    1024
 #define CTC_APP_MPLS_TBL_BLOCK_SIZE 64
@@ -47,7 +55,7 @@ default interrupt configuration provide two types interrupt confuguration: msi a
 
 ctc_intr_mapping_t ctc_app_intr_config[] =
 {
-    {1,    CTC_INTR_CHIP_FATAL                 },
+    {0,    CTC_INTR_CHIP_FATAL                 },
     {0,    CTC_INTR_CHIP_NORMAL                },
     {INVG,  CTC_INTR_FUNC_PTP_TS_CAPTURE        },
     {0,  CTC_INTR_FUNC_PTP_MAC_TX_TS_CAPTURE },
@@ -65,8 +73,8 @@ ctc_intr_mapping_t ctc_app_intr_config[] =
     {0,      CTC_INTR_FUNC_IPE_AGING_FIFO        },
     {0,      CTC_INTR_FUNC_STATS_FIFO            },
     {INVG, CTC_INTR_FUNC_APS_FAILOVER          },
-    {1,      CTC_INTR_DMA_FUNC                   },
-    {1,      CTC_INTR_FUNC_IPFIX_OVERFLOW},
+    {0,      CTC_INTR_DMA_FUNC                   },
+    {0,      CTC_INTR_FUNC_IPFIX_OVERFLOW},
 };
 
 ctc_intr_mapping_t ctc_app_intr_config_msi[] =
@@ -90,7 +98,7 @@ ctc_intr_mapping_t ctc_app_intr_config_msi[] =
     {0, CTC_INTR_FUNC_STATS_FIFO            },
     {INVG, CTC_INTR_FUNC_APS_FAILOVER          },
     {0,      CTC_INTR_DMA_FUNC                   },
-    {1,      CTC_INTR_FUNC_IPFIX_OVERFLOW},
+    {0,      CTC_INTR_FUNC_IPFIX_OVERFLOW},
 };
 
 /* default interrupt group configuration, need to change the IRQ and priority of groups based on your requirement
@@ -98,8 +106,7 @@ ctc_intr_mapping_t ctc_app_intr_config_msi[] =
  */
 ctc_intr_group_t ctc_app_intr_group_config[] =
 {
-    {0, 16, SAL_TASK_PRIO_DEF,  "other interrupt group"},
-    {1, 17, 100,                "DMA and abnormal group"}
+    {0, 69, SAL_TASK_PRIO_DEF,  "other interrupt group"},
 };
 
 /* default interrupt group configuration, need to change the IRQ and priority of groups based on your requirement
@@ -116,10 +123,12 @@ ctc_intr_group_t ctc_app_intr_group_config_msi[] =
 */
 
 static int32
-_ctc_app_get_intr_cfg(ctc_intr_global_cfg_t* p_intr_cfg, uint8 interrupt_mode)
+_ctc_app_get_intr_cfg(ctc_intr_global_cfg_t* p_intr_cfg, ctc_init_chip_info_t* p_chip_info)
 {
     uint32 group_count = 0;
     uint32 intr_count = 0;
+    uint8 interrupt_mode = p_chip_info->interrupt_mode;
+    uint32 irq = p_chip_info->irq;
 
     /* use default global configuration in sys */
     group_count = interrupt_mode?(COUNTOF(ctc_app_intr_group_config_msi)):(COUNTOF(ctc_app_intr_group_config));
@@ -146,6 +155,11 @@ _ctc_app_get_intr_cfg(ctc_intr_global_cfg_t* p_intr_cfg, uint8 interrupt_mode)
         p_intr_cfg->group_count = group_count;
         p_intr_cfg->intr_count = intr_count;
         p_intr_cfg->p_group = ctc_app_intr_group_config;
+        if (irq)
+        {
+            /*default use irq from ctc_app_intr_group_config*/
+            p_intr_cfg->p_group->irq = irq;
+        }
         p_intr_cfg->p_intr = ctc_app_intr_config;
     }
     p_intr_cfg->intr_mode = interrupt_mode;
@@ -235,7 +249,7 @@ _ctc_app_get_dma_cfg(ctc_dma_global_cfg_t* p_dma_cfg)
     }
 #endif
 
-#if defined (DUET2) || defined (TSINGMA)
+#if defined (DUET2) || defined (TSINGMA) || defined (TSINGMA_MX)
     p_dma_cfg->learning.desc_num   = 128;
     p_dma_cfg->learning.priority       = SAL_TASK_PRIO_DEF;
     p_dma_cfg->learning.dmasel       = 0;
@@ -262,16 +276,30 @@ _ctc_app_get_dma_cfg(ctc_dma_global_cfg_t* p_dma_cfg)
     p_dma_cfg->pkt_rx[3].priority      = SAL_TASK_PRIO_DEF;
     p_dma_cfg->pkt_rx[3].dmasel      = 0;
     p_dma_cfg->pkt_rx[3].data      = 256;
+    p_dma_cfg->pkt_rx[3].pkt_knet_en = 0;
 
-    p_dma_cfg->pkt_tx.desc_num = 32;
-    p_dma_cfg->pkt_tx.priority = SAL_TASK_PRIO_DEF;
-    p_dma_cfg->pkt_tx.dmasel = 0;
+    p_dma_cfg->pkt_tx_ext[0].desc_num = 32;
+    p_dma_cfg->pkt_tx_ext[0].priority = SAL_TASK_PRIO_DEF;
+    p_dma_cfg->pkt_tx_ext[0].dmasel = 0;
+    p_dma_cfg->pkt_tx_ext[1].desc_num = 32;
+    p_dma_cfg->pkt_tx_ext[1].priority = SAL_TASK_PRIO_DEF;
+    p_dma_cfg->pkt_tx_ext[1].dmasel = 0;
+    p_dma_cfg->pkt_tx_ext[1].pkt_knet_en = 0;
+    if (1 == SDK_WORK_PLATFORM)
+    {
+        p_dma_cfg->pkt_tx_ext[0].desc_num = 128;
+        p_dma_cfg->pkt_tx_ext[1].desc_num = 128;
+    }
 
     p_dma_cfg->func_en_bitmap          = 0;
     CTC_BIT_SET(p_dma_cfg->func_en_bitmap, CTC_DMA_FUNC_PACKET_RX);
     CTC_BIT_SET(p_dma_cfg->func_en_bitmap, CTC_DMA_FUNC_PACKET_TX);
     CTC_BIT_SET(p_dma_cfg->func_en_bitmap, CTC_DMA_FUNC_HW_LEARNING);
     CTC_BIT_SET(p_dma_cfg->func_en_bitmap, CTC_DMA_FUNC_IPFIX);
+
+#if defined (DUET2) || defined (TSINGMA)
+    CTC_BIT_SET(p_dma_cfg->func_en_bitmap, CTC_DMA_FUNC_SDC);
+#endif
 
     /*UML do not enable monitor and stats */
     if (0 == SDK_WORK_PLATFORM)
@@ -286,7 +314,7 @@ _ctc_app_get_dma_cfg(ctc_dma_global_cfg_t* p_dma_cfg)
 }
 
 static int32
-_ctc_app_get_profile(uint8 lchip, char* init_cfg, char* datapath_cfg, ctc_init_cfg_t* p_init_config, ctc_init_chip_info_t* p_chip_info)
+_ctc_app_get_profile(uint8 lchip, char* init_cfg, char* datapath_cfg, char* mem_cfg, ctc_init_cfg_t* p_init_config, ctc_init_chip_info_t* p_chip_info)
 {
     int32 ret = 0;
     uint8 index = 0;
@@ -299,11 +327,24 @@ _ctc_app_get_profile(uint8 lchip, char* init_cfg, char* datapath_cfg, ctc_init_c
         return ret;
     }
 
+    ctc_app_set_phy_mapping((uint8*)CTC_PHY_MAP, p_init_config, p_chip_info);
+
     /*read ftm mem_profile.cfg*/
-    p_init_config->ftm_info.profile_type = p_chip_info->profile_type;
-    if (p_init_config->ftm_info.profile_type == CTC_FTM_PROFILE_USER_DEFINE)
+    ret = ctc_app_read_ftm_profile((int8*)mem_cfg, &(p_init_config->ftm_info));
+    if (ret == CTC_E_NONE)
     {
-        p_init_config->ftm_info.profile_type = CTC_FTM_PROFILE_0;
+        CTC_SAI_LOG_DEBUG(SAI_API_SWITCH, "Use user-defined profile to initialize FTM \n");
+        p_init_config->ftm_info.profile_type = CTC_FTM_PROFILE_USER_DEFINE;
+    }
+    else
+    {
+        //default memory profile
+        p_init_config->ftm_info.profile_type = p_chip_info->profile_type;
+        if (p_init_config->ftm_info.profile_type == CTC_FTM_PROFILE_USER_DEFINE)
+        {
+            p_init_config->ftm_info.profile_type = CTC_FTM_PROFILE_0;
+        }
+
     }
 
     /*read datapath_cfg.cfg*/
@@ -325,7 +366,13 @@ _ctc_app_get_profile(uint8 lchip, char* init_cfg, char* datapath_cfg, ctc_init_c
     }
 
     /*read datapath_cfg.cfg*/
-    sal_memset(&(p_init_config->p_qos_cfg->resrc_pool), 0, sizeof(ctc_qos_resrc_pool_cfg_t));
+    //ret = ctc_app_get_resrc_profile((uint8*)CTC_RESRC_CONFIG, &p_init_config->p_qos_cfg->resrc_pool);
+    //if (ret < 0)
+    {
+        sal_memset(&(p_init_config->p_qos_cfg->resrc_pool), 0, sizeof(ctc_qos_resrc_pool_cfg_t));
+        //CTC_SAI_LOG_DEBUG(SAI_API_SWITCH, "Use default resrc profile \r\n");
+    }
+
 
     return CTC_E_NONE;
 }
@@ -371,6 +418,8 @@ _ctc_app_get_init_para(uint8 lchip, ctc_init_cfg_t * p_init_config, ctc_init_chi
     p_init_config->p_nh_cfg->max_tunnel_id            = p_chip_info->mpls_tunnel_num
         ? p_chip_info->mpls_tunnel_num : CTC_NH_DEFAULT_MAX_MPLS_TUNNEL_NUM;
 
+    p_init_config->p_nh_cfg->h_ecmp_en = p_chip_info->h_ecmp_en;
+
     /*2. Get Oam module init parameter*/
     p_init_config->p_oam_cfg->maid_len_format              = 3;
     p_init_config->p_oam_cfg->mep_index_alloc_by_sdk       = 1;
@@ -387,7 +436,7 @@ _ctc_app_get_init_para(uint8 lchip, ctc_init_cfg_t * p_init_config, ctc_init_chi
     p_init_config->p_oam_cfg->tp_csf_rdi                   = 0x2;
 
     /*3. Get Interrupt module init parameter*/
-    _ctc_app_get_intr_cfg(p_init_config->p_intr_cfg, p_chip_info->interrupt_mode);
+    _ctc_app_get_intr_cfg(p_init_config->p_intr_cfg, p_chip_info);
 
     /*4. Get Stats module init parameter*/
     p_init_config->p_stats_cfg->stats_bitmap     |= p_chip_info->stats_port_en ? CTC_STATS_PORT_STATS
@@ -436,9 +485,12 @@ _ctc_app_get_init_para(uint8 lchip, ctc_init_cfg_t * p_init_config, ctc_init_chi
     {
         p_init_config->p_chip_cfg->cut_through_speed_bitmap = p_chip_info->cut_through_bitmap;
     }
+    p_init_config->p_chip_cfg->alpm_affinity_mask = p_chip_info->alpm_affinity_mask;
+    p_init_config->p_chip_cfg->normal_affinity_mask = p_chip_info->normal_affinity_mask;
 
     p_init_config->p_chip_cfg->ecc_recover_en       = p_chip_info->ecc_recover_en;
     p_init_config->p_chip_cfg->tcam_scan_en         = p_chip_info->tcam_scan_en;
+    p_init_config->p_chip_cfg->sdb_en               = p_chip_info->sdb_en;
     p_init_config->p_chip_cfg->cpu_port_en = p_chip_info->cpu_port_en;
     p_init_config->p_chip_cfg->cpu_port = p_chip_info->cpu_port;
     p_init_config->p_chip_cfg->gb_gg_interconnect_en = p_chip_info->lag_gb_gg_interconnect_en;
@@ -480,6 +532,17 @@ _ctc_app_get_init_para(uint8 lchip, ctc_init_cfg_t * p_init_config, ctc_init_chi
                                                                      ? p_chip_info->egress_vlan_policer_num : 0;
         p_init_config->p_qos_cfg->queue_num_per_internal_port   = p_chip_info->queue_num_per_internal_port
                                                                      ? p_chip_info->queue_num_per_internal_port : 0;
+        p_init_config->p_qos_cfg->policer_merge_mode   = p_chip_info->policer_merge_mode
+                                                                     ? p_chip_info->policer_merge_mode : 0;
+        p_init_config->p_qos_cfg->policer_svc_mode             = p_chip_info->policer_svc_mode
+                                                                     ? p_chip_info->policer_svc_mode : 0;
+        p_init_config->p_qos_cfg->igs_macro_policer_num    = p_chip_info->igs_macro_policer_num
+                                                                     ? p_chip_info->igs_macro_policer_num : 0;
+        p_init_config->p_qos_cfg->egs_macro_policer_num     = p_chip_info->egs_macro_policer_num
+                                                                     ? p_chip_info->egs_macro_policer_num : 0;
+        p_init_config->p_qos_cfg->service_queue_mode   = p_chip_info->service_queue_mode
+                                                                     ? p_chip_info->service_queue_mode : 0;
+        p_init_config->p_qos_cfg->queue_num_per_ingress_service   = 4;
 
     }
 
@@ -504,6 +567,7 @@ _ctc_app_get_init_para(uint8 lchip, ctc_init_cfg_t * p_init_config, ctc_init_chi
     p_init_config->p_stacking_cfg->fabric_mode               = p_chip_info->fabric_mode;
 
     p_init_config->p_stacking_cfg->version                   = p_chip_info->stacking_version;
+    p_init_config->p_stacking_cfg->learning_mode = p_chip_info->stacking_learning_mode;
 
     p_init_config->p_stacking_cfg->connect_glb.member_num    = 1;
     p_init_config->p_stacking_cfg->connect_glb.mode          = 1;
@@ -511,11 +575,27 @@ _ctc_app_get_init_para(uint8 lchip, ctc_init_cfg_t * p_init_config, ctc_init_chi
     /*13 get module init flag*/
     p_init_config->init_flag = p_chip_info->init_flag;
 
+    /* ptp default use inter clock*/
+    p_init_config->p_ptp_cfg->ptp_ucast_en = 1;
+    p_init_config->p_ptp_cfg->sync_copy_to_cpu_en = 0;
+    p_init_config->p_ptp_cfg->signaling_copy_to_cpu_en = 0;
+    p_init_config->p_ptp_cfg->management_copy_to_cpu_en = 0;
+    p_init_config->p_ptp_cfg->delay_request_process_en = 1;
+    p_init_config->p_ptp_cfg->port_based_ptp_en = 1;
+    p_init_config->p_ptp_cfg->use_internal_clock_en = 1;
+    p_init_config->p_ptp_cfg->cache_aging_time = 60;
+
+    if (p_init_config->p_parser_cfg)
+    {
+        p_init_config->p_parser_cfg->ecmp_hash_type = 1;
+        p_init_config->p_parser_cfg->linkagg_hash_type = 1;
+        p_init_config->p_parser_cfg->lb_hash_mode = p_chip_info->lb_hash_mode ? p_chip_info->lb_hash_mode : 0;
+    }
     return CTC_E_NONE;
 }
 
 int32
-ctc_app_get_config(uint8 lchip, char* init_cfg, char* data_cfg, ctc_init_cfg_t * p_init_config)
+ctc_app_get_config(uint8 lchip, char* init_cfg, char* data_cfg, char* mem_cfg, ctc_init_cfg_t * p_init_config, ctc_init_cfg_t * user_init_config)
 {
     ctc_init_chip_info_t chip_info;
     CTC_PTR_VALID_CHECK(p_init_config);
@@ -529,7 +609,7 @@ ctc_app_get_config(uint8 lchip, char* init_cfg, char* data_cfg, ctc_init_cfg_t *
     sal_memset(p_init_config->p_mpls_cfg, 0, sizeof(ctc_mpls_init_t));
     sal_memset(p_init_config->p_intr_cfg, 0, sizeof(ctc_intr_global_cfg_t));
     sal_memset(p_init_config->p_dma_cfg, 0, sizeof(ctc_dma_global_cfg_t));
-    sal_memset(p_init_config->ftm_info.key_info, 0, 3*CTC_FTM_KEY_TYPE_MAX * sizeof(ctc_ftm_key_info_t));
+    sal_memset(p_init_config->ftm_info.key_info, 0, CTC_FTM_KEY_TYPE_MAX * sizeof(ctc_ftm_key_info_t));
     sal_memset(p_init_config->ftm_info.tbl_info, 0, CTC_FTM_TBL_TYPE_MAX * sizeof(ctc_ftm_tbl_info_t));
     sal_memset(p_init_config->p_bpe_cfg, 0, sizeof(ctc_bpe_global_cfg_t));
     sal_memset(p_init_config->p_chip_cfg, 0, sizeof(ctc_chip_global_cfg_t));
@@ -538,14 +618,23 @@ ctc_app_get_config(uint8 lchip, char* init_cfg, char* data_cfg, ctc_init_cfg_t *
     sal_memset(p_init_config->p_ipuc_cfg, 0, sizeof(ctc_ipuc_global_cfg_t));
     sal_memset(p_init_config->p_stats_cfg, 0, sizeof(ctc_stats_global_cfg_t));
     sal_memset(p_init_config->p_stacking_cfg, 0, sizeof(ctc_stacking_glb_cfg_t));
+    sal_memset(p_init_config->p_ptp_cfg, 0, sizeof(ctc_ptp_global_config_t));
+    sal_memset(p_init_config->p_acl_cfg, 0, sizeof(ctc_acl_global_cfg_t));
+    sal_memset(p_init_config->p_parser_cfg, 0, sizeof(ctc_parser_global_cfg_t));
 
 
     /*Get profile parameter*/
-    CTC_ERROR_RETURN(_ctc_app_get_profile(lchip, init_cfg, data_cfg, p_init_config, &chip_info));
+    CTC_ERROR_RETURN(_ctc_app_get_profile(lchip, init_cfg, data_cfg, mem_cfg, p_init_config, &chip_info));
 
     /*Get Module init parameter*/
     CTC_ERROR_RETURN(_ctc_app_get_init_para(lchip, p_init_config, &chip_info));
+    if(user_init_config != NULL)
+    {
+        sal_memset(p_init_config, 0, sizeof(ctc_init_cfg_t));
+        sal_memcpy(p_init_config, user_init_config, sizeof(ctc_init_cfg_t));
+    }
 
     return CTC_E_NONE;
 }
+CTC_EXPORT_SYMBOL(ctc_app_get_config);
 

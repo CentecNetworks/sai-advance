@@ -4,8 +4,6 @@
 extern "C" {
 #endif
 
-#include "sal.h"
-#include "ctc_qos.h"
 
 int32
 ctc_app_get_resrc_profile(const uint8* file_name,

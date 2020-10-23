@@ -4,9 +4,6 @@
 extern "C" {
 #endif
 
-#include <sal_types.h>
-#include <sal_file.h>
-
 typedef struct ctc_app_parse_file_s
 {
     sal_file_t p_file;

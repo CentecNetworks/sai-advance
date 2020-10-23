@@ -1185,6 +1185,36 @@ typedef enum _sai_hostif_packet_oam_tx_type_t
     
 } sai_hostif_packet_oam_tx_type_t;
 
+typedef enum _sai_hostif_packet_ptp_tx_packet_op_type_t
+{
+    /** PTP event packet for below packet
+     *
+     * 1-step sync
+     * 
+     * update TS and CF in PTP packet, do not notify
+     */
+    SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_1,
+
+    /** PTP event packet for below packet
+     *
+     * 2-step sync
+     * delay-req/pdelay-req
+     * 2-step pdelay-resp
+     * 
+     * update CF in PTP packet, do notify
+     */
+    SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_2,
+
+    /** PTP event packet for below packet
+     *
+     * 1-step pdelay-resp
+     *
+     * update CF in PTP packet, do not notify
+     */
+    SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_3,
+    
+} sai_hostif_packet_ptp_tx_packet_op_type_t;
+
 /**
  * @brief Host interface packet attributes
  */
@@ -1263,7 +1293,15 @@ typedef enum _sai_hostif_packet_attr_t
      * @type sai_timespec_t
      * @flags READ_ONLY
      */
-    SAI_HOSTIF_PACKET_ATTR_TIMESTAMP,
+    SAI_HOSTIF_PACKET_ATTR_TIMESTAMP,    
+
+    /**
+     * @brief End of attributes
+     */
+    SAI_HOSTIF_PACKET_ATTR_END,
+
+    /** Custom range base value */
+    SAI_HOSTIF_PACKET_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
      * @brief local counter RXFCL for Y.1731 LM (for receive-only)
@@ -1273,15 +1311,7 @@ typedef enum _sai_hostif_packet_attr_t
      * @type sai_uint64_t
      * @flags READ_ONLY
      */
-    SAI_HOSTIF_PACKET_ATTR_Y1731_RXFCL,
-
-    /**
-     * @brief End of attributes
-     */
-    SAI_HOSTIF_PACKET_ATTR_END,
-
-    /** Custom range base value */
-    SAI_HOSTIF_PACKET_ATTR_CUSTOM_RANGE_START = 0x10000000,
+    SAI_HOSTIF_PACKET_ATTR_Y1731_RXFCL = SAI_HOSTIF_PACKET_ATTR_CUSTOM_RANGE_START,
 
     /**
      * @brief OAM Tx packet type (for transmit-only)
@@ -1310,7 +1340,7 @@ typedef enum _sai_hostif_packet_attr_t
      * 
      * Used for OAM DM or PTP packet 
      * When used for OAM DM, it indicate the offset of timestamp which is need to edit
-     * When used for PTP, it indicate the offset of correctField of PTP packet
+     * When used for PTP, it indicate the offset of PTP header in packet
      *
      * when SAI_HOSTIF_PACKET_ATTR_CUSTOM_OAM_TX_TYPE == SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM
      * or SAI_HOSTIF_PACKET_ATTR_HOSTIF_TX_TYPE == SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
@@ -1319,6 +1349,29 @@ typedef enum _sai_hostif_packet_attr_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      */
     SAI_HOSTIF_PACKET_ATTR_CUSTOM_TIMESTAMP_OFFSET,
+
+    /**
+     * @brief PTP tx packet opration type (for transmit-only)
+     * 
+     * ptp packet tx use 1-step or 2-step, packet need update TS in ASIC(Sync/Delay_req/Pdelay_req/Pdelay_resp) 
+     * or not(FollowUp)
+     *
+     * @type sai_hostif_packet_ptp_tx_packet_op_type_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_HOSTIF_PACKET_ATTR_HOSTIF_TX_TYPE == SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
+     */
+    SAI_HOSTIF_PACKET_ATTR_CUSTOM_PTP_TX_PACKET_OP_TYPE,
+
+    /**
+     * @brief Timestamp
+     *
+     * The timestamp set in PTP pdelay-resp T2.
+     *
+     * @type sai_timespec_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_HOSTIF_PACKET_ATTR_CUSTOM_PTP_TX_PACKET_OP_TYPE == SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_3
+     */
+    SAI_HOSTIF_PACKET_ATTR_TX_TIMESTAMP,
 
     /** End of custom range base */
     SAI_HOSTIF_PACKET_ATTR_CUSTOM_RANGE_END
@@ -1386,6 +1439,34 @@ typedef void (*sai_packet_event_notification_fn)(
         _In_ const void *buffer,
         _In_ uint32_t attr_count,
         _In_ const sai_attribute_t *attr_list);
+
+typedef struct _sai_packet_event_ptp_tx_notification_t
+{
+    /** Tx port */
+    sai_object_id_t tx_port;
+
+    /** PTP msg type */
+    uint8_t msg_type;
+
+    /** Attributes count */
+    uint16_t ptp_seq_id;
+
+    sai_timespec_t tx_timestamp;
+    
+} sai_packet_event_ptp_tx_notification_t;
+
+/**
+ * @brief PTP Packet tx notification callback
+ *
+ * @count data[count]
+ *
+ * @param[in] count Number of notifications
+ * @param[in] data Pointer to packet event notification for ptp tx data array
+ */
+typedef void (*sai_packet_event_ptp_tx_notification_fn)(
+        _In_ uint32_t count,
+        _In_ const sai_packet_event_ptp_tx_notification_t *data);
+
 
 /**
  * @brief Hostif methods table retrieved with sai_api_query()

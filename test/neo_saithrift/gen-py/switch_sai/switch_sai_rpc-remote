@@ -78,6 +78,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  sai_thrift_object_id_t sai_thrift_create_next_hop_group_member( thrift_attr_list)')
     print('  sai_thrift_status_t sai_thrift_remove_next_hop_group_member(sai_thrift_object_id_t nhop_group_member_oid)')
     print('  sai_thrift_attribute_list_t sai_thrift_get_next_hop_group_member_attribute(sai_thrift_object_id_t nhop_group_member_oid)')
+    print('  sai_thrift_attribute_list_t sai_thrift_get_next_hop_group_member_attribute_ecmp(sai_thrift_object_id_t nhop_group_member_oid)')
+    print('  sai_thrift_results_t sai_thrift_create_next_hop_group_members( thrift_attr_lists,  thrift_attr_count_lists, i8 mode)')
+    print('  sai_thrift_status_list_t sai_thrift_remove_next_hop_group_members( thrift_object_id_list, i8 mode)')
     print('  sai_thrift_object_id_t sai_thrift_create_lag( thrift_attr_list)')
     print('  sai_thrift_status_t sai_thrift_remove_lag(sai_thrift_object_id_t lag_id)')
     print('  sai_thrift_status_t sai_thrift_set_lag_attribute(sai_thrift_object_id_t lag_id, sai_thrift_attribute_t thrift_attr)')
@@ -159,9 +162,11 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  sai_thrift_attribute_list_t sai_thrift_get_acl_table_group_member_attribute(sai_thrift_object_id_t acl_table_group_member_id)')
     print('  sai_thrift_object_id_t sai_thrift_create_acl_counter( thrift_attr_list)')
     print('  sai_thrift_status_t sai_thrift_remove_acl_counter(sai_thrift_object_id_t acl_counter_id)')
-    print('   sai_thrift_get_acl_counter_attribute(sai_thrift_object_id_t acl_counter_id,  thrift_attr_ids)')
+    print('  sai_thrift_attribute_list_t sai_thrift_get_acl_counter_attribute(sai_thrift_object_id_t acl_counter_id)')
+    print('  sai_thrift_status_t sai_thrift_set_acl_counter_attribute(sai_thrift_object_id_t acl_counter_id, sai_thrift_attribute_t thrift_attr)')
     print('  sai_thrift_object_id_t sai_thrift_create_acl_range( thrift_attr_list)')
     print('  sai_thrift_status_t sai_thrift_remove_acl_range(sai_thrift_object_id_t acl_range_id)')
+    print('  sai_thrift_attribute_list_t sai_thrift_get_acl_range_attribute(sai_thrift_object_id_t acl_range_id)')
     print('  sai_thrift_object_id_t sai_thrift_create_hash( thrift_attr_list)')
     print('  sai_thrift_status_t sai_thrift_remove_hash(sai_thrift_object_id_t hash_id)')
     print('  sai_thrift_status_t sai_thrift_set_hash_attribute(sai_thrift_object_id_t thrift_hash_id, sai_thrift_attribute_t thrift_attr)')
@@ -179,6 +184,9 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  sai_thrift_object_id_t sai_thrift_create_twamp_session( thrift_attr_list)')
     print('  sai_thrift_status_t sai_thrift_remove_twamp_session(sai_thrift_object_id_t session_id)')
     print('  sai_thrift_status_t sai_thrift_set_twamp_attribute(sai_thrift_object_id_t thrift_twamp_session_id, sai_thrift_attribute_t thrift_attr)')
+    print('  sai_thrift_attribute_list_t sai_thrift_get_twamp_attribute(sai_thrift_object_id_t thrift_twamp_session_id)')
+    print('   sai_thrift_get_twamp_session_stats(sai_thrift_object_id_t twamp_id,  counter_ids, i32 number_of_counters)')
+    print('  sai_thrift_status_t sai_thrift_clear_twamp_session_stats(sai_thrift_object_id_t twamp_id,  thrift_counter_ids, i32 number_of_counters)')
     print('  sai_thrift_object_id_t sai_thrift_create_mirror_session( thrift_attr_list)')
     print('  sai_thrift_status_t sai_thrift_remove_mirror_session(sai_thrift_object_id_t session_id)')
     print('  sai_thrift_status_t sai_thrift_set_mirror_attribute(sai_thrift_object_id_t thrift_mirror_id, sai_thrift_attribute_t thrift_attr)')
@@ -193,6 +201,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  sai_thrift_attribute_list_t sai_thrift_get_policer_attribute(sai_thrift_object_id_t thrift_policer_id)')
     print('  sai_thrift_status_t sai_thrift_set_policer_attribute(sai_thrift_object_id_t thrift_policer_id, sai_thrift_attribute_t thrift_attr)')
     print('   sai_thrift_get_policer_stats(sai_thrift_object_id_t thrift_policer_id,  thrift_counter_ids)')
+    print('   sai_thrift_get_policer_stats_ext(sai_thrift_object_id_t thrift_policer_id,  thrift_counter_ids, i8 mode)')
     print('  sai_thrift_status_t sai_thrift_clear_policer_stats(sai_thrift_object_id_t thrift_policer_id,  thrift_counter_ids)')
     print('  sai_thrift_object_id_t sai_thrift_create_scheduler_profile( thrift_attr_list)')
     print('  sai_thrift_status_t sai_thrift_remove_scheduler_profile(sai_thrift_object_id_t scheduler_id)')
@@ -281,7 +290,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  sai_thrift_status_t sai_thrift_remove_tunnel_term_table_entry(sai_thrift_object_id_t tunnel_term_table_entry_id)')
     print('  sai_thrift_attribute_list_t sai_thrift_get_tunnel_term_table_entry_attribute(sai_thrift_object_id_t tunnel_term_table_entry_id,  thrift_attr_ids)')
     print('  sai_thrift_status_t sai_thrift_set_tunnel_term_table_entry_attribute(sai_thrift_object_id_t tunnel_term_table_entry_id, sai_thrift_attribute_t thrift_attr)')
-    print('  sai_thrift_attribute_list_t sai_thrift_get_cpu_packet_attribute(sai_thrift_object_id_t switch_id)')
+    print('  sai_thrift_attribute_list_t sai_thrift_get_cpu_packet_attribute()')
     print('  sai_thrift_result_t sai_thrift_get_cpu_packet_count()')
     print('  sai_thrift_result_t sai_thrift_clear_cpu_packet_info()')
     print('  sai_thrift_status_t sai_thrift_log_set(i32 sai_api_id, i32 log_level)')
@@ -337,6 +346,14 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  sai_thrift_status_t sai_thrift_remove_es(sai_thrift_object_id_t es_oid)')
     print('  sai_thrift_status_t sai_thrift_set_es_attribute(sai_thrift_object_id_t es_oid, sai_thrift_attribute_t thrift_attr)')
     print('  sai_thrift_attribute_list_t sai_thrift_get_es_attribute(sai_thrift_object_id_t es_oid)')
+    print('  sai_thrift_object_id_t sai_thrift_create_monitor_buffer( thrift_attr_list)')
+    print('  sai_thrift_status_t sai_thrift_remove_monitor_buffer(sai_thrift_object_id_t monitor_buffer_oid)')
+    print('  sai_thrift_status_t sai_thrift_set_monitor_buffer_attribute(sai_thrift_object_id_t monitor_buffer_oid, sai_thrift_attribute_t thrift_attr)')
+    print('  sai_thrift_attribute_list_t sai_thrift_get_monitor_buffer_attribute(sai_thrift_object_id_t monitor_buffer_oid)')
+    print('  sai_thrift_object_id_t sai_thrift_create_monitor_latency( thrift_attr_list)')
+    print('  sai_thrift_status_t sai_thrift_remove_monitor_latency(sai_thrift_object_id_t monitor_latency_oid)')
+    print('  sai_thrift_status_t sai_thrift_set_monitor_latency_attribute(sai_thrift_object_id_t monitor_latency_oid, sai_thrift_attribute_t thrift_attr)')
+    print('  sai_thrift_attribute_list_t sai_thrift_get_monitor_latency_attribute(sai_thrift_object_id_t monitor_latency_oid)')
     print('')
     sys.exit(0)
 
@@ -739,6 +756,24 @@ elif cmd == 'sai_thrift_get_next_hop_group_member_attribute':
         print('sai_thrift_get_next_hop_group_member_attribute requires 1 args')
         sys.exit(1)
     pp.pprint(client.sai_thrift_get_next_hop_group_member_attribute(eval(args[0]),))
+
+elif cmd == 'sai_thrift_get_next_hop_group_member_attribute_ecmp':
+    if len(args) != 1:
+        print('sai_thrift_get_next_hop_group_member_attribute_ecmp requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_get_next_hop_group_member_attribute_ecmp(eval(args[0]),))
+
+elif cmd == 'sai_thrift_create_next_hop_group_members':
+    if len(args) != 3:
+        print('sai_thrift_create_next_hop_group_members requires 3 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_create_next_hop_group_members(eval(args[0]), eval(args[1]), eval(args[2]),))
+
+elif cmd == 'sai_thrift_remove_next_hop_group_members':
+    if len(args) != 2:
+        print('sai_thrift_remove_next_hop_group_members requires 2 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_remove_next_hop_group_members(eval(args[0]), eval(args[1]),))
 
 elif cmd == 'sai_thrift_create_lag':
     if len(args) != 1:
@@ -1227,10 +1262,16 @@ elif cmd == 'sai_thrift_remove_acl_counter':
     pp.pprint(client.sai_thrift_remove_acl_counter(eval(args[0]),))
 
 elif cmd == 'sai_thrift_get_acl_counter_attribute':
-    if len(args) != 2:
-        print('sai_thrift_get_acl_counter_attribute requires 2 args')
+    if len(args) != 1:
+        print('sai_thrift_get_acl_counter_attribute requires 1 args')
         sys.exit(1)
-    pp.pprint(client.sai_thrift_get_acl_counter_attribute(eval(args[0]), eval(args[1]),))
+    pp.pprint(client.sai_thrift_get_acl_counter_attribute(eval(args[0]),))
+
+elif cmd == 'sai_thrift_set_acl_counter_attribute':
+    if len(args) != 2:
+        print('sai_thrift_set_acl_counter_attribute requires 2 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_set_acl_counter_attribute(eval(args[0]), eval(args[1]),))
 
 elif cmd == 'sai_thrift_create_acl_range':
     if len(args) != 1:
@@ -1243,6 +1284,12 @@ elif cmd == 'sai_thrift_remove_acl_range':
         print('sai_thrift_remove_acl_range requires 1 args')
         sys.exit(1)
     pp.pprint(client.sai_thrift_remove_acl_range(eval(args[0]),))
+
+elif cmd == 'sai_thrift_get_acl_range_attribute':
+    if len(args) != 1:
+        print('sai_thrift_get_acl_range_attribute requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_get_acl_range_attribute(eval(args[0]),))
 
 elif cmd == 'sai_thrift_create_hash':
     if len(args) != 1:
@@ -1346,6 +1393,24 @@ elif cmd == 'sai_thrift_set_twamp_attribute':
         sys.exit(1)
     pp.pprint(client.sai_thrift_set_twamp_attribute(eval(args[0]), eval(args[1]),))
 
+elif cmd == 'sai_thrift_get_twamp_attribute':
+    if len(args) != 1:
+        print('sai_thrift_get_twamp_attribute requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_get_twamp_attribute(eval(args[0]),))
+
+elif cmd == 'sai_thrift_get_twamp_session_stats':
+    if len(args) != 3:
+        print('sai_thrift_get_twamp_session_stats requires 3 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_get_twamp_session_stats(eval(args[0]), eval(args[1]), eval(args[2]),))
+
+elif cmd == 'sai_thrift_clear_twamp_session_stats':
+    if len(args) != 3:
+        print('sai_thrift_clear_twamp_session_stats requires 3 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_clear_twamp_session_stats(eval(args[0]), eval(args[1]), eval(args[2]),))
+
 elif cmd == 'sai_thrift_create_mirror_session':
     if len(args) != 1:
         print('sai_thrift_create_mirror_session requires 1 args')
@@ -1429,6 +1494,12 @@ elif cmd == 'sai_thrift_get_policer_stats':
         print('sai_thrift_get_policer_stats requires 2 args')
         sys.exit(1)
     pp.pprint(client.sai_thrift_get_policer_stats(eval(args[0]), eval(args[1]),))
+
+elif cmd == 'sai_thrift_get_policer_stats_ext':
+    if len(args) != 3:
+        print('sai_thrift_get_policer_stats_ext requires 3 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_get_policer_stats_ext(eval(args[0]), eval(args[1]), eval(args[2]),))
 
 elif cmd == 'sai_thrift_clear_policer_stats':
     if len(args) != 2:
@@ -1959,10 +2030,10 @@ elif cmd == 'sai_thrift_set_tunnel_term_table_entry_attribute':
     pp.pprint(client.sai_thrift_set_tunnel_term_table_entry_attribute(eval(args[0]), eval(args[1]),))
 
 elif cmd == 'sai_thrift_get_cpu_packet_attribute':
-    if len(args) != 1:
-        print('sai_thrift_get_cpu_packet_attribute requires 1 args')
+    if len(args) != 0:
+        print('sai_thrift_get_cpu_packet_attribute requires 0 args')
         sys.exit(1)
-    pp.pprint(client.sai_thrift_get_cpu_packet_attribute(eval(args[0]),))
+    pp.pprint(client.sai_thrift_get_cpu_packet_attribute())
 
 elif cmd == 'sai_thrift_get_cpu_packet_count':
     if len(args) != 0:
@@ -2293,6 +2364,54 @@ elif cmd == 'sai_thrift_get_es_attribute':
         print('sai_thrift_get_es_attribute requires 1 args')
         sys.exit(1)
     pp.pprint(client.sai_thrift_get_es_attribute(eval(args[0]),))
+
+elif cmd == 'sai_thrift_create_monitor_buffer':
+    if len(args) != 1:
+        print('sai_thrift_create_monitor_buffer requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_create_monitor_buffer(eval(args[0]),))
+
+elif cmd == 'sai_thrift_remove_monitor_buffer':
+    if len(args) != 1:
+        print('sai_thrift_remove_monitor_buffer requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_remove_monitor_buffer(eval(args[0]),))
+
+elif cmd == 'sai_thrift_set_monitor_buffer_attribute':
+    if len(args) != 2:
+        print('sai_thrift_set_monitor_buffer_attribute requires 2 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_set_monitor_buffer_attribute(eval(args[0]), eval(args[1]),))
+
+elif cmd == 'sai_thrift_get_monitor_buffer_attribute':
+    if len(args) != 1:
+        print('sai_thrift_get_monitor_buffer_attribute requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_get_monitor_buffer_attribute(eval(args[0]),))
+
+elif cmd == 'sai_thrift_create_monitor_latency':
+    if len(args) != 1:
+        print('sai_thrift_create_monitor_latency requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_create_monitor_latency(eval(args[0]),))
+
+elif cmd == 'sai_thrift_remove_monitor_latency':
+    if len(args) != 1:
+        print('sai_thrift_remove_monitor_latency requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_remove_monitor_latency(eval(args[0]),))
+
+elif cmd == 'sai_thrift_set_monitor_latency_attribute':
+    if len(args) != 2:
+        print('sai_thrift_set_monitor_latency_attribute requires 2 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_set_monitor_latency_attribute(eval(args[0]), eval(args[1]),))
+
+elif cmd == 'sai_thrift_get_monitor_latency_attribute':
+    if len(args) != 1:
+        print('sai_thrift_get_monitor_latency_attribute requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.sai_thrift_get_monitor_latency_attribute(eval(args[0]),))
 
 else:
     print('Unrecognized method %s' % cmd)

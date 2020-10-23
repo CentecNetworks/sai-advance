@@ -15,65 +15,70 @@
 \p
 \b
 \t  |   API                                                     |   SUPPORT CHIPS LIST   |
-\t  |  create_y1731_meg                                         |        CTC7132         |
-\t  |  remove_y1731_meg                                         |        CTC7132         |
-\t  |  set_y1731_meg_attribute                                  |        CTC7132         |
-\t  |  get_y1731_meg_attribute                                  |        CTC7132         |
-\t  |  create_y1731_session                                     |        CTC7132         |
-\t  |  remove_y1731_session                                     |        CTC7132         |
-\t  |  set_y1731_session_attribute                              |        CTC7132         |
-\t  |  get_y1731_session_attribute                              |        CTC7132         |
-\t  |  create_y1731_remote_mep                                  |        CTC7132         |
-\t  |  remove_y1731_remote_mep                                  |        CTC7132         |
-\t  |  set_y1731_remote_mep_attribute                           |        CTC7132         |
-\t  |  get_y1731_remote_mep_attribute                           |        CTC7132         |
-\t  |  get_y1731_session_lm_stats                               |        CTC7132         |
+\e  |  create_y1731_meg                                         |        CTC7132         |
+\e  |  remove_y1731_meg                                         |        CTC7132         |
+\e  |  set_y1731_meg_attribute                                  |        CTC7132         |
+\e  |  get_y1731_meg_attribute                                  |        CTC7132         |
+\e  |  create_y1731_session                                     |        CTC7132         |
+\e  |  remove_y1731_session                                     |        CTC7132         |
+\e  |  set_y1731_session_attribute                              |        CTC7132         |
+\e  |  get_y1731_session_attribute                              |        CTC7132         |
+\e  |  create_y1731_remote_mep                                  |        CTC7132         |
+\e  |  remove_y1731_remote_mep                                  |        CTC7132         |
+\e  |  set_y1731_remote_mep_attribute                           |        CTC7132         |
+\e  |  get_y1731_remote_mep_attribute                           |        CTC7132         |
+\e  |  get_y1731_session_lm_stats                               |        CTC7132         |
 \b
 \p
  The Y1731 MEG attributes supported by centec devices:
 \p
 \b
 \t  |   ATTRIBUTE                                               |   SUPPORT CHIPS LIST   |
-\t  |  SAI_Y1731_MEG_ATTR_TYPE                                  |        CTC7132         |
-\t  |  SAI_Y1731_MEG_ATTR_NAME                                  |        CTC7132         |
-\t  |  SAI_Y1731_MEG_ATTR_LEVEL                                 |        CTC7132         |
+\e  |  SAI_Y1731_MEG_ATTR_TYPE                                  |        CTC7132         |
+\e  |  SAI_Y1731_MEG_ATTR_NAME                                  |        CTC7132         |
+\e  |  SAI_Y1731_MEG_ATTR_LEVEL                                 |        CTC7132         |
 \b
 \p
  The Y1731 Session attributes supported by centec devices:
 \p
 \b
 \t  |   ATTRIBUTE                                               |   SUPPORT CHIPS LIST   |
-\t  |  SAI_Y1731_SESSION_ATTR_MEG                               |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_DIR                               |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_VLAN_ID                           |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_BRIDGE_ID                         |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_PORT_ID                           |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_MPLS_IN_LABEL                     |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_LOCAL_MEP_ID                      |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_CCM_PERIOD                        |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_CCM_ENABLE                        |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_REMOTE_MEP_LIST                   |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_LM_OFFLOAD_TYPE                   |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_LM_ENABLE                         |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_LM_TYPE                           |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_DM_OFFLOAD_TYPE                   |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_DM_ENABLE                         |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_LOCAL_RDI                         |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_TP_ROUTER_INTERFACE_ID            |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_TP_WITHOUT_GAL                    |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_TTL                               |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_EXP_OR_COS                        |        CTC7132         |
-\t  |  SAI_Y1731_SESSION_ATTR_NEXT_HOP_ID                       |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_MEG                               |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_DIR                               |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_VLAN_ID                           |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_BRIDGE_ID                         |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_PORT_ID                           |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_MPLS_IN_LABEL                     |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_LOCAL_MEP_ID                      |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_ENABLE                            |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_CCM_PERIOD                        |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_CCM_ENABLE                        |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_REMOTE_MEP_LIST                   |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_LM_OFFLOAD_TYPE                   |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_LM_ENABLE                         |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_LM_TYPE                           |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_DM_OFFLOAD_TYPE                   |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_DM_ENABLE                         |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_LOCAL_RDI                         |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_TP_ROUTER_INTERFACE_ID            |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_TP_WITHOUT_GAL                    |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_TTL                               |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_EXP_OR_COS                        |        CTC7132         |
+\e  |  SAI_Y1731_SESSION_ATTR_NEXT_HOP_ID                       |        CTC7132         |
 \b
 \p
  The Y1731 Rmep attributes supported by centec devices:
 \p
 \b
 \t  |   ATTRIBUTE                                               |   SUPPORT CHIPS LIST   |
-\t  |  SAI_Y1731_REMOTE_MEP_ATTR_Y1731_SESSION_ID               |        CTC7132         |
-\t  |  SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_ID                  |        CTC7132         |
-\t  |  SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS         |        CTC7132         |
-\t  |  SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED         |        CTC7132         |
+\e  |  SAI_Y1731_REMOTE_MEP_ATTR_Y1731_SESSION_ID               |        CTC7132         |
+\e  |  SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_ID                  |        CTC7132         |
+\e  |  SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS         |        CTC7132         |
+\e  |  SAI_Y1731_REMOTE_MEP_ATTR_ENABLE                         |        CTC7132         |
+\e  |  SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED         |        CTC7132         |
+\e  |  SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID    |        CTC7132         |
+\e  |  SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_IS_PROTECTION_PATH   |        CTC7132         |
+\e  |  SAI_Y1731_REMOTE_MEP_ATTR_HW_PROTECTION_EN                   |        CTC7132         |
 \b 
 */
 
@@ -107,6 +112,7 @@ typedef struct ctc_sai_y1731_session_s
     sai_object_id_t bridge_id;
     uint32 lmep_id;
     sai_y1731_session_ccm_period_t ccm_period;
+    uint8 mep_en;
     uint8 ccm_en;
     //uint8 is_p2p_mode;
     uint8 is_link_oam;
@@ -137,6 +143,11 @@ typedef struct ctc_sai_y1731_rmep_s
     sai_object_id_t y1731_session_oid;
     uint32 rmep_id;
     uint32 rmep_index;
+    sai_object_id_t hw_binding_aps_group;
+    uint8 hw_binding_is_protecting_path;
+    uint8 hw_binding_aps_en;
+    uint8 rmep_en;
+    
 } ctc_sai_y1731_rmep_t;
 
 typedef struct  ctc_sai_y1731_rmep_id_s

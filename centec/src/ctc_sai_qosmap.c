@@ -6,11 +6,6 @@
 #include "ctc_sai_mpls.h"
 #include "ctc_sai_next_hop.h"
 
-//domain = 0, used for switch
-#define QOS_MAP_DOMAIN_ID_START       1
-#define QOS_MAP_SAI_TC_TO_CTC_PRI     2
-#define QOS_MAP_CTC_PRI_TO_SAI_DSCP   4
-
 #define QOS_MAP_COLOR_SAI_TO_CTC(sai, ctc)\
 {\
     if (sai == SAI_PACKET_COLOR_RED)\
@@ -32,13 +27,14 @@ typedef struct  ctc_sai_qos_map_wb_s
 }ctc_sai_qos_map_wb_t;
 
 static sai_status_t
-_ctc_sai_qos_map_port_get_ctc_domain_id(uint8 lchip, uint32 gport, sai_qos_map_type_t map_type, uint8* domain_id)
+_ctc_sai_qos_map_port_get_ctc_domain_id(uint8 lchip, uint32 gport_or_l3if, sai_qos_map_type_t map_type, uint8* domain_id, bool is_gport)
 {
     uint32 ctc_domain = 0;
     uint32 property = 0;
     ctc_direction_t dir;
-    uint8 chip_type = 0;
+    //uint8 chip_type = 0;
 
+    /*
     chip_type = ctcs_get_chip_type(lchip);
     if (chip_type < CTC_CHIP_DUET2)
     {
@@ -58,12 +54,13 @@ _ctc_sai_qos_map_port_get_ctc_domain_id(uint8 lchip, uint32 gport, sai_qos_map_t
             default:
                 return SAI_STATUS_NOT_SUPPORTED;
         }
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_direction_property(lchip, gport, property, dir, &ctc_domain));
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_direction_property(lchip, gport_or_l3if, property, dir, &ctc_domain));
         *domain_id = ctc_domain;
-        CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "lchip:%d gport:0x%x map_type:%d domain:%d\n", lchip, gport, map_type, *domain_id);
+        CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "lchip:%d gport:0x%x map_type:%d domain:%d\n", lchip, gport_or_l3if, map_type, *domain_id);
         return SAI_STATUS_SUCCESS;
     }
-
+    */
+    
     switch (map_type)
     {
         case SAI_QOS_MAP_TYPE_DOT1P_TO_TC:
@@ -73,10 +70,12 @@ _ctc_sai_qos_map_port_get_ctc_domain_id(uint8 lchip, uint32 gport, sai_qos_map_t
             break;
         case SAI_QOS_MAP_TYPE_DSCP_TO_TC:
         case SAI_QOS_MAP_TYPE_DSCP_TO_COLOR:
-            property = CTC_L3IF_PROP_IGS_QOS_DSCP_DOMAIN;
+            property = is_gport ? CTC_PORT_DIR_PROP_QOS_DSCP_DOMAIN : CTC_L3IF_PROP_IGS_QOS_DSCP_DOMAIN;
+            dir = CTC_INGRESS;
             break;
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP:
-            property = CTC_L3IF_PROP_EGS_QOS_DSCP_DOMAIN;
+            property = is_gport ? CTC_PORT_DIR_PROP_QOS_DSCP_DOMAIN : CTC_L3IF_PROP_EGS_QOS_DSCP_DOMAIN;
+            dir = CTC_EGRESS;
             break;
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P:
             property = CTC_PORT_DIR_PROP_QOS_COS_DOMAIN;
@@ -86,14 +85,18 @@ _ctc_sai_qos_map_port_get_ctc_domain_id(uint8 lchip, uint32 gport, sai_qos_map_t
             return SAI_STATUS_NOT_SUPPORTED;
     }
 
+    /*
     if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
         || (map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
         || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P))
+    */
+    if(is_gport)
     {
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_direction_property(lchip, gport, property, dir, &ctc_domain));
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_direction_property(lchip, gport_or_l3if, property, dir, &ctc_domain));
     }
     else
     {
+        /*
         ctc_sai_rif_traverse_param_t rif_param;
         sal_memset(&rif_param, 0, sizeof(ctc_sai_rif_traverse_param_t));
         rif_param.set_type = CTC_SAI_RIF_SET_TYPE_PORT;
@@ -102,9 +105,12 @@ _ctc_sai_qos_map_port_get_ctc_domain_id(uint8 lchip, uint32 gport, sai_qos_map_t
         rif_param.l3if_prop = property;
         rif_param.p_value = &ctc_domain;
         CTC_SAI_ERROR_RETURN(ctc_sai_router_interface_get_param(&rif_param));
+        */
+        ctcs_l3if_get_property(lchip, gport_or_l3if, property, &ctc_domain);
     }
+    
     *domain_id = ctc_domain;
-    CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "lchip:%d gport:0x%x map_type:%d domain:%d\n", lchip, gport, map_type, *domain_id);
+    CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "lchip:%d gport:0x%x map_type:%d domain:%d\n", lchip, gport_or_l3if, map_type, *domain_id);
     return SAI_STATUS_SUCCESS;
 }
 
@@ -228,6 +234,7 @@ _ctc_sai_qos_map_mpls_ilm_alloc_domain(uint8 lchip,
     }
     
     //find twice, the first time to find old used domain; and the second time to find the new unused domain.
+    
     for (find_idx = 0; find_idx < 2; find_idx++)
     {
         for (domain_idx = QOS_MAP_DOMAIN_ID_START; domain_idx < domain_num; domain_idx++)
@@ -313,10 +320,10 @@ _ctc_sai_qos_map_mpls_ilm_alloc_domain(uint8 lchip,
 
 static sai_status_t
 _ctc_sai_qos_map_port_alloc_domain(uint8 lchip,
-                                    uint32 gport, sai_qos_map_type_t map_type,
+                                    uint32 gport_or_l3if, sai_qos_map_type_t map_type,
                                     ctc_sai_qos_domain_map_id_t* domain_node,
                                     bool enable, uint8* new_domain,
-                                    uint8* old_domain, uint8* new_alloc)
+                                    uint8* old_domain, uint8* new_alloc, bool is_gport)
 {
     uint8 domain_idx = 0;
     uint8 find = 0;
@@ -331,9 +338,12 @@ _ctc_sai_qos_map_port_alloc_domain(uint8 lchip,
     *new_alloc = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
-    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_port_get_ctc_domain_id(lchip, gport, map_type, &old_domain_id));
+
+    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_port_get_ctc_domain_id(lchip, gport_or_l3if, map_type, &old_domain_id, is_gport));
     *old_domain = old_domain_id;
+ 
     //free domain on port, so return the default domain id = 0; and it is new alloc
+    
     switch (map_type)
     {
         case SAI_QOS_MAP_TYPE_DOT1P_TO_TC:
@@ -644,6 +654,7 @@ _ctc_sai_qos_map_set_ctc_domain_map(uint8 lchip, uint32 map_id, uint8 domain_id,
     return SAI_STATUS_SUCCESS;
 }
 
+
 static sai_status_t
 _ctc_sai_qos_map_domain_set_map_id(uint8 lchip, uint8 domain_id, uint32 map_id, uint8 is_set)
 {
@@ -748,6 +759,78 @@ _ctc_sai_qos_map_domain_set_map_id(uint8 lchip, uint8 domain_id, uint32 map_id, 
 
 
 static sai_status_t
+_ctc_sai_qos_map_set_domain(uint8 lchip, bool enable, uint32 map_id,
+                                            sai_qos_map_type_t map_type, ctc_sai_qos_domain_map_id_t* domain_node,
+                                            uint8 domain_id, uint8 old_domain, uint8 is_new_alloc, uint32 old_map_id)
+{
+    CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
+    CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "map_type:%d enable:%d map_id:%d new_domain:%d old_domain:%d new_alloc:%d\n",
+                                        map_type, enable?1:0, map_id, domain_id, old_domain, is_new_alloc);
+    if (enable || domain_id)
+    {
+        //if new_domain is first used on gport, need to bind all the map_id to domain
+        
+        if ((map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP)
+            || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P)
+            || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP))
+        {
+            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->tc_color.tc_color_to_dot1p_map_id, 1));
+        }
+        else if (is_new_alloc)
+        {
+            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->tc.dot1p_to_tc_map_id, 1));
+            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->color.dot1p_to_color_map_id, 1));
+        }
+        else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
+                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC)
+                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC))
+        {
+            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->tc.dot1p_to_tc_map_id, 1));
+        }
+        else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
+                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR)
+                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR))
+        {
+            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->color.dot1p_to_color_map_id, 1));
+        }
+    }
+
+    if (!enable && old_domain)
+    {
+        CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, map_id, 0));
+    }
+    //such as domain 2-->1, merge domain, need to reset original domain
+    if (is_new_alloc && old_domain)
+    {
+        if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
+            || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC)
+            || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC))
+        {
+            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, domain_node->color.dot1p_to_color_map_id, 0));
+            if(old_map_id)
+            {
+                CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, old_map_id, 0));
+            }
+        }
+        else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
+                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR)
+                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR))
+        {
+            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, domain_node->tc.dot1p_to_tc_map_id, 0));
+            if(old_map_id)
+            {
+                CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, old_map_id, 0));
+            }
+        }
+    }
+
+    return SAI_STATUS_SUCCESS;
+}
+
+#define ________INTERNAL_API________
+
+
+static sai_status_t
 _ctc_sai_qos_map_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
 {
     sai_object_id_t qos_map_id = key->key.object_id;
@@ -843,10 +926,10 @@ _ctc_sai_qos_map_get_attr(sai_object_key_t *key, sai_attribute_t* attr, uint32 a
     switch (attr->id)
     {
         case SAI_QOS_MAP_ATTR_TYPE:
-            attr->value.u32 = p_map_db->map_type;
+            attr->value.s32 = p_map_db->map_type;
             break;
         case SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST:
-            CTC_SAI_ERROR_RETURN(ctc_sai_fill_object_list(sizeof(sai_qos_map_t), (void*)p_map_db->map_list.list, p_map_db->map_list.count, (void*)(&(attr->value.maplist))));
+            CTC_SAI_ERROR_RETURN(ctc_sai_fill_object_list(sizeof(sai_qos_map_t), (void*)p_map_db->map_list.list, p_map_db->map_list.count, (void*)(&(attr->value.qosmap))));
             break;
         default:
             CTC_SAI_LOG_ERROR(SAI_API_QOS_MAP, "qos map attribute not implement\n");
@@ -870,74 +953,6 @@ static ctc_sai_attr_fn_entry_t  qos_map_attr_fn_entries[] =
 };
 
 static sai_status_t
-_ctc_sai_qos_map_set_domain(uint8 lchip, bool enable, uint32 map_id,
-                                            sai_qos_map_type_t map_type, ctc_sai_qos_domain_map_id_t* domain_node,
-                                            uint8 domain_id, uint8 old_domain, uint8 is_new_alloc, uint32 old_map_id)
-{
-    CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
-    CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "map_type:%d enable:%d map_id:%d new_domain:%d old_domain:%d new_alloc:%d\n",
-                                        map_type, enable?1:0, map_id, domain_id, old_domain, is_new_alloc);
-    if (enable || domain_id)
-    {
-        //if new_domain is first used on gport, need to bind all the map_id to domain
-        if ((map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP)
-            || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P)
-            || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP))
-        {
-            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->tc_color.tc_color_to_dot1p_map_id, 1));
-        }
-        else if (is_new_alloc)
-        {
-            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->tc.dot1p_to_tc_map_id, 1));
-            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->color.dot1p_to_color_map_id, 1));
-        }
-        else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
-                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC)
-                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC))
-        {
-            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->tc.dot1p_to_tc_map_id, 1));
-        }
-        else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
-                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR)
-                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR))
-        {
-            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, domain_id, domain_node->color.dot1p_to_color_map_id, 1));
-        }
-    }
-
-    if (!enable && old_domain)
-    {
-        CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, map_id, 0));
-    }
-    //such as domain 2-->1, merge domain, need to reset original domain
-    if (is_new_alloc && old_domain)
-    {
-        if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_TC)
-            || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC)
-            || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC))
-        {
-            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, domain_node->color.dot1p_to_color_map_id, 0));
-            if(old_map_id)
-            {
-                CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, old_map_id, 0));
-            }
-        }
-        else if ((map_type == SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR)
-                || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR)
-                || (map_type == SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR))
-        {
-            CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, domain_node->tc.dot1p_to_tc_map_id, 0));
-            if(old_map_id)
-            {
-                CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_domain_set_map_id(lchip, old_domain, old_map_id, 0));
-            }
-        }
-    }
-
-    return SAI_STATUS_SUCCESS;
-}
-
-static sai_status_t
 _ctc_sai_qos_map_db_deinit_cb(ctc_sai_oid_property_t* bucket_data, void* user_data)
 {
     ctc_sai_qos_map_db_t* p_map_db = (ctc_sai_qos_map_db_t*)(bucket_data->data);
@@ -954,14 +969,15 @@ _ctc_sai_qos_map_db_deinit_cb(ctc_sai_oid_property_t* bucket_data, void* user_da
 }
 
 
-#define ________INTERNAL_API________
+#define ________INT________
 
 sai_status_t
-ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_map_type_t map_type, bool enable)
+ctc_sai_qos_map_port_set_map(sai_object_id_t port_or_l3if_oid, uint32 map_id, sai_qos_map_type_t map_type, bool enable)
 {
     ctc_object_id_t ctc_object_id;
     ctc_sai_qos_map_db_t* p_map_db = NULL;
     ctc_sai_port_db_t* p_port_db = NULL;
+    ctc_sai_router_interface_t* p_rif_info = NULL;
     ctc_sai_qos_domain_map_id_t domain_node;
     uint8 new_domain = 0;
     uint8 old_domain = 0;
@@ -974,13 +990,21 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
     uint8 lchip = 0;
     uint8 chip_type = 0;
     uint32 old_map_id = 0;
+    //uint32 rif_value = 0;
+    ctc_sai_rif_traverse_param_t rif_param;
+    uint32 l3if_id = 0;
+    bool is_gport = FALSE;
+    uint32 value = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_QOS_MAP);
-    CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "port_id:0x%"PRIx64" ctc_map_id:0x%x map_type:%d enable:%d\n",port_oid, map_id, map_type, enable?1:0);
-    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(port_oid, &lchip));
+    CTC_SAI_LOG_INFO(SAI_API_QOS_MAP, "port_or_l3if_oid:0x%"PRIx64" ctc_map_id:0x%x map_type:%d enable:%d\n",port_or_l3if_oid, map_id, map_type, enable?1:0);
+    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(port_or_l3if_oid, &lchip));
 
     chip_type = ctcs_get_chip_type(lchip);
+
+    sal_memset(&rif_param, 0, sizeof(ctc_sai_rif_traverse_param_t));    
     sal_memset(&domain_node, 0, sizeof(domain_node));
+    
     p_map_db = ctc_sai_db_get_object_property(lchip, ctc_sai_create_object_id(SAI_OBJECT_TYPE_QOS_MAP, lchip, 0, 0, map_id));
     if (NULL == p_map_db)
     {
@@ -993,14 +1017,30 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
         return SAI_STATUS_INVALID_PARAMETER;
     }
 
-    p_port_db = ctc_sai_db_get_object_property(lchip, port_oid);
-    if (NULL == p_port_db)
-    {
-        return SAI_STATUS_ITEM_NOT_FOUND;
-    }
 
-    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, port_oid, &ctc_object_id);
-    gport = ctc_object_id.value;
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, port_or_l3if_oid, &ctc_object_id);
+
+    if( ctc_object_id.type == SAI_OBJECT_TYPE_PORT)
+    {
+        p_port_db = ctc_sai_db_get_object_property(lchip, port_or_l3if_oid);
+        if (NULL == p_port_db)
+        {
+            return SAI_STATUS_ITEM_NOT_FOUND;
+        }
+        gport = ctc_object_id.value;
+        is_gport = TRUE;
+    }
+    else if ( ctc_object_id.type == SAI_OBJECT_TYPE_ROUTER_INTERFACE)
+    {
+
+        p_rif_info = ctc_sai_db_get_object_property(lchip, port_or_l3if_oid);
+        if (NULL == p_rif_info)
+        {
+            return SAI_STATUS_ITEM_NOT_FOUND;
+        }
+        l3if_id = ctc_object_id.value; 
+    }
+    
     switch (map_type)
     {
         case SAI_QOS_MAP_TYPE_DOT1P_TO_TC:
@@ -1016,9 +1056,9 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
             dir = CTC_INGRESS;
             property_l3if = CTC_L3IF_PROP_IGS_QOS_DSCP_DOMAIN;
             domain_node.tc.dscp_to_tc_map_id = enable ? map_id : 0;
-            domain_node.color.dscp_to_color_map_id = p_port_db->dscp_to_color_map_id;
+            domain_node.color.dscp_to_color_map_id = is_gport ? p_port_db->dscp_to_color_map_id : p_rif_info->dscp_to_color_map_id;
             qos_trust = enable ? CTC_QOS_TRUST_DSCP : CTC_QOS_TRUST_COS;
-            old_map_id = p_port_db->dscp_to_tc_map_id;
+            old_map_id = is_gport ? p_port_db->dscp_to_tc_map_id : p_rif_info->dscp_to_tc_map_id;
             break;
         case SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR:
             property = (chip_type < CTC_CHIP_DUET2) ? CTC_PORT_DIR_PROP_QOS_DOMAIN : CTC_PORT_DIR_PROP_QOS_COS_DOMAIN;
@@ -1033,9 +1073,9 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
             dir = CTC_INGRESS;
             property_l3if = CTC_L3IF_PROP_IGS_QOS_DSCP_DOMAIN;
             domain_node.color.dscp_to_color_map_id = enable ? map_id : 0;
-            domain_node.tc.dscp_to_tc_map_id = p_port_db->dscp_to_tc_map_id;
+            domain_node.tc.dscp_to_tc_map_id = is_gport ? p_port_db->dscp_to_tc_map_id : p_rif_info->dscp_to_tc_map_id;
             qos_trust = enable ? CTC_QOS_TRUST_DSCP : CTC_QOS_TRUST_COS;
-            old_map_id = p_port_db->dscp_to_color_map_id;
+            old_map_id = is_gport ? p_port_db->dscp_to_color_map_id : p_rif_info->dscp_to_color_map_id;
             break;
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP:
             property = (chip_type < CTC_CHIP_DUET2) ? CTC_PORT_DIR_PROP_QOS_DOMAIN : CTC_PORT_DIR_PROP_QOS_DSCP_DOMAIN;
@@ -1045,48 +1085,55 @@ ctc_sai_qos_map_port_set_map(sai_object_id_t port_oid, uint32 map_id, sai_qos_ma
             break;
         case SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P:
             property = (chip_type < CTC_CHIP_DUET2) ? CTC_PORT_DIR_PROP_QOS_DOMAIN : CTC_PORT_DIR_PROP_QOS_COS_DOMAIN;
-            domain_node.tc_color.tc_color_to_dot1p_map_id = enable ? map_id : 0;
             dir = CTC_EGRESS;
+            domain_node.tc_color.tc_color_to_dot1p_map_id = enable ? map_id : 0;
             break;
         default:
             return SAI_STATUS_NOT_SUPPORTED;
     }
 
-    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_port_alloc_domain(lchip, gport, map_type,
+    value = is_gport ? gport : l3if_id;
+
+    CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_port_alloc_domain(lchip, value, map_type,
                                                             &domain_node,
                                                             enable, &new_domain,
-                                                            &old_domain, &is_new_alloc));
+                                                            &old_domain, &is_new_alloc,is_gport));
 
     CTC_SAI_ERROR_RETURN(_ctc_sai_qos_map_set_domain(lchip, enable, map_id, map_type, &domain_node, new_domain, old_domain, is_new_alloc, old_map_id));
-    //set ctc api
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, property, dir, new_domain));
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_QOS_POLICY, qos_trust));
 
+
+    if(dir == CTC_INGRESS)
     {
-        //for D2, need to set l3if
-        if (((chip_type == CTC_CHIP_DUET2)||(chip_type == CTC_CHIP_TSINGMA))
-            && ((map_type == SAI_QOS_MAP_TYPE_DSCP_TO_TC)
-            || (map_type == SAI_QOS_MAP_TYPE_DSCP_TO_COLOR)
-            || (map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP)))
-        {
-            uint32 rif_value = 0;
-            ctc_sai_rif_traverse_param_t rif_param;
-            sal_memset(&rif_param, 0, sizeof(ctc_sai_rif_traverse_param_t));
-            rif_param.set_type = CTC_SAI_RIF_SET_TYPE_PORT;
-            rif_param.cmp_value = &gport;
-            rif_param.lchip = lchip;
-
-            rif_param.l3if_prop = property_l3if;
-            rif_value = new_domain;
-            rif_param.p_value = &rif_value;
-            CTC_SAI_ERROR_RETURN(ctc_sai_router_interface_traverse_set(&rif_param));
-
-            rif_param.l3if_prop = CTC_L3IF_PROP_TRUST_DSCP;
-            rif_value = enable ? 1 : 0;
-            rif_param.p_value = &rif_value;
-            CTC_SAI_ERROR_RETURN(ctc_sai_router_interface_traverse_set(&rif_param));
+        if (!is_gport)
+        {            
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_property(lchip, l3if_id, property_l3if, new_domain));
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_property(lchip, l3if_id, CTC_L3IF_PROP_TRUST_DSCP, enable));            
         }
+        else
+        {
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, property, dir, new_domain));
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_QOS_POLICY, qos_trust));           
+        }        
     }
+
+    if(dir == CTC_EGRESS)
+    {
+        if (!is_gport)
+        {
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_property(lchip, l3if_id, property_l3if, new_domain));
+        }
+        else
+        {
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, property, dir, new_domain));
+        }        
+    }
+
+    
+    if(map_type == SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P)
+    {
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_REPLACE_STAG_COS, enable));
+    }
+
     return SAI_STATUS_SUCCESS;
 }
 
@@ -1198,6 +1245,7 @@ ctc_sai_qos_map_switch_set_map(uint8 lchip, uint32 map_id, sai_qos_map_type_t ma
     return SAI_STATUS_SUCCESS;
 }
 
+#if 0
 sai_status_t
 ctc_sai_qos_map_switch_set_default_tc(uint8 lchip, uint8 tc)
 {
@@ -1223,6 +1271,7 @@ ctc_sai_qos_map_switch_set_default_tc(uint8 lchip, uint8 tc)
     }
     return SAI_STATUS_SUCCESS;
 }
+#endif
 
 sai_status_t
 ctc_sai_qos_map_mpls_inseg_set_map(const sai_inseg_entry_t* inseg_entry, uint32 pcs_type, uint8 qos_tc,
@@ -1312,6 +1361,8 @@ ctc_sai_qos_map_mpls_inseg_set_map(const sai_inseg_entry_t* inseg_entry, uint32 
 
     CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_set_ilm_property(lchip, &mpls_pro));
 
+    p_mpls_info->qos_domain_id = new_domain;
+
     return SAI_STATUS_SUCCESS;
 
 }
@@ -1386,6 +1437,9 @@ ctc_sai_qos_map_mpls_nh_set_map(sai_object_id_t nh_oid, uint32 map_id, sai_qos_m
     return SAI_STATUS_SUCCESS;
 
 }    
+
+#define ________SAI_WB________
+
 
 static sai_status_t
 _ctc_sai_qos_map_wb_sync_cb(uint8 lchip, void* key, void* data)
