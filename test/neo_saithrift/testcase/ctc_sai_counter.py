@@ -167,7 +167,6 @@ class fun_05_router_counter_set_test(sai_base_test.ThriftInterfaceDataPlane):
         counter_id = sai_thrift_create_counter(self.client, type)
         sys_logging("creat counter_id = %d" %counter_id)
 
-
         port1 = port_list[0]
         port2 = port_list[1]
         port3 = port_list[2]
@@ -1639,6 +1638,442 @@ class fun_18_different_counter_exclude_each_other_test(sai_base_test.ThriftInter
             sai_thrift_remove_counter(self.client, router_counter_id)
             sai_thrift_remove_counter(self.client, ecmp_counter_id)
             sai_thrift_remove_counter(self.client, trap_counter_id)
+
+class fun_19_router_max_counter_packet_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        switch_init(self.client)
+
+        type = SAI_COUNTER_TYPE_REGULAR
+
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("### -----chipname = %s----- ###" %chipname)
+
+        if chipname == 'tsingma':
+            #total 3071 counters, vlan used 1 counter.
+            max_counter = 3070
+        elif chipname == 'tsingma_mx':
+            #total 8191 counters, vlan used 1 counter.
+            max_counter = 8190
+
+        counter_oid_list = []
+        for i in range(max_counter+1):
+            counter_oid = sai_thrift_create_counter(self.client, type)
+            assert (counter_oid != SAI_NULL_OBJECT_ID)
+            counter_oid_list.append(counter_oid)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        v4_enabled = 1
+        v6_enabled = 1
+        mac_valid = 0
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_addr2 = '10.10.10.2'
+        ip_addr1_subnet = '10.10.10.0'
+        ip_mask1 = '255.255.255.0'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        #sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr2, dmac1)
+
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        #nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif_id2)
+
+        for i in range(max_counter+1):
+            status = sai_thrift_create_route(self.client, vr_id, addr_family, integer_to_ip4(10*(2**24)+(i/256)*(2**16)+(i%256)*(2**8)), ip_mask1, nhop1, packet_action = SAI_PACKET_ACTION_FORWARD, counter_oid = counter_oid_list[i])
+            if i < max_counter:
+                assert (status == SAI_STATUS_SUCCESS)
+            else:
+                assert (status != SAI_STATUS_SUCCESS)
+
+        # send the test packet(s)
+        pkt0 = simple_tcp_packet(eth_dst=router_mac,
+                                 eth_src='00:22:22:22:22:22',
+                                 ip_dst=integer_to_ip4(10*(2**24)+(0/256)*(2**16)+(0%256)*(2**8)),
+                                 ip_src='192.168.0.1',
+                                 ip_id=105,
+                                 ip_ttl=64,
+                                 pktlen=120)
+
+        exp_pkt0 = simple_tcp_packet(eth_dst=dmac1,
+                                     eth_src=router_mac,
+                                     ip_dst=integer_to_ip4(10*(2**24)+(0/256)*(2**16)+(0%256)*(2**8)),
+                                     ip_src='192.168.0.1',
+                                     ip_id=105,
+                                     ip_ttl=63,
+                                     pktlen=120)
+
+        pkt1 = simple_tcp_packet(eth_dst=router_mac,
+                                 eth_src='00:22:22:22:22:22',
+                                 ip_dst=integer_to_ip4(10*(2**24)+((max_counter-1)/256)*(2**16)+((max_counter-1)%256)*(2**8)),
+                                 ip_src='192.168.0.1',
+                                 ip_id=105,
+                                 ip_ttl=64,
+                                 pktlen=120)
+
+        exp_pkt1 = simple_tcp_packet(eth_dst=dmac1,
+                                     eth_src=router_mac,
+                                     ip_dst=integer_to_ip4(10*(2**24)+((max_counter-1)/256)*(2**16)+((max_counter-1)%256)*(2**8)),
+                                     ip_src='192.168.0.1',
+                                     ip_id=105,
+                                     ip_ttl=63,
+                                     pktlen=120)
+
+        warmboot(self.client)
+        try:
+
+            addr = sai_thrift_ip_t(ip4=integer_to_ip4(10*(2**24)+(0/256)*(2**16)+(0%256)*(2**8)))
+            mask = sai_thrift_ip_t(ip4=ip_mask1)
+            ip_prefix = sai_thrift_ip_prefix_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=addr, mask=mask)
+            route = sai_thrift_route_entry_t(vr_id, ip_prefix)
+
+            attrs = self.client.sai_thrift_get_route_attribute(route)
+            sys_logging("get status = %d" %attrs.status)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ROUTE_ENTRY_ATTR_COUNTER_ID:
+                    sys_logging("set counterid = 0x%x" %counter_oid_list[0])
+                    sys_logging("get counterid = 0x%x" %a.value.oid)
+                    if counter_oid_list[0] != a.value.oid:
+                        raise NotImplementedError()
+
+            addr = sai_thrift_ip_t(ip4=integer_to_ip4(10*(2**24)+((max_counter-1)/256)*(2**16)+((max_counter-1)%256)*(2**8)))
+            mask = sai_thrift_ip_t(ip4=ip_mask1)
+            ip_prefix = sai_thrift_ip_prefix_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=addr, mask=mask)
+            route = sai_thrift_route_entry_t(vr_id, ip_prefix)
+
+            attrs = self.client.sai_thrift_get_route_attribute(route)
+            sys_logging("get status = %d" %attrs.status)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ROUTE_ENTRY_ATTR_COUNTER_ID:
+                    sys_logging("set counterid = 0x%x" %counter_oid_list[max_counter-1])
+                    sys_logging("get counterid = 0x%x" %a.value.oid)
+                    if counter_oid_list[max_counter-1] != a.value.oid:
+                        raise NotImplementedError()
+
+            self.ctc_send_packet(1, str(pkt0))
+            self.ctc_verify_packets(exp_pkt0, [0])
+
+            self.ctc_send_packet(1, str(pkt1))
+            self.ctc_verify_packets(exp_pkt1, [0])
+
+            cnt_ids=[]
+            cnt_ids.append(SAI_COUNTER_STAT_PACKETS)
+            cnt_ids.append(SAI_COUNTER_STAT_BYTES)
+            counters_results = self.client.sai_thrift_get_counter_stats(counter_oid_list[0],cnt_ids,len(cnt_ids))
+            sys_logging("packets = %d " %(counters_results[0]))
+            sys_logging("bytes = %d " %(counters_results[1]))
+            assert (counters_results[0] == 1)
+            assert (counters_results[1] == 124)
+
+            cnt_ids=[]
+            cnt_ids.append(SAI_COUNTER_STAT_PACKETS)
+            cnt_ids.append(SAI_COUNTER_STAT_BYTES)
+            counters_results = self.client.sai_thrift_get_counter_stats(counter_oid_list[max_counter-1],cnt_ids,len(cnt_ids))
+            sys_logging("packets = %d " %(counters_results[0]))
+            sys_logging("bytes = %d " %(counters_results[1]))
+            assert (counters_results[0] == 1)
+            assert (counters_results[1] == 124)
+
+            self.ctc_send_packet(1, str(pkt0))
+            self.ctc_verify_packets(exp_pkt0, [0])
+
+            self.ctc_send_packet(1, str(pkt1))
+            self.ctc_verify_packets(exp_pkt1, [0])
+
+            cnt_ids=[]
+            cnt_ids.append(SAI_COUNTER_STAT_PACKETS)
+            cnt_ids.append(SAI_COUNTER_STAT_BYTES)
+            counters_results = self.client.sai_thrift_get_counter_stats(counter_oid_list[0],cnt_ids,len(cnt_ids))
+            sys_logging("packets = %d " %(counters_results[0]))
+            sys_logging("bytes = %d " %(counters_results[1]))
+            assert (counters_results[0] == 2)
+            assert (counters_results[1] == 248)
+
+            counters_results = self.client.sai_thrift_get_counter_stats(counter_oid_list[max_counter-1],cnt_ids,len(cnt_ids))
+            sys_logging("packets = %d " %(counters_results[0]))
+            sys_logging("bytes = %d " %(counters_results[1]))
+            assert (counters_results[0] == 2)
+            assert (counters_results[1] == 248)
+
+        finally:
+            for i in range(max_counter):
+                sai_thrift_remove_route(self.client, vr_id, addr_family, integer_to_ip4(10*(2**24)+(i/256)*(2**16)+(i%256)*(2**8)), ip_mask1, nhop1)
+
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            for i in range(max_counter+1):
+                sai_thrift_remove_counter(self.client, counter_oid_list[i])
+
+class fun_20_vpls_max_decap_pw_and_lsp_label_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        print ""
+        switch_init(self.client)
+        port1 = port_list[1]
+        port2 = port_list[2]
+        port3 = port_list[3]
+        vlan_id = 20
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        ip_mask = '255.255.255.0'
+        ip_da = '5.5.5.2'
+        dmac = '00:55:55:55:55:55'
+        mac1 = '00:00:00:01:01:01'
+        mac2 = '00:00:00:02:02:02'
+
+        label1 = 5
+        label2 = 10
+
+        pop_nums = 1
+        packet_action = SAI_PACKET_ACTION_FORWARD
+
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("### -----chipname = %s----- ###" %chipname)
+
+        if chipname == 'tsingma':
+            #total 3071 counters, vlan used 1 counter.
+            lsp_max_counter = 3070
+            pw_max_counter = 3071
+        elif chipname == 'tsingma_mx':
+            #total 8191 counters, vlan used 1 counter.
+            lsp_max_counter = 8190
+            pw_max_counter = 8191
+
+        type = SAI_COUNTER_TYPE_REGULAR
+        lsp_counter_oid_list = []
+        for i in range(lsp_max_counter+1):
+            lsp_counter_oid = sai_thrift_create_counter(self.client, type)
+            assert (lsp_counter_oid != SAI_NULL_OBJECT_ID)
+            lsp_counter_oid_list.append(lsp_counter_oid)
+
+        pw_counter_oid_list = []
+        for i in range(pw_max_counter+1):
+            pw_counter_oid = sai_thrift_create_counter(self.client, type)
+            assert (pw_counter_oid != SAI_NULL_OBJECT_ID)
+            pw_counter_oid_list.append(pw_counter_oid)
+
+        bridge_id = sai_thrift_create_bridge(self.client, SAI_BRIDGE_TYPE_1D)
+        tunnel_id1= sai_thrift_create_tunnel_mpls_l2vpn(self.client, encap_tagged_vlan=30)
+        #tunnel_id2 = sai_thrift_create_tunnel_mpls_l2vpn(self.client)
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac, stats_state = False)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER, 0, 0, v4_enabled, v6_enabled, mac, dot1d_bridge_id=bridge_id, stats_state = False)
+        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER, 0, 0, v4_enabled, v6_enabled, mac, stats_state = False)
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+
+        for i in range(lsp_max_counter+1):
+            status = sai_thrift_create_inseg_entry(self.client, (label1*(2**16))+i, pop_nums, None, rif_id3, packet_action, counter_id=lsp_counter_oid_list[i])
+            if i < lsp_max_counter:
+                assert (status == SAI_STATUS_SUCCESS)
+            else:
+                assert (status != SAI_STATUS_SUCCESS)
+
+        for i in range(pw_max_counter+1):
+            status = sai_thrift_create_inseg_entry(self.client, (label2*(2**16))+i, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1, counter_id=pw_counter_oid_list[i])
+            if i < pw_max_counter:
+                assert (status == SAI_STATUS_SUCCESS)
+            else:
+                assert (status != SAI_STATUS_SUCCESS)
+
+        lsp_min_label = label1*(2**16)
+        lsp_max_label = label1*(2**16) + (lsp_max_counter-1)
+
+        pw_min_label  = label2*(2**16)
+        pw_max_label  = label2*(2**16) + (pw_max_counter-1)
+
+        bport = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id)
+        #tunnel_bport = sai_thrift_create_bridge_tunnel_port(self.client, tunnel_id=tunnel_id1, bridge_id=bridge_id)
+
+        mac_action = SAI_PACKET_ACTION_FORWARD
+        sai_thrift_create_fdb_bport(self.client, bridge_id, mac1, bport, mac_action)
+        #sai_thrift_create_fdb_bport(self.client, bridge_id, mac2, tunnel_bport, mac_action)
+
+        mpls_inner_pkt1 = simple_tcp_packet(pktlen=96,
+                                            eth_dst=mac1,
+                                            eth_src=mac2,
+                                            dl_vlan_enable=True,
+                                            vlan_vid=10,
+                                            vlan_pcp=0,
+                                            dl_vlan_cfi=1,
+                                            ip_dst='1.1.1.1',
+                                            ip_src='2.2.2.2',
+                                            ip_id=1,
+                                            ip_ttl=64,
+                                            ip_ihl=5)
+
+        mpls_label_stack1 = [{'label':lsp_min_label,'tc':0,'ttl':64,'s':0}, {'label':pw_min_label,'tc':0,'ttl':32,'s':1}]
+        pkt3_1 = simple_mpls_packet(eth_dst=router_mac,
+                                    eth_src='00:55:55:55:55:66',
+                                    mpls_type=0x8847,
+                                    mpls_tags= mpls_label_stack1,
+                                    inner_frame = mpls_inner_pkt1)
+
+        mpls_label_stack2 = [{'label':lsp_max_label,'tc':0,'ttl':64,'s':0}, {'label':pw_max_label,'tc':0,'ttl':32,'s':1}]
+        pkt3_2 = simple_mpls_packet(eth_dst=router_mac,
+                                    eth_src='00:55:55:55:55:66',
+                                    mpls_type=0x8847,
+                                    mpls_tags= mpls_label_stack2,
+                                    inner_frame = mpls_inner_pkt1)
+
+        pkt4 = simple_qinq_tcp_packet(pktlen=100,
+                                      eth_dst=mac1,
+                                      eth_src=mac2,
+                                      dl_vlan_outer=20,
+                                      dl_vlan_pcp_outer=0,
+                                      dl_vlan_cfi_outer=1,
+                                      vlan_vid=10,
+                                      vlan_pcp=0,
+                                      dl_vlan_cfi=1,
+                                      ip_dst='1.1.1.1',
+                                      ip_src='2.2.2.2',
+                                      ip_ttl=64,
+                                      ip_ihl=5)
+
+        warmboot(self.client)
+        try:
+            mpls_lsp_min = sai_thrift_inseg_entry_t(lsp_min_label)
+            attrs = self.client.sai_thrift_get_inseg_entry_attribute(mpls_lsp_min)
+
+            sys_logging("get lsp min status = %d" %attrs.status)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_INSEG_ENTRY_ATTR_COUNTER_ID:
+                    sys_logging("set lsp counterid = 0x%x" %lsp_counter_oid_list[0])
+                    sys_logging("get lsp counterid = 0x%x" %a.value.oid)
+                    if lsp_counter_oid_list[0] != a.value.oid:
+                        raise NotImplementedError()
+
+            mpls_lsp_max = sai_thrift_inseg_entry_t(lsp_max_label)
+            attrs = self.client.sai_thrift_get_inseg_entry_attribute(mpls_lsp_max)
+
+            sys_logging("get lsp max status = %d" %attrs.status)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_INSEG_ENTRY_ATTR_COUNTER_ID:
+                    sys_logging("set pw counterid = 0x%x" %lsp_counter_oid_list[lsp_max_counter-1])
+                    sys_logging("get pw counterid = 0x%x" %a.value.oid)
+                    if lsp_counter_oid_list[lsp_max_counter-1] != a.value.oid:
+                        raise NotImplementedError()
+
+            mpls_pw_min = sai_thrift_inseg_entry_t(pw_min_label)
+            attrs = self.client.sai_thrift_get_inseg_entry_attribute(mpls_pw_min)
+            sys_logging("get pw min status = %d" %attrs.status)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+
+            for a in attrs.attr_list:
+                if a.id == SAI_INSEG_ENTRY_ATTR_COUNTER_ID:
+                    sys_logging("set lsp counterid = 0x%x" %pw_counter_oid_list[0])
+                    sys_logging("get lsp counterid = 0x%x" %a.value.oid)
+                    if pw_counter_oid_list[0] != a.value.oid:
+                        raise NotImplementedError()
+
+            mpls_pw_max = sai_thrift_inseg_entry_t(pw_max_label)
+            attrs = self.client.sai_thrift_get_inseg_entry_attribute(mpls_pw_max)
+            sys_logging("get pw max status = %d" %attrs.status)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+
+            for a in attrs.attr_list:
+                if a.id == SAI_INSEG_ENTRY_ATTR_COUNTER_ID:
+                    sys_logging("set pw max counter oid = 0x%x" %pw_counter_oid_list[pw_max_counter-1])
+                    sys_logging("get pw max counter oid = 0x%x" %a.value.oid)
+                    if pw_counter_oid_list[pw_max_counter-1] != a.value.oid:
+                        raise NotImplementedError()
+
+            self.ctc_send_packet(1, str(pkt3_1))
+            self.ctc_verify_packets(pkt4, [2])
+
+            cnt_ids=[]
+            cnt_ids.append(SAI_COUNTER_STAT_PACKETS)
+            cnt_ids.append(SAI_COUNTER_STAT_BYTES)
+            counters_results = self.client.sai_thrift_get_counter_stats(lsp_counter_oid_list[0],cnt_ids,len(cnt_ids))
+            sys_logging("lsp min packets = %d " %(counters_results[0]))
+            sys_logging("lsp min bytes = %d "   %(counters_results[1]))
+            assert (counters_results[0] == 1)
+            assert (counters_results[1] == 122)
+
+            cnt_ids=[]
+            cnt_ids.append(SAI_COUNTER_STAT_PACKETS)
+            cnt_ids.append(SAI_COUNTER_STAT_BYTES)
+            counters_results = self.client.sai_thrift_get_counter_stats(pw_counter_oid_list[0],cnt_ids,len(cnt_ids))
+            sys_logging("pw min packets = %d " %(counters_results[0]))
+            sys_logging("pw min bytes = %d "   %(counters_results[1]))
+            assert (counters_results[0] == 1)
+            assert (counters_results[1] == 122)
+
+            self.ctc_send_packet(1, str(pkt3_2))
+            self.ctc_verify_packets(pkt4, [2])
+
+            cnt_ids=[]
+            cnt_ids.append(SAI_COUNTER_STAT_PACKETS)
+            cnt_ids.append(SAI_COUNTER_STAT_BYTES)
+            counters_results = self.client.sai_thrift_get_counter_stats(lsp_counter_oid_list[lsp_max_counter-1],cnt_ids,len(cnt_ids))
+            sys_logging("lsp max packets = %d " %(counters_results[0]))
+            sys_logging("lsp max bytes = %d "   %(counters_results[1]))
+            assert (counters_results[0] == 1)
+            assert (counters_results[1] == 122)
+
+            cnt_ids=[]
+            cnt_ids.append(SAI_COUNTER_STAT_PACKETS)
+            cnt_ids.append(SAI_COUNTER_STAT_BYTES)
+            counters_results = self.client.sai_thrift_get_counter_stats(pw_counter_oid_list[pw_max_counter-1],cnt_ids,len(cnt_ids))
+            sys_logging("pw max packets = %d " %(counters_results[0]))
+            sys_logging("pw max bytes = %d "   %(counters_results[1]))
+            assert (counters_results[0] == 1)
+            assert (counters_results[1] == 122)
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
+            sai_thrift_delete_fdb(self.client, bridge_id, mac2, bport)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
+
+            for i in range(lsp_max_counter+1):
+                lsp_label = sai_thrift_inseg_entry_t((label1*(2**16))+i)
+                status = self.client.sai_thrift_remove_inseg_entry(lsp_label)
+                if i < lsp_max_counter:
+                    assert (status == SAI_STATUS_SUCCESS)
+                else:
+                    assert (status != SAI_STATUS_SUCCESS)
+
+            for i in range(pw_max_counter+1):
+                pw_label = sai_thrift_inseg_entry_t((label2*(2**16))+i)
+                status = self.client.sai_thrift_remove_inseg_entry(pw_label)
+                if i < pw_max_counter:
+                    assert (status == SAI_STATUS_SUCCESS)
+                else:
+                    assert (status != SAI_STATUS_SUCCESS)
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_router_interface(rif_id3)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            self.client.sai_thrift_remove_tunnel(tunnel_id1)
+            self.client.sai_thrift_remove_bridge(bridge_id)
+
+            for i in range(lsp_max_counter+1):
+                status = sai_thrift_remove_counter(self.client, lsp_counter_oid_list[i])
+                assert (status == SAI_STATUS_SUCCESS)
+
+            for i in range(pw_max_counter+1):
+                status = sai_thrift_remove_counter(self.client, pw_counter_oid_list[i])
+                assert (status == SAI_STATUS_SUCCESS)
+
 
 class scenario_01_router_counter_packet_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):

@@ -225,10 +225,10 @@ sai_status_t
 ctc_sai_oid_get_twamp_session_id(sai_object_id_t oid, uint32* session_id)
 {
     ctc_object_id_t ctc_oid;
-    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TWAMP, oid, &ctc_oid));
-    if (ctc_oid.type != SAI_OBJECT_TYPE_TWAMP)
+    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TWAMP_SESSION, oid, &ctc_oid));
+    if (ctc_oid.type != SAI_OBJECT_TYPE_TWAMP_SESSION)
     {
-        CTC_SAI_LOG_ERROR(SAI_OBJECT_TYPE_TWAMP, "Invalid session id object type 0x%llx \n", oid);
+        CTC_SAI_LOG_ERROR(SAI_OBJECT_TYPE_TWAMP_SESSION, "Invalid session id object type 0x%llx \n", oid);
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
     *session_id = ctc_oid.value;
@@ -239,10 +239,10 @@ sai_status_t
 ctc_sai_oid_get_npm_session_id(sai_object_id_t oid, uint32* session_id)
 {
     ctc_object_id_t ctc_oid;
-    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NPM, oid, &ctc_oid));
-    if (ctc_oid.type != SAI_OBJECT_TYPE_NPM)
+    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NPM_SESSION, oid, &ctc_oid));
+    if (ctc_oid.type != SAI_OBJECT_TYPE_NPM_SESSION)
     {
-        CTC_SAI_LOG_ERROR(SAI_OBJECT_TYPE_NPM, "Invalid session id object type 0x%llx \n", oid);
+        CTC_SAI_LOG_ERROR(SAI_OBJECT_TYPE_NPM_SESSION, "Invalid session id object type 0x%llx \n", oid);
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
     *session_id = ctc_oid.value;

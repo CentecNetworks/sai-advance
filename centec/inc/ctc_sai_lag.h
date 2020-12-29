@@ -14,44 +14,44 @@
  The LAG Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                          |       SUPPORT CHIPS LIST       |
-\t  |  create_lag                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_lag                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_lag_attribute                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_lag_attribute                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_lag_member                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_lag_member                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_lag_member_attribute                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_lag_member_attribute                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_lag_members                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_lag_members                            |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                          |           SUPPORT CHIPS LIST           |
+\t  |  create_lag                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_lag                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_lag_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_lag_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_lag_member                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_lag_member                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_lag_member_attribute                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_lag_member_attribute                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_lag_members                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_lag_members                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 \p
  The LAG attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_LAG_ATTR_PORT_LIST                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_ATTR_INGRESS_ACL                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_ATTR_EGRESS_ACL                              |              -                 |
-\t  |  SAI_LAG_ATTR_PORT_VLAN_ID                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_ATTR_DEFAULT_VLAN_PRIORITY                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_ATTR_DROP_UNTAGGED                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_ATTR_DROP_TAGGED                             |    CTC8096,CTC7148,CTC7132     |
-\e  |  SAI_LAG_ATTR_MODE                                    |    CTC8096,CTC7148,CTC7132     |
-\e  |  SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM                   |            CTC7132             |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_LAG_ATTR_PORT_LIST                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_LAG_ATTR_INGRESS_ACL                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_LAG_ATTR_EGRESS_ACL                              |                   -                    |
+\t  |  SAI_LAG_ATTR_PORT_VLAN_ID                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_LAG_ATTR_DEFAULT_VLAN_PRIORITY                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_LAG_ATTR_DROP_UNTAGGED                           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_LAG_ATTR_DROP_TAGGED                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\e  |  SAI_LAG_ATTR_MODE                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\e  |  SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM                   |            CTC7132,CTC8180             |
 \b 
 
 \p
  The LAG MEMBER attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_LAG_MEMBER_ATTR_LAG_ID                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_MEMBER_ATTR_PORT_ID                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_MEMBER_ATTR_EGRESS_DISABLE                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_LAG_MEMBER_ATTR_INGRESS_DISABLE                  |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_LAG_MEMBER_ATTR_LAG_ID                           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_LAG_MEMBER_ATTR_PORT_ID                          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_LAG_MEMBER_ATTR_EGRESS_DISABLE                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_LAG_MEMBER_ATTR_INGRESS_DISABLE                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 */
@@ -86,7 +86,7 @@ typedef struct ctc_sai_lag_info_s
     uint8 is_binding_rif;
     uint8 is_binding_sub_rif;
     uint16 binding_sub_rif_count;    
-    int32 bind_bridge_port_type; // 0 mean not binded, 1 mean binded port , 2 mean binded sub port    
+    uint8 bind_bridge_port_type_bmp; // bit 0 mean bind 1q port, bit 1 mean bind 1d port , bit 2 mean bind 1d sub port, bit 3 mean bind 1d qinq port    
     bool drop_tagged;
     bool drop_untagged;
     int32 scl0_ref_cnt;

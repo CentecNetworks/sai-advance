@@ -35,6 +35,8 @@
 
 /**
  * @brief Enum defining scheduler group attributes.
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_scheduler_group_attr_t
 {
@@ -105,7 +107,7 @@ typedef enum _sai_scheduler_group_attr_t
      * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
      * @objects SAI_OBJECT_TYPE_SCHEDULER_GROUP, SAI_OBJECT_TYPE_PORT
      */
-    SAI_SCHEDULER_GROUP_ATTR_PARENT_NODE = 0x00000006,        
+    SAI_SCHEDULER_GROUP_ATTR_PARENT_NODE = 0x00000006,
 
     /**
      * @brief End of attributes
@@ -119,17 +121,17 @@ typedef enum _sai_scheduler_group_attr_t
      * @brief Scheduler group service id
      *
      * when set, this group is used for dedicate service
-     * for example, vpls/vpws AC bridge port/PW tunnel port, this service id should also be set in 
-     * vpls/vpws AC bridge port/PW tunnel port, and queues for services
+     * for example, Virtual Private LAN Service/Virtual Private Wire Service AC bridge port/Pseudo wire tunnel port, this service id should also be set in
+     * Virtual Private LAN Service/Virtual Private Wire Service AC bridge port/Pseudo wire tunnel port, and queues for services
      *
      * when set to 0, it's a normal scheduler group
      *
      * @type sai_uint16_t
      * @flags CREATE_ONLY
+     * @isvlan false
      * @default 0
      */
-    SAI_SCHEDULER_GROUP_ATTR_SERVICE_ID = SAI_SCHEDULER_GROUP_ATTR_CUSTOM_RANGE_START,
-    
+    SAI_SCHEDULER_GROUP_ATTR_SERVICE_ID,
 
     /** End of custom range base */
     SAI_SCHEDULER_GROUP_ATTR_CUSTOM_RANGE_END

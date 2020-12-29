@@ -96,13 +96,19 @@ ctc_sai_stp_get_stp_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 at
         {
             if (CTC_BMP_ISSET(p_db_stp->vlan_bind_bits, bit_cnt))
             {
-                attr->value.vlanlist.list[vlan_num] =   bit_cnt;
+                attr->value.vlanlist.list[vlan_num] = bit_cnt;
                 vlan_num++;
             }
         }
          attr->value.vlanlist.count = vlan_num;
         break;
     case  SAI_STP_ATTR_PORT_LIST:
+        if(!p_db_stp->port_bind_count)
+        {
+            attr->value.objlist.count = 0;
+            break;
+        }
+        
         /* Check if has got enough memory to store the portlist */
         if (attr->value.objlist.count < p_db_stp->port_bind_count)
         {
@@ -309,7 +315,7 @@ static sai_status_t _ctc_sai_stp_create_stp_port(sai_object_id_t      *stp_port_
     uint32 bit_cnt = 0;
     ctc_sai_lag_info_t *p_db_lag;
     uint8 gchip = 0;
-    sai_object_id_t  sai_lag_id;
+    sai_object_id_t  sai_lag_id, stp_port_oid;
     ctc_sai_stp_port_t* p_db_stp_port = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_STP);
@@ -373,6 +379,15 @@ static sai_status_t _ctc_sai_stp_create_stp_port(sai_object_id_t      *stp_port_
     ctcs_get_gchip_id(lchip, &gchip);
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_STP, stp->oid, &stp_oid );
 
+    stp_port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_STP_PORT, lchip, 0, stp_oid.value, gport);
+    p_db_stp_port = ctc_sai_db_get_object_property(lchip, stp_port_oid);
+    if(p_db_stp_port)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_STP, "Stp port is already exist!\n");
+        status = SAI_STATUS_ITEM_ALREADY_EXISTS;
+        goto out;
+    }
+
     if(CTC_IS_LINKAGG_PORT(gport))
     {   
         sai_lag_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, gport);
@@ -398,9 +413,9 @@ static sai_status_t _ctc_sai_stp_create_stp_port(sai_object_id_t      *stp_port_
         CTC_BMP_SET(p_db_stp->port_bind_bits, CTC_MAP_GPORT_TO_LPORT(gport));    
     }
 
-    p_db_stp->port_bind_count ++;
+    p_db_stp->port_bind_count++;
     
-    *stp_port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_STP_PORT, lchip, 0, stp_oid.value, gport);
+    *stp_port_id = stp_port_oid;
 
      p_db_stp_port = mem_malloc(MEM_SYSTEM_MODULE, sizeof(ctc_sai_stp_port_t));
     if (NULL == p_db_stp_port)
@@ -447,10 +462,18 @@ static sai_status_t _ctc_sai_stp_remove_stp_port(sai_object_id_t stp_port_id)
     ctcs_get_gchip_id(lchip, &gchip);
 
     CTC_SAI_LOG_ENTER(SAI_API_STP);
-    if (SAI_NULL_OBJECT_ID == stp_port_id  )
+    if (SAI_NULL_OBJECT_ID == stp_port_id)
     {
         CTC_SAI_LOG_ERROR(SAI_API_STP, "stp port id is null\n");
         status = SAI_STATUS_INVALID_OBJECT_ID;
+        goto out;
+    }
+    
+    p_db_stp_port = ctc_sai_db_get_object_property(lchip, stp_port_id);
+    if (!p_db_stp_port)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_STP, "stp port db is null\n");
+        status = SAI_STATUS_ITEM_NOT_FOUND;
         goto out;
     }
 
@@ -495,7 +518,6 @@ static sai_status_t _ctc_sai_stp_remove_stp_port(sai_object_id_t stp_port_id)
 
     p_db_stp->port_bind_count--;
     
-    p_db_stp_port = ctc_sai_db_get_object_property(lchip, stp_port_id);
     mem_free(p_db_stp_port);
     ctc_sai_db_remove_object_property(lchip, stp_port_id);
 
@@ -593,7 +615,7 @@ sai_status_t ctc_sai_stp_set_instance(uint8 lchip, uint16 vlan_id, uint16 vlan_p
     if (is_add)
     {
         CTC_SAI_CTC_ERROR_RETURN(ctcs_stp_set_vlan_stpid(lchip, vlan_ptr, (uint8)ctc_object_id.value));
-        if (ctc_object_id.value) 
+        if (stp_oid)
         {
             CTC_BMP_SET(p_db_stp->vlan_bind_bits, vlan_id);
             p_db_stp->vlan_bind_count ++;
@@ -601,7 +623,7 @@ sai_status_t ctc_sai_stp_set_instance(uint8 lchip, uint16 vlan_id, uint16 vlan_p
     }
     else
     {
-        if (ctc_object_id.value) 
+        if (stp_oid)
         {
             CTC_BMP_UNSET(p_db_stp->vlan_bind_bits, vlan_id);
             p_db_stp->vlan_bind_count --;
@@ -718,6 +740,7 @@ static sai_status_t ctc_sai_stp_remove_stp(sai_object_id_t sai_stp_id)
     uint8 lchip = 0;
     ctc_object_id_t  ctc_object_id;
     ctc_sai_stp_info_t*  p_db_stp = NULL;
+    sai_object_id_t default_stp_oid = 0;
     
 
     sal_memset(&ctc_object_id, 0 ,sizeof(ctc_object_id_t));
@@ -726,6 +749,14 @@ static sai_status_t ctc_sai_stp_remove_stp(sai_object_id_t sai_stp_id)
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(sai_stp_id, &lchip));
     CTC_SAI_DB_LOCK(lchip);
+
+    default_stp_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_STP, lchip, 0, 0, 0);
+    if(sai_stp_id == default_stp_oid)
+    {
+        CTC_SAI_LOG_WARN(SAI_API_STP, "Try to remove default stp, please do not remove! \n");
+        status = SAI_STATUS_SUCCESS;
+        goto out;
+    }
 
     p_db_stp = ctc_sai_db_get_object_property(lchip, sai_stp_id);    
     if (NULL == p_db_stp)
@@ -737,6 +768,13 @@ static sai_status_t ctc_sai_stp_remove_stp(sai_object_id_t sai_stp_id)
     if (p_db_stp->vlan_bind_count) 
     {
         CTC_SAI_LOG_ERROR(SAI_API_STP, "Failed to remove stp , because have vlans binding such stpid \n");
+        status = SAI_STATUS_FAILURE;
+        goto out;
+    }
+
+    if (p_db_stp->port_bind_count) 
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_STP, "Failed to remove stp , because have ports binding such stpid \n");
         status = SAI_STATUS_FAILURE;
         goto out;
     }

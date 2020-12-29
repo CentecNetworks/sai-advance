@@ -563,11 +563,11 @@ _ctc_sai_mpls_get_attr(sai_object_key_t* key, sai_attribute_t* attr, uint32 attr
             if(((SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY == p_mpls_info->frr_configured_role) && protecting) ||
                 ((SAI_INSEG_ENTRY_CONFIGURED_ROLE_STANDBY == p_mpls_info->frr_configured_role) && !protecting))
             {
-                attr->value.u8 = SAI_INSEG_ENTRY_OBSERVED_ROLE_INACTIVE;
+                attr->value.u8 = SAI_INSEG_ENTRY_FRR_OBSERVED_ROLE_INACTIVE;
             }
             else
             {
-                attr->value.u8 = SAI_INSEG_ENTRY_OBSERVED_ROLE_ACTIVE;
+                attr->value.u8 = SAI_INSEG_ENTRY_FRR_OBSERVED_ROLE_ACTIVE;
             }
             break;
         case SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE:
@@ -933,7 +933,7 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
     if(NULL != p_tunnel)
     {
         p_tunnel->inseg_label = inseg_entry->label;
-        p_tunnel->ref_cnt++;
+        p_tunnel->ingress_ref_cnt++;
     }
 
     
@@ -966,15 +966,6 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
         CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
     }
 
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_QOS_TC, &attr_value, &index);
-    if (SAI_STATUS_SUCCESS == status)
-    {
-        sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
-        set_attr.id = SAI_INSEG_ENTRY_ATTR_QOS_TC;
-        set_attr.value.u8 = attr_value->u8;
-        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
-    }
-
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_PSC_TYPE, &attr_value, &index);
     if (SAI_STATUS_SUCCESS == status)
     {
@@ -983,7 +974,22 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
         set_attr.value.s32 = attr_value->s32;
         CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
     }
+    else
+    {
+        sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
+        set_attr.id = SAI_INSEG_ENTRY_ATTR_PSC_TYPE;
+        set_attr.value.s32 = SAI_INSEG_ENTRY_PSC_TYPE_ELSP;
+        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
+    }
 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_INSEG_ENTRY_ATTR_QOS_TC, &attr_value, &index);
+    if (SAI_STATUS_SUCCESS == status)
+    {
+        sal_memcpy(&key.key.inseg_entry, inseg_entry, sizeof(sai_inseg_entry_t));
+        set_attr.id = SAI_INSEG_ENTRY_ATTR_QOS_TC;
+        set_attr.value.u8 = attr_value->u8;
+        CTC_SAI_ERROR_GOTO(_ctc_sai_mpls_set_attr(&key, &set_attr), status, error4);
+    }
 
     if (SAI_NULL_OBJECT_ID != counter_oid)
     {
@@ -1085,7 +1091,7 @@ _ctc_sai_mpls_remove_inseg_entry(const sai_inseg_entry_t *inseg_entry)
         p_tunnel = ctc_sai_db_get_object_property(lchip, p_mpls_info->decap_tunnel_oid);
         if(NULL != p_tunnel)
         {
-            p_tunnel->ref_cnt--;
+            p_tunnel->ingress_ref_cnt--;
             p_tunnel->inseg_label = 0;
         }
     }

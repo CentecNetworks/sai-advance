@@ -14,38 +14,38 @@ This module defines SAI Qosmap.
  The Qosmap Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_qos_map                                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_qos_map                                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_qos_map_attribute                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_qos_map_attribute                                |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_qos_map                                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_qos_map                                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_qos_map_attribute                                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_qos_map_attribute                                |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Qosmap attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_QOS_MAP_ATTR_TYPE                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST                   |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_QOS_MAP_ATTR_TYPE                                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Qosmap type supported by centec devices:
 \p
 \b
-\t  |   MAP TYPE                                            |       SUPPORT CHIPS LIST       |
-\t  |  SAI_QOS_MAP_TYPE_DOT1P_TO_TC                         |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_QOS_MAP_TYPE_DSCP_TO_TC                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_QOS_MAP_TYPE_DSCP_TO_COLOR                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_QOS_MAP_TYPE_TC_TO_QUEUE                         |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_QOS_MAP_TYPE_TC_TO_PRIORITY_GROUP                |              -                 |
-\t  |  SAI_QOS_MAP_TYPE_PFC_PRIORITY_TO_PRIORITY_GROUP      |              -                 |
-\t  |  SAI_QOS_MAP_TYPE_PFC_PRIORITY_TO_QUEUE               |              -                 |
-\t  |  SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC                      |           CTC7132              |
-\t  |  SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR                   |           CTC7132              |
-\t  |  SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP            |           CTC7132              |
+\t  |   MAP TYPE                                            |           SUPPORT CHIPS LIST           |
+\t  |  SAI_QOS_MAP_TYPE_DOT1P_TO_TC                         |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_QOS_MAP_TYPE_DSCP_TO_TC                          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_QOS_MAP_TYPE_DSCP_TO_COLOR                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_QOS_MAP_TYPE_TC_TO_QUEUE                         |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_QOS_MAP_TYPE_TC_TO_PRIORITY_GROUP                |                   -                    |
+\t  |  SAI_QOS_MAP_TYPE_PFC_PRIORITY_TO_PRIORITY_GROUP      |                   -                    |
+\t  |  SAI_QOS_MAP_TYPE_PFC_PRIORITY_TO_QUEUE               |                   -                    |
+\t  |  SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC                      |            CTC7132,CTC8180             |
+\t  |  SAI_QOS_MAP_TYPE_MPLS_EXP_TO_COLOR                   |            CTC7132,CTC8180             |
+\t  |  SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP            |            CTC7132,CTC8180             |
 \b
 */
 

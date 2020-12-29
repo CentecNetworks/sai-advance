@@ -14,164 +14,164 @@
  The L2MC Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_l2mc_entry                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_l2mc_entry                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_l2mc_entry_attribute                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_l2mc_entry_attribute                             |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_l2mc_entry                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_l2mc_entry                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_l2mc_entry_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_l2mc_entry_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The L2MC entry attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_L2MC_ENTRY_ATTR_PACKET_ACTION                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_L2MC_ENTRY_ATTR_OUTPUT_GROUP_ID                  |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_L2MC_ENTRY_ATTR_PACKET_ACTION                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_L2MC_ENTRY_ATTR_OUTPUT_GROUP_ID                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The L2MC entry type supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_L2MC_ENTRY_TYPE_SG                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_L2MC_ENTRY_TYPE_XG                               |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_L2MC_ENTRY_TYPE_SG                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_L2MC_ENTRY_TYPE_XG                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The IPMC Entry Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_ipmc_entry                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_ipmc_entry                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_ipmc_entry_attribute                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_ipmc_entry_attribute                             |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_ipmc_entry                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_ipmc_entry                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_ipmc_entry_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_ipmc_entry_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The IPMC entry attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_IPMC_ENTRY_ATTR_PACKET_ACTION                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_IPMC_ENTRY_ATTR_OUTPUT_GROUP_ID                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_IPMC_ENTRY_ATTR_RPF_GROUP_ID                     |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_IPMC_ENTRY_ATTR_PACKET_ACTION                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_IPMC_ENTRY_ATTR_OUTPUT_GROUP_ID                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_IPMC_ENTRY_ATTR_RPF_GROUP_ID                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The IPMC entry type supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_IPMC_ENTRY_TYPE_SG                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_IPMC_ENTRY_TYPE_XG                               |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_IPMC_ENTRY_TYPE_SG                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_IPMC_ENTRY_TYPE_XG                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The RPF Group Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_rpf_group                                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_rpf_group                                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_rpf_group_attribute                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_rpf_group_attribute                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_rpf_group_member                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_rpf_group_member                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_rpf_group_member_attribute                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_rpf_group_member_attribute                       |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_rpf_group                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_rpf_group                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_rpf_group_attribute                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_rpf_group_attribute                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_rpf_group_member                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_rpf_group_member                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_rpf_group_member_attribute                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_rpf_group_member_attribute                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The RPF Group attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_RPF_GROUP_ATTR_RPF_INTERFACE_COUNT               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_RPF_GROUP_ATTR_RPF_MEMBER_LIST                   |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_RPF_GROUP_ATTR_RPF_INTERFACE_COUNT               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_RPF_GROUP_ATTR_RPF_MEMBER_LIST                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The RPF Group Member attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_RPF_GROUP_MEMBER_ATTR_RPF_GROUP_ID               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_RPF_GROUP_MEMBER_ATTR_RPF_INTERFACE_ID           |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_RPF_GROUP_MEMBER_ATTR_RPF_GROUP_ID               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_RPF_GROUP_MEMBER_ATTR_RPF_INTERFACE_ID           |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The L2MC Group Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_l2mc_group                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_l2mc_group                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_l2mc_group_attribute                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_l2mc_group_attribute                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_l2mc_group_member                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_l2mc_group_member                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_l2mc_group_member_attribute                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_l2mc_group_member_attribute                      |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_l2mc_group                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_l2mc_group                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_l2mc_group_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_l2mc_group_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_l2mc_group_member                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_l2mc_group_member                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_l2mc_group_member_attribute                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_l2mc_group_member_attribute                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The L2MC Group attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_L2MC_GROUP_ATTR_L2MC_OUTPUT_COUNT                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_L2MC_GROUP_ATTR_L2MC_MEMBER_LIST                 |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_L2MC_GROUP_ATTR_L2MC_OUTPUT_COUNT                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_L2MC_GROUP_ATTR_L2MC_MEMBER_LIST                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The L2MC Group Member attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_GROUP_ID             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_OUTPUT_ID            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_ENDPOINT_IP          |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_GROUP_ID             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_OUTPUT_ID            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_ENDPOINT_IP          |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The IPMC Group Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_ipmc_group                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_ipmc_group                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_ipmc_group_attribute                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_ipmc_group_attribute                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_ipmc_group_member                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_ipmc_group_member                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_ipmc_group_member_attribute                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_ipmc_group_member_attribute                      |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_ipmc_group                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_ipmc_group                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_ipmc_group_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_ipmc_group_attribute                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_ipmc_group_member                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_ipmc_group_member                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_ipmc_group_member_attribute                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_ipmc_group_member_attribute                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The IPMC Group attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_IPMC_GROUP_ATTR_IPMC_OUTPUT_COUNT                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_IPMC_GROUP_ATTR_IPMC_MEMBER_LIST                 |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_IPMC_GROUP_ATTR_IPMC_OUTPUT_COUNT                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_IPMC_GROUP_ATTR_IPMC_MEMBER_LIST                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The IPMC Group Member attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_IPMC_GROUP_MEMBER_ATTR_IPMC_GROUP_ID             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_IPMC_GROUP_MEMBER_ATTR_IPMC_OUTPUT_ID            |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_IPMC_GROUP_MEMBER_ATTR_IPMC_GROUP_ID             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_IPMC_GROUP_MEMBER_ATTR_IPMC_OUTPUT_ID            |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Mcast Fdb Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_mcast_fdb_entry                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_mcast_fdb_entry                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_mcast_fdb_entry_attribute                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_mcast_fdb_entry_attribute                        |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_mcast_fdb_entry                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_mcast_fdb_entry                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_mcast_fdb_entry_attribute                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_mcast_fdb_entry_attribute                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Mcast Fdb attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_MCAST_FDB_ENTRY_ATTR_GROUP_ID                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_MCAST_FDB_ENTRY_ATTR_PACKET_ACTION               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_MCAST_FDB_ENTRY_ATTR_META_DATA                   |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_MCAST_FDB_ENTRY_ATTR_GROUP_ID                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_MCAST_FDB_ENTRY_ATTR_PACKET_ACTION               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_MCAST_FDB_ENTRY_ATTR_META_DATA                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 */
 

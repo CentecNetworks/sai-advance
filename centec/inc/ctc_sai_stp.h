@@ -16,37 +16,37 @@ This module defines SAI STP.
  The STP Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_stp                                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_stp                                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_stp_attribute                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_stp_attribute                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_stp_port                                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_stp_port                                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_stp_port_attribute                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_stp_port_attribute                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_stp_ports                                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_stp_ports                                     |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_stp                                           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_stp                                           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_stp_attribute                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_stp_attribute                                    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_stp_port                                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_stp_port                                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_stp_port_attribute                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_stp_port_attribute                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_stp_ports                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_stp_ports                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 \p
  The STP attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_STP_ATTR_VLAN_LIST                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_STP_ATTR_BRIDGE_ID                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_STP_ATTR_PORT_LIST                               |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_STP_ATTR_VLAN_LIST                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_STP_ATTR_BRIDGE_ID                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_STP_ATTR_PORT_LIST                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 \p
  The STP PORT attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_STP_PORT_ATTR_STP                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_STP_PORT_ATTR_BRIDGE_PORT                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_STP_PORT_ATTR_STATE                              |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_STP_PORT_ATTR_STP                                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_STP_PORT_ATTR_BRIDGE_PORT                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_STP_PORT_ATTR_STATE                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 */

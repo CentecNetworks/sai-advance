@@ -243,8 +243,77 @@ typedef enum _sai_switch_mcast_snooping_capability_t
 } sai_switch_mcast_snooping_capability_t;
 
 /**
+ * @brief Attribute data for #SAI_SWITCH_ATTR_HARDWARE_ACCESS_BUS
+ */
+typedef enum _sai_switch_hardware_access_bus_t
+{
+    /** Hardware access bus is MDIO */
+    SAI_SWITCH_HARDWARE_ACCESS_BUS_MDIO,
+
+    /** Hardware access bus is I2C */
+    SAI_SWITCH_HARDWARE_ACCESS_BUS_I2C,
+
+    /** Hardware access bus is CPLD */
+    SAI_SWITCH_HARDWARE_ACCESS_BUS_CPLD,
+
+} sai_switch_hardware_access_bus_t;
+
+/**
+ * @brief Attribute data for #SAI_SWITCH_ATTR_FIRMWARE_LOAD_METHOD
+ */
+typedef enum _sai_switch_firmware_load_method_t
+{
+    /** Do not download FW. Use already downloaded FW instead */
+    SAI_SWITCH_FIRMWARE_LOAD_METHOD_NONE,
+
+    /** Download FW internally via MDIO */
+    SAI_SWITCH_FIRMWARE_LOAD_METHOD_INTERNAL,
+
+    /** Load FW from EEPROM */
+    SAI_SWITCH_FIRMWARE_LOAD_METHOD_EEPROM,
+
+} sai_switch_firmware_load_method_t;
+
+/**
+ * @brief Attribute data for #SAI_SWITCH_ATTR_FIRMWARE_LOAD_TYPE
+ */
+typedef enum _sai_switch_firmware_load_type_t
+{
+    /** Skip firmware download if firmware is already present */
+    SAI_SWITCH_FIRMWARE_LOAD_TYPE_SKIP,
+
+    /** Always download the firmware specified by firmware load method */
+    SAI_SWITCH_FIRMWARE_LOAD_TYPE_FORCE,
+
+    /** Check the firmware version. If it is different from current version download firmware */
+    SAI_SWITCH_FIRMWARE_LOAD_TYPE_AUTO,
+
+} sai_switch_firmware_load_type_t;
+
+/**
+ * @brief Attribute data for #SAI_SWITCH_ATTR_TYPE
+ */
+typedef enum _sai_switch_type_t
+{
+    /** Switch type is Switching Network processing unit */
+    SAI_SWITCH_TYPE_NPU,
+
+    /** Switch type is PHY */
+    SAI_SWITCH_TYPE_PHY,
+
+    /** Switch type is VOQ based NPU */
+    SAI_SWITCH_TYPE_VOQ,
+
+    /** Switch type is Fabric switch device */
+    SAI_SWITCH_TYPE_FABRIC,
+
+} sai_switch_type_t;
+
+/**
  * @brief Attribute Id in sai_set_switch_attribute() and
  * sai_get_switch_attribute() calls
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_switch_attr_t
 {
@@ -1433,6 +1502,9 @@ typedef enum _sai_switch_attr_t
     /**
      * @brief Port state change notification callback function passed to the adapter.
      *
+     * In case driver does not support this attribute, The Host adapter should poll
+     * port status by SAI_PORT_ATTR_OPER_STATUS.
+     *
      * Use sai_port_state_change_notification_fn as notification function.
      *
      * @type sai_pointer_t sai_port_state_change_notification_fn
@@ -1451,7 +1523,7 @@ typedef enum _sai_switch_attr_t
      * @default NULL
      */
     SAI_SWITCH_ATTR_PACKET_EVENT_NOTIFY,
-    
+
     /**
      * @brief Enable SAI function call fast mode, which executes calls very quickly
      *
@@ -1786,6 +1858,17 @@ typedef enum _sai_switch_attr_t
     SAI_SWITCH_ATTR_TAM_EVENT_NOTIFY,
 
     /**
+     * @brief List of supported object types
+     *
+     * A list of object types (sai_object_type_t) that the SAI adapter can
+     * support.
+     *
+     * @type sai_s32_list_t sai_object_type_t
+     * @flags READ_ONLY
+     */
+    SAI_SWITCH_ATTR_SUPPORTED_OBJECT_TYPE_LIST,
+
+    /**
      * @brief Instruct SAI to execute switch pre-shutdown
      *
      * Indicates controlled switch pre-shutdown as first step of warm shutdown.
@@ -1826,7 +1909,311 @@ typedef enum _sai_switch_attr_t
      * @default false
      */
     SAI_SWITCH_ATTR_NAT_ENABLE,
-    
+
+    /**
+     * @brief Switch hardware access bus MDIO/I2C/CPLD
+     *
+     * @type sai_switch_hardware_access_bus_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_PHY
+     */
+    SAI_SWITCH_ATTR_HARDWARE_ACCESS_BUS,
+
+    /**
+     * @brief Platform context information
+     *
+     * Platform context information provided by the host adapter to driver.
+     * This information is Host adapter specific, typically used for maintain
+     * synchronization and device information. Driver will give this context back
+     * to adapter as part of call back sai_switch_register_read/write_fn API.
+     *
+     * @type sai_uint64_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_PHY
+     */
+    SAI_SWITCH_ATTR_PLATFROM_CONTEXT,
+
+    /**
+     * @brief Platform adaption device read callback function passed to the adapter.
+     * This is mandatory function for driver when device access not supported by file system.
+     *
+     * Use sai_switch_register_read_fn as read function.
+     *
+     * @type sai_pointer_t sai_switch_register_read_fn
+     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     * @condition SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_PHY
+     */
+    SAI_SWITCH_ATTR_REGISTER_READ,
+
+    /**
+     * @brief Platform adaption device write callback function passed to the adapter.
+     * This is mandatory function for driver when device access not supported by file system.
+     *
+     * Use sai_switch_register_write_fn as write function.
+     *
+     * @type sai_pointer_t sai_switch_register_write_fn
+     * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
+     * @condition SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_PHY
+     */
+    SAI_SWITCH_ATTR_REGISTER_WRITE,
+
+    /**
+     * @brief Enable/disable broadcast firmware download
+     *
+     * TRUE - Enable firmware download as broadcast.
+     * FALSE - Enable firmware download as unicast.
+     *
+     * @type bool
+     * @flags CREATE_ONLY
+     * @default false
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_DOWNLOAD_BROADCAST,
+
+    /**
+     * @brief Firmware load method
+     *
+     * @type sai_switch_firmware_load_method_t
+     * @flags CREATE_ONLY
+     * @default SAI_SWITCH_FIRMWARE_LOAD_METHOD_INTERNAL
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_LOAD_METHOD,
+
+    /**
+     * @brief Firmware load type auto/force/skip
+     *
+     * Check firmware version. If it is different from current version load firmware.
+     * Otherwise always download the firmware specified by firmware load method.
+     *
+     * @type sai_switch_firmware_load_type_t
+     * @flags CREATE_ONLY
+     * @default SAI_SWITCH_FIRMWARE_LOAD_TYPE_AUTO
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_LOAD_TYPE,
+
+    /**
+     * @brief Execute Firmware download
+     *
+     * In case of firmware download method broadcast, Set this attribute on
+     * any one of device connected to same bus. As part of execute firmware will broadcast to
+     * to all broadcast enabled devices on bus.
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default false
+     * @validonly SAI_SWITCH_ATTR_FIRMWARE_DOWNLOAD_BROADCAST == true
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_DOWNLOAD_EXECUTE,
+
+    /**
+     * @brief End Broadcast
+     *
+     * Broadcast is enabled for BUS, All configurations will be broadcast.
+     * End broadcast before initialize device.
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default false
+     * @validonly SAI_SWITCH_ATTR_FIRMWARE_DOWNLOAD_BROADCAST == true
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_BROADCAST_STOP,
+
+    /**
+     * @brief Firmware status verify and complete initialize device.
+     *
+     * Host Adapter should mandatory to set attribute to true,
+     * switch before doing any other configurations.
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default false
+     * @validonly SAI_SWITCH_ATTR_FIRMWARE_DOWNLOAD_BROADCAST == true
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_VERIFY_AND_INIT_SWITCH,
+
+    /**
+     * @brief Firmware running status
+     *
+     * Indicates firmware download and running status.
+     *
+     * TRUE - Firmware running
+     * FALSE - Firmware not running.
+     *
+     * @type bool
+     * @flags READ_ONLY
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_STATUS,
+
+    /**
+     * @brief Firmware major version number
+     *
+     * @type sai_uint32_t
+     * @flags READ_ONLY
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_MAJOR_VERSION,
+
+    /**
+     * @brief Firmware minor version number
+     *
+     * @type sai_uint32_t
+     * @flags READ_ONLY
+     */
+    SAI_SWITCH_ATTR_FIRMWARE_MINOR_VERSION,
+
+    /**
+     * @brief Get the port connector list
+     *
+     * validonly SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_PHY
+     *
+     * @type sai_object_list_t
+     * @flags READ_ONLY
+     * @objects SAI_OBJECT_TYPE_PORT_CONNECTOR
+     */
+    SAI_SWITCH_ATTR_PORT_CONNECTOR_LIST,
+
+    /**
+     * @brief Propagate line side port state to system side port
+     *
+     * System side port state will reflect the ASIC port state.
+     * Host adapter can depends on ASIC port state instead of port states from system side,
+     * line side and ASIC port to determine interface operation status to application.
+     *
+     * TRUE - Device support for propagate line side port link status to system side port.
+     * FALSE - Device does not support propagate port states.
+     *
+     * validonly SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_PHY
+     *
+     * @type bool
+     * @flags READ_ONLY
+     */
+    SAI_SWITCH_ATTR_PROPOGATE_PORT_STATE_FROM_LINE_TO_SYSTEM_PORT_SUPPORT,
+
+    /**
+     * @brief Switch type NPU/PHY
+     *
+     * @type sai_switch_type_t
+     * @flags CREATE_ONLY
+     * @default SAI_SWITCH_TYPE_NPU
+     */
+    SAI_SWITCH_ATTR_TYPE,
+
+    /**
+     * @brief MACsec object for this switch.
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_MACSEC
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_SWITCH_ATTR_MACSEC_OBJECT_ID,
+
+    /**
+     * @brief Enable EXP -> TC MAP on switch.
+     *
+     * MAP id = #SAI_NULL_OBJECT_ID to disable map on switch.
+     * Default no map.
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_SWITCH_ATTR_QOS_MPLS_EXP_TO_TC_MAP,
+
+    /**
+     * @brief Enable EXP -> COLOR MAP on switch
+     *
+     * MAP id = #SAI_NULL_OBJECT_ID to disable map on switch.
+     * Default no map in which case all exp values map to green color
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_SWITCH_ATTR_QOS_MPLS_EXP_TO_COLOR_MAP,
+
+    /**
+     * @brief Enable TC + COLOR -> EXP MAP
+     *
+     * Map id = #SAI_NULL_OBJECT_ID to disable map on switch.
+     * Default no map.
+     *
+     * @type sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_QOS_MAP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     */
+    SAI_SWITCH_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP,
+
+    /**
+     * @brief Vendor specific switch ID. Identifies switch chip
+     *
+     * Mandatory in VOQ Switch
+     *
+     * @type sai_uint32_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_VOQ
+     */
+    SAI_SWITCH_ATTR_SWITCH_ID,
+
+    /**
+     * @brief Maximum number of cores in the VOQ System (chassis)
+     *
+     * @type sai_uint32_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_VOQ
+     */
+    SAI_SWITCH_ATTR_MAX_SYSTEM_CORES,
+
+    /**
+     * @brief System port configuration list.
+     *
+     * @type sai_system_port_config_list_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_VOQ
+     */
+    SAI_SWITCH_ATTR_SYSTEM_PORT_CONFIG_LIST,
+
+    /**
+     * @brief Number of system ports
+     *
+     * @type sai_uint32_t
+     * @flags READ_ONLY
+     */
+    SAI_SWITCH_ATTR_NUMBER_OF_SYSTEM_PORTS,
+
+    /**
+     * @brief Get the system port list
+     *
+     * @type sai_object_list_t
+     * @flags READ_ONLY
+     * @objects SAI_OBJECT_TYPE_SYSTEM_PORT
+     * @default internal
+     */
+    SAI_SWITCH_ATTR_SYSTEM_PORT_LIST,
+
+    /**
+     * @brief Number of fabric ports on the switch
+     *
+     * @type sai_uint32_t
+     * @flags READ_ONLY
+     */
+    SAI_SWITCH_ATTR_NUMBER_OF_FABRIC_PORTS,
+
+    /**
+     * @brief Get the fabric port list
+     *
+     * @type sai_object_list_t
+     * @flags READ_ONLY
+     * @objects SAI_OBJECT_TYPE_PORT
+     * @default internal
+     */
+    SAI_SWITCH_ATTR_FABRIC_PORT_LIST,
+
     /**
      * @brief End of attributes
      */
@@ -1844,16 +2231,16 @@ typedef enum _sai_switch_attr_t
      * @flags CREATE_AND_SET
      * @default NULL
      */
-    SAI_SWITCH_ATTR_Y1731_SESSION_EVENT_NOTIFY,
-    
-     /**
+    SAI_SWITCH_ATTR_Y1731_SESSION_STATE_CHANGE_NOTIFY,
+
+    /**
      * @brief Number of Y1731 session in the NPU
      *
      * @type sai_uint32_t
      * @flags READ_ONLY
      */
     SAI_SWITCH_ATTR_NUMBER_OF_Y1731_SESSION,
-    
+
     /**
      * @brief Max number of Y1731 session NPU supports
      *
@@ -1861,19 +2248,19 @@ typedef enum _sai_switch_attr_t
      * @flags READ_ONLY
      */
     SAI_SWITCH_ATTR_MAX_Y1731_SESSION,
-    
+
     /**
      * @brief List of Y1731 session performance monitor offloads supported in the ASIC
      *
-     * @type sai_s32_list_t sai_y1731_session_performance_monitor_offload_type_t
+     * @type sai_s32_list_t sai_y1731_session_perf_monitor_offload_type_t
      * @flags READ_ONLY
      */
-    SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE,
+    SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE,
 
     /**
      * @brief Apply ECN action for ECT traffic.
-     *        Attribute controls whether do ECN modification when traffic beyond
-     *        the ECN threshold.
+     * Attribute controls whether do ECN modification when traffic beyond
+     * the ECN threshold.
      *
      * @type bool
      * @flags CREATE_AND_SET
@@ -1882,7 +2269,7 @@ typedef enum _sai_switch_attr_t
     SAI_SWITCH_ATTR_ECN_ACTION_ENABLE,
 
     /**
-     * @brief buffer monitor notification callback function passed to the adapter.
+     * @brief Buffer monitor notification callback function passed to the adapter.
      *
      * Use sai_monitor_buffer_notification_fn as notification function.
      *
@@ -1893,7 +2280,7 @@ typedef enum _sai_switch_attr_t
     SAI_SWITCH_ATTR_MONITOR_BUFFER_NOTIFY,
 
     /**
-     * @brief latency monitor notification callback function passed to the adapter.
+     * @brief Latency monitor notification callback function passed to the adapter.
      *
      * Use sai_monitor_latency_notification_fn as notification function.
      *
@@ -1902,125 +2289,141 @@ typedef enum _sai_switch_attr_t
      * @default NULL
      */
     SAI_SWITCH_ATTR_MONITOR_LATENCY_NOTIFY,
-    
-     /**
-     * @brief  buffer monitor microburst enable
+
+    /**
+     * @brief Buffer monitor microburst enable
      *
      * @type bool
      * @flags CREATE_AND_SET
+     * @default false
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE,
-    
+
     /**
-     * @brief define the min threshold of microburst , global control(unit is byte)
+     * @brief Define the min threshold of microburst, global control(unit is byte)
      *
      * @type sai_uint32_t
      * @flags CREATE_AND_SET
+     * @default 0
      */
-    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN,
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MIN_THRD,
 
     /**
-     * @brief define the max threshold of microburst, global control(unit is byte)
+     * @brief Define the max threshold of microburst, global control(unit is byte)
      *
-     * @type  sai_uint32_t
+     * @type sai_uint32_t
      * @flags CREATE_AND_SET
+     * @default 0
      */
-    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX,
+    SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD,
 
     /**
-     * @brief send the packet to cpu when the usage of buffer over the threshold
+     * @brief Send the packet to CPU when the usage of buffer over the threshold
      *
-     * @type  bool
+     * @type bool
      * @flags CREATE_AND_SET
+     * @default false
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_OVERTHRD_EVENT,
 
     /**
-     * @brief  set 8 level threshold(unit is ns) for the duration of microburst  
+     * @brief Set 8 level threshold(unit is Nanosecond) for the duration of microburst
      *
-     * @type  sai_u32_list_t
+     * @type sai_u32_list_t
      * @flags CREATE_AND_SET
+     * @default empty
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD,
-     
-     /**
-     * @brief enable the ingress monitor,  global control
+
+    /**
+     * @brief Enable the ingress monitor, global control
      *
-     * @type  bool
+     * @type bool
      * @flags CREATE_AND_SET
+     * @default false
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_PERIODIC_MONITOR_ENABLE,
 
     /**
-     * @brief enable the egress monitor , global control
+     * @brief Enable the egress monitor, global control
      *
-     * @type  bool
+     * @type bool
      * @flags CREATE_AND_SET
+     * @default false
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_PERIODIC_MONITOR_ENABLE,
 
     /**
-     * @brief enable the egress monitor based on queue , global control
+     * @brief Enable the egress monitor based on queue, global control
      *
-     * @type  bool
+     * @type bool
      * @flags CREATE_AND_SET
+     * @default false
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_QUEUE_PERIODIC_MONITOR_ENABLE,
 
     /**
-     * @brief the buffer monitor time interval(ms)
+     * @brief The buffer monitor time interval(ms)
      *
-     * @type  sai_uint32_t
+     * @type sai_uint32_t
      * @flags CREATE_AND_SET
+     * @default 0
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL,
 
     /**
-     * @brief record max total buffer cnt(unit is byte), and when set the attr,the value can only be 0, indicate clearing watermark
-     * @type  sai_uint32_t
+     * @brief Record max total buffer count(unit is byte), and when set the attr,the value can only be 0, indicate clearing watermark
+     *
+     * @type sai_uint32_t
      * @flags CREATE_AND_SET
+     * @default 0
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK,
 
     /**
-     * @brief record max total buffer cnt(unit is byte), and when set the attr,the value can only be 0, indicate clearing watermark
+     * @brief Record max total buffer count(unit is byte), and when set the attr,the value can only be 0, indicate clearing watermark
      *
-     * @type  sai_uint32_t
+     * @type sai_uint32_t
      * @flags CREATE_AND_SET
+     * @default 0
      */
     SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK,
 
-     /**
-     * @brief  define the min latency threshold(unit is ns)  
+    /**
+     * @brief Define the min latency threshold(unit is Nanosecond)
      *
      * @type sai_uint32_t
      * @flags CREATE_AND_SET
+     * @default 0
      */
-    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN,
+    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD,
 
     /**
-     * @brief define the max latency threshold (unit is ns)  
+     * @brief Define the max latency threshold (unit is Nanosecond)
      *
      * @type sai_uint32_t
      * @flags CREATE_AND_SET
+     * @default 0
      */
-    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX,
+    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD,
 
     /**
-     * @brief  set 8 level threshold(unit is ns)  
+     * @brief Set 8 level threshold(unit is Nanosecond)
      *
-     * @type  sai_u32_list_t
+     * @type sai_u32_list_t
      * @flags CREATE_AND_SET
+     * @default empty
      */
     SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD,
 
     /**
-     * @brief set the latency monitor scan time interval(ms)
+     * @brief Set the latency monitor scan time interval(ms)
      *
-     * @type  sai_uint32_t
+     * @type sai_uint32_t
      * @flags CREATE_AND_SET
+     * @default 0
      */
-    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL,     
+    SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL,
 
     /**
      * @brief Set signal degrade event notification callback function passed to the adapter.
@@ -2034,7 +2437,7 @@ typedef enum _sai_switch_attr_t
     SAI_SWITCH_ATTR_SIGNAL_DEGRADE_EVENT_NOTIFY,
 
     /**
-     * @brief Set ptp packet tx event notification callback function passed to the adapter.
+     * @brief Set PTP packet tx event notification callback function passed to the adapter.
      *
      * Use sai_packet_event_ptp_tx_notification_fn as notification function.
      *
@@ -2042,10 +2445,10 @@ typedef enum _sai_switch_attr_t
      * @flags CREATE_AND_SET
      * @default NULL
      */
-    SAI_SWITCH_ATTR_PTP_PACKET_TX_EVENT_NOTIFY,
+    SAI_SWITCH_ATTR_PACKET_EVENT_PTP_TX_NOTIFY,
 
     /**
-     * @brief Max number of TWAMP session supports
+     * @brief Max number of Two-Way Active Measurement Protocol session supports
      *
      * @type sai_uint32_t
      * @flags READ_ONLY
@@ -2066,6 +2469,9 @@ typedef enum _sai_switch_stat_t
 {
     /** Switch stat in drop reasons range start */
     SAI_SWITCH_STAT_IN_DROP_REASON_RANGE_BASE = 0x00001000,
+
+    /** Get in switch packet drops configured by debug counter API at index 0 */
+    SAI_SWITCH_STAT_IN_CONFIGURED_DROP_REASONS_0_DROPPED_PKTS = SAI_SWITCH_STAT_IN_DROP_REASON_RANGE_BASE,
 
     /** Get in switch packet drops configured by debug counter API at index 1 */
     SAI_SWITCH_STAT_IN_CONFIGURED_DROP_REASONS_1_DROPPED_PKTS,
@@ -2094,6 +2500,9 @@ typedef enum _sai_switch_stat_t
     /** Switch stat out drop reasons range start */
     SAI_SWITCH_STAT_OUT_DROP_REASON_RANGE_BASE = 0x00002000,
 
+    /** Get out switch packet drops configured by debug counter API at index 0 */
+    SAI_SWITCH_STAT_OUT_CONFIGURED_DROP_REASONS_0_DROPPED_PKTS = SAI_SWITCH_STAT_OUT_DROP_REASON_RANGE_BASE,
+
     /** Get out switch packet drops configured by debug counter API at index 1 */
     SAI_SWITCH_STAT_OUT_CONFIGURED_DROP_REASONS_1_DROPPED_PKTS,
 
@@ -2117,6 +2526,24 @@ typedef enum _sai_switch_stat_t
 
     /** Switch stat out drop reasons range end */
     SAI_SWITCH_STAT_OUT_DROP_REASON_RANGE_END = 0x00002fff,
+
+    /** Switch stat fabric drop reasons range start */
+    SAI_SWITCH_STAT_FABRIC_DROP_REASON_RANGE_BASE = 0x00003000,
+
+    /** Get ECC discards [fabric] */
+    SAI_SWITCH_STAT_ECC_DROP,
+
+    /** Get reach-ability discards [switch | fabric] */
+    SAI_SWITCH_STAT_REACHABILITY_DROP,
+
+    /** Congestion related high watermark [switch] */
+    SAI_SWITCH_STAT_HIGHEST_QUEUE_CONGESTION_LEVEL,
+
+    /** Discards not counted in other switch stat type [switch | fabric] */
+    SAI_SWITCH_STAT_GLOBAL_DROP,
+
+    /** Switch stat fabric drop reasons range end */
+    SAI_SWITCH_STAT_FABRIC_DROP_REASON_RANGE_END = 0x00003fff,
 
 } sai_switch_stat_t;
 
@@ -2255,6 +2682,92 @@ typedef void (*sai_switch_state_change_notification_fn)(
         _In_ sai_switch_oper_status_t switch_oper_status);
 
 /**
+ * @brief Platform specific device register read access
+ *
+ * This API provides platform adaption functionality to access device
+ * registers from driver. This is mandatory to pass as attribute to
+ * sai_create_switch when driver implementation does not support register access
+ * by device file system directly.
+ *
+ * @objects switch_id SAI_OBJECT_TYPE_SWITCH
+ *
+ * @param[in] platform_context Platform context information.
+ * @param[in] device_addr Device address(PHY/lane/port MDIO address)
+ * @param[in] start_reg_addr Starting register address to read
+ * @param[in] number_of_registers Number of consecutive registers to read
+ * @param[out] reg_val Register read values
+ */
+typedef sai_status_t (*sai_switch_register_read_fn)(
+        _In_ uint64_t platform_context,
+        _In_ uint32_t device_addr,
+        _In_ uint32_t start_reg_addr,
+        _In_ uint32_t number_of_registers,
+        _Out_ uint32_t *reg_val);
+
+/**
+ * @brief Platform specific device register write access
+ *
+ * This API provides platform adaption functionality to access device
+ * registers from driver. This is mandatory to pass as attribute to
+ * sai_create_switch when driver implementation does not support register access
+ * by device file system directly.
+ *
+ * @objects switch_id SAI_OBJECT_TYPE_SWITCH
+ *
+ * @param[in] platform_context Platform context information.
+ * @param[in] device_addr Device address(PHY/lane/port MDIO address)
+ * @param[in] start_reg_addr Starting register address to write
+ * @param[in] number_of_registers Number of consecutive registers to write
+ * @param[in] reg_val Register write values
+ */
+typedef sai_status_t (*sai_switch_register_write_fn)(
+        _In_ uint64_t platform_context,
+        _In_ uint32_t device_addr,
+        _In_ uint32_t start_reg_addr,
+        _In_ uint32_t number_of_registers,
+        _In_ const uint32_t *reg_val);
+
+/**
+ * @brief Switch MDIO read API
+ *
+ * Provides read access API for devices connected to MDIO from NPU SAI.
+ *
+ * @objects switch_id SAI_OBJECT_TYPE_SWITCH
+ *
+ * @param[in] switch_id Switch Id
+ * @param[in] device_addr Device address(PHY/lane/port MDIO address)
+ * @param[in] start_reg_addr Starting register address to read
+ * @param[in] number_of_registers Number of consecutive registers to read
+ * @param[out] reg_val Register read values
+ */
+typedef sai_status_t (*sai_switch_mdio_read_fn)(
+        _In_ sai_object_id_t switch_id,
+        _In_ uint32_t device_addr,
+        _In_ uint32_t start_reg_addr,
+        _In_ uint32_t number_of_registers,
+        _Out_ uint32_t *reg_val);
+
+/**
+ * @brief Switch MDIO write API
+ *
+ * Provides write access API for devices connected to MDIO from NPU SAI.
+ *
+ * @objects switch_id SAI_OBJECT_TYPE_SWITCH
+ *
+ * @param[in] switch_id Switch Id
+ * @param[in] device_addr Device address(PHY/lane/port MDIO address)
+ * @param[in] start_reg_addr Starting register address to write
+ * @param[in] number_of_registers Number of consecutive registers to write
+ * @param[in] reg_val Register write values
+ */
+typedef sai_status_t (*sai_switch_mdio_write_fn)(
+        _In_ sai_object_id_t switch_id,
+        _In_ uint32_t device_addr,
+        _In_ uint32_t start_reg_addr,
+        _In_ uint32_t number_of_registers,
+        _In_ const uint32_t *reg_val);
+
+/**
  * @brief Create switch
  *
  * SDK initialization/connect to SDK. After the call the capability attributes should be
@@ -2370,6 +2883,8 @@ typedef struct _sai_switch_api_t
     sai_get_switch_stats_fn         get_switch_stats;
     sai_get_switch_stats_ext_fn     get_switch_stats_ext;
     sai_clear_switch_stats_fn       clear_switch_stats;
+    sai_switch_mdio_read_fn         switch_mdio_read;
+    sai_switch_mdio_write_fn        switch_mdio_write;
 
 } sai_switch_api_t;
 

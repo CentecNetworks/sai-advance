@@ -15,42 +15,42 @@
  The Monitor Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                     |   SUPPORT CHIPS LIST   |
-\e  |  create_monitor_buffer;                                   |        CTC7132         |
-\e  |  remove_monitor_buffer;                                   |        CTC7132         |
-\e  |  set_monitor_buffer_attribute;                            |        CTC7132         |
-\e  |  get_monitor_buffer_attribute;                            |        CTC7132         |
-\e  |  create_monitor_latency;                                  |        CTC7132         |
-\e  |  remove_monitor_latency;                                  |        CTC7132         |
-\e  |  set_monitor_latency_attribute;                           |        CTC7132         |
-\e  |  get_monitor_latency_attribute;                           |        CTC7132         |
+\t  |   API                                                     |       SUPPORT CHIPS LIST       |
+\e  |  create_monitor_buffer;                                   |        CTC7132,CTC8180         |
+\e  |  remove_monitor_buffer;                                   |        CTC7132,CTC8180         |
+\e  |  set_monitor_buffer_attribute;                            |        CTC7132,CTC8180         |
+\e  |  get_monitor_buffer_attribute;                            |        CTC7132,CTC8180         |
+\e  |  create_monitor_latency;                                  |        CTC7132,CTC8180         |
+\e  |  remove_monitor_latency;                                  |        CTC7132,CTC8180         |
+\e  |  set_monitor_latency_attribute;                           |        CTC7132,CTC8180         |
+\e  |  get_monitor_latency_attribute;                           |        CTC7132,CTC8180         |
 \b
 \p
  The monitor buffer attributes supported by centec devices:
 \p
 \b
-\t  |   Monitor Buffer  ATTRIBUTE                                               |   SUPPORT CHIPS LIST   |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT                                     |        CTC7132         |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN                    |        CTC7132         |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX                    |        CTC7132         |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE     |        CTC7132         |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_PERIODIC_MONITOR_ENABLE      |        CTC7132         |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_UNICAST_WATERMARK            |        CTC7132         |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_MULTICAST_WATERMARK          |        CTC7132         |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_TOTAL_WATERMARK              |        CTC7132         |
-\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_TOTAL_WATERMARK             |        CTC7132         |
+\t  |   Monitor Buffer  ATTRIBUTE                                               |       SUPPORT CHIPS LIST       |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT                                     |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN                    |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX                    |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE     |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_PERIODIC_MONITOR_ENABLE      |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_UNICAST_WATERMARK            |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_MULTICAST_WATERMARK          |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_TOTAL_WATERMARK              |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_TOTAL_WATERMARK             |        CTC7132,CTC8180         |
 \b
 \p
  The monitor latency attributes supported by centec devices:
 \p
 \b
-\t  |   Monitor latency  ATTRIBUTE                                               |   SUPPORT CHIPS LIST   |
-\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_PORT                                     |        CTC7132         |
-\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE                                   |        CTC7132         |
-\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_OVERTHRD_EVENT                     |        CTC7132         |
-\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE                  |        CTC7132         |
-\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD                            |        CTC7132         |
-\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_PORT_WATERMARK                           |        CTC7132         |
+\t  |   Monitor latency  ATTRIBUTE                                               |       SUPPORT CHIPS LIST       |
+\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_PORT                                     |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE         |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_OVERTHRD_EVENT                     |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE                  |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD                            |        CTC7132,CTC8180         |
+\e  |  SAI_MONITOR_LATENCY_MONITOR_ATTR_PORT_WATERMARK                           |        CTC7132,CTC8180         |
 \b
 */
 

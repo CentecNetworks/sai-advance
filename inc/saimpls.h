@@ -45,10 +45,10 @@ typedef enum _sai_inseg_entry_psc_type_t
     SAI_INSEG_ENTRY_PSC_TYPE_LLSP,
 
     /**
-     * @brief do not use MPLS label infers TC and COLOR
+     * @brief Do not use MPLS label infers TC and COLOR
      */
-    SAI_INSEG_ENTRY_PSC_TYPE_NONE  
-    
+    SAI_INSEG_ENTRY_PSC_TYPE_NONE
+
 } sai_inseg_entry_psc_type_t;
 
 typedef enum _sai_inseg_entry_pop_ttl_mode_t
@@ -86,33 +86,35 @@ typedef enum _sai_inseg_entry_pop_qos_mode_t
 } sai_inseg_entry_pop_qos_mode_t;
 
 /**
- * @brief MPLS Insegment configured role
+ * @brief MPLS in-segment configured role
  */
-typedef enum  _sai_inseg_entry_configured_role_t
+typedef enum _sai_inseg_entry_configured_role_t
 {
-    /** MPLS Insegment is primary */
+    /** MPLS in-segment is primary */
     SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY,
 
-    /** MPLS Insegment is standby */
+    /** MPLS in-segment is standby */
     SAI_INSEG_ENTRY_CONFIGURED_ROLE_STANDBY,
 
-}  sai_inseg_entry_configured_role_t;
+} sai_inseg_entry_configured_role_t;
 
 /**
- * @brief MPLS Insegment observed role
+ * @brief MPLS in-segment observed role
  */
-typedef enum  _sai_inseg_entry_observed_role_t
+typedef enum _sai_inseg_entry_frr_observed_role_t
 {
-    /** MPLS Insegment is active */
-    SAI_INSEG_ENTRY_OBSERVED_ROLE_ACTIVE,
+    /** MPLS in-segment is active */
+    SAI_INSEG_ENTRY_FRR_OBSERVED_ROLE_ACTIVE,
 
-    /** MPLS Insegment is inactive */
-    SAI_INSEG_ENTRY_OBSERVED_ROLE_INACTIVE,
+    /** MPLS in-segment is inactive */
+    SAI_INSEG_ENTRY_FRR_OBSERVED_ROLE_INACTIVE,
 
-}  sai_inseg_entry_observed_role_t;
+} sai_inseg_entry_frr_observed_role_t;
 
 /**
  * @brief Attribute Id for SAI in segment
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_inseg_entry_attr_t
 {
@@ -230,7 +232,7 @@ typedef enum _sai_inseg_entry_attr_t
      * @default SAI_INSEG_ENTRY_POP_QOS_MODE_UNIFORM
      */
     SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE,
-        
+
     /**
      * @brief End of attributes
      */
@@ -248,13 +250,13 @@ typedef enum _sai_inseg_entry_attr_t
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
      */
-    SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID = SAI_INSEG_ENTRY_ATTR_CUSTOM_RANGE_START,
+    SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID,
 
     /**
-     * @brief FRR nexthop group
+     * @brief Fast Reroute nexthop group
      *
      * @type sai_object_id_t
-     * @flags CREATE_ONLY
+     * @flags CREATE_AND_SET
      * @objects SAI_OBJECT_TYPE_NEXT_HOP_GROUP
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
@@ -262,31 +264,33 @@ typedef enum _sai_inseg_entry_attr_t
     SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP,
 
     /**
-     * @brief FRR configured Role in packet receiving direction
+     * @brief Fast Reroute configured Role in packet receiving direction
+     * valid when SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
      *
      * @type sai_inseg_entry_configured_role_t
-     * @flags CREATE_ONLY
+     * @flags CREATE_AND_SET
      * @default SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY
-     * @validonly SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
      */
     SAI_INSEG_ENTRY_ATTR_FRR_CONFIGURED_ROLE,
 
     /**
-     * @brief FRR observed Role in packet receiving direction
+     * @brief Fast Reroute observed Role in packet receiving direction
      *
-     * @type sai_inseg_entry_observed_role_t
+     * valid when SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
+     *
+     * @type sai_inseg_entry_frr_observed_role_t
      * @flags READ_ONLY
-     * @validonly SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
+     * @isresourcetype true
      */
     SAI_INSEG_ENTRY_ATTR_FRR_OBSERVED_ROLE,
 
     /**
-     * @brief FRR observed Role inactive discard in receiving direction
+     * @brief Fast Reroute observed Role inactive discard in receiving direction
+     * validonly SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
      *
      * @type bool
-     * @flags CREATE_ONLY
+     * @flags CREATE_AND_SET
      * @default false
-     * @validonly SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP != NULL
      */
     SAI_INSEG_ENTRY_ATTR_FRR_INACTIVE_RX_DISCARD,
 
@@ -304,9 +308,9 @@ typedef enum _sai_inseg_entry_attr_t
     SAI_INSEG_ENTRY_ATTR_COUNTER_ID,
 
     /**
-     * @brief Attach/Detach policer to mpls insegment
+     * @brief Attach/Detach policer to MPLS in-segment
      *
-     * Set policer id = #SAI_NULL_OBJECT_ID to disable policer on mpls insegment.
+     * Set policer id = #SAI_NULL_OBJECT_ID to disable policer on MPLS in-segment.
      *
      * @type sai_object_id_t
      * @flags CREATE_AND_SET
@@ -317,13 +321,14 @@ typedef enum _sai_inseg_entry_attr_t
     SAI_INSEG_ENTRY_ATTR_POLICER_ID,
 
     /**
-     * @brief service id for mpls insegment entry
-     * 
-     * used for H-QoS, set to service schedule group service id
-     * set to 0 means disable H-QoS on mpls label, usually used in PW label
+     * @brief Service id for MPLS in-segment entry
+     *
+     * used for H-QOS, set to service schedule group service id
+     * set to 0 means disable H-QOS on MPLS label, usually used in PW label
      *
      * @type sai_uint16_t
      * @flags CREATE_AND_SET
+     * @isvlan false
      * @default 0
      */
     SAI_INSEG_ENTRY_ATTR_SERVICE_ID,

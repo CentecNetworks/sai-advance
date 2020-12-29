@@ -24,7 +24,7 @@ _ctc_sai_next_hop_group_create_aps_nh(uint8 lchip, uint16 aps_group_id, uint32 n
 
     sal_memset(&aps_bridge, 0, sizeof(ctc_aps_bridge_group_t));
 
-    CTC_SAI_ERROR_RETURN(ctcs_aps_create_aps_bridge_group(lchip, aps_group_id, &aps_bridge));
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_aps_create_aps_bridge_group(lchip, aps_group_id, &aps_bridge));
 
     return status;
 }

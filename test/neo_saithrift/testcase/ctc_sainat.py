@@ -79,7 +79,7 @@ class SNATCreateTest(sai_base_test.ThriftInterfaceDataPlane):
             sys_logging("status = %d" %status)
             assert (status == SAI_STATUS_ITEM_ALREADY_EXISTS) 
 
-            nat = sai_thrift_nat_entry_t(vr_id, keylist[0], keylist[1], keylist[2], keylist[3], keylist[4], masklist[0], masklist[1], masklist[2], masklist[3], masklist[4])
+            nat = sai_thrift_nat_entry_t(vr_id, keylist[0], keylist[1], keylist[2], keylist[3], keylist[4], masklist[0], masklist[1], masklist[2], masklist[3], masklist[4], nat_type)
             
             attrs = self.client.sai_thrift_get_nat_attribute(nat)
             sys_logging("get attr status = %d" %attrs.status)
@@ -97,7 +97,7 @@ class SNATCreateTest(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
         
         finally:
-            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist)
+            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist, nat_type)
             #self.client.sai_thrift_remove_next_hop(nhop1)
             #sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
             
@@ -163,7 +163,7 @@ class DNATCreateTest(sai_base_test.ThriftInterfaceDataPlane):
             sys_logging("status = %d" %status)
             assert (status == SAI_STATUS_ITEM_ALREADY_EXISTS) 
 
-            nat = sai_thrift_nat_entry_t(vr_id, keylist[0], keylist[1], keylist[2], keylist[3], keylist[4], masklist[0], masklist[1], masklist[2], masklist[3], masklist[4])
+            nat = sai_thrift_nat_entry_t(vr_id, keylist[0], keylist[1], keylist[2], keylist[3], keylist[4], masklist[0], masklist[1], masklist[2], masklist[3], masklist[4], nat_type)
             attrs = self.client.sai_thrift_get_nat_attribute(nat)
             sys_logging("get attr status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
@@ -180,7 +180,7 @@ class DNATCreateTest(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
         
         finally:
-            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist)
+            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist, nat_type)
             sai_thrift_remove_route(self.client, vr_id, addr_family, mod_dstip_addr, ip_mask, nhop1)
             self.client.sai_thrift_remove_next_hop(nhop1)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, mod_dstip_addr, dmac1)
@@ -232,12 +232,12 @@ class SNATRemoveTest(sai_base_test.ThriftInterfaceDataPlane):
         nat_type = SAI_NAT_TYPE_SOURCE_NAT
         status = sai_thrift_create_nat(self.client, vr_id, nat_type, keylist, masklist, mod_srcip_addr, None, mod_l4_srcport, None)
         sys_logging("creat status = %d" %status)
-        status = sai_thrift_remove_nat(self.client, vr_id, keylist, masklist)
+        status = sai_thrift_remove_nat(self.client, vr_id, keylist, masklist, nat_type)
         sys_logging("remove status = %d" %status)
 
         warmboot(self.client)
         try:
-            nat = sai_thrift_nat_entry_t(vr_id, keylist[0], keylist[1], keylist[2], keylist[3], keylist[4], masklist[0], masklist[1], masklist[2], masklist[3], masklist[4])
+            nat = sai_thrift_nat_entry_t(vr_id, keylist[0], keylist[1], keylist[2], keylist[3], keylist[4], masklist[0], masklist[1], masklist[2], masklist[3], masklist[4], nat_type)
             
             attrs = self.client.sai_thrift_get_nat_attribute(nat)
             sys_logging("get attr status = %d" %attrs.status)
@@ -301,12 +301,12 @@ class DNATRemoveTest(sai_base_test.ThriftInterfaceDataPlane):
         
         status = sai_thrift_create_nat(self.client, vr_id, nat_type, keylist, masklist, None, mod_dstip_addr, None, mod_l4_dstport)
         sys_logging("creat status = %d" %status)
-        status = sai_thrift_remove_nat(self.client, vr_id, keylist, masklist)
+        status = sai_thrift_remove_nat(self.client, vr_id, keylist, masklist, nat_type)
         sys_logging("remove status = %d" %status)
 
         warmboot(self.client)
         try:
-            nat = sai_thrift_nat_entry_t(vr_id, keylist[0], keylist[1], keylist[2], keylist[3], keylist[4], masklist[0], masklist[1], masklist[2], masklist[3], masklist[4])
+            nat = sai_thrift_nat_entry_t(vr_id, keylist[0], keylist[1], keylist[2], keylist[3], keylist[4], masklist[0], masklist[1], masklist[2], masklist[3], masklist[4], nat_type)
             attrs = self.client.sai_thrift_get_nat_attribute(nat)
             sys_logging("get attr status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
@@ -402,7 +402,7 @@ class SNATPacketTest(sai_base_test.ThriftInterfaceDataPlane):
         
         finally:
             sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
-            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist)
+            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist, nat_type)
             self.client.sai_thrift_remove_next_hop(nhop1)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, dstip_addr, dmac1)
             
@@ -491,7 +491,7 @@ class DNATPacketTest(sai_base_test.ThriftInterfaceDataPlane):
             self.ctc_verify_packets( exp_pkt, [0])
         
         finally:
-            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist)
+            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist, nat_type)
             sai_thrift_remove_route(self.client, vr_id, addr_family, mod_dstip_addr, ip_mask, nhop1)
             self.client.sai_thrift_remove_next_hop(nhop1)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, mod_dstip_addr, dmac1)

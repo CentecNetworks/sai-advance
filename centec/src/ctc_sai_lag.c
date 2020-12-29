@@ -656,12 +656,12 @@ static sai_status_t ctc_sai_lag_set_lag_member_info(sai_object_key_t *key,  cons
     }
     return SAI_STATUS_SUCCESS;
 
-    error2:
+error2:
     ctcs_linkagg_remove_port(lchip, CTC_MAP_GPORT_TO_LPORT(lag_id), gport);
     return status;
-    error1:
+error1:
     ctcs_linkagg_add_port(lchip, CTC_MAP_GPORT_TO_LPORT(lag_id), gport);
-    out:
+out:
     return status;
 
 }
@@ -830,6 +830,7 @@ static sai_status_t   ctc_sai_lag_create_lag( sai_object_id_t     * sai_lag_id,
                                              const sai_attribute_t *attr_list)
 {
     uint8 lchip = 0;
+    uint8 chip_type = 0;
     sai_status_t status = 0;
     ctc_linkagg_group_t linkagg_grp;
     //uint32 capability[CTC_GLOBAL_CAPABILITY_MAX];
@@ -849,6 +850,7 @@ static sai_status_t   ctc_sai_lag_create_lag( sai_object_id_t     * sai_lag_id,
     }
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(switch_id, &lchip));
+    chip_type = ctcs_get_chip_type(lchip);
     //sal_memset(capability, 0 , sizeof(capability));
     //CTC_SAI_CTC_ERROR_RETURN(ctcs_global_ctl_get(lchip, CTC_GLOBAL_CHIP_CAPABILITY, capability));
     CTC_SAI_DB_LOCK(lchip);
@@ -897,16 +899,65 @@ static sai_status_t   ctc_sai_lag_create_lag( sai_object_id_t     * sai_lag_id,
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM, &attr, &attr_index);
     if (SAI_STATUS_SUCCESS == status)
     {
-        if(((SAI_LAG_MODE_STATIC==lag_mode)&&(255<attr->u16))||((CTC_LINKAGG_MODE_STATIC_FAILOVER==lag_mode)&&(24<attr->u16))||\
-        ((CTC_LINKAGG_MODE_RR==lag_mode)&&(24<attr->u16))||\
-        ((CTC_LINKAGG_MODE_DLB==lag_mode)&&(32!=attr->u16)&&(64!=attr->u16)&&(128!=attr->u16)&&(256!=attr->u16))||\
-        ((CTC_LINKAGG_MODE_RESILIENT==lag_mode)&&(32!=attr->u16)&&(64!=attr->u16)&&(128!=attr->u16)&&(256!=attr->u16)))
+        bool invalid_param = false;
+        switch (lag_mode)
         {
-            status = SAI_STATUS_INVALID_PARAMETER;
+            case SAI_LAG_MODE_STATIC:
+            case SAI_LAG_MODE_RR:
+                if ((attr->u16 < 1) || (255 < attr->u16))
+                {
+                    invalid_param = true;
+                }
+                break;
+            case SAI_LAG_MODE_STATIC_FAILOVER:
+                if ((attr->u16 < 1) || (24 < attr->u16))
+                {
+                    invalid_param = true;
+                }
+                break;
+            case SAI_LAG_MODE_RH:
+                if ((16 != attr->u16) && (32 != attr->u16) && (64 != attr->u16) && (128 != attr->u16)
+                    && (256 != attr->u16) && (512 != attr->u16) && (1024 != attr->u16) && (2048 != attr->u16))
+                {
+                    invalid_param = true;
+                }
+                break;
+            case SAI_LAG_MODE_DLB:
+                if ((16 != attr->u16) && (32 != attr->u16) && (64 != attr->u16) && (128 != attr->u16)
+                    && (256 != attr->u16) && (512 != attr->u16) && (1024 != attr->u16) && (2048 != attr->u16)
+                    && (4096 != attr->u16) && (8192 != attr->u16))
+                {
+                    invalid_param = true;
+                }
+                if ((CTC_CHIP_TSINGMA == chip_type) && ((4096 == attr->u16) || (8192 == attr->u16)))
+                {
+                    invalid_param = true;
+                }
+                break;
+            default:
+                break;
+        }
+        if (true == invalid_param)
+        {
+            if (CTC_CHIP_TSINGMA == chip_type)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_LAG, "SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM for lag is not correct, error maybe:\
+                \n SAI_LAG_MODE_STATIC or SAI_LAG_MODE_RR num > 255, SAI_LAG_MODE_STATIC_FAILOVER num > 24, \
+                \n SAI_LAG_MODE_DLB or SAI_LAG_MODE_RH num != 16, 32, 64, 128, 256, 512, 1024 or 2048. \n");
+            }
+            if (CTC_CHIP_TSINGMA_MX == chip_type)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_LAG, "SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM for lag is not correct, error maybe:\
+                \n SAI_LAG_MODE_STATIC or SAI_LAG_MODE_RR num > 255, SAI_LAG_MODE_STATIC_FAILOVER num > 24, \
+                \n SAI_LAG_MODE_RH num != 16, 32, 64, 128, 256, 512, 1024 or 2048, \
+                \n SAI_LAG_MODE_DLB num != 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 or 8192. \n");
+            }
+            status = SAI_STATUS_INVALID_ATTR_VALUE_0 + SAI_STATUS_CODE(attr_index);
             goto out;
         }
         max_lag_member = attr->u16;
     }
+
     linkagg_grp.member_num = max_lag_member;
     status = ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_LAG, &lag_id_tmp);
     if (status)

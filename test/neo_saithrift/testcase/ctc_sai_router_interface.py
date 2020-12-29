@@ -22,6 +22,7 @@ from struct import pack, unpack
 from switch import *
 
 import sai_base_test
+import ctc_sai_qos_map
 from ptf.mask import Mask
 '''
 @group('l3')
@@ -236,18 +237,34 @@ class fun_04_max_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
         vlan_oid_list = []
         vr_id1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
         port1 = port_list[0]
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
 
-        sys_logging("======create 4091 router interface======")
-        for i in range(10,142):
-            vlan_id = i
-            vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
-            vlan_oid_list.append(vlan_oid)
-            for j in range(31):
-                if (i == 141)&(j ==30):
-                    continue
-                rif_id1 = sai_thrift_create_router_interface(self.client, vr_id1, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port_list[j], 0, v4_enabled, v6_enabled, mac, outer_vlan_id = vlan_id, stats_state = False)
-                rif_id_list.append(rif_id1)
-                
+        if chipname == "tsingma_mx":
+            sys_logging("======create 8187 router interface======")
+            for i in range(10,275):
+                vlan_id = i
+                vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+                vlan_oid_list.append(vlan_oid)
+                for j in range(31):
+                    if (i == 274)&(j > 2):
+                        continue
+                    rif_id1 = sai_thrift_create_router_interface(self.client, vr_id1, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port_list[j], 0, v4_enabled, v6_enabled, mac, outer_vlan_id = vlan_id, stats_state = False)
+                    rif_id_list.append(rif_id1)
+        elif chipname == "tsingma":
+            sys_logging("======create 4091 router interface======")
+            for i in range(10,142):
+                vlan_id = i
+                vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+                vlan_oid_list.append(vlan_oid)
+                for j in range(31):
+                    if (i == 141)&(j == 30):
+                        continue
+                    rif_id1 = sai_thrift_create_router_interface(self.client, vr_id1, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port_list[j], 0, v4_enabled, v6_enabled, mac, outer_vlan_id = vlan_id, stats_state = False)
+                    rif_id_list.append(rif_id1)
+        else:
+            sys_logging("======chipname is error======")
+
         vlan_id1 = 5
         vlan_id2 = 6
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id1)
@@ -268,7 +285,7 @@ class fun_04_max_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
             sys_logging("======create one vlan type router interface======")
             rif_id1 = sai_thrift_create_router_interface(self.client, vr_id1, SAI_ROUTER_INTERFACE_TYPE_VLAN, 0, vlan_oid1, v4_enabled, v6_enabled, mac)
             sys_logging("rif_id = 0x%x" %rif_id1)
-            assert (rif_id1%0x100000000 == 0x2006)
+            assert (rif_id1%0x100000000 == 0x0)
 
             sys_logging("======create another vlan type router interface======")
             rif_id2 = sai_thrift_create_router_interface(self.client, vr_id1, SAI_ROUTER_INTERFACE_TYPE_VLAN, 0, vlan_oid2, v4_enabled, v6_enabled, mac)
@@ -278,12 +295,20 @@ class fun_04_max_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
         finally:
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_router_interface(rif_id1)
-            for i in range(0,4091):
-                self.client.sai_thrift_remove_router_interface(rif_id_list[i])
+            if chipname == "tsingma_mx":
+                for i in range(0,8187):
+                    self.client.sai_thrift_remove_router_interface(rif_id_list[i])
+                for i in range(0,265):
+                    self.client.sai_thrift_remove_vlan(vlan_oid_list[i])
+            elif chipname == "tsingma":
+                for i in range(0,4091):
+                    self.client.sai_thrift_remove_router_interface(rif_id_list[i])
+                for i in range(0,132):
+                    self.client.sai_thrift_remove_vlan(vlan_oid_list[i])
+            else:
+                sys_logging("======chipname is error======")
             self.client.sai_thrift_remove_vlan(vlan_oid1)
-            self.client.sai_thrift_remove_vlan(vlan_oid2)       
-            for i in range(0,132):   
-                self.client.sai_thrift_remove_vlan(vlan_oid_list[i])
+            self.client.sai_thrift_remove_vlan(vlan_oid2)
             self.client.sai_thrift_remove_virtual_router(vr_id1)
 
 class fun_05_create_stats_enable_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
@@ -298,16 +323,30 @@ class fun_05_create_stats_enable_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
         vlan_oid_list = []
         vr_id1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
         port1 = port_list[0]
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
 
-        sys_logging("======create 66 vlan and 1980 router interface(66+1980+1=2047)======")
-        for i in range(10,76):
-            vlan_id = i
-            vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
-            vlan_oid_list.append(vlan_oid)
-            for j in range(30):
-                rif_id1 = sai_thrift_create_router_interface(self.client, vr_id1, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port_list[j], 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlan_id)
-                rif_id_list.append(rif_id1)
-        vlan_id1 = 100
+        if chipname == "tsingma_mx":
+            sys_logging("======create 273 vlan and 7917 router interface(273+7917+1=8191)======")
+            for i in range(10,283):
+                vlan_id = i
+                vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+                vlan_oid_list.append(vlan_oid)
+                for j in range(29):
+                    rif_id1 = sai_thrift_create_router_interface(self.client, vr_id1, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port_list[j], 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlan_id)
+                    rif_id_list.append(rif_id1)
+        elif chipname == "tsingma":
+            sys_logging("======create 66 vlan and 1980 router interface(66+1980+1=2047)======")
+            for i in range(10,76):
+                vlan_id = i
+                vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+                vlan_oid_list.append(vlan_oid)
+                for j in range(30):
+                    rif_id1 = sai_thrift_create_router_interface(self.client, vr_id1, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port_list[j], 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlan_id)
+                    rif_id_list.append(rif_id1)
+        else:
+            sys_logging("======chipname is error======")
+        vlan_id1 = 300
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id1)
 
         warmboot(self.client)
@@ -319,13 +358,20 @@ class fun_05_create_stats_enable_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         finally:
             sys_logging("======clean up======")
-            for i in range(0,1980):
-                self.client.sai_thrift_remove_router_interface(rif_id_list[i])
-            self.client.sai_thrift_remove_vlan(vlan_oid1)       
-            for i in range(0,66):   
-                self.client.sai_thrift_remove_vlan(vlan_oid_list[i])
+            if chipname == "tsingma_mx":
+                for i in range(0,7917):
+                    self.client.sai_thrift_remove_router_interface(rif_id_list[i])
+                for i in range(0,273):
+                    self.client.sai_thrift_remove_vlan(vlan_oid_list[i])
+            elif chipname == "tsingma":
+                for i in range(0,1980):
+                    self.client.sai_thrift_remove_router_interface(rif_id_list[i])
+                for i in range(0,66):
+                    self.client.sai_thrift_remove_vlan(vlan_oid_list[i])
+            else:
+                sys_logging("======chipname is error======")
+            self.client.sai_thrift_remove_vlan(vlan_oid1)
             self.client.sai_thrift_remove_virtual_router(vr_id1)
-
 
 class fun_06_remove_rif_fn(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -504,6 +550,24 @@ class fun_08_set_and_get_attribute_fn(sai_base_test.ThriftInterfaceDataPlane):
                     print "get action = %d" %a.value.s32
                     if SAI_PACKET_ACTION_TRAP != a.value.s32:
                         raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP:
+                    if SAI_NULL_OBJECT_ID != a.value.oid:
+                        raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP:
+                    if SAI_NULL_OBJECT_ID != a.value.oid:
+                        raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP:
+                    if SAI_NULL_OBJECT_ID != a.value.oid:
+                        raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP:
+                    if False != a.value.booldata:
+                        raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL:
+                    if SAI_NULL_OBJECT_ID != a.value.oid:
+                        raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL:
+                    if SAI_NULL_OBJECT_ID != a.value.oid:
+                        raise NotImplementedError()
 
          
             sys_logging("=======set all support attribute=======")
@@ -541,6 +605,45 @@ class fun_08_set_and_get_attribute_fn(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_NEIGHBOR_MISS_PACKET_ACTION, value=attr_value)
             self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
 
+            attr_value = sai_thrift_attribute_value_t(booldata = True)
+            attr = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP, value = attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            sys_logging("### set router interface: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+
+            key_list   = [0, 1, 2, 3, 4, 5, 6, 7]
+            value_list  = [1, 1, 1, 3, 3, 3, 5, 5]
+            map_id = ctc_sai_qos_map._QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_DSCP_TO_TC, key_list, [], value_list)
+            attr_value = sai_thrift_attribute_value_t(oid = map_id)
+            attr = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            sys_logging("### set router interface: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+
+            key_list   = [0, 1, 2, 3, 4, 5, 6, 7]
+            value_list  = [SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN, 
+                           SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN, 
+                           SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN]
+            map_id_dscp_color = ctc_sai_qos_map._QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_DSCP_TO_COLOR, key_list, [], value_list)
+            attr_value = sai_thrift_attribute_value_t(oid = map_id_dscp_color)
+            attr = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP, value = attr_value)
+            self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            sys_logging("### set router interface: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+
+            key_list1  = [1, 1, 1, 3, 3, 3, 5, 5, 5]
+            key_list2  = [SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN, 
+                          SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN, 
+                          SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN]
+            value_list = [7, 6, 5, 4, 3, 2, 1, 0, 0]
+            map_id_tc_and_color_dscp2 = ctc_sai_qos_map._QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DSCP, key_list1, key_list2 , value_list)
+            print map_id_tc_and_color_dscp2
+            attr_value = sai_thrift_attribute_value_t(oid = map_id_tc_and_color_dscp2)
+            attr = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            sys_logging("### set router interface: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+
             sys_logging("=======get attribute again=======")
             attrs = self.client.sai_thrift_get_router_interface_attribute(rif_id)
             for a in attrs.attr_list:
@@ -571,9 +674,35 @@ class fun_08_set_and_get_attribute_fn(sai_base_test.ThriftInterfaceDataPlane):
                     print "get action = %d" %a.value.s32
                     if action != a.value.s32:
                         raise NotImplementedError()
-
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP:
+                    if map_id != a.value.oid:
+                        raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP:
+                    if map_id_dscp_color != a.value.oid:
+                        raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP:
+                    if map_id_tc_and_color_dscp2 != a.value.oid:
+                        raise NotImplementedError()
+                if a.id == SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP:
+                    if True != a.value.booldata:
+                        raise NotImplementedError()
         finally:
             sys_logging("======clean up======")
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            status = self.client.sai_thrift_remove_qos_map(map_id_tc_and_color_dscp2)
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_COLOR_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            status = self.client.sai_thrift_remove_qos_map(map_id_dscp_color)
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            status = self.client.sai_thrift_remove_qos_map(map_id)
+            attr_value = sai_thrift_attribute_value_t(booldata = False)
+            attr = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP, value = attr_value)
+            self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
             self.client.sai_thrift_remove_router_interface(rif_id)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_virtual_router(vr_id1)
@@ -1183,9 +1312,9 @@ class scenario_03_bridge_rif_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(bridge_rif_oid)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2_id, port3)
-            sai_thrift_remove_bridge_sub_port(self.client, bport3_id, port4)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2_id, port3)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport3_id, port4)
             self.client.sai_thrift_remove_bridge(bridge_id)
             
             self.client.sai_thrift_remove_vlan(vlan1_oid)
@@ -1513,50 +1642,94 @@ class scenario_07_stats_state_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id2)
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
-
 class scenario_08_stress_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
         v4_enabled = 1
         v6_enabled = 1
         port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
         vlan_id = 2
         mac = ''
-        rf_num1 = 4091
-        rf_num2 = 4092
         vlanid_list = []
         vlan_list = []
         rif_list = []
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+        if chipname == "tsingma":
+            rf_num1 = 4091
+        elif chipname == "tsingma_mx":
+            rf_num1 = 2047
+        else:
+            rf_num1 = 0
+            sys_logging("======chipname is error======")
+        rf_num2 = 4092
         vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
         sys_logging("======create 4092 vlan======")
         for i in range(rf_num2):
             vlanid_list.append(vlan_id+i)
             vlan_list.append(sai_thrift_create_vlan(self.client, vlan_id+i))
-        sys_logging("======create 4091 sub router interface======")
-        
-        for i in range(rf_num1):
-            rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port1, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
-            #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
-            #assert (attrs.status == SAI_STATUS_SUCCESS)
-        sys_logging("======remove all router interface======")
-        for i in range(rf_num1):
-            self.client.sai_thrift_remove_router_interface(rif_list[i])
-            #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
-            #assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
 
-        sys_logging("======create 4091 sub router interface again======")
-
-        for i in range(rf_num1):
-            rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port1, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
-            #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
-            #assert (attrs.status == SAI_STATUS_SUCCESS)
-
-        sys_logging("======remove all router interface======")
-        for i in range(rf_num1):
-            self.client.sai_thrift_remove_router_interface(rif_list[i])
+        if chipname == "tsingma":
+            sys_logging("======create %d sub router interface======" %rf_num1)
+            for i in range(rf_num1):
+                rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port1, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
+                #assert (attrs.status == SAI_STATUS_SUCCESS)
+            sys_logging("======remove all router interface======")
+            for i in range(rf_num1):
+                self.client.sai_thrift_remove_router_interface(rif_list[i])
+                #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
+                #assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
+            
+            rif_list = []
+            sys_logging("======create %d sub router interface again======" %rf_num1)
+            for i in range(rf_num1):
+                rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port1, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
+                #assert (attrs.status == SAI_STATUS_SUCCESS)
+            sys_logging("======remove all router interface======")
+            for i in range(rf_num1):
+                self.client.sai_thrift_remove_router_interface(rif_list[i])
+        elif chipname == "tsingma_mx":
+            sys_logging("======create %d sub router interface======" %(rf_num1 * 4 - 1))
+            for i in range(rf_num1):
+                rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port1, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port2, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port3, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                if i == 2046:
+                    continue
+                else:
+                    rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port4, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
+                #assert (attrs.status == SAI_STATUS_SUCCESS)
+            sys_logging("======remove all router interface======")
+            for i in range(rf_num1 * 4 - 1):
+                self.client.sai_thrift_remove_router_interface(rif_list[i])
+                #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
+                #assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
+            
+            rif_list = []
+            sys_logging("======create %d sub router interface again======" %(rf_num1 * 4 - 1))
+            for i in range(rf_num1):
+                rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port1, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port2, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port3, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                if i == 2046:
+                    continue
+                else:
+                    rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_SUB_PORT, port4, 0, v4_enabled, v6_enabled, mac, outer_vlan_id=vlanid_list[i], stats_state = False))
+                #attrs = self.client.sai_thrift_get_router_interface_attribute(rif_list[i])
+                #assert (attrs.status == SAI_STATUS_SUCCESS)
+            sys_logging("======remove all router interface======")
+            for i in range(rf_num1 * 4 - 1):
+                self.client.sai_thrift_remove_router_interface(rif_list[i])
+        else:
+            sys_logging("======chipname is error======")
 
         rif_list = []
-        
         sys_logging("======create 4092 vlan router interface======")
         for i in range(rf_num2):
             rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_VLAN, port1, vlan_list[i], v4_enabled, v6_enabled, mac, stats_state = False))
@@ -1567,6 +1740,7 @@ class scenario_08_stress_test(sai_base_test.ThriftInterfaceDataPlane):
         for i in range(rf_num2):
             self.client.sai_thrift_remove_router_interface(rif_list[i])
 
+        rif_list = []
         sys_logging("======create 4092 vlan router interface again======")
         for i in range(rf_num2):
             rif_list.append(sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_VLAN, port1, vlan_list[i], v4_enabled, v6_enabled, mac, stats_state = False))
@@ -1580,11 +1754,12 @@ class scenario_08_stress_test(sai_base_test.ThriftInterfaceDataPlane):
             #assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
 
         for i in range(rf_num2):
-            self.client.sai_thrift_remove_vlan(vlan_list[i])    
+            self.client.sai_thrift_remove_vlan(vlan_list[i])
         sys_logging("======clean up======")
         self.client.sai_thrift_remove_virtual_router(vr_id)
 
-class scenario_09_bug110526(sai_base_test.ThriftInterfaceDataPlane):
+##bug110526
+class scenario_09_create_multi_sub_if_then_del_one_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
         port1 = port_list[0]

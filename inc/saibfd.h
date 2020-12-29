@@ -28,6 +28,7 @@
 #include <saitypes.h>
 
 #define SAI_BFD_CV_SIZE 32
+
 /**
  * @defgroup SAIBFD SAI - BFD specific public APIs and data structures
  *
@@ -85,7 +86,7 @@ typedef enum _sai_bfd_encapsulation_type_t
     SAI_BFD_ENCAPSULATION_TYPE_L3_GRE_TUNNEL,
 
     /**
-     * @brief MPLS Encapsulation | L2 Ethernet header | MPLS header (| ACH header) (| IP header | UDP header) | Original BFD packet
+     * @brief MPLS Encapsulation | L2 Ethernet header | MPLS header (| Associated Channel Header) (| IP header | UDP header) | Original BFD packet
      */
     SAI_BFD_ENCAPSULATION_TYPE_MPLS,
 
@@ -95,18 +96,18 @@ typedef enum _sai_bfd_encapsulation_type_t
     SAI_BFD_ENCAPSULATION_TYPE_NONE,
 
 } sai_bfd_encapsulation_type_t;
-    
+
 /**
  * @brief SAI type of MPLS encapsulated BFD
  */
 typedef enum _sai_bfd_mpls_type_t
 {
-    /** Normal mpls BFD, include LSP/PW */
+    /** Normal MPLS BFD, include Label Switched Path/Pseudo wire */
     SAI_BFD_MPLS_TYPE_NORMAL,
-    
-    /** MPLS TP BFD */
+
+    /** MPLS transport BFD */
     SAI_BFD_MPLS_TYPE_TP,
-    
+
 } sai_bfd_mpls_type_t;
 
 /**
@@ -146,26 +147,28 @@ typedef struct _sai_bfd_session_state_notification_t
 } sai_bfd_session_state_notification_t;
 
 /**
- * @brief Defines the ACH channel type of BFD encapsulation
+ * @brief Defines the Associated Channel Header channel type of BFD encapsulation
  */
 typedef enum _sai_bfd_ach_channel_type_t
 {
-    /** BFD ACH channel type without IP/UDP achType = 0x0007 */
+    /** BFD Associated Channel Header channel type without IP/UDP Associated Channel Header Type = 0x0007 */
     SAI_BFD_ACH_CHANNEL_TYPE_VCCV_RAW,
 
-    /** BFD ACH channel type with IPv4/UDP achType = 0x0021 */
+    /** BFD Associated Channel Header channel type with IPv4/UDP Associated Channel Header Type = 0x0021 */
     SAI_BFD_ACH_CHANNEL_TYPE_VCCV_IPV4,
 
-    /** BFD ACH channel type with IPv6/UDP achType = 0x0057 */
+    /** BFD Associated Channel Header channel type with IPv6/UDP Associated Channel Header Type = 0x0057 */
     SAI_BFD_ACH_CHANNEL_TYPE_VCCV_IPV6,
-    
-    /** BFD ACH channel type TP CC achType = 0x0022, CV achType = 0x0023 */
-    SAI_BFD_ACH_CHANNEL_TYPE_TP,    
+
+    /** BFD Associated Channel Header channel type MPLS transport CC Associated Channel Header Type = 0x0022, CV Associated Channel Header Type = 0x0023 */
+    SAI_BFD_ACH_CHANNEL_TYPE_TP,
 
 } sai_bfd_ach_channel_type_t;
 
 /**
  * @brief SAI attributes for BFD session
+ *
+ * @flags Contains flag
  */
 typedef enum _sai_bfd_session_attr_t
 {
@@ -524,7 +527,7 @@ typedef enum _sai_bfd_session_attr_t
      * @flags READ_ONLY
      */
     SAI_BFD_SESSION_ATTR_REMOTE_MULTIPLIER,
-    
+
     /**
      * @brief End of attributes
      */
@@ -539,96 +542,98 @@ typedef enum _sai_bfd_session_attr_t
      * @type sai_bfd_session_state_t
      * @flags READ_ONLY
      */
-    SAI_BFD_SESSION_ATTR_REMOTE_STATE = SAI_BFD_SESSION_ATTR_CUSTOM_RANGE_START,
-    
+    SAI_BFD_SESSION_ATTR_REMOTE_STATE,
+
     /**
      * @brief MPLS encapsulated BFD type
      *
      * @type sai_bfd_mpls_type_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
+     * @condition SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
      */
-    SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE,
-    
+    SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE,
+
     /**
-     * @brief BFD ACH valid
+     * @brief BFD Associated Channel Header valid
      *
      * @type bool
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
+     * @condition SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
      */
     SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID,
-    
+
     /**
-     * @brief BFD ACH channel type
+     * @brief BFD Associated Channel Header channel type
      *
      * @type sai_bfd_ach_channel_type_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS && SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID == true
      */
-    SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE,
-    
+    SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE,
+
     /**
      * @brief MPLS label bind to BFD session
-     * @type sai_label_id_t
+     *
+     * @type sai_uint32_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
+     * @condition SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
      */
     SAI_BFD_SESSION_ATTR_MPLS_IN_LABEL,
-    
+
     /**
-     * @brief transmit MPLS label ttl
+     * @brief Transmit MPLS label TTL
+     *
      * @type sai_uint8_t
      * @flags CREATE_AND_SET
+     * @default 255
      * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
      */
     SAI_BFD_SESSION_ATTR_MPLS_TTL,
-    
+
     /**
-     * @brief transmit MPLS label exp
+     * @brief Transmit MPLS label exp
+     *
      * @type sai_uint8_t
      * @flags CREATE_AND_SET
+     * @default 0
      * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
      */
     SAI_BFD_SESSION_ATTR_MPLS_EXP,
-    
+
     /**
-     * @brief TP BFD CV enable
+     * @brief MPLS transport BFD CV enable
+     *
      * @type bool
      * @flags CREATE_AND_SET
-     * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
-        && SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE == SAI_BFD_MPLS_TYPE_TP
+     * @default false
      */
     SAI_BFD_SESSION_ATTR_TP_CV_ENABLE,
-    
+
     /**
-     * @brief TP BFD CV Source MEP-ID char[SAI_BFD_CV_SIZE]
+     * @brief MPLS transport BFD CV Source Maintenance End Point-ID char[SAI_BFD_CV_SIZE]
+     *
      * @type char
-     * @flags CREATE_ONLY
-     * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
-     *  && SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE == SAI_BFD_MPLS_TYPE_TP 
-     *  && SAI_BFD_SESSION_ATTR_TP_CV_ENABLE == TRUE
+     * @flags CREATE_AND_SET
+     * @default ""
      */
     SAI_BFD_SESSION_ATTR_TP_CV_SRC_MEP_ID,
-    
+
     /**
-     * @brief TP BFD section OAM router interface id
+     * @brief MPLS transport BFD section OAM router interface id
      *
      * @type sai_object_id_t
      * @flags CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_ROUTER_INTERFACE
-     * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
-     *  && SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE == SAI_BFD_MPLS_TYPE_TP 
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
      */
     SAI_BFD_SESSION_ATTR_TP_ROUTER_INTERFACE_ID,
 
     /**
-     * @brief TP BFD without gal, by default, bfd for lsp with gal, bfd for pw without gal
+     * @brief MPLS transport BFD without gal, by default, BFD for Label Switched Path with gal, BFD for Pseudo wire without gal
      *
      * @type bool
      * @flags CREATE_ONLY
-     * @validonly SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE == SAI_BFD_ENCAPSULATION_TYPE_MPLS
-     *  && SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE == SAI_BFD_MPLS_TYPE_TP 
+     * @default false
      */
     SAI_BFD_SESSION_ATTR_TP_WITHOUT_GAL,
 
@@ -644,10 +649,9 @@ typedef enum _sai_bfd_session_attr_t
     SAI_BFD_SESSION_ATTR_NEXT_HOP_ID,
 
     /**
-     * @brief The hw protection next hop group id
-     *  set to SAI_OBJECT_TYPE_NEXT_HOP_GROUP, only for SAI_NEXT_HOP_GROUP_TYPE_PROTECTION
-     *  used for hardware protection switch
-     *  set to SAI_NULL_OBJECT_ID to disable hw protection
+     * @brief The HW protection next hop group id
+     * only for SAI_NEXT_HOP_GROUP_TYPE_PROTECTION, used for hardware protection switch
+     * SAI_NULL_OBJECT_ID to disable
      *
      * @type sai_object_id_t
      * @flags CREATE_AND_SET
@@ -658,22 +662,22 @@ typedef enum _sai_bfd_session_attr_t
     SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID,
 
     /**
-     * @brief indicate the path bfd session monitored is protecting path or working path
+     * @brief Indicate the path BFD session monitored is protecting path or working path
+     * used when SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID is not SAI_NULL_OBJECT_ID
      *
      * @type bool
      * @flags CREATE_AND_SET
-     * @validonly SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID != SAI_NULL_OBJECT_ID
-     * @default 0
+     * @default false
      */
     SAI_BFD_SESSION_ATTR_HW_PROTECTION_IS_PROTECTION_PATH,
 
     /**
-     * @brief indicate the bfd session hw protection is enabled or not
+     * @brief Indicate the BFD session HW protection is enabled or not
+     * used when SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID is not SAI_NULL_OBJECT_ID
      *
      * @type bool
      * @flags CREATE_AND_SET
-     * @validonly SAI_BFD_SESSION_ATTR_HW_PROTECTION_NEXT_HOP_GROUP_ID != SAI_NULL_OBJECT_ID
-     * @default 0
+     * @default false
      */
     SAI_BFD_SESSION_ATTR_HW_PROTECTION_EN,
 

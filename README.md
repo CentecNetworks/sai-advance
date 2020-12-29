@@ -91,7 +91,7 @@ Sales email: sales@centecnetworks.com<BR>
     Support SAI 1.5
     Support above feature list
 ### Dependencies
- This pakage depends on Centec SDK V5.5.6RC
+ This package depends on Centec SDK V5.5.6RC
 
 ## 2020-07-31
   Second release.<BR>
@@ -104,7 +104,7 @@ Sales email: sales@centecnetworks.com<BR>
         Service QoS, NPM for 1564,2544
         Signal Degrade Detect
 ### Dependencies
- This pakage depends on Centec SDK V5.6.0.21
+ This package depends on Centec SDK V5.6.0.21
 
 ## 2020-10-23
   3rd release.<BR>
@@ -115,7 +115,20 @@ Sales email: sales@centecnetworks.com<BR>
     Support new feature list: 
          More support for L2/L3 VPN
 ### Dependencies
- This pakage depends on Centec SDK V5.6.1
+ This package depends on Centec SDK V5.6.1
+ 
+## 2020-12-29
+  4th release.<BR>
+  tag：CTC-v2.0.1-SAI-1.6.4
+### Feature Added:
+    Support CTC7132
+    Support SAI 1.6.4
+    Support new feature list: 
+         More support for L2/L3 VPN
+         Support Direct SAI CLI
+         Support shell mode CLI
+### Dependencies
+ This package depends on Centec SDK V5.6.1
  
 # How to compile
 
@@ -138,9 +151,17 @@ First we need to edit $SAI\_SOURCE\_DIR/**CMakeLists.txt**, which located in thi
     SET(CHIPNAME "tsingma")
     SET(SDKHOME "../sdk/")
 
-If you want to enable warmboot feature, you will be need redis support,and set below flag, and set the correct REDIS_INCLUDE_DIR
+If you want to enable warmboot feature, you will be need redis support,and set below flag, and set the correct REDIS_INCLUDE_DIR.
 
     SET(CONFIG_DBCLIENT 1)
+
+If you want to enable direct SAI CLI feature, you will need to set below flag, use "sai get ..." or "sai set ...".
+
+    SET(CONFIG_SAICLI 1)
+
+If you want to enable CTC SDK shell, you will need to set below flag, and use ctc_shell to connect and configure, ctc_shell need contact Centec to get.
+
+    SET(CONFIG_SHELLMODE 1)
 
 After this, let us enter folder ***build/***, and run these command:
 

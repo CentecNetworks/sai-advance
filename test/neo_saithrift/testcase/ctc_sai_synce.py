@@ -29,12 +29,12 @@ class func_01_create_synce_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         switch_init(self.client)
 
-        recovered_port = 1
+        recovered_port = port_list[1]
         clock_divider = 1
         syncE_oid = sai_thrift_create_syncE(self.client, recovered_port, clock_divider)
         sys_logging("###the syncE_oid %x ###" %syncE_oid)
         try:
-            assert(syncE_oid==0x10000005e)
+            assert(syncE_oid==(1<<32 | SAI_OBJECT_TYPE_SYNCE))
             
         finally:
             self.client.sai_thrift_remove_synce(syncE_oid)
@@ -45,7 +45,7 @@ class func_02_create_another_synce_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         switch_init(self.client)
 
-        recovered_port = 1
+        recovered_port = port_list[1]
         clock_divider = 1
         syncE_oid = sai_thrift_create_syncE(self.client, recovered_port, clock_divider)
 
@@ -63,7 +63,7 @@ class func_03_remove_synce_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         switch_init(self.client)
 
-        recovered_port = 1
+        recovered_port = port_list[1]
         clock_divider = 1
         syncE_oid = sai_thrift_create_syncE(self.client, recovered_port, clock_divider)
         
@@ -87,7 +87,7 @@ class func_04_remove_no_exist_synce_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         switch_init(self.client)
 
-        recovered_port = 1
+        recovered_port = port_list[1]
         clock_divider = 1
         syncE_oid = sai_thrift_create_syncE(self.client, recovered_port, clock_divider)
         
@@ -105,7 +105,7 @@ class func_05_set_synce_attr_clock_divider_fn(sai_base_test.ThriftInterfaceDataP
 
         switch_init(self.client)
 
-        recovered_port = 1
+        recovered_port = port_list[1]
         clock_divider = 1
         syncE_oid = sai_thrift_create_syncE(self.client, recovered_port, clock_divider)
         clock_divider1 =7
@@ -140,20 +140,20 @@ class func_06_set_synce_attr_recovered_port_fn(sai_base_test.ThriftInterfaceData
 
         switch_init(self.client)
 
-        recovered_port = 1
+        recovered_port = port_list[1]
         clock_divider = 1
         syncE_oid = sai_thrift_create_syncE(self.client, recovered_port, clock_divider)
-        recovered_port1 = 5
+        recovered_port1 = port_list[1]
         sys_logging("###the syncE_oid %x ###" %syncE_oid)
         
         attrs = self.client.sai_thrift_get_synce_attribute(syncE_oid)
         sys_logging("get synce attribute status = %d" %attrs.status)
         for a in attrs.attr_list:
             if a.id == SAI_SYNCE_ATTR_RECOVERED_PORT:
-                print " SyncE recovered port = 0x%x" %a.value.u16
+                print " SyncE recovered port = 0x%x" %a.value.oid
 
         try:
-            attr_value = sai_thrift_attribute_value_t(u16=recovered_port1)
+            attr_value = sai_thrift_attribute_value_t(oid=recovered_port1)
             attr = sai_thrift_attribute_t(id=SAI_SYNCE_ATTR_RECOVERED_PORT, value=attr_value)
             status = self.client.sai_thrift_set_synce_attribute(syncE_oid, attr)
             sys_logging("set synce attribute status = %d" %status)
@@ -162,8 +162,8 @@ class func_06_set_synce_attr_recovered_port_fn(sai_base_test.ThriftInterfaceData
             sys_logging("get synce attribute status = %d" %attrs.status)
             for a in attrs.attr_list:
                 if a.id == SAI_SYNCE_ATTR_RECOVERED_PORT:
-                    print " SyncE recovered port = 0x%x" %a.value.u16
-                    if a.value.u16 != recovered_port1:
+                    print " SyncE recovered port = 0x%x" %a.value.oid
+                    if a.value.oid != recovered_port1:
                         raise NotImplementedError()
             
         finally:
@@ -176,7 +176,7 @@ class func_07_get_synce_attr_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         switch_init(self.client)
 
-        recovered_port = 3
+        recovered_port = port_list[3]
         clock_divider = 4
         syncE_oid = sai_thrift_create_syncE(self.client, recovered_port, clock_divider)
         sys_logging("###the syncE_oid %x ###" %syncE_oid)
@@ -190,8 +190,8 @@ class func_07_get_synce_attr_fn(sai_base_test.ThriftInterfaceDataPlane):
                     if a.value.u16 != clock_divider:
                         raise NotImplementedError()
                 if a.id == SAI_SYNCE_ATTR_RECOVERED_PORT:
-                    print " SyncE recovered port = 0x%x" %a.value.u16
-                    if a.value.u16 != recovered_port:
+                    print " SyncE recovered port = 0x%x" %a.value.oid
+                    if a.value.oid != recovered_port:
                         raise NotImplementedError()
         finally:
             self.client.sai_thrift_remove_synce(syncE_oid)

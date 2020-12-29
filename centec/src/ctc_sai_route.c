@@ -330,7 +330,6 @@ _ctc_sai_route_get_attr(sai_object_key_t* key, sai_attribute_t* attr, uint32 att
         case SAI_ROUTE_ENTRY_ATTR_NEXT_HOP_ID:
             attr->value.oid = p_route_info->nh_obj_id;
             break;
-        case SAI_ROUTE_ENTRY_ATTR_USER_TRAP_ID:
         case SAI_ROUTE_ENTRY_ATTR_META_DATA:
             attr->value.u32 = CTC_SAI_META_DATA_CTC_TO_SAI(p_route_info->cid);
             break;
@@ -340,6 +339,7 @@ _ctc_sai_route_get_attr(sai_object_key_t* key, sai_attribute_t* attr, uint32 att
         case SAI_ROUTE_ENTRY_ATTR_COUNTER_ID:
             attr->value.oid = p_route_info->counter_obj_id;
             break;
+        case SAI_ROUTE_ENTRY_ATTR_USER_TRAP_ID:
         default:
             return SAI_STATUS_ATTR_NOT_SUPPORTED_0 + attr_idx;
             break;
@@ -569,7 +569,13 @@ ctc_sai_route_bulk_create_route(
     uint8 lchip = 0;
     uint32 i =  0;
     ctc_sai_switch_master_t* p_switch_master = NULL;
+
+    CTC_SAI_LOG_ENTER(SAI_API_ROUTE);
     CTC_SAI_PTR_VALID_CHECK(route_entry);
+    for (i = 0; i < object_count; i++)
+    {
+        object_statuses[i] = SAI_STATUS_NOT_EXECUTED;
+    }
     for (i = 0; i < object_count; i++)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(route_entry[i].switch_id, &lchip));
@@ -579,8 +585,13 @@ ctc_sai_route_bulk_create_route(
         if (CTC_SAI_ERROR(object_statuses[i]) && (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode))
         {
             CTC_SAI_DB_UNLOCK(lchip);
-            return object_statuses[i];
+            return SAI_STATUS_FAILURE;
         }
+        else if (CTC_SAI_ERROR(object_statuses[i]))
+        {
+            status = SAI_STATUS_FAILURE;
+        }
+
         if (SAI_STATUS_SUCCESS == object_statuses[i])
         {
             p_switch_master->route_cnt[route_entry[i].destination.addr_family]++;
@@ -601,7 +612,13 @@ ctc_sai_route_bulk_remove_route(
     uint8 lchip = 0;
     uint32 i =  0;
     ctc_sai_switch_master_t* p_switch_master = NULL;
+
+    CTC_SAI_LOG_ENTER(SAI_API_ROUTE);
     CTC_SAI_PTR_VALID_CHECK(route_entry);
+    for (i = 0; i < object_count; i++)
+    {
+        object_statuses[i] = SAI_STATUS_NOT_EXECUTED;
+    }
     for (i = 0; i < object_count; i++)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(route_entry[i].switch_id, &lchip));
@@ -611,8 +628,13 @@ ctc_sai_route_bulk_remove_route(
         if (CTC_SAI_ERROR(object_statuses[i]) && (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode))
         {
             CTC_SAI_DB_UNLOCK(lchip);
-            return object_statuses[i];
+            return SAI_STATUS_FAILURE;
         }
+        else if (CTC_SAI_ERROR(object_statuses[i]))
+        {
+            status = SAI_STATUS_FAILURE;
+        }
+
         if (SAI_STATUS_SUCCESS == object_statuses[i])
         {
             p_switch_master->route_cnt[route_entry[i].destination.addr_family]--;
@@ -633,6 +655,13 @@ ctc_sai_route_bulk_set_route_attr(
     sai_status_t           status = SAI_STATUS_SUCCESS;
     uint8 lchip = 0;
     uint32 i =  0;
+
+    CTC_SAI_LOG_ENTER(SAI_API_ROUTE);
+    CTC_SAI_PTR_VALID_CHECK(route_entry);
+    for (i = 0; i < object_count; i++)
+    {
+        object_statuses[i] = SAI_STATUS_NOT_EXECUTED;
+    }
     for (i = 0; i < object_count; i++)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(route_entry[i].switch_id, &lchip));
@@ -641,7 +670,11 @@ ctc_sai_route_bulk_set_route_attr(
         if (CTC_SAI_ERROR(object_statuses[i]) && (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode))
         {
             CTC_SAI_DB_UNLOCK(lchip);
-            return object_statuses[i];
+            return SAI_STATUS_FAILURE;
+        }
+        else if (CTC_SAI_ERROR(object_statuses[i]))
+        {
+            status = SAI_STATUS_FAILURE;
         }
         CTC_SAI_DB_UNLOCK(lchip);
     }
@@ -660,6 +693,13 @@ ctc_sai_route_bulk_get_route_attr(
     sai_status_t           status = SAI_STATUS_SUCCESS;
     uint8 lchip = 0;
     uint32 i =  0;
+
+    CTC_SAI_LOG_ENTER(SAI_API_ROUTE);
+    CTC_SAI_PTR_VALID_CHECK(route_entry);
+    for (i = 0; i < object_count; i++)
+    {
+        object_statuses[i] = SAI_STATUS_NOT_EXECUTED;
+    }
     for (i = 0; i < object_count; i++)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(route_entry[i].switch_id, &lchip));
@@ -668,8 +708,13 @@ ctc_sai_route_bulk_get_route_attr(
         if (CTC_SAI_ERROR(object_statuses[i]) && (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode))
         {
             CTC_SAI_DB_UNLOCK(lchip);
-            return object_statuses[i];
+            return SAI_STATUS_FAILURE;
         }
+        else if (CTC_SAI_ERROR(object_statuses[i]))
+        {
+            status = SAI_STATUS_FAILURE;
+        }
+        
         CTC_SAI_DB_UNLOCK(lchip);
     }
     return status;

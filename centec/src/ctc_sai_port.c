@@ -371,7 +371,11 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
     {
 
     case SAI_PORT_ATTR_OPER_STATUS:
+        #if (1 == LINK_STATUS_MODE)
         CTC_SAI_CTC_ERROR_RETURN (ctcs_port_get_mac_link_up(lchip, gport, (void*)&value_link_up));
+        #else
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_property(lchip, gport, CTC_PORT_PROP_LINK_UP, (uint32*)&value_link_up));
+        #endif
         if (1 == SDK_WORK_PLATFORM)
         {
             attr->value.s32 = SAI_PORT_OPER_STATUS_UP;
@@ -801,8 +805,13 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
         break;
     case SAI_PORT_ATTR_OPER_SPEED:
         speed_mode = CTC_PORT_SPEED_MAX;
+        //#if (1 == LINK_STATUS_MODE)
         bool is_up = 0;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_mac_link_up(lchip, gport, &is_up));
+        //#else
+        //uint32 is_up = 0;
+        //CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_property(lchip, gport, CTC_PORT_PROP_LINK_UP, &is_up));
+        //#endif
         if(!is_up)
         {
             attr->value.u32 = 0;
@@ -1206,10 +1215,15 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         }
         break;
     case SAI_PORT_ATTR_META_DATA:
-        if (chip_type == CTC_CHIP_TSINGMA)
+        if (CTC_CHIP_TSINGMA == chip_type)
         {
             ingress_acl_num = 8;
             egress_acl_num = 3;
+        }
+        else if (CTC_CHIP_TSINGMA_MX == chip_type)
+        {
+            ingress_acl_num = 16;
+            egress_acl_num = 4;
         }
 
         for (i = 0; i < ingress_acl_num; i++)
@@ -1544,6 +1558,7 @@ _ctc_sai_port_set_policer(sai_object_key_t *key, const  sai_attribute_t *attr)
     bool enable = FALSE;
     bool need_revert = TRUE;
     uint32 old_policer_id = 0;
+    uint8 is_strom_ctl = 1;
 
     CTC_SAI_PTR_VALID_CHECK(key);
     CTC_SAI_PTR_VALID_CHECK(attr);
@@ -1605,6 +1620,7 @@ _ctc_sai_port_set_policer(sai_object_key_t *key, const  sai_attribute_t *attr)
             old_policer_id = p_port_db->policer_id;
             p_port_db->policer_id = ctc_object_id.value;
             need_revert = TRUE;
+            is_strom_ctl = 0;
             break;
         default:
             return SAI_STATUS_ATTR_NOT_IMPLEMENTED_0;
@@ -1612,7 +1628,7 @@ _ctc_sai_port_set_policer(sai_object_key_t *key, const  sai_attribute_t *attr)
 
     if (old_policer_id && (old_policer_id != ctc_object_id.value) && need_revert)
     {
-        CTC_SAI_ERROR_RETURN(ctc_sai_policer_revert_policer(lchip, old_policer_id));
+        CTC_SAI_ERROR_RETURN(ctc_sai_policer_revert_policer(lchip, old_policer_id, gport, is_strom_ctl));
     }
 
     return SAI_STATUS_SUCCESS;
@@ -2406,7 +2422,7 @@ _ctc_sai_port_wb_reload_cb(uint8 lchip, void* key, void* data)
     }
 
     return status;
-}    
+}
 
 
 static sai_status_t
@@ -2764,6 +2780,11 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
         {
             ingress_acl_num = 8;
             egress_acl_num = 3;
+        }
+        else if (CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+        {
+            ingress_acl_num = 16;
+            egress_acl_num = 4;
         }
 
         for (i = 0; i < ingress_acl_num; i++)
@@ -3355,7 +3376,7 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
     p_stats.stats_mode = CTC_STATS_MODE_DETAIL;
     p_stats_out.stats_mode = CTC_STATS_MODE_DETAIL;
 
-    
+
 
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_mac_stats(ctc_object_id.lchip, ctc_object_id.value, CTC_INGRESS, &p_stats), status, out);
     CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_mac_stats(ctc_object_id.lchip, ctc_object_id.value, CTC_EGRESS, &p_stats_out), status, out);
@@ -3370,7 +3391,7 @@ ctc_sai_port_get_port_stats_ext( sai_object_id_t        port_id,
                 status = SAI_STATUS_NOT_SUPPORTED;
                 goto out;
             }
-            
+
             switch(counter_ids[index])
             {
 
@@ -3982,13 +4003,18 @@ _ctc_sai_port_polling_thread(void *data)
         {
             return;
         }
-        
+
         if (p_switch_master->port_state_change_cb)
         {
             for(port_idx = 0; port_idx < local_panel_ports.count; port_idx++)
             {
                 gport = CTC_MAP_LPORT_TO_GPORT(gchip, local_panel_ports.lport[port_idx]);
+                //#if (1 == LINK_STATUS_MODE)
                 ctcs_port_get_mac_link_up(lchip, gport, &link_status);
+                //#else
+                //ctcs_port_get_property(lchip, gport, CTC_PORT_PROP_LINK_UP, (uint32*)&link_status);
+                //#endif
+                
 
                 if (1 == SDK_WORK_PLATFORM)  // UML link_status is by port_en
                 {
@@ -4106,13 +4132,13 @@ sai_status_t
 ctc_sai_port_db_run(uint8 lchip)
 {
     ctc_sai_switch_master_t* p_switch_master = NULL;
-        
+
     p_switch_master = ctc_sai_get_switch_property(lchip);
     if (NULL == p_switch_master)
     {
         return SAI_STATUS_FAILURE;
     }
-    
+
     p_switch_master->port_polling_task = NULL;
     sal_task_create(&p_switch_master->port_polling_task, "saiPollingThread", SAL_DEF_TASK_STACK_SIZE, 0,
                     _ctc_sai_port_polling_thread, (void*)(uintptr)lchip);

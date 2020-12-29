@@ -371,6 +371,7 @@ char *ctc_sai_module_str[] = {
     "SYNCE"
 };
 
+#define SAI_LOG_MODE 0
 
 void ctc_sai_log(int level, sai_api_t api, char *fmt, ...)
 {
@@ -382,10 +383,57 @@ void ctc_sai_log(int level, sai_api_t api, char *fmt, ...)
     va_start(args, fmt);
     vsnprintf(ctc_sai_log_buffer, CTC_SAI_LOG_BUFFER_SIZE, fmt, args);
     va_end(args);
-#if 1
+//SONiC use syslog, uml use printf
+#if (1 == SDK_WORK_PLATFORM) || (1 == SAI_LOG_MODE)
     printf("%s: %s\n", ctc_sai_module_str[api], ctc_sai_log_buffer);
 #else
-    syslog(LOG_DEBUG - level, "%s: %s", module[api], log_buffer);
+#include <stdio.h>
+#include <stdlib.h>
+#include <syslog.h>
+    {
+        int   syslog_level;
+        char *level_str;
+
+        /* translate SDK log level to syslog level */
+        switch (level) {
+        case SAI_LOG_LEVEL_NOTICE:
+            syslog_level     = LOG_NOTICE;
+            level_str = "NOTICE";
+            break;
+
+        case SAI_LOG_LEVEL_INFO:
+            syslog_level     = LOG_INFO;
+            level_str = "INFO";
+            break;
+
+        case SAI_LOG_LEVEL_ERROR:
+            syslog_level     = LOG_ERR;
+            level_str = "ERR";
+            break;
+
+        case SAI_LOG_LEVEL_WARN:
+            syslog_level     = LOG_WARNING;
+            level_str = "WARNING";
+            break;
+
+        case SAI_LOG_LEVEL_DEBUG:
+            syslog_level     = LOG_DEBUG;
+            level_str = "DEBUG";
+            break;
+
+        case SAI_LOG_LEVEL_CRITICAL:
+            syslog_level     = LOG_CRIT;
+            level_str = "CRITICAL";
+            break;
+        
+        default:
+            syslog_level     = LOG_DEBUG;
+            level_str = "DEBUG";
+            break;
+        }
+
+        syslog(syslog_level, "%s: %s", level_str, ctc_sai_log_buffer);
+    }
 #endif
 }
 
@@ -922,7 +970,8 @@ sai_status_t sai_log_set( sai_api_t sai_api_id,  sai_log_level_t log_level)
     sai_status_t status = SAI_STATUS_SUCCESS;
     uint8 debug_level = CTC_DEBUG_LEVEL_NONE;
 
-    CTC_SAI_API_INIT_CHECK;
+/*SYSTEM MODIFIED by xgu for SDK bug, should not check SAI INIT for log module in SAI, 2019-3-4*/
+//    CTC_SAI_API_INIT_CHECK;
     CTC_SAI_API_ID_CHECK(sai_api_id);
 
 
@@ -1407,6 +1456,25 @@ sai_dbg_generate_dump(const char *dump_file_name)
     return SAI_STATUS_SUCCESS;
 }
 
+/**
+ * @brief Query an enum attribute (enum or enum list) list of implemented enum values
+ *
+ * @param[in] switch_id SAI Switch object id
+ * @param[in] object_type SAI object type
+ * @param[in] attr_id SAI attribute ID
+ * @param[inout] enum_values_capability List of implemented enum values
+ *
+ * @return #SAI_STATUS_SUCCESS on success, #SAI_STATUS_BUFFER_OVERFLOW if list size insufficient, failure status code on error
+ */
+sai_status_t sai_query_attribute_enum_values_capability(
+        _In_ sai_object_id_t switch_id,
+        _In_ sai_object_type_t object_type,
+        _In_ sai_attr_id_t attr_id,
+        _Inout_ sai_s32_list_t *enum_values_capability)
+{
+    // TODO: taocy. tmp use here.    
+    return SAI_STATUS_NOT_SUPPORTED;
+}
 
 sai_status_t
 sai_get_maximum_attribute_count(

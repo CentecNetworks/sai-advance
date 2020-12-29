@@ -246,7 +246,7 @@ _ctc_sai_bfd_create_attr_check(uint8 lchip, uint32_t attr_count, const sai_attri
 
         if(ach_header_valid)
         {
-            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE, &attr_value, &index);
+            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE, &attr_value, &index);
             if (CTC_SAI_ERROR(status))
             {        
                 return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
@@ -257,7 +257,7 @@ _ctc_sai_bfd_create_attr_check(uint8 lchip, uint32_t attr_count, const sai_attri
             }
         }    
             
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE, &attr_value, &index);
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE, &attr_value, &index);
         if (CTC_SAI_ERROR(status))
         {        
             return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
@@ -1534,13 +1534,13 @@ ctc_sai_bfd_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_i
         case SAI_BFD_SESSION_ATTR_REMOTE_MULTIPLIER:
             attr->value.u8 = mep_info.rmep.bfd_rmep.remote_detect_mult;
             break;
-        case SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+        case SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
             attr->value.s32 = p_bfd_info->mpls_bfd_type;
             break;
         case SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID:
             attr->value.booldata = p_bfd_info->ach_header_valid;
             break;
-        case SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+        case SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
             if (p_bfd_info->ach_header_valid)
             {
                 attr->value.s32 = p_bfd_info->ach_channel_type;
@@ -1741,13 +1741,13 @@ static ctc_sai_attr_fn_entry_t  bfd_attr_fn_entries[] =
     { SAI_BFD_SESSION_ATTR_REMOTE_STATE,
       ctc_sai_bfd_get_info,
       NULL },
-    { SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE,
+    { SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE,
       ctc_sai_bfd_get_info,
       ctc_sai_bfd_set_info },
     { SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID,
       ctc_sai_bfd_get_info,
       ctc_sai_bfd_set_info },
-    { SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE,
+    { SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE,
       ctc_sai_bfd_get_info,
       NULL },
     { SAI_BFD_SESSION_ATTR_MPLS_IN_LABEL,
@@ -1992,7 +1992,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
     }
 
     /*Encapsulation type */
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE, &attr_value, &index);
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
     {
         p_bfd_info->mpls_bfd_type = attr_value->s32;
@@ -2004,7 +2004,7 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
         p_bfd_info->ach_header_valid = attr_value->booldata;
     }
 
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE, &attr_value, &index);
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
     {
         p_bfd_info->ach_channel_type = attr_value->s32;
@@ -2584,7 +2584,7 @@ ctc_sai_bfd_db_init(uint8 lchip)
 
     CTC_SAI_WARMBOOT_STATUS_CHECK(lchip);
 
-    if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) 
+    if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) || (CTC_CHIP_TSINGMA_MX== ctcs_get_chip_type(lchip))) 
     {
         /*alloc global iloop port */
         

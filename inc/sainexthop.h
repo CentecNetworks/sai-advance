@@ -104,6 +104,8 @@ typedef enum _sai_next_hop_endpoint_pop_type_t
 
 /**
  * @brief Attribute id for next hop
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_next_hop_attr_t
 {
@@ -292,7 +294,7 @@ typedef enum _sai_next_hop_attr_t
      * @validonly SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS and SAI_NEXT_HOP_ATTR_OUTSEG_TYPE == SAI_OUTSEG_TYPE_PUSH and SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE == SAI_OUTSEG_TTL_MODE_UNIFORM
      */
     SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP,
-    
+
     /**
      * @brief End of attributes
      */
@@ -304,21 +306,23 @@ typedef enum _sai_next_hop_attr_t
     /**
      * @brief Next hop entry tunnel-id for MPLS PUSH
      *
+     * valid when SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS or ( SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_TUNNEL_ENCAP and SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2)
+     *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_TUNNEL
-     * @condition SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_MPLS or ( SAI_NEXT_HOP_ATTR_TYPE == SAI_NEXT_HOP_TYPE_TUNNEL_ENCAP and SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2 )
-     * @allownull
+     * @allownull true
      */
-     SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID = SAI_NEXT_HOP_ATTR_CUSTOM_RANGE_START,
+    SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID,
 
     /**
      * @brief Next hop id
      *
      * @type sai_object_id_t
      * @flags CREATE_AND_SET
-     * @objects SAI_OBJECT_TYPE_NEXT_HOP or SAI_OBJECT_TYPE_NEXT_HOP_GROUP
-     * @default null
+     * @objects SAI_OBJECT_TYPE_NEXT_HOP, SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
      */
     SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID,
 

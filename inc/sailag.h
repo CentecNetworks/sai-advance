@@ -41,9 +41,9 @@ typedef enum _sai_lag_mode_t
     /** LAG member choice mode Static */
     SAI_LAG_MODE_STATIC,
 
-    /** LAG member choice mode Failover */
+    /** LAG member choice mode fail over */
     SAI_LAG_MODE_STATIC_FAILOVER,
-    
+
     /** LAG member choice mode Round-Robin */
     SAI_LAG_MODE_RR,
 
@@ -57,6 +57,8 @@ typedef enum _sai_lag_mode_t
 
 /**
  * @brief LAG attribute: List of attributes for LAG object
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_lag_attr_t
 {
@@ -162,7 +164,33 @@ typedef enum _sai_lag_attr_t
      * @default false
      */
     SAI_LAG_ATTR_DROP_TAGGED,
-    
+
+    /**
+     * @brief TPID
+     *
+     * @type sai_uint16_t
+     * @flags CREATE_AND_SET
+     * @isvlan false
+     * @default 0x8100
+     */
+    SAI_LAG_ATTR_TPID,
+
+    /**
+     * @brief LAG system port ID
+     *
+     * The application must manage the allocation of the system port aggregate IDs
+     * associated with the LAG for consistency across all switches in a VOQ based
+     * system. The system port aggregate ID range is from 1 to SAI_SWITCH_ATTR_NUMBER_OF_LAGS.
+     * The default value of 0 means this field is not used and SAI will allocate the system
+     * port aggregate ID internally.
+     * Valid only when SAI_SWITCH_ATTR_TYPE == SAI_SWITCH_TYPE_VOQ
+     *
+     * @type sai_uint32_t
+     * @flags CREATE_ONLY
+     * @default 0
+     */
+    SAI_LAG_ATTR_SYSTEM_PORT_AGGREGATE_ID,
+
     /**
      * @brief End of attributes
      */
@@ -174,23 +202,24 @@ typedef enum _sai_lag_attr_t
     /**
      * @brief Member Choice Mode of LAG Group
      *
-     *When create LAG group
-     *SAI default set member choice mode of LAG group is Static Load Balance if not create with mode
-     *Member Choice Mode of LAG Group only can be set during create LAG group, if need to change
-     *mode, have to remove LAG group and recreate with the member choice mode you want
+     * When create LAG group
+     * SAI default set member choice mode of LAG group is Static Load Balance if not create with mode
+     * Member Choice Mode of LAG Group only can be set during create LAG group, if need to change
+     * mode, have to remove LAG group and recreate with the member choice mode you want
      *
-     * @type _sai_lag_mode_t
-     * @flags CREATE
+     * @type sai_lag_mode_t
+     * @flags CREATE_ONLY
      * @default SAI_LAG_MODE_STATIC
      */
-    SAI_LAG_ATTR_MODE = SAI_LAG_ATTR_CUSTOM_RANGE_START,
+    SAI_LAG_ATTR_MODE,
 
-    /** 
-     * @brief Max member of LAG Group could add 
+    /**
+     * @brief Max member of LAG Group could add
      *
-     * @type sai_uint16
-     * @flags CREATE
-     * @default value is defined by ASIC makers
+     * @type sai_uint16_t
+     * @flags CREATE_ONLY
+     * @isvlan false
+     * @default 0
      */
     SAI_LAG_ATTR_CUSTOM_MAX_MEMBER_NUM,
 
@@ -275,7 +304,7 @@ typedef enum _sai_lag_member_attr_t
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @objects SAI_OBJECT_TYPE_PORT
+     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_SYSTEM_PORT
      */
     SAI_LAG_MEMBER_ATTR_PORT_ID,
 

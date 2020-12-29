@@ -56,7 +56,7 @@ class func_01_create_npm_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None
@@ -156,7 +156,7 @@ class func_02_create_same_npm_session_fn(sai_base_test.ThriftInterfaceDataPlane)
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None
@@ -231,7 +231,7 @@ class func_04_create_max_npm_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None
@@ -326,7 +326,7 @@ class func_06_remove_not_exist_npm_session_fn (sai_base_test.ThriftInterfaceData
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None
@@ -428,7 +428,7 @@ class func_07_set_and_get_npm_session_attr_fn (sai_base_test.ThriftInterfaceData
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None
@@ -497,7 +497,7 @@ class func_07_set_and_get_npm_session_attr_fn (sai_base_test.ThriftInterfaceData
             
                 if a.id == SAI_NPM_SESSION_ATTR_SESSION_ROLE:
                     sys_logging("get SAI_NPM_SESSION_ATTR_SESSION_ROLE = %d" %a.value.s32)
-                    assert (a.value.s32 == SAI_NPM_SESSION_SENDER)
+                    assert (a.value.s32 == SAI_NPM_SESSION_ROLE_SENDER)
 
                 if a.id == SAI_NPM_SESSION_ATTR_NPM_ENCAPSULATION_TYPE:
                     sys_logging("get SAI_NPM_SESSION_ATTR_NPM_ENCAPSULATION_TYPE = %d" %a.value.s32)
@@ -660,7 +660,7 @@ class func_08_get_and_clear_npm_session_stats_fn(sai_base_test.ThriftInterfaceDa
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None
@@ -821,7 +821,7 @@ class scenario_01_ether_vlan_sender_tx_and_rx_test(sai_base_test.ThriftInterface
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None
@@ -1259,7 +1259,7 @@ class scenario_03_l2vpn_raw_vpls_sender_tx_and_rx_test(sai_base_test.ThriftInter
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -1866,7 +1866,7 @@ class scenario_05_l2vpn_tagged_vpls_sender_tx_and_rx_test(sai_base_test.ThriftIn
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -2491,7 +2491,7 @@ class scenario_07_l2vpn_raw_vpws_sender_tx_and_rx_test(sai_base_test.ThriftInter
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -3110,7 +3110,7 @@ class scenario_09_l2vpn_tagged_vpws_sender_tx_and_rx_test(sai_base_test.ThriftIn
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -3610,7 +3610,7 @@ class scenario_11_raw_ip_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceData
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -3983,7 +3983,7 @@ class scenario_13_l3vpn_mpls_sender_tx_and_rx_test(sai_base_test.ThriftInterface
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -4390,7 +4390,7 @@ class scenario_15_ipv6_ether_vlan_sender_tx_and_rx_test(sai_base_test.ThriftInte
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None
@@ -4712,7 +4712,7 @@ class scenario_17_ipv6_l2vpn_raw_vpls_sender_tx_and_rx_test(sai_base_test.Thrift
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -5160,7 +5160,7 @@ class scenario_19_ipv6_l2vpn_tagged_vpls_sender_tx_and_rx_test(sai_base_test.Thr
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -5626,7 +5626,7 @@ class scenario_21_ipv6_l2vpn_raw_vpws_sender_tx_and_rx_test(sai_base_test.Thrift
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -6086,7 +6086,7 @@ class scenario_23_ipv6_l2vpn_tagged_vpws_sender_tx_and_rx_test(sai_base_test.Thr
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -6506,7 +6506,7 @@ class scenario_25_ipv6_raw_ip_sender_tx_and_rx_test(sai_base_test.ThriftInterfac
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -6873,7 +6873,7 @@ class scenario_27_ipv6_l3vpn_mpls_sender_tx_and_rx_test(sai_base_test.ThriftInte
             hw_lookup = 1
             pkt_len = 100
             tx_rate = 100
-            tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+            tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
             tx_period = None
             tx_pkt_cnt = 1
             tx_pkt_duration =None
@@ -7272,7 +7272,7 @@ class scenario_29_ether_vlan_sender_and_reflector_coexist(sai_base_test.ThriftIn
         hw_lookup = 1
         pkt_len = 100
         tx_rate = 100
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_NPM_PKT_TX_MODE_PACKET_NUM
         tx_period = None
         tx_pkt_cnt = 1
         tx_pkt_duration =None

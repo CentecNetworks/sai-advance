@@ -66,7 +66,11 @@ class ThriftInterface(BaseTest):
         if 'goldengate' == testutils.test_params_get()['chipname']:
             print "load default_interface_to_front_map_gg.ini"
             config["port_map_file"] = os.path.join(ptf.config['test_dir'], 'default_interface_to_front_map_gg.ini')
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+            print "load default_interface_to_front_map_tmmx.ini"
+            config["port_map_file"] = os.path.join(ptf.config['test_dir'], 'default_interface_to_front_map_tmmx.ini')
         else:
+            #tsingma
             print "load default_interface_to_front_map.ini"
             config["port_map_file"] = os.path.join(ptf.config['test_dir'], 'default_interface_to_front_map.ini')
         
@@ -169,7 +173,8 @@ class ThriftInterface(BaseTest):
                 server = self.test_params['server']
             else:
                 server = 'localhost'
-            #demotry
+            #demo try
+            ##### port use 65001
             #server = '10.10.39.187'
             self.transport = TSocket.TSocket(server, config["thrift_port"])
             self.transport = TTransport.TFramedTransport(self.transport)
@@ -374,7 +379,7 @@ class ThriftInterfaceDataPlane(ThriftInterface):
             #cmpPkt = pkt.encode('hex')
             srcPkt = self.dataplane.pxr_getPktData(rcvport, None)
             if len(srcPkt) == 0:
-                return
+                continue
             else:
                 self.fail("Expected no packets received on port %d. \n" %(port))
                 

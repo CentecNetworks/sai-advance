@@ -405,6 +405,8 @@ _ctc_app_mpls_init_helper(ctc_init_chip_info_t * chip_info, ctc_mpls_init_t* mpl
     return CTC_E_NONE;
 }
 
+/* SYSTEM MODIFIED by taocy for CirrusOS E530 ECMP, 20200514*/
+#define CTC_SAI_DEFAULT_MAX_ECMP_NUM        64
 
 static int32
 _ctc_app_get_init_para(uint8 lchip, ctc_init_cfg_t * p_init_config, ctc_init_chip_info_t* p_chip_info)
@@ -413,7 +415,7 @@ _ctc_app_get_init_para(uint8 lchip, ctc_init_cfg_t * p_init_config, ctc_init_chi
     p_init_config->p_nh_cfg->max_external_nhid        = p_chip_info->ext_nexthop_num
         ? p_chip_info->ext_nexthop_num : MAX_EXTERNAL_NHNUM;
     p_init_config->p_nh_cfg->acl_redirect_fwd_ptr_num = ACL_REDIRECT_FWD_PTR_NUM;
-    p_init_config->p_nh_cfg->max_ecmp                 = CTC_DEFAULT_MAX_ECMP_NUM;
+    p_init_config->p_nh_cfg->max_ecmp                 = CTC_SAI_DEFAULT_MAX_ECMP_NUM; /* SYSTEM MODIFIED by taocy for CirrusOS E530 ECMP, increase from 16 to 64, 20200514*/
     p_init_config->p_nh_cfg->nh_edit_mode             = p_chip_info->nh_dedit_mode;
     p_init_config->p_nh_cfg->max_tunnel_id            = p_chip_info->mpls_tunnel_num
         ? p_chip_info->mpls_tunnel_num : CTC_NH_DEFAULT_MAX_MPLS_TUNNEL_NUM;

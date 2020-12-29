@@ -1035,7 +1035,7 @@ _ctc_sai_tunnel_get_tunnel_property(sai_object_key_t* key, sai_attribute_t* attr
             }
             break;
         case SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID:
-            if((!(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id == 3)) || CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip))
+            if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id != 3) || CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip))
             {
                 CTC_SAI_LOG_ERROR(SAI_API_TUNNEL, "Tunnel attribute %d not support\n", attr->id);
                 status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
@@ -1044,7 +1044,7 @@ _ctc_sai_tunnel_get_tunnel_property(sai_object_key_t* key, sai_attribute_t* attr
             attr->value.booldata = p_tunnel->decap_esi_label_valid;
             break;
         case SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID:
-            if((!(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id == 3)) || CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip))
+            if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id != 3) || CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip))
             {
                 CTC_SAI_LOG_ERROR(SAI_API_TUNNEL, "Tunnel attribute %d not support\n", attr->id);
                 status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
@@ -1159,7 +1159,7 @@ _ctc_sai_tunnel_set_tunnel_property(sai_object_key_t* key, const sai_attribute_t
                 status = SAI_STATUS_INVALID_ATTRIBUTE_0;
                 break;
             }
-            else if((!(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id == 3)) || CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip))
+            else if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id != 3) || CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip))
             {
                 CTC_SAI_LOG_ERROR(SAI_API_TUNNEL, "Tunnel attribute %d not support\n", attr->id);
                 status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
@@ -1174,7 +1174,7 @@ _ctc_sai_tunnel_set_tunnel_property(sai_object_key_t* key, const sai_attribute_t
                 status = SAI_STATUS_INVALID_ATTRIBUTE_0;
                 break;
             }
-            else if((!(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id == 3)) || CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip))
+            else if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) && device_info.version_id != 3) || CTC_CHIP_TSINGMA > ctcs_get_chip_type(lchip))
             {
                 CTC_SAI_LOG_ERROR(SAI_API_TUNNEL, "Tunnel attribute %d not support\n", attr->id);
                 status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
@@ -1200,6 +1200,138 @@ _ctc_sai_tunnel_set_tunnel_property(sai_object_key_t* key, const sai_attribute_t
                 break;
             }
             acl_use_outer_update = 1;
+            break;
+        //encap attr updating allowed when tunnel not bind to nhp
+        case SAI_TUNNEL_ATTR_ENCAP_TTL_MODE:
+            if( 0 == p_tunnel->egress_ref_cnt )
+            {
+                p_tunnel->encap_ttl_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_ENCAP_TTL_VAL:
+            if( 0 == p_tunnel->egress_ref_cnt )
+            {
+                p_tunnel->encap_ttl_val = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_ENCAP_DSCP_MODE:
+            if( 0 == p_tunnel->egress_ref_cnt )
+            {
+                p_tunnel->encap_dscp_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_ENCAP_DSCP_VAL:
+            if( 0 == p_tunnel->egress_ref_cnt )
+            {
+                p_tunnel->encap_dscp_val = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_ENCAP_ECN_MODE:
+            if( 0 == p_tunnel->egress_ref_cnt )
+            {
+                p_tunnel->encap_ecn_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_MODE:
+            if( 0 == p_tunnel->egress_ref_cnt )
+            {
+                p_tunnel->encap_pw_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_ENCAP_EXP_MODE:
+            if( 0 == p_tunnel->egress_ref_cnt )
+            {
+                p_tunnel->encap_exp_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_ENCAP_EXP_VAL:
+            if( 0 == p_tunnel->egress_ref_cnt )
+            {
+                p_tunnel->encap_exp_val = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        //decap attr updating allowed when tunnel not bind to mpls insegment
+        case SAI_TUNNEL_ATTR_DECAP_ECN_MODE:
+            if( 0 == p_tunnel->ingress_ref_cnt )
+            {
+                p_tunnel->decap_ecn_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_DECAP_TTL_MODE:
+            if( 0 == p_tunnel->ingress_ref_cnt )
+            {
+                p_tunnel->decap_ttl_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_DECAP_DSCP_MODE:
+            if( 0 == p_tunnel->ingress_ref_cnt )
+            {
+                p_tunnel->decap_dscp_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_DECAP_MPLS_PW_MODE:
+            if( 0 == p_tunnel->ingress_ref_cnt )
+            {
+                p_tunnel->decap_pw_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
+            break;
+        case SAI_TUNNEL_ATTR_DECAP_EXP_MODE:
+            if( 0 == p_tunnel->ingress_ref_cnt )
+            {
+                p_tunnel->decap_exp_mode = attr->value.u8;
+            }
+            else
+            {
+                status = SAI_STATUS_OBJECT_IN_USE;
+            }
             break;
         default:
             CTC_SAI_LOG_ERROR(SAI_API_TUNNEL, "Tunnel attribute %d not implemented\n", attr->id);
@@ -1361,31 +1493,31 @@ static ctc_sai_attr_fn_entry_t tunnel_attr_fn_entries[] = {
     {SAI_TUNNEL_ATTR_UNDERLAY_INTERFACE, _ctc_sai_tunnel_get_tunnel_property, NULL},
     {SAI_TUNNEL_ATTR_OVERLAY_INTERFACE, _ctc_sai_tunnel_get_tunnel_property, NULL},
     {SAI_TUNNEL_ATTR_ENCAP_SRC_IP, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_ENCAP_TTL_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_ENCAP_TTL_VAL, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_ENCAP_DSCP_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_ENCAP_DSCP_VAL, _ctc_sai_tunnel_get_tunnel_property, NULL},
+    {SAI_TUNNEL_ATTR_ENCAP_TTL_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
+    {SAI_TUNNEL_ATTR_ENCAP_TTL_VAL, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
+    {SAI_TUNNEL_ATTR_ENCAP_DSCP_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
+    {SAI_TUNNEL_ATTR_ENCAP_DSCP_VAL, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_ENCAP_GRE_KEY_VALID, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_ENCAP_GRE_KEY, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
-    {SAI_TUNNEL_ATTR_ENCAP_ECN_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
+    {SAI_TUNNEL_ATTR_ENCAP_ECN_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_ENCAP_MAPPERS, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_DECAP_ECN_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
+    {SAI_TUNNEL_ATTR_DECAP_ECN_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_DECAP_MAPPERS, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_DECAP_TTL_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_DECAP_DSCP_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
+    {SAI_TUNNEL_ATTR_DECAP_TTL_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
+    {SAI_TUNNEL_ATTR_DECAP_DSCP_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_TERM_TABLE_ENTRY_LIST, _ctc_sai_tunnel_get_tunnel_property, NULL},
     {SAI_TUNNEL_ATTR_ENCAP_NEXTHOP_ID, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_DECAP_MPLS_PW_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
+    {SAI_TUNNEL_ATTR_DECAP_MPLS_PW_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_DECAP_MPLS_PW_WITH_CW, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
-    {SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
+    {SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_WITH_CW, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_TAGGED_VLAN, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
-    {SAI_TUNNEL_ATTR_DECAP_EXP_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_ENCAP_EXP_MODE, _ctc_sai_tunnel_get_tunnel_property, NULL},
-    {SAI_TUNNEL_ATTR_ENCAP_EXP_VAL, _ctc_sai_tunnel_get_tunnel_property, NULL},
+    {SAI_TUNNEL_ATTR_DECAP_EXP_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
+    {SAI_TUNNEL_ATTR_ENCAP_EXP_MODE, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
+    {SAI_TUNNEL_ATTR_ENCAP_EXP_VAL, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {SAI_TUNNEL_ATTR_DECAP_ACL_USE_OUTER_HDR_INFO, _ctc_sai_tunnel_get_tunnel_property, _ctc_sai_tunnel_set_tunnel_property},
     {CTC_SAI_FUNC_ATTR_END_ID, NULL, NULL}
 };
@@ -1843,22 +1975,22 @@ ctc_sai_tunnel_create_tunnel(
         else
         {
             p_tunnel->split_horizon_valid = true;
-        }		
-		status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_DECAP_EXP_MODE, &attr_val, &attr_idx);
-		if (!CTC_SAI_ERROR(status))
-		{
-			p_tunnel->decap_exp_mode = attr_val->u8;
-		}
-		status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_ENCAP_EXP_MODE, &attr_val, &attr_idx);
-		if (!CTC_SAI_ERROR(status))
-		{
-			p_tunnel->encap_exp_mode = attr_val->u8;
-		}
-		status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_ENCAP_EXP_VAL, &attr_val, &attr_idx);
-		if (!CTC_SAI_ERROR(status))
-		{
-			p_tunnel->encap_exp_val = attr_val->u8;
-		}
+        }
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_DECAP_EXP_MODE, &attr_val, &attr_idx);
+        if (!CTC_SAI_ERROR(status))
+        {
+            p_tunnel->decap_exp_mode = attr_val->u8;
+        }
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_ENCAP_EXP_MODE, &attr_val, &attr_idx);
+        if (!CTC_SAI_ERROR(status))
+        {
+            p_tunnel->encap_exp_mode = attr_val->u8;
+        }
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TUNNEL_ATTR_ENCAP_EXP_VAL, &attr_val, &attr_idx);
+        if (!CTC_SAI_ERROR(status))
+        {
+            p_tunnel->encap_exp_val = attr_val->u8;
+        }
     }
     else if(SAI_TUNNEL_TYPE_MPLS == p_tunnel->tunnel_type)
     {
@@ -2084,7 +2216,7 @@ ctc_sai_tunnel_remove_tunnel(
         status = SAI_STATUS_INVALID_OBJECT_ID;
         goto out;
     }
-    if(0 != p_tunnel->ref_cnt)
+    if( (0 != p_tunnel->egress_ref_cnt) || (0 != p_tunnel->ingress_ref_cnt) )
     {
         status = SAI_STATUS_OBJECT_IN_USE;
         goto out;

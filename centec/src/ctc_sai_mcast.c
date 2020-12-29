@@ -32,6 +32,104 @@ sai_object_id_t _ctc_sai_mcast_create_group_object_id(sai_object_type_t type, ui
     return ctc_sai_create_object_id(type, lchip, 0, group_id, 0);
 }
 
+sai_status_t ctc_sai_packet_action_merge(sai_packet_action_t action, sai_packet_action_t* update_action)
+{
+    switch(action)
+    {
+    case SAI_PACKET_ACTION_FORWARD:
+        switch(*update_action)
+        {
+            case SAI_PACKET_ACTION_TRAP:
+                *update_action = SAI_PACKET_ACTION_LOG;
+                break;
+            case SAI_PACKET_ACTION_LOG:
+                *update_action = SAI_PACKET_ACTION_LOG;
+                break;
+            case SAI_PACKET_ACTION_DENY:
+                *update_action = SAI_PACKET_ACTION_TRANSIT;
+                break;
+            case SAI_PACKET_ACTION_TRANSIT:
+                *update_action = SAI_PACKET_ACTION_TRANSIT;
+                break;
+            default:
+                CTC_SAI_LOG_ERROR(SAI_API_IPMC, "invalid action merge SAI_PACKET_ACTION_FORWARD! \n");
+                break;
+        }
+        break;
+    case SAI_PACKET_ACTION_DROP:
+        switch(*update_action)
+        {
+            case SAI_PACKET_ACTION_TRAP:
+                *update_action = SAI_PACKET_ACTION_TRAP;
+                break;
+            case SAI_PACKET_ACTION_LOG:
+                *update_action = SAI_PACKET_ACTION_TRAP;
+                break;
+            case SAI_PACKET_ACTION_DENY:
+                *update_action = SAI_PACKET_ACTION_DENY;
+                break;
+            case SAI_PACKET_ACTION_TRANSIT:
+                *update_action = SAI_PACKET_ACTION_DENY;
+                break;
+            default:
+                CTC_SAI_LOG_ERROR(SAI_API_IPMC, "invalid action merge SAI_PACKET_ACTION_DROP! \n");
+                break;
+        }
+        break;
+    case SAI_PACKET_ACTION_COPY:
+        switch(*update_action)
+        {
+            case SAI_PACKET_ACTION_TRAP:
+                *update_action = SAI_PACKET_ACTION_TRAP;
+                break;
+            case SAI_PACKET_ACTION_LOG:
+                *update_action = SAI_PACKET_ACTION_LOG;
+                break;
+            case SAI_PACKET_ACTION_DENY:
+                *update_action = SAI_PACKET_ACTION_TRAP;
+                break;
+            case SAI_PACKET_ACTION_TRANSIT:
+                *update_action = SAI_PACKET_ACTION_LOG;
+                break;
+            default:
+                CTC_SAI_LOG_ERROR(SAI_API_IPMC, "invalid action merge SAI_PACKET_ACTION_COPY! \n");
+                break;
+        }
+        break;
+    case SAI_PACKET_ACTION_COPY_CANCEL:
+        switch(*update_action)
+        {
+            case SAI_PACKET_ACTION_TRAP:
+                *update_action = SAI_PACKET_ACTION_DENY;
+                break;
+            case SAI_PACKET_ACTION_LOG:
+                *update_action = SAI_PACKET_ACTION_TRANSIT;
+                break;
+            case SAI_PACKET_ACTION_DENY:
+                *update_action = SAI_PACKET_ACTION_DENY;
+                break;
+            case SAI_PACKET_ACTION_TRANSIT:
+                *update_action = SAI_PACKET_ACTION_TRANSIT;
+                break;
+            default:
+                CTC_SAI_LOG_ERROR(SAI_API_IPMC, "invalid action merge SAI_PACKET_ACTION_COPY_CANCEL! \n");
+                break;
+        }
+        break;
+    case SAI_PACKET_ACTION_TRAP:
+    case SAI_PACKET_ACTION_LOG:
+    case SAI_PACKET_ACTION_DENY:
+    case SAI_PACKET_ACTION_TRANSIT:
+        *update_action = action;
+        break;
+    default:
+        CTC_SAI_LOG_ERROR(SAI_API_IPMC, "invalid action merge! \n");
+        break;
+    }
+
+    return SAI_STATUS_SUCCESS;
+}
+
 sai_status_t _ctc_sai_mcast_mapping_ctc_action(uint32*flag, sai_packet_action_t action)
 {
     switch(action)
@@ -49,7 +147,8 @@ sai_status_t _ctc_sai_mcast_mapping_ctc_action(uint32*flag, sai_packet_action_t 
         CTC_UNSET_FLAG(*flag, CTC_IPMC_FLAG_COPY_TOCPU);
         break;
     case SAI_PACKET_ACTION_TRAP :
-        CTC_SET_FLAG(*flag, CTC_IPMC_FLAG_REDIRECT_TOCPU);
+        CTC_SET_FLAG( *flag, CTC_IPMC_FLAG_DROP);
+        CTC_SET_FLAG( *flag, CTC_IPMC_FLAG_COPY_TOCPU);
         break;
     case SAI_PACKET_ACTION_LOG:
         CTC_UNSET_FLAG( *flag, CTC_IPMC_FLAG_DROP);
@@ -64,7 +163,7 @@ sai_status_t _ctc_sai_mcast_mapping_ctc_action(uint32*flag, sai_packet_action_t 
         CTC_UNSET_FLAG(*flag, CTC_IPMC_FLAG_COPY_TOCPU);
         break;        
     default:
-        CTC_SAI_LOG_ERROR(SAI_API_IPMC, "invalid action\n");
+        CTC_SAI_LOG_ERROR(SAI_API_IPMC, "invalid action! \n");
         return SAI_STATUS_INVALID_ATTR_VALUE_0 + action;
 
     }
@@ -2156,7 +2255,7 @@ static sai_status_t ctc_sai_mcast_create_l2mc_entry(
     ctc_sai_entry_property_t *p_entry_property = NULL;
     ctc_sai_mcast_vlan_member_priv_t travs_data = {0};
     sai_status_t    status = SAI_STATUS_SUCCESS;
-    sai_packet_action_t   action;
+    sai_packet_action_t   action, update_action = SAI_PACKET_ACTION_TRANSIT;
     uint32                        attr_idx;
     uint32                        nh_id = 0;
     uint8                          lchip = 0;
@@ -2191,8 +2290,8 @@ static sai_status_t ctc_sai_mcast_create_l2mc_entry(
     }
 
     action = attr_list[attr_idx].value.s32;
-    CTC_SAI_ERROR_GOTO(_ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, action), status, out);
-
+    CTC_SAI_ERROR_GOTO(ctc_sai_packet_action_merge(action, &update_action), status, out);
+    CTC_SAI_ERROR_GOTO(_ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, update_action), status, out);
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_L2MC_ENTRY_ATTR_OUTPUT_GROUP_ID, &attr_grp, &attr_idx);
     if (status == SAI_STATUS_SUCCESS)
@@ -2238,7 +2337,7 @@ static sai_status_t ctc_sai_mcast_create_l2mc_entry(
     CTC_SAI_CTC_ERROR_GOTO(ctcs_ipmc_add_group(lchip, &grp_param), status, error2);
 
     CTC_SAI_LOG_INFO(SAI_API_L2MC, "create l2mc entry, ctc group id: %d, oid: 0x%llx, nh_id: %d, action: %d\n",
-                grp_param.group_id, (attr_grp ? attr_grp->oid : 0), nh_id, action);
+                grp_param.group_id, (attr_grp ? attr_grp->oid : 0), nh_id, update_action);
 
     p_entry_data = mem_malloc(MEM_SYSTEM_MODULE, sizeof(ctc_sai_mcast_entry_property_t));
     if (!p_entry_data)
@@ -2251,7 +2350,7 @@ static sai_status_t ctc_sai_mcast_create_l2mc_entry(
 
     p_entry_data->group_oid = attr_grp ? attr_grp->oid : 0;
     p_entry_data->group_id = grp_param.group_id;
-    p_entry_data->action = action;
+    p_entry_data->action = update_action;
     CTC_SAI_ERROR_GOTO(ctc_sai_db_entry_property_add(lchip, CTC_SAI_DB_ENTRY_TYPE_MCAST_L2MC, (void*)l2mc_entry, (void*)p_entry_data), status, error4);
     p_entry_property = ctc_sai_db_entry_property_get_property(lchip, CTC_SAI_DB_ENTRY_TYPE_MCAST_L2MC, (void*)l2mc_entry);
 
@@ -2480,7 +2579,8 @@ static sai_status_t ctc_sai_mcast_set_l2mc_packet_action(sai_object_key_t *key, 
     sai_l2mc_entry_t *l2mc_entry = NULL;
     ctc_ipmc_group_info_t grp_param = {0};
     ctc_sai_mcast_entry_property_t *p_entry_data = NULL;
-    uint8                          lchip = 0;
+    uint8 lchip = 0;
+    sai_packet_action_t update_action;
 
     l2mc_entry = &key->key.l2mc_entry;
     ctc_sai_oid_get_lchip(l2mc_entry->switch_id, &lchip);
@@ -2492,13 +2592,18 @@ static sai_status_t ctc_sai_mcast_set_l2mc_packet_action(sai_object_key_t *key, 
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
     grp_param.group_id = p_entry_data->group_id;
-    _ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, attr->value.s32);
+
+    update_action = p_entry_data->action;
+    CTC_SAI_ERROR_RETURN(ctc_sai_packet_action_merge(attr->value.s32, &update_action));
+
+    _ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, update_action);
+
     _ctc_sai_mcast_l2mc_to_param(l2mc_entry, &grp_param);
 
     grp_param.group_id = p_entry_data->group_id;
     
     CTC_SAI_CTC_ERROR_RETURN(ctcs_ipmc_add_group(lchip, &grp_param));
-    p_entry_data->action = attr->value.s32;
+    p_entry_data->action = update_action;
 
     return SAI_STATUS_SUCCESS;
 }
@@ -2788,7 +2893,7 @@ static sai_status_t ctc_sai_mcast_create_mcast_fdb_entry(
     ctc_sai_entry_property_t *p_entry_property = NULL;
     ctc_sai_mcast_vlan_member_priv_t travs_data = {0};
     sai_status_t    status = SAI_STATUS_SUCCESS;
-    sai_packet_action_t   action;
+    sai_packet_action_t   action, update_action = SAI_PACKET_ACTION_TRANSIT;
     uint32                        attr_idx;
     uint32                        nh_id = 0;
     uint8                          lchip = 0;
@@ -2824,7 +2929,9 @@ static sai_status_t ctc_sai_mcast_create_mcast_fdb_entry(
     }
         
     action = attr_list[attr_idx].value.s32;
-    CTC_SAI_ERROR_GOTO(_ctc_sai_mcast_fdb_mapping_ctc_action(&grp_param.flag, action),status,out);
+    CTC_SAI_ERROR_GOTO(ctc_sai_packet_action_merge(action, &update_action), status, out);
+    CTC_SAI_ERROR_GOTO(_ctc_sai_mcast_fdb_mapping_ctc_action(&grp_param.flag, update_action),status,out);
+    
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_MCAST_FDB_ENTRY_ATTR_GROUP_ID, &attr_grp, &attr_idx);
     if (CTC_SAI_ERROR(status))
@@ -2878,7 +2985,7 @@ static sai_status_t ctc_sai_mcast_create_mcast_fdb_entry(
     sal_memset(p_entry_data, 0, sizeof(ctc_sai_mcast_entry_property_t));
     p_entry_data->group_oid = attr_grp->oid;
     p_entry_data->group_id = grp_param.l2mc_grp_id;
-    p_entry_data->action = action;
+    p_entry_data->action = update_action;
     p_entry_data->cid = grp_param.cid;
     
     CTC_SAI_ERROR_GOTO(ctc_sai_db_entry_property_add(lchip, CTC_SAI_DB_ENTRY_TYPE_MCAST_FDB, (void*)mcast_fdb_entry, (void*)p_entry_data), status, error4);
@@ -3115,7 +3222,8 @@ static sai_status_t ctc_sai_mcast_set_mcast_fdb_action_and_metadata(sai_object_k
     sai_mcast_fdb_entry_t *mcast_fdb_entry = NULL;
     ctc_l2_mcast_addr_t grp_param;
     ctc_sai_mcast_entry_property_t *p_entry_data = NULL;
-    uint8                          lchip = 0;
+    uint8 lchip = 0;
+    sai_packet_action_t update_action;
 
     sal_memset(&grp_param, 0, sizeof(ctc_l2_mcast_addr_t));
 
@@ -3137,7 +3245,10 @@ static sai_status_t ctc_sai_mcast_set_mcast_fdb_action_and_metadata(sai_object_k
     switch (attr->id)
     {
         case SAI_MCAST_FDB_ENTRY_ATTR_PACKET_ACTION:
-            _ctc_sai_mcast_fdb_mapping_ctc_action(&grp_param.flag, attr->value.s32);
+            update_action = p_entry_data->action;
+            CTC_SAI_ERROR_RETURN(ctc_sai_packet_action_merge(attr->value.s32, &update_action));
+
+            _ctc_sai_mcast_fdb_mapping_ctc_action(&grp_param.flag, update_action);
             break;
         case SAI_MCAST_FDB_ENTRY_ATTR_META_DATA:
             grp_param.cid = CTC_SAI_META_DATA_SAI_TO_CTC(attr->value.u32);
@@ -3150,7 +3261,7 @@ static sai_status_t ctc_sai_mcast_set_mcast_fdb_action_and_metadata(sai_object_k
     
     if (SAI_MCAST_FDB_ENTRY_ATTR_PACKET_ACTION == attr->id)
     {
-        p_entry_data->action = attr->value.s32;
+        p_entry_data->action = update_action;
     }
     else if(SAI_MCAST_FDB_ENTRY_ATTR_META_DATA == attr->id)
     {
@@ -4339,7 +4450,7 @@ static sai_status_t ctc_sai_mcast_create_ipmc_entry(
     ctc_sai_entry_property_t *p_entry_property = NULL;
     ctc_sai_rpf_group_property_t *rpf_grp_data = NULL;
     sai_status_t    status = SAI_STATUS_SUCCESS;
-    sai_packet_action_t   action = 0;
+    sai_packet_action_t   action = 0, update_action = SAI_PACKET_ACTION_TRANSIT;
     uint32                        attr_idx;
     uint32                        nh_id = 0;
     uint8                          loop = 0, loop1 = 0;
@@ -4365,7 +4476,13 @@ static sai_status_t ctc_sai_mcast_create_ipmc_entry(
     if (status == SAI_STATUS_SUCCESS)
     {
         action = attr_list[attr_idx].value.s32;
-        CTC_SAI_ERROR_RETURN(_ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, action));
+        CTC_SAI_ERROR_RETURN(ctc_sai_packet_action_merge(action, &update_action));
+        CTC_SAI_ERROR_RETURN(_ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, update_action));
+    }
+    else
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_IPMC,"mandatory attribute SAI_IPMC_ENTRY_ATTR_PACKET_ACTION missing！ \n");
+        return SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_IPMC_ENTRY_ATTR_OUTPUT_GROUP_ID, &attr_grp, &attr_idx);
@@ -4445,7 +4562,7 @@ static sai_status_t ctc_sai_mcast_create_ipmc_entry(
     p_entry_data->group_oid = attr_grp ? attr_grp->oid : 0;
     p_entry_data->rpf_group_oid = attr_rpf ? attr_rpf->oid : 0;
     p_entry_data->group_id = grp_param.group_id;
-    p_entry_data->action = action;
+    p_entry_data->action = update_action;
     p_entry_data->bind_type_head = ctc_slist_new();
     if (!p_entry_data->bind_type_head)
     {
@@ -4631,8 +4748,9 @@ static sai_status_t ctc_sai_mcast_set_ipmc_packet_action(sai_object_key_t *key, 
     ctc_ipmc_group_info_t grp_param = {0};
     ctc_sai_mcast_entry_property_t *p_entry_data = NULL;
     ctc_sai_rpf_group_property_t *rpf_grp_data = NULL;
-    uint8                          lchip = 0;
-    uint8                          loop = 0, loop1 = 0;
+    uint8 lchip = 0;
+    uint8 loop = 0, loop1 = 0;
+    sai_packet_action_t update_action;
 
     sal_memset(&grp_param, 0, sizeof(ctc_ipmc_group_info_t));
 
@@ -4646,7 +4764,11 @@ static sai_status_t ctc_sai_mcast_set_ipmc_packet_action(sai_object_key_t *key, 
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    _ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, attr->value.s32);
+    update_action = p_entry_data->action;
+    CTC_SAI_ERROR_RETURN(ctc_sai_packet_action_merge(attr->value.s32, &update_action));
+
+    _ctc_sai_mcast_mapping_ctc_action(&grp_param.flag, update_action);
+    
     _ctc_sai_mcast_ipmc_to_param(ipmc_entry, &grp_param);
     CTC_SET_FLAG(grp_param.flag, CTC_IPMC_FLAG_SHARE_GROUP);
     grp_param.group_id = p_entry_data->group_id;
@@ -4659,7 +4781,7 @@ static sai_status_t ctc_sai_mcast_set_ipmc_packet_action(sai_object_key_t *key, 
     }
 
     CTC_SAI_CTC_ERROR_RETURN(ctcs_ipmc_add_group(lchip, &grp_param));
-    p_entry_data->action = attr->value.s32;
+    p_entry_data->action = update_action;
     
     /*set action need to recover rpf information*/
     if((NULL != rpf_grp_data)&&(SAI_PACKET_ACTION_DROP != attr->value.s32))

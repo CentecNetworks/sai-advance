@@ -70,7 +70,7 @@ typedef enum _sai_bridge_port_fdb_learning_mode_t
  */
 typedef enum _sai_bridge_port_type_t
 {
-    /** Port or LAG */
+    /** Port or LAG or System Port */
     SAI_BRIDGE_PORT_TYPE_PORT,
 
     /** Port or LAG.vlan */
@@ -85,12 +85,12 @@ typedef enum _sai_bridge_port_type_t
     /** Bridge tunnel port */
     SAI_BRIDGE_PORT_TYPE_TUNNEL,
 
-    /** Bridge FRR port */
+    /** Bridge Fast Reroute port */
     SAI_BRIDGE_PORT_TYPE_FRR,
 
     /** Bridge Double Vlan port */
     SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT,
-    
+
 } sai_bridge_port_type_t;
 
 /**
@@ -119,11 +119,13 @@ typedef enum _sai_bridge_port_outgoing_service_vlan_cos_mode_t
 
     /** Assign mode */
     SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_ASSIGN,
-    
+
 } sai_bridge_port_outgoing_service_vlan_cos_mode_t;
-    
+
 /**
  * @brief SAI attributes for Bridge Port
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_bridge_port_attr_t
 {
@@ -147,7 +149,7 @@ typedef enum _sai_bridge_port_attr_t
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_LAG
+     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_LAG, SAI_OBJECT_TYPE_SYSTEM_PORT
      * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT
      */
     SAI_BRIDGE_PORT_ATTR_PORT_ID,
@@ -166,10 +168,11 @@ typedef enum _sai_bridge_port_attr_t
 
     /**
      * @brief Associated Vlan
+     *
      * @type sai_uint16_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @isvlan true
-     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
      */
     SAI_BRIDGE_PORT_ATTR_VLAN_ID,
 
@@ -202,9 +205,7 @@ typedef enum _sai_bridge_port_attr_t
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_AND_SET
      * @objects SAI_OBJECT_TYPE_BRIDGE
-     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT
-     * or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_1D_ROUTER
-     * or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_1D_ROUTER or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
      */
     SAI_BRIDGE_PORT_ATTR_BRIDGE_ID,
 
@@ -280,8 +281,8 @@ typedef enum _sai_bridge_port_attr_t
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
      */
-    SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP,    
-    
+    SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP,
+
     /**
      * @brief End of attributes
      */
@@ -292,108 +293,119 @@ typedef enum _sai_bridge_port_attr_t
 
     /**
      * @brief Cross connect bridge port
+     *
      * @type sai_object_id_t
      * @flags CREATE_AND_SET
      * @objects SAI_OBJECT_TYPE_BRIDGE_PORT
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
-     * @validonly SAI_BRIDGE_ATTR_TYPE == SAI_BRIDGE_TYPE_CROSS_CONNECT
      */
-    SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT = SAI_BRIDGE_PORT_ATTR_CUSTOM_RANGE_START,
+    SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT,
 
     /**
-     * @brief enable oam for sub port
-     * 
-     * for VPLS/VPWS OAM
+     * @brief Enable OAM for sub port
+     *
+     * for Virtual Private LAN Service/Virtual Private Wire Service OAM
      *
      * @type bool
      * @flags CREATE_AND_SET
      * @default false
-     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT
-     *   || SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
      */
     SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE,
 
     /**
-     * @brief FRR nexthop group object ID
-     * 
-     * for VPLS FRR Decapsulation
+     * @brief Fast Reroute nexthop group object ID
+     *
+     * for Virtual Private LAN Service Fast Reroute Decapsulation
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_NEXT_HOP_GROUP
-     * @default SAI_NULL_OBJECT_ID
-     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_FRR
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_FRR
      */
     SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP,
 
     /**
-     * @brief policer id for sub port/tunnel port
-     * 
-     * for VPLS/VPWS
+     * @brief Policer id for sub port/tunnel port
+     *
+     * for Virtual Private LAN Service/Virtual Private Wire Service
      * set to NULL means disable policer on bridge port
      *
      * @type sai_object_id_t
      * @flags CREATE_AND_SET
      * @objects SAI_OBJECT_TYPE_POLICER
-     * @default NULL
-     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT
-     *   || SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
+     * @allownull true
+     * @default SAI_NULL_OBJECT_ID
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
      */
     SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID,
 
     /**
-     * @brief service id for sub port/tunnel port
-     * 
-     * used for H-QoS, set to service schedule group service id
-     * set to 0 means disable H-QoS on bridge sub port/tunnel port
+     * @brief Service id for sub port/tunnel port
+     *
+     * used for H-QOS, set to service schedule group service id
+     * set to 0 means disable H-QOS on bridge sub port/tunnel port
      *
      * @type sai_uint16_t
      * @flags CREATE_AND_SET
+     * @isvlan false
      * @default 0
-     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT
-     *   || SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL
      */
     SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID,
 
     /**
      * @brief Outgoing Service Vlan
+     *
      * @type sai_uint16_t
      * @flags CREATE_ONLY
      * @isvlan true
-     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or 
-     * SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
+     * @default 0
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
      */
     SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID,
-    
+
     /**
-     * @brief Outgoing Service Vlan CoS mode
+     * @brief Outgoing Service Vlan Class of Service mode
+     *
      * @type sai_bridge_port_outgoing_service_vlan_cos_mode_t
      * @flags CREATE_ONLY
-     * @isvlan true
-     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or 
-     * SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
+     * @default SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_KEEP
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
      */
     SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE,
-    
+
     /**
-     * @brief Outgoing Service Vlan CoS
+     * @brief Outgoing Service Vlan Class of Service
+     *
+     * Valid when SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE == SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_ASSIGN
+     *
      * @type sai_uint8_t
      * @flags CREATE_ONLY
-     * @isvlan true
-     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
-     * and SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE == SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_ASSIGN 
+     * @default 0
      */
     SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS,
 
     /**
      * @brief Customer Vlan for forwarding instance mapping
+     *
      * @type sai_uint16_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @isvlan true
      * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
      */
     SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID,
+
+    /**
+     * @brief Need flood in bridge instance
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default true
+     * @validonly SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_TUNNEL or SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_FRR
+     */
+    SAI_BRIDGE_PORT_ATTR_NEED_FLOOD,
 
     /** End of custom range base */
     SAI_BRIDGE_PORT_ATTR_CUSTOM_RANGE_END
@@ -637,10 +649,7 @@ typedef enum _sai_bridge_attr_t
      * @objects SAI_OBJECT_TYPE_L2MC_GROUP
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
-     * @validonly SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE ==
-     * SAI_BRIDGE_FLOOD_CONTROL_TYPE_L2MC_GROUP or
-     * SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE ==
-     * SAI_BRIDGE_FLOOD_CONTROL_TYPE_COMBINED
+     * @validonly SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE == SAI_BRIDGE_FLOOD_CONTROL_TYPE_L2MC_GROUP or SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE == SAI_BRIDGE_FLOOD_CONTROL_TYPE_COMBINED
      */
     SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_GROUP,
 
@@ -668,10 +677,7 @@ typedef enum _sai_bridge_attr_t
      * @objects SAI_OBJECT_TYPE_L2MC_GROUP
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
-     * @validonly SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE ==
-     * SAI_BRIDGE_FLOOD_CONTROL_TYPE_L2MC_GROUP or
-     * SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE ==
-     * SAI_BRIDGE_FLOOD_CONTROL_TYPE_COMBINED
+     * @validonly SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE == SAI_BRIDGE_FLOOD_CONTROL_TYPE_L2MC_GROUP or SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE == SAI_BRIDGE_FLOOD_CONTROL_TYPE_COMBINED
      */
     SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_GROUP,
 
@@ -699,13 +705,10 @@ typedef enum _sai_bridge_attr_t
      * @objects SAI_OBJECT_TYPE_L2MC_GROUP
      * @allownull true
      * @default SAI_NULL_OBJECT_ID
-     * @validonly SAI_BRIDGE_ATTR_BROADCAST_FLOOD_CONTROL_TYPE ==
-     * SAI_BRIDGE_FLOOD_CONTROL_TYPE_L2MC_GROUP or
-     * SAI_BRIDGE_ATTR_BROADCAST_FLOOD_CONTROL_TYPE ==
-     * SAI_BRIDGE_FLOOD_CONTROL_TYPE_COMBINED
+     * @validonly SAI_BRIDGE_ATTR_BROADCAST_FLOOD_CONTROL_TYPE == SAI_BRIDGE_FLOOD_CONTROL_TYPE_L2MC_GROUP or SAI_BRIDGE_ATTR_BROADCAST_FLOOD_CONTROL_TYPE == SAI_BRIDGE_FLOOD_CONTROL_TYPE_COMBINED
      */
     SAI_BRIDGE_ATTR_BROADCAST_FLOOD_GROUP,
-    
+
     /**
      * @brief End of attributes
      */

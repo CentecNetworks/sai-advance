@@ -108,6 +108,7 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     sai_status_t status = 0;
     ctc_acl_property_t acl_prop;
     bool enable = 0;
+    sai_object_id_t stp_oid = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_VLAN);
     ctc_sai_oid_get_lchip(key->key.object_id, &lchip);
@@ -138,7 +139,19 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         CTC_SAI_CTC_ERROR_RETURN(ctcs_mac_security_set_learn_limit(lchip, &learn_limit));
         break;
     case  SAI_VLAN_ATTR_STP_INSTANCE:
-        CTC_SAI_ERROR_RETURN(ctc_sai_stp_set_instance(lchip, vlan_id, vlan_ptr,  attr->value.oid, 1));
+        stp_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_STP, lchip, 0, 0, p_db_vlan->stp_id);
+
+        /* set to same oid, do nothing */
+        if(stp_oid == attr->value.oid)
+        {
+            break;
+        }
+        
+        /* clear old stp oid */
+        CTC_SAI_ERROR_RETURN(ctc_sai_stp_set_instance(lchip, vlan_id, vlan_ptr,  stp_oid, 0));
+
+        /* add new stp oid */
+        CTC_SAI_ERROR_RETURN(ctc_sai_stp_set_instance(lchip, vlan_id, vlan_ptr, attr->value.oid, 1));
         ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_STP, attr->value.oid, &ctc_object_id1);
         p_db_vlan->stp_id = (uint8)ctc_object_id1.value;
         break;
@@ -176,10 +189,15 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         CTC_SAI_CTC_ERROR_RETURN(ctcs_l2_set_fid_property(lchip, vlan_ptr, CTC_L2_FID_PROP_IGMP_SNOOPING, attr->value.booldata));
         break;
     case SAI_VLAN_ATTR_META_DATA:
-        if (CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+        if (CTC_CHIP_TSINGMA == chip_type)
         {
             ingress_acl_num = 8;
             egress_acl_num = 3;
+        }
+        else if (CTC_CHIP_TSINGMA_MX == chip_type)
+        {
+            ingress_acl_num = 16;
+            egress_acl_num = 4;
         }
 
         for (i = 0; i < ingress_acl_num; i++)
@@ -229,7 +247,7 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
                 return SAI_STATUS_INVALID_PARAMETER;
             }
 
-            if ((chip_type == CTC_CHIP_DUET2) || (chip_type == CTC_CHIP_TSINGMA))
+            if ((chip_type == CTC_CHIP_DUET2) || (chip_type == CTC_CHIP_TSINGMA) || (chip_type == CTC_CHIP_TSINGMA_MX))
             {
                 sal_memset(&stats_statsid_in, 0, sizeof(ctc_stats_statsid_t));
                 stats_statsid_in.dir = CTC_INGRESS;
@@ -321,7 +339,7 @@ ctc_sai_vlan_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         //revert old policer oid
         if (p_db_vlan->policer_id && ctc_object_id1.value && (p_db_vlan->policer_id != ctc_object_id1.value) )
         {
-            CTC_SAI_ERROR_RETURN(ctc_sai_policer_revert_policer(lchip, p_db_vlan->policer_id));
+            CTC_SAI_ERROR_RETURN(ctc_sai_policer_revert_policer(lchip, p_db_vlan->policer_id, p_db_vlan->vlan_id, 0));
         }
 
         p_db_vlan->policer_id = enable ? ctc_object_id1.value : 0;
@@ -482,8 +500,15 @@ ctc_sai_vlan_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_
         ctc_ptp_domain_id = p_db_vlan->ptp_domain_id;
         attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, lchip, 0, 0, ctc_ptp_domain_id);
         break;
-    case SAI_VLAN_ATTR_POLICER_ID: 
-        attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_POLICER, lchip, 0, 0, p_db_vlan->policer_id);
+    case SAI_VLAN_ATTR_POLICER_ID:
+        if(p_db_vlan->policer_id)
+        {
+            attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_POLICER, lchip, 0, 0, p_db_vlan->policer_id);
+        }
+        else
+        {
+            attr->value.oid = SAI_NULL_OBJECT_ID;
+        }
         break;
     default:
         CTC_SAI_LOG_ERROR(SAI_API_VLAN, "vlan attribute not implement\n");
@@ -878,7 +903,7 @@ static sai_status_t _ctc_sai_vlan_create_vlan_member( sai_object_id_t     * vlan
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_VLAN_MEMBER_ATTR_VLAN_TAGGING_MODE, &tagging, &tagging_index);
 
-    sai_object_key_t  key;
+    sai_object_key_t key;
     key.key.object_id = *vlan_member_id;
 
     if ( SAI_STATUS_SUCCESS == status )
@@ -887,29 +912,11 @@ static sai_status_t _ctc_sai_vlan_create_vlan_member( sai_object_id_t     * vlan
     }
     else
     {
-           if(CTC_IS_LINKAGG_PORT(gport))
-            {
-                sai_lag_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, gport);
-                p_db_lag = ctc_sai_db_get_object_property(lchip, sai_lag_id);
-                if (NULL == p_db_lag)
-                {
-                    return SAI_STATUS_INVALID_OBJECT_ID;
-                }
-                for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
-                {
-                    if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
-                    {
-                        CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_set_tagged_port( lchip, vlanptr, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), false));
-                    }
-                }
-            }
-            else
-            {
-                CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_set_tagged_port( lchip, vlanptr, gport, false));
-            }
-
+        sai_attribute_t attr;
+        attr.id = SAI_VLAN_MEMBER_ATTR_VLAN_TAGGING_MODE;
+        attr.value.s32 = SAI_VLAN_TAGGING_MODE_UNTAGGED;
+        CTC_SAI_ERROR_GOTO(ctc_sai_vlan_set_vlan_member_tag(&key, &attr ), status, error1);
     }
-
 
     if(CTC_IS_LINKAGG_PORT(gport))
     {
@@ -938,10 +945,9 @@ static sai_status_t _ctc_sai_vlan_create_vlan_member( sai_object_id_t     * vlan
         p_bridge_port->vlan_member_tag_mode[vlanptr] = tagging->s32;
     }
 
+    return SAI_STATUS_SUCCESS;
 
-    goto out;
-
-    error1:
+error1:
     if (CTC_IS_LINKAGG_PORT(gport))
     {
         sai_lag_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, gport);
@@ -964,7 +970,7 @@ static sai_status_t _ctc_sai_vlan_create_vlan_member( sai_object_id_t     * vlan
         ctcs_vlan_remove_port( lchip, vlanptr, gport);
     }
 
-    out:
+out:
     return status;
 }
 
@@ -1324,7 +1330,8 @@ sai_status_t ctc_sai_vlan_create_vlan( sai_object_id_t      *sai_vlan_id,
     if (vlan_stats_flag)
     {
         chip_type = ctcs_get_chip_type(lchip);
-        if ((chip_type == CTC_CHIP_DUET2) || (chip_type == CTC_CHIP_TSINGMA))
+
+        if ((chip_type == CTC_CHIP_DUET2) || (chip_type == CTC_CHIP_TSINGMA) || (chip_type == CTC_CHIP_TSINGMA_MX))
         {
             stats_statsid_in.dir = CTC_INGRESS;
             stats_statsid_in.type = CTC_STATS_STATSID_TYPE_VLAN;
@@ -1369,7 +1376,7 @@ sai_status_t ctc_sai_vlan_create_vlan( sai_object_id_t      *sai_vlan_id,
     p_dbvlan->user_vlanptr = vlan.user_vlanptr;
     p_dbvlan->vlan_id = vlan.vlan_id;
 
-    if ((chip_type == CTC_CHIP_DUET2) || (chip_type == CTC_CHIP_TSINGMA))
+    if ((chip_type == CTC_CHIP_DUET2) || (chip_type == CTC_CHIP_TSINGMA) || (chip_type == CTC_CHIP_TSINGMA_MX))
     {
         p_dbvlan->stats_id_in = stats_statsid_in.stats_id;
         p_dbvlan->stats_id_eg = stats_statsid_eg.stats_id;
@@ -1380,14 +1387,14 @@ sai_status_t ctc_sai_vlan_create_vlan( sai_object_id_t      *sai_vlan_id,
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_VLAN_ATTR_STP_INSTANCE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS )
     {
-        CTC_SAI_ERROR_GOTO(ctc_sai_vlan_set_info(&key, &attr_list[attr_index]), status, error4);
+        CTC_SAI_ERROR_GOTO(ctc_sai_stp_set_instance(lchip, p_dbvlan->vlan_id, p_dbvlan->user_vlanptr,  attr_value->oid, 1), status, error4);
     }
     else
     {
         /*set default stp:SAI_SWITCH_ATTR_DEFAULT_STP_INST_ID*/
         attr_tmp.id = SAI_VLAN_ATTR_STP_INSTANCE;
         attr_tmp.value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_STP, lchip, 0, 0, 0);
-        CTC_SAI_ERROR_GOTO(ctc_sai_vlan_set_info(&key, &attr_tmp), status, error4);
+        CTC_SAI_ERROR_GOTO(ctc_sai_stp_set_instance(lchip, p_dbvlan->vlan_id, p_dbvlan->user_vlanptr,  attr_tmp.value.oid, 1), status, error4);
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_VLAN_ATTR_IPV4_MCAST_LOOKUP_KEY_TYPE, &attr_value, &attr_index);
@@ -1450,10 +1457,15 @@ sai_status_t ctc_sai_vlan_create_vlan( sai_object_id_t      *sai_vlan_id,
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_VLAN_ATTR_META_DATA, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS )
     {
-        if (CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+        if (CTC_CHIP_TSINGMA == chip_type)
         {
             ingress_acl_num = 8;
             egress_acl_num = 3;
+        }
+        else if (CTC_CHIP_TSINGMA_MX == chip_type)
+        {
+            ingress_acl_num = 16;
+            egress_acl_num = 4;
         }
 
         for (i = 0; i < ingress_acl_num; i++)

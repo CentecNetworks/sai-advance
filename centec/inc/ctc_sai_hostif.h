@@ -148,16 +148,16 @@
 \t  |  SAI_HOSTIF_TRAP_TYPE_PIPELINE_DISCARD_ROUTER         |              -                 |
 \t  |  SAI_HOSTIF_TRAP_TYPE_PTP                             |           CTC7132              |
 \t  |  SAI_HOSTIF_TRAP_TYPE_PTP_TX_EVENT                    |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_DM       |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LT       |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LBR      |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LMR      |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_CV_FAIL |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_APS      |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DLM   |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DM    |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_MICROBURST_LOG |           CTC7132              |
-\t  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_LATENCY_OVERFLOW_LOG  |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_DM       |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LT       |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LBR      |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LMR      |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_CV_FAIL |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_APS      |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DLM   |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DM    |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_MICROBURST_LOG |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_LATENCY_OVERFLOW_LOG  |           CTC7132              |
 
 \b
  The Hostif user defined trap type supported by centec devices:

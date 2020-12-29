@@ -200,6 +200,8 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
     ctc_sai_policer_db_t* p_policer_db = NULL;
     ctc_qos_policer_t  ctc_policer;
     uint8 lchip = 0;
+    ctc_sai_policer_bind_port_id_t *po = NULL;
+    ctc_slistnode_t               *node = NULL;
 
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, policer_id, &ctc_object_id);
     lchip = ctc_object_id.lchip;
@@ -218,9 +220,10 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
 
     if (p_policer_db->mode == SAI_POLICER_MODE_STORM_CONTROL)
     {
-        if (p_policer_db->id.port_id != CTC_SAI_POLICER_APPLY_DEFAULT)
+        CTC_SLIST_LOOP(p_policer_db->port_id_head, node)
         {
-            sai_object_id_t sai_port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, p_policer_db->id.port_id);
+            po = _ctc_container_of(node, ctc_sai_policer_bind_port_id_t, node);
+            sai_object_id_t sai_port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, po->port_id);
             ctc_sai_port_db_t* p_port_db = ctc_sai_db_get_object_property(lchip, sai_port_id);
             if (NULL == p_port_db)
             {
@@ -229,7 +232,7 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
             if (p_port_db->stmctl_flood_policer_id == ctc_object_id.value)
             {
                 CTC_SAI_ERROR_RETURN(ctc_sai_policer_port_set_stmctl(lchip,
-                                                            p_policer_db->id.port_id,
+                                                            po->port_id,
                                                             p_port_db->stmctl_flood_policer_id,
                                                             CTC_SAI_STMCTL_TYPE_FLOOD,
                                                             TRUE));
@@ -237,7 +240,7 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
             if (p_port_db->stmctl_bc_policer_id == ctc_object_id.value)
             {
                 CTC_SAI_ERROR_RETURN(ctc_sai_policer_port_set_stmctl(lchip,
-                                                            p_policer_db->id.port_id,
+                                                            po->port_id,
                                                             p_port_db->stmctl_bc_policer_id,
                                                             CTC_SAI_STMCTL_TYPE_BCAST,
                                                             TRUE));
@@ -245,7 +248,7 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
             if (p_port_db->stmctl_mc_policer_id == ctc_object_id.value)
             {
                 CTC_SAI_ERROR_RETURN(ctc_sai_policer_port_set_stmctl(lchip,
-                                                            p_policer_db->id.port_id,
+                                                            po->port_id,
                                                             p_port_db->stmctl_mc_policer_id,
                                                             CTC_SAI_STMCTL_TYPE_MCAST,
                                                             TRUE));
@@ -284,7 +287,7 @@ _ctc_sai_policer_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
             CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
         }
 
-        else if (((ctcs_get_chip_type(lchip) == CTC_CHIP_DUET2) || (ctcs_get_chip_type(lchip) == CTC_CHIP_TSINGMA))
+        else if (((ctcs_get_chip_type(lchip) == CTC_CHIP_DUET2) || (ctcs_get_chip_type(lchip) == CTC_CHIP_TSINGMA) || (ctcs_get_chip_type(lchip) == CTC_CHIP_TSINGMA_MX))
             && (CTC_SAI_QOS_POLICER_TYPE_COPP == p_policer_db->type))
         {
             ctc_policer.dir = CTC_INGRESS;
@@ -450,6 +453,11 @@ ctc_sai_policer_port_set_stmctl(uint8 lchip, uint32 gport, uint32 policer_id, ct
     ctc_sai_policer_db_t* p_policer_db = NULL;
     ctc_security_stmctl_cfg_t ctc_stmctl;
     sai_object_id_t sai_policer_id;
+    ctc_sai_policer_bind_port_id_t *port_id_node = NULL;
+    ctc_sai_policer_bind_port_id_t *po = NULL;
+    ctc_slistnode_t               *node = NULL;
+    uint8 find = 0;
+    sai_status_t               status = SAI_STATUS_SUCCESS;
 
 
     CTC_SAI_LOG_ENTER(SAI_API_POLICER);
@@ -488,13 +496,24 @@ ctc_sai_policer_port_set_stmctl(uint8 lchip, uint32 gport, uint32 policer_id, ct
 
     if (enable)
     {
-        if (gport == p_policer_db->id.port_id)
+        CTC_SLIST_LOOP(p_policer_db->port_id_head, node)
         {
+            po = _ctc_container_of(node, ctc_sai_policer_bind_port_id_t, node);
+            if (gport == po->port_id)
+            {
+                find = 1;
+            }
         }
-        else if (p_policer_db->id.port_id != CTC_SAI_POLICER_APPLY_DEFAULT)
+        if (find == 0)
         {
-            CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Object in use 0x%x!\n", p_policer_db->id.port_id);
-            return SAI_STATUS_OBJECT_IN_USE;
+            port_id_node = mem_malloc(MEM_SYSTEM_MODULE, sizeof(ctc_sai_policer_bind_port_id_t));
+            if (!port_id_node)
+            {
+                return SAI_STATUS_NO_MEMORY;
+            }
+
+            port_id_node->port_id = gport;
+            ctc_slist_add_tail(p_policer_db->port_id_head, &(port_id_node->node));
         }
 
         ctc_stmctl.gport = gport;
@@ -504,25 +523,28 @@ ctc_sai_policer_port_set_stmctl(uint8 lchip, uint32 gport, uint32 policer_id, ct
                    CTC_SECURITY_STORM_CTL_MODE_PPS : CTC_SECURITY_STORM_CTL_MODE_BPS;
         ctc_stmctl.threshold = p_policer_db->cir;
 
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_storm_ctl_set_cfg(lchip, &ctc_stmctl));
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_storm_ctl_set_cfg(lchip, &ctc_stmctl), status, error1);
         if (stm_type == CTC_SAI_STMCTL_TYPE_FLOOD)
         {
             ctc_stmctl.type = CTC_SECURITY_STORM_CTL_UNKNOWN_MCAST;
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_storm_ctl_set_cfg(lchip, &ctc_stmctl));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_storm_ctl_set_cfg(lchip, &ctc_stmctl), status, error1);
         }
-        p_policer_db->id.port_id = gport;
     }
     else
     {
-        if (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.port_id)
+        CTC_SLIST_LOOP(p_policer_db->port_id_head, node)
+        {
+            po = _ctc_container_of(node, ctc_sai_policer_bind_port_id_t, node);
+            if (gport == po->port_id)
+            {
+                find = 1;
+            }
+        }
+        if (find == 0)
         {
             return SAI_STATUS_SUCCESS;
         }
-        if (gport != p_policer_db->id.port_id)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Port not apply the policer!\n");
-            return SAI_STATUS_INVALID_PARAMETER;
-        }
+
         ctc_stmctl.gport = gport;
         ctc_stmctl.op = CTC_SECURITY_STORM_CTL_OP_PORT;
         ctc_stmctl.storm_en = 0;
@@ -535,6 +557,15 @@ ctc_sai_policer_port_set_stmctl(uint8 lchip, uint32 gport, uint32 policer_id, ct
     }
 
     return SAI_STATUS_SUCCESS;
+
+error1:
+    if(enable && !find)
+    {
+        ctc_slist_delete_node(p_policer_db->port_id_head, &(port_id_node->node));
+        mem_free(port_id_node);
+        
+    }
+    return status;
 }
 
 
@@ -634,43 +665,34 @@ ctc_sai_policer_acl_set_policer(uint8 lchip, uint32 entry_id, uint32 policer_id,
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer mode is stormctl!\n");
         return SAI_STATUS_INVALID_PARAMETER;
     }
+    if ((p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW)&&(p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_MAX))
+    {
+        return SAI_STATUS_OBJECT_IN_USE;
+    }
 
     ctc_policer.dir = CTC_INGRESS;
     ctc_policer.id.policer_id = policer_id;
     ctc_policer.type = CTC_QOS_POLICER_TYPE_FLOW;
     if (enable)//attach policer on acl entry
     {
-        if (entry_id == p_policer_db->id.entry_id)
+        if (p_policer_db->ref_cnt == 0 )
         {
-            if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW)
-            {
-                return SAI_STATUS_OBJECT_IN_USE;
-            }
+            CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
+            ctc_policer.enable = 1;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW;
         }
-        else if (CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.entry_id)
-        {
-            return SAI_STATUS_OBJECT_IN_USE;
-        }
-        CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
-        ctc_policer.enable = 1;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-        p_policer_db->id.entry_id = entry_id;
-        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW;
+        p_policer_db->ref_cnt++;
     }
     else
     {
-        if (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.entry_id)
+        p_policer_db->ref_cnt--;
+        if (p_policer_db->ref_cnt == 0 )
         {
-            return SAI_STATUS_SUCCESS;
+            ctc_policer.enable = 0;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
         }
-        if (entry_id != p_policer_db->id.entry_id)
-        {
-            return SAI_STATUS_INVALID_PARAMETER;
-        }
-        ctc_policer.enable = 0;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-        p_policer_db->id.entry_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -700,32 +722,36 @@ ctc_sai_policer_set_copp_policer(uint8 lchip, uint32 policer_id, bool enable)
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer mode is stormctl!\n");
         return SAI_STATUS_INVALID_PARAMETER;
     }
+    if ((p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_COPP)&&(p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_MAX))
+    {
+        return SAI_STATUS_OBJECT_IN_USE;
+    }
 
     ctc_policer.dir = CTC_INGRESS;
     ctc_policer.id.policer_id = policer_id;
     ctc_policer.type = CTC_QOS_POLICER_TYPE_COPP;
-    if (enable)//attach copp policer
+    if (enable)//attach policer on inseg entry
     {
-        if ((CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.entry_id) || (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_COPP))
+        if (p_policer_db->ref_cnt == 0 )
         {
-            return SAI_STATUS_OBJECT_IN_USE;
+            CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
+            //SONiC debug modify by cmodel
+            ctc_policer.policer.policer_mode = CTC_QOS_POLICER_MODE_STBM; // Copp only support STBM
+            ctc_policer.enable = 1;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_COPP;
         }
-        CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
-        ctc_policer.enable = 1;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_COPP;
+        p_policer_db->ref_cnt++;
     }
     else
     {
-        if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_COPP)
+        p_policer_db->ref_cnt--;
+        if (p_policer_db->ref_cnt == 0 )
         {
-            CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer type isNot copp!\n");
-            return SAI_STATUS_INVALID_PARAMETER;
+            ctc_policer.enable = 0;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
         }
-        ctc_policer.enable = 0;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-        p_policer_db->id.entry_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -755,43 +781,34 @@ ctc_sai_policer_bridge_service_set_policer(uint8 lchip, uint32 logic_port, uint3
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer mode is stormctl!\n");
         return SAI_STATUS_INVALID_PARAMETER;
     }
+    if ((p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE)&&(p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_MAX))
+    {
+        return SAI_STATUS_OBJECT_IN_USE;
+    }
 
     ctc_policer.dir = CTC_INGRESS;
     ctc_policer.id.policer_id = policer_id;
     ctc_policer.type = CTC_QOS_POLICER_TYPE_FLOW;
-    if (enable) //attach policer on bridge service
+    if (enable)//attach policer on sub port
     {
-        if (logic_port == p_policer_db->id.service_id)
+        if (p_policer_db->ref_cnt == 0 )
         {
-            if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE)
-            {
-                return SAI_STATUS_OBJECT_IN_USE;
-            }
+            CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
+            ctc_policer.enable = 1;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE;
         }
-        else if (CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.service_id)
-        {
-            return SAI_STATUS_OBJECT_IN_USE;
-        }
-        CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
-        ctc_policer.enable = 1;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-        p_policer_db->id.service_id = logic_port;
-        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE;
+        p_policer_db->ref_cnt++;
     }
     else
     {
-        if (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.service_id)
+        p_policer_db->ref_cnt--;
+        if (p_policer_db->ref_cnt == 0 )
         {
-            return SAI_STATUS_SUCCESS;
+            ctc_policer.enable = 0;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
         }
-        if (logic_port != p_policer_db->id.service_id)
-        {
-            return SAI_STATUS_INVALID_PARAMETER;
-        }
-        ctc_policer.enable = 0;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-        p_policer_db->id.service_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -891,59 +908,45 @@ ctc_sai_policer_mpls_set_policer(uint8 lchip, uint32 label, uint32 policer_id, b
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "policer mode is stormctl!\n");
         return SAI_STATUS_INVALID_PARAMETER;
     }
+    if ((p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS)&&(p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_MAX))
+    {
+        return SAI_STATUS_OBJECT_IN_USE;
+    }
 
     ctc_policer.dir = CTC_INGRESS;
     ctc_policer.id.policer_id = policer_id;
     ctc_policer.type = CTC_QOS_POLICER_TYPE_FLOW;
-    if (enable)
+    if (enable)//attach policer on inseg entry
     {
-        if (label == p_policer_db->id.label_id)
+        if (p_policer_db->ref_cnt == 0 )
         {
-            if (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS)
-            {
-                return SAI_STATUS_OBJECT_IN_USE;
-            }
+            CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
+            ctc_policer.enable = 1;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS;
         }
-        else if (CTC_SAI_POLICER_APPLY_DEFAULT != p_policer_db->id.label_id)
-        {
-            return SAI_STATUS_OBJECT_IN_USE;
-        }
-
-        CTC_SAI_ERROR_RETURN(_ctc_sai_policer_db_map_policer(lchip, p_policer_db, &ctc_policer));
-        ctc_policer.enable = 1;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-
-        p_policer_db->id.label_id = label;
-        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS;
+        p_policer_db->ref_cnt++;
     }
     else
     {
-
-        if (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.label_id)
+        p_policer_db->ref_cnt--;
+        if (p_policer_db->ref_cnt == 0 )
         {
-            return SAI_STATUS_SUCCESS;
+            ctc_policer.enable = 0;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
         }
-        if (label != p_policer_db->id.label_id)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Port not apply the policer!\n");
-            return SAI_STATUS_INVALID_PARAMETER;
-        }
-
-        ctc_policer.enable = 0;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_policer(lchip, &ctc_policer));
-
-        p_policer_db->id.label_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
     }
-
     return SAI_STATUS_SUCCESS;
 }
 
 sai_status_t
-ctc_sai_policer_revert_policer(uint8 lchip, uint32 policer_id)
+ctc_sai_policer_revert_policer(uint8 lchip, uint32 policer_id, uint32 port_or_vlan_id, uint8 is_strom_ctl)
 {
     sai_object_id_t sai_policer_id;
     ctc_sai_policer_db_t* p_policer_db = NULL;
+    ctc_sai_policer_bind_port_id_t *po = NULL;
+    ctc_slistnode_t               *node = NULL;
 
     sai_policer_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_POLICER, lchip, 0, 0, policer_id);
     p_policer_db = ctc_sai_db_get_object_property(lchip, sai_policer_id);
@@ -951,9 +954,27 @@ ctc_sai_policer_revert_policer(uint8 lchip, uint32 policer_id)
     {
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
-    p_policer_db->id.entry_id = CTC_SAI_POLICER_APPLY_DEFAULT;
-    p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
-
+    if (is_strom_ctl)
+    {
+        CTC_SLIST_LOOP(p_policer_db->port_id_head, node)
+        {
+            po = _ctc_container_of(node, ctc_sai_policer_bind_port_id_t, node);
+            if (port_or_vlan_id == po->port_id)
+            {
+                ctc_slist_delete_node(p_policer_db->port_id_head, node);
+                mem_free(po);
+            }
+        }
+        if (0 == p_policer_db->port_id_head->count)
+        {
+            p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
+        }
+    }
+    else
+    {
+        p_policer_db->id.port_id = CTC_SAI_POLICER_APPLY_DEFAULT;
+        p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
+    }
     return SAI_STATUS_SUCCESS;
 }
 
@@ -962,10 +983,139 @@ _ctc_sai_policer_wb_reload_cb(uint8 lchip, void* key, void* data)
 {
     ctc_object_id_t ctc_object_id;
     sai_object_id_t policer_id = *(sai_object_id_t*)key;
+    ctc_sai_policer_db_t *p_policer_db = (ctc_sai_policer_db_t *)data;
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, policer_id, &ctc_object_id);
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_POLICER, ctc_object_id.value));
+    p_policer_db->port_id_head = ctc_slist_new();
+    if (!p_policer_db->port_id_head)
+    {
+        return SAI_STATUS_NO_MEMORY;
+    }
     return SAI_STATUS_SUCCESS;
 }
+
+static sai_status_t
+_ctc_sai_policer_wb_reload_cb1(uint8 lchip)
+{
+    sai_status_t           ret = SAI_STATUS_SUCCESS;
+    ctc_sai_policer_db_t *p_policer_db = NULL;
+    ctc_sai_wb_policer_property_t wb_policer_data = {0};
+    ctc_sai_policer_bind_port_id_t *port_id_node = NULL;
+    ctc_wb_query_t wb_query;
+    uint16 entry_cnt = 0;
+    uint32 offset = 0;
+
+    sal_memset(&wb_query, 0, sizeof(wb_query));
+    wb_query.buffer = mem_malloc(MEM_SYSTEM_MODULE,  CTC_WB_DATA_BUFFER_LENGTH);
+    if (NULL == wb_query.buffer)
+    {
+        return CTC_E_NO_MEMORY;
+    }
+    sal_memset(wb_query.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
+
+    CTC_WB_INIT_QUERY_T((&wb_query), ctc_sai_wb_policer_property_t , CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_POLICER_PORT_LIST);
+    CTC_WB_QUERY_ENTRY_BEGIN((&wb_query));
+        offset = entry_cnt * (wb_query.key_len + wb_query.data_len);
+        entry_cnt++;
+        sal_memcpy(&wb_policer_data, (uint8*)(wb_query.buffer) + offset,  sizeof(ctc_sai_wb_policer_property_t));
+        p_policer_db = ctc_sai_db_get_object_property(lchip, wb_policer_data.policer_oid);
+        if (!p_policer_db)
+        {
+            continue;
+        }
+
+        port_id_node = mem_malloc(MEM_SYSTEM_MODULE, sizeof(ctc_sai_policer_bind_port_id_t));
+        if (!port_id_node)
+        {
+            continue;
+        }
+        port_id_node->port_id = wb_policer_data.port_id;
+        ctc_slist_add_tail(p_policer_db->port_id_head, &(port_id_node->node));
+    CTC_WB_QUERY_ENTRY_END((&wb_query));
+
+done:
+    if (wb_query.buffer)
+    {
+        mem_free(wb_query.buffer);
+    }
+
+    return ret;
+}
+
+
+static sai_status_t
+_ctc_sai_policer_wb_sync_cb(uint8 lchip, void* key, void* data)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    int32 ret = 0;
+    sai_object_id_t policer_oid = *(sai_object_id_t*)key;
+    ctc_sai_policer_db_t *p_policer_db = (ctc_sai_policer_db_t *)data;
+    ctc_sai_policer_bind_port_id_t *po = NULL;
+    ctc_slistnode_t               *node = NULL;
+    ctc_sai_wb_policer_property_t wb_policer_data = {0};
+    ctc_wb_data_t wb_data;
+    uint16  max_entry_cnt = 0;
+    uint32 index = 0;
+    uint32 offset = 0;
+
+    CTC_WB_ALLOC_BUFFER(&wb_data.buffer);
+    if (NULL == wb_data.buffer)
+    {
+        return SAI_STATUS_NO_MEMORY;
+    }
+    sal_memset(wb_data.buffer, 0, CTC_WB_DATA_BUFFER_LENGTH);
+    CTC_WB_INIT_DATA_T((&wb_data), ctc_sai_wb_policer_property_t, CTC_SAI_WB_TYPE_USER_DEF, CTC_SAI_WB_USER_DEF_SUB_TYPE_POLICER_PORT_LIST);
+    max_entry_cnt = CTC_WB_DATA_BUFFER_LENGTH / (wb_data.key_len + wb_data.data_len);
+
+    CTC_SLIST_LOOP(p_policer_db->port_id_head, node)
+    {
+        po = _ctc_container_of(node, ctc_sai_policer_bind_port_id_t, node);
+
+        offset = wb_data.valid_cnt * (wb_data.key_len + wb_data.data_len);
+        wb_policer_data.policer_oid = policer_oid;
+        wb_policer_data.port_id = po->port_id;
+        wb_policer_data.index = index++;
+        sal_memcpy((uint8*)wb_data.buffer + offset, &wb_policer_data, (wb_data.key_len + wb_data.data_len));
+        if (++wb_data.valid_cnt == max_entry_cnt)
+        {
+            CTC_SAI_CTC_ERROR_GOTO(ctc_wb_add_entry(&wb_data), status, out);
+            wb_data.valid_cnt = 0;
+        }
+    }
+    if (wb_data.valid_cnt)
+    {
+        CTC_SAI_CTC_ERROR_GOTO(ctc_wb_add_entry(&wb_data), status, out);
+    }
+
+    return SAI_STATUS_SUCCESS;
+done:
+out:
+    if (wb_data.buffer)
+    {
+        CTC_WB_FREE_BUFFER(wb_data.buffer);
+    }
+
+    return status;
+}
+
+static sai_status_t
+_ctc_sai_policer_db_deinit_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_db_traverse_param_t *p_cb_data)
+{
+    ctc_sai_policer_db_t *p_policer_db = NULL;
+    ctc_sai_policer_bind_port_id_t *po = NULL;
+    ctc_slistnode_t *node = NULL, *next_node = NULL;
+
+    p_policer_db = (ctc_sai_policer_db_t*)bucket_data->data;
+    CTC_SLIST_LOOP_DEL(p_policer_db->port_id_head, node, next_node)
+    {
+        po = _ctc_container_of(node, ctc_sai_policer_bind_port_id_t, node);
+        mem_free(po);
+    }
+    mem_free(p_policer_db->port_id_head);
+
+    return SAI_STATUS_SUCCESS;
+}
+
 
 
 #define ________SAI_DUMP________
@@ -1042,6 +1192,12 @@ ctc_sai_policer_create_policer_id(
     p_policer_db->action[SAI_PACKET_COLOR_RED]    = SAI_PACKET_ACTION_FORWARD;
     p_policer_db->id.port_id  = CTC_SAI_POLICER_APPLY_DEFAULT;
     p_policer_db->type = CTC_SAI_QOS_POLICER_TYPE_MAX;
+    p_policer_db->port_id_head = ctc_slist_new();
+    if (!p_policer_db->port_id_head )
+    {
+        status = SAI_STATUS_NO_MEMORY;
+        goto error_1;
+    }
 
     _ctc_sai_policer_map_attr_to_db(attr_list, attr_count, p_policer_db);
 
@@ -1050,18 +1206,21 @@ ctc_sai_policer_create_policer_id(
     if (CTC_SAI_ERROR(status))
     {
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Opf alloc id failed!\n");
-        goto error_1;
+        goto error_2;
     }
     policer_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_POLICER, lchip, 0, 0, ctc_policer_id);
-    CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, policer_oid, p_policer_db), status, error_2);
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, policer_oid, p_policer_db), status, error_3);
     *policer_id = policer_oid;
 
     CTC_SAI_DB_UNLOCK(lchip);
     return SAI_STATUS_SUCCESS;
 
-error_2:
+error_3:
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_POLICER, ctc_policer_id);
+error_2:
+    mem_free(p_policer_db->port_id_head);
 error_1:
+
     mem_free(p_policer_db);
 error_0:
     CTC_SAI_DB_UNLOCK(lchip);
@@ -1093,7 +1252,7 @@ ctc_sai_policer_remove_policer_id(
         status = SAI_STATUS_ITEM_NOT_FOUND;
         goto error_return;
     }
-    if ((p_policer_db->id.port_id != CTC_SAI_POLICER_APPLY_DEFAULT) || (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_MAX))
+    if ((p_policer_db->port_id_head->count != 0) || (p_policer_db->type != CTC_SAI_QOS_POLICER_TYPE_MAX))
     {
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Object Id in used!\n");
         status = SAI_STATUS_OBJECT_IN_USE;
@@ -1211,7 +1370,7 @@ ctc_sai_policer_get_stats(
     }
 
     if ((SAI_POLICER_MODE_STORM_CONTROL == p_policer_db->mode)
-        || (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.port_id))
+        || (p_policer_db->type == CTC_SAI_QOS_POLICER_TYPE_MAX))
     {
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Error getting stats, Mode:%d!\n", p_policer_db->mode);
         return SAI_STATUS_NOT_IMPLEMENTED;
@@ -1314,7 +1473,7 @@ ctc_sai_policer_get_stats_ext(
     }
 
     if ((SAI_POLICER_MODE_STORM_CONTROL == p_policer_db->mode)
-        || (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.port_id))
+        || (p_policer_db->type == CTC_SAI_QOS_POLICER_TYPE_MAX))
     {
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Error getting stats, Mode:%d!\n", p_policer_db->mode);
         return SAI_STATUS_NOT_IMPLEMENTED;
@@ -1429,7 +1588,7 @@ ctc_sai_policer_clear_stats(
     }
 
     if ((SAI_POLICER_MODE_STORM_CONTROL == p_policer_db->mode)
-        || (CTC_SAI_POLICER_APPLY_DEFAULT == p_policer_db->id.port_id))
+        || (p_policer_db->type == CTC_SAI_QOS_POLICER_TYPE_MAX))
     {
         CTC_SAI_LOG_ERROR(SAI_API_POLICER, "Error getting stats, Mode:%d!\n", p_policer_db->mode);
         return SAI_STATUS_NOT_IMPLEMENTED;
@@ -1493,9 +1652,18 @@ ctc_sai_policer_db_init(uint8 lchip)
     sal_memset(&wb_info, 0, sizeof(wb_info));
     wb_info.version = SYS_WB_VERSION_POLICER;
     wb_info.data_len = sizeof(ctc_sai_policer_db_t);
-    wb_info.wb_sync_cb = NULL;
+    wb_info.wb_sync_cb = _ctc_sai_policer_wb_sync_cb;
     wb_info.wb_reload_cb = _ctc_sai_policer_wb_reload_cb;
+    wb_info.wb_reload_cb1 = _ctc_sai_policer_wb_reload_cb1;
     ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_POLICER, (void*)(&wb_info));
     return SAI_STATUS_SUCCESS;
 }
+
+sai_status_t
+ctc_sai_policer_db_deinit(uint8 lchip)
+{
+    ctc_sai_db_entry_property_traverse(lchip, CTC_SAI_DB_ID_TYPE_POLICER, (hash_traversal_fn)_ctc_sai_policer_db_deinit_cb, NULL);
+    return SAI_STATUS_SUCCESS;
+}
+
 

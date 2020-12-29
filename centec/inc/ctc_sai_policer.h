@@ -14,46 +14,46 @@
  The Policer Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_policer                                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_policer                                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_policer_attribute                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_policer_attribute                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_policer_stats                                    |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_policer_stats_ext                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  clear_policer_stats                                  |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST          |
+\t  |  create_policer                                       |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  remove_policer                                       |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  set_policer_attribute                                |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  get_policer_attribute                                |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  get_policer_stats                                    |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  get_policer_stats_ext                                |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  clear_policer_stats                                  |    CTC8096,CTC7148,CTC7132,CTC8180    |
 \b
 \p
  The Policer attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_POLICER_ATTR_METER_TYPE                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_MODE                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_COLOR_SOURCE                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_CBS                                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_CIR                                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_PBS                                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_PIR                                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_GREEN_PACKET_ACTION                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_YELLOW_PACKET_ACTION                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_RED_PACKET_ACTION                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_ATTR_ENABLE_COUNTER_PACKET_ACTION_LIST   |              -                 |
-\e  |  SAI_POLICER_ATTR_ENABLE_COUNTER_LIST                 |            CTC7132             |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST          |
+\t  |  SAI_POLICER_ATTR_METER_TYPE                          |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_MODE                                |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_COLOR_SOURCE                        |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_CBS                                 |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_CIR                                 |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_PBS                                 |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_PIR                                 |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_GREEN_PACKET_ACTION                 |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_YELLOW_PACKET_ACTION                |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_RED_PACKET_ACTION                   |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_ATTR_ENABLE_COUNTER_PACKET_ACTION_LIST   |                  -                    |
+\e  |  SAI_POLICER_ATTR_ENABLE_COUNTER_LIST                 |            CTC7132,CTC8180            |
 \b
 \p
  The Policer Stats supported by centec devices:
 \p
 \b
-\t  |   STATS TYPE                                          |       SUPPORT CHIPS LIST       |
-\t  |  SAI_POLICER_STAT_PACKETS                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_STAT_ATTR_BYTES                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_STAT_GREEN_PACKETS                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_STAT_GREEN_BYTES                         |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_STAT_YELLOW_PACKETS                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_STAT_YELLOW_BYTES                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_STAT_RED_PACKETS                         |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_POLICER_STAT_RED_BYTES                           |    CTC8096,CTC7148,CTC7132     |
+\t  |   STATS TYPE                                          |           SUPPORT CHIPS LIST          |
+\t  |  SAI_POLICER_STAT_PACKETS                             |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_STAT_ATTR_BYTES                          |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_STAT_GREEN_PACKETS                       |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_STAT_GREEN_BYTES                         |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_STAT_YELLOW_PACKETS                      |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_STAT_YELLOW_BYTES                        |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_STAT_RED_PACKETS                         |    CTC8096,CTC7148,CTC7132,CTC8180    |
+\t  |  SAI_POLICER_STAT_RED_BYTES                           |    CTC8096,CTC7148,CTC7132,CTC8180    |
 \b
 */
 
@@ -87,6 +87,23 @@ enum ctc_sai_qos_policer_type_e
 };
 typedef enum ctc_sai_qos_policer_type_e ctc_sai_qos_policer_type_t;
 
+typedef struct  ctc_sai_policer_bind_port_id_s
+{
+   ctc_slistnode_t node;
+   uint32 port_id;
+}ctc_sai_policer_bind_port_id_t;
+
+typedef struct  ctc_sai_wb_policer_property_s
+{
+    /*key*/
+   sai_object_id_t policer_oid;
+   uint16 index;
+   uint32 calc_key_len[0];
+    /*data*/
+   uint32 port_id;
+}ctc_sai_wb_policer_property_t;
+
+
 
 typedef struct ctc_sai_policer_db_s
 {
@@ -101,11 +118,11 @@ typedef struct ctc_sai_policer_db_s
     union
     {
         uint32 port_id;    /*CTC_SAI_QOS_POLICER_TYPE_PORT*/
-        uint32 entry_id;   /*CTC_SAI_QOS_POLICER_TYPE_FLOW*/
-        uint32 service_id; /*CTC_SAI_QOS_POLICER_TYPE_FLOW_SERVICE, for l2vpn bridge port */
-        uint32 label_id;   /*CTC_SAI_QOS_POLICER_TYPE_FLOW_MPLS */
         uint32 vlan_id;    /*CTC_SAI_QOS_POLICER_TYPE_VLAN*/ 
     }id;
+    uint32 ref_cnt;
+    ctc_slist_t *port_id_head; /*for strom ctrl*/
+
     uint8 type; /*refer to ctc_sai_qos_policer_type_t*/
     uint8 stats_en_id[3]; /*refer to sai_packet_color_t*/
     uint8 stats_en;  /* stats enable for policer */
@@ -148,7 +165,8 @@ extern sai_status_t
 ctc_sai_policer_set_copp_policer(uint8 lchip, uint32 policer_id, bool enable);
 
 extern sai_status_t
-ctc_sai_policer_revert_policer(uint8 lchip, uint32 policer_id);
+ctc_sai_policer_revert_policer(uint8 lchip, uint32 policer_id, uint32 port_or_vlan_id, uint8 is_strom_ctl);
+
 
 extern void
 ctc_sai_policer_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t *dump_grep_param);

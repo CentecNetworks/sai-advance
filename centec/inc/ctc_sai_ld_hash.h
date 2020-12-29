@@ -14,46 +14,51 @@ This module defines SAI HASH.
  The HASH Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                   |       SUPPORT CHIPS LIST       |
-\t  |  create_hash                            |              -                 |
-\t  |  remove_hash                            |              -                 |
-\t  |  set_hash_attribute                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_hash_attribute                     |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                   |           SUPPORT CHIPS LIST           |
+\t  |  create_hash                            |                  -                     |
+\t  |  remove_hash                            |                  -                     |
+\t  |  set_hash_attribute                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_hash_attribute                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 \p
  The HASH attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                             |       SUPPORT CHIPS LIST       |
-\t  |  SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_HASH_ATTR_UDF_GROUP_LIST           |              -                 |
+\t  |   ATTRIBUTE                             |           SUPPORT CHIPS LIST           |
+\t  |  SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_HASH_ATTR_UDF_GROUP_LIST           |                  -                     |
 \b
 
 \p
  The Hash Field supported by centec devices:
 \p
 \b
-\t  |   Hash Field                            |       SUPPORT CHIPS LIST       |
-\t  |  SAI_NATIVE_HASH_FIELD_SRC_IP           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_DST_IP           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_INNER_SRC_IP     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_INNER_DST_IP     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_VLAN_ID          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_IP_PROTOCOL      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_ETHERTYPE        |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_L4_SRC_PORT      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_L4_DST_PORT      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_SRC_MAC          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_DST_MAC          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_IN_PORT          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_INNER_IP_PROTOCOL|    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_INNER_ETHERTYPE  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_INNER_L4_SRC_PORT|    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_INNER_L4_DST_PORT|    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_INNER_SRC_MAC    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_INNER_DST_MAC    |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NATIVE_HASH_FIELD_MPLS_LABEL_STACK |    CTC8096,CTC7148,CTC7132     |
+\t  |   Hash Field                            |           SUPPORT CHIPS LIST           |
+\t  |  SAI_NATIVE_HASH_FIELD_SRC_IP           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_DST_IP           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_INNER_SRC_IP     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_INNER_DST_IP     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_VLAN_ID          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_IP_PROTOCOL      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_ETHERTYPE        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_L4_SRC_PORT      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_L4_DST_PORT      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_SRC_MAC          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_DST_MAC          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_IN_PORT          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_INNER_IP_PROTOCOL|    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_INNER_ETHERTYPE  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_INNER_L4_SRC_PORT|    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_INNER_L4_DST_PORT|    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_INNER_SRC_MAC    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_INNER_DST_MAC    |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_MPLS_LABEL_ALL   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_MPLS_LABEL_0     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_MPLS_LABEL_1     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_MPLS_LABEL_2     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NATIVE_HASH_FIELD_MPLS_LABEL_3     |                  -                     |
+\t  |  SAI_NATIVE_HASH_FIELD_MPLS_LABEL_4     |                  -                     |
 \b
 */
 

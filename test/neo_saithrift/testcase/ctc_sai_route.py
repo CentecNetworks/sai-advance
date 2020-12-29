@@ -210,7 +210,7 @@ class fun_04_create_exist_v6_route_fn(sai_base_test.ThriftInterfaceDataPlane):
 
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
-'''
+
 class fun_05_max_v4_route_fn(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -304,7 +304,7 @@ class fun_06_max_v6_route_fn(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
-'''
+
 class fun_07_remove_v4_route_fn(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -882,7 +882,7 @@ class fun_16_bulk_create_route_stop_on_error_fn(sai_base_test.ThriftInterfaceDat
         warmboot(self.client)
         try:
             sys_logging("status = %d" %status)
-            assert (status == SAI_STATUS_ITEM_ALREADY_EXISTS)
+            assert (status == SAI_STATUS_FAILURE)
             sys_logging("======the 1-50 v4 route entries successfully create======")
             for i in range(50):
                 attrs = self.client.sai_thrift_get_route_attribute(routes[i])
@@ -953,7 +953,7 @@ class fun_17_bulk_create_route_ignore_error_fn(sai_base_test.ThriftInterfaceData
         warmboot(self.client)
         try:
             sys_logging("status = %d" %status)
-            assert (status == SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_FAILURE)
 
             sys_logging("======the 1-50 and 52-100 v4 route entries successfully create,the 51 unsuccessfully create======")
             for i in range(route_num):
@@ -1161,7 +1161,7 @@ class fun_20_bulk_remove_route_stop_on_error_fn(sai_base_test.ThriftInterfaceDat
             sys_logging("======remove 100 v4 route entries with the 51th is error======")
             status = sai_thrift_remove_routes(self.client, vr_id_list, addr_family_list, ip_addr_subnet, ip_mask_list, nhop_list, mode)
             sys_logging("status = %d" %status)
-            assert (status == SAI_STATUS_ITEM_NOT_FOUND)
+            assert (status == SAI_STATUS_FAILURE)
             sys_logging("======the 1-50 v4 route entries successfully remove======")
             for i in range(50):
                 attrs = self.client.sai_thrift_get_route_attribute(routes[i])
@@ -1239,7 +1239,7 @@ class fun_21_bulk_remove_route_ignore_error_fn(sai_base_test.ThriftInterfaceData
             sys_logging("======remove 100 v4 route entries with the 51th is error======")
             status = sai_thrift_remove_routes(self.client, vr_id_list, addr_family_list, ip_addr_subnet, ip_mask_list, nhop_list, mode)
             sys_logging("status = %d" %status)
-            assert (status == SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_FAILURE)
             sys_logging("======the 1-50 and 52-100 v4 route entries successfully remove,the 51 unsuccessfully remove======")
             for i in range(route_num):
                 if 50 == i :
@@ -1666,7 +1666,7 @@ class fun_23_bulk_set_route_attr_stp_on_error_fn(sai_base_test.ThriftInterfaceDa
                 attr_list.append(attr)
             status = self.client.sai_thrift_set_routes_attribute(routes, attr_list, mode)
             sys_logging("status = %d" %status)
-            assert (status == SAI_STATUS_NOT_SUPPORTED)
+            assert (status == SAI_STATUS_FAILURE)
             sys_logging("======get 100 route entries attribute======")
             attrs = self.client.sai_thrift_get_routes_attribute(routes, mode)
             sys_logging("status = %d" %attrs.status)
@@ -1761,7 +1761,7 @@ class fun_24_bulk_set_route_attr_ignore_error_fn(sai_base_test.ThriftInterfaceDa
                 attr_list.append(attr)
             status = self.client.sai_thrift_set_routes_attribute(routes, attr_list, mode)
             sys_logging("status = %d" %status)
-            assert (status == SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_FAILURE)
             sys_logging("======get the 100 route entries attribute packet action again======")
             attrs = self.client.sai_thrift_get_routes_attribute(routes, mode)
             sys_logging("status = %d" %attrs.status)
@@ -1842,7 +1842,7 @@ class fun_25_bulk_get_route_attr_stop_on_error_fn(sai_base_test.ThriftInterfaceD
             sys_logging("======get 100 route entries attribute with the 51th is error======")
             attrs = self.client.sai_thrift_get_routes_attribute(routes, mode)
             sys_logging("status = %d" %attrs.status)
-            assert (attrs.status == SAI_STATUS_ITEM_NOT_FOUND)
+            assert (attrs.status == SAI_STATUS_FAILURE)
 
             sys_logging("======get 100 route entries attribute one by one======")
             for i in range(route_num):
@@ -1922,7 +1922,7 @@ class fun_26_bulk_get_route_attr_ignore_error_fn(sai_base_test.ThriftInterfaceDa
             sys_logging("======get 100 route entries attribute with the 51th is error======")
             attrs = self.client.sai_thrift_get_routes_attribute(routes, mode)
             sys_logging("status = %d" %attrs.status)
-            assert (attrs.status == SAI_STATUS_SUCCESS)
+            assert (attrs.status == SAI_STATUS_FAILURE)
             j = 0
             for a in attrs.attr_list:
                 if a.id == SAI_ROUTE_ENTRY_ATTR_PACKET_ACTION:
@@ -3032,7 +3032,7 @@ class scenario_13_v4_route_phy_to_bridge_test(sai_base_test.ThriftInterfaceDataP
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac1, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port2)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan(vlan_oid)
@@ -3102,7 +3102,7 @@ class scenario_14_v6_route_phy_to_bridge_test(sai_base_test.ThriftInterfaceDataP
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac1, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port2)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan(vlan_oid)
@@ -3600,7 +3600,7 @@ class scenario_21_v4_route_vlan_to_bridge_test(sai_base_test.ThriftInterfaceData
 
             self.client.sai_thrift_remove_virtual_router(vr_id)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac1, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port2)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan(vlan_oid)
@@ -3677,7 +3677,7 @@ class scenario_22_v6_route_vlan_to_bridge_test(sai_base_test.ThriftInterfaceData
 
             self.client.sai_thrift_remove_virtual_router(vr_id)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac1, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port2)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan(vlan_oid)
@@ -4152,7 +4152,7 @@ class scenario_29_v4_route_sub_to_bridge_test(sai_base_test.ThriftInterfaceDataP
 
             self.client.sai_thrift_remove_virtual_router(vr_id)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac1, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port2)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
@@ -4226,7 +4226,7 @@ class scenario_30_v6_route_sub_to_bridge_test(sai_base_test.ThriftInterfaceDataP
 
             self.client.sai_thrift_remove_virtual_router(vr_id)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac1, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port2)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
@@ -4298,7 +4298,7 @@ class scenario_31_v4_route_bridge_to_phy_test(sai_base_test.ThriftInterfaceDataP
 
             
             sai_thrift_delete_fdb(self.client, bridge_id, dmac2, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)
 
 class scenario_32_v6_route_bridge_to_phy_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -4365,7 +4365,7 @@ class scenario_32_v6_route_bridge_to_phy_test(sai_base_test.ThriftInterfaceDataP
 
             
             sai_thrift_delete_fdb(self.client, bridge_id, dmac2, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
             self.client.sai_thrift_remove_bridge(bridge_id)            
 
 class scenario_33_v4_route_bridge_to_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -4438,7 +4438,7 @@ class scenario_33_v4_route_bridge_to_vlan_test(sai_base_test.ThriftInterfaceData
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac2, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             sai_thrift_delete_fdb(self.client, vlan_oid1, dmac1, port2)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
@@ -4514,7 +4514,7 @@ class scenario_34_v6_route_bridge_to_vlan_test(sai_base_test.ThriftInterfaceData
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac2, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             sai_thrift_delete_fdb(self.client, vlan_oid1, dmac1, port2)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
@@ -4591,7 +4591,7 @@ class scenario_35_v4_route_bridge_to_sub_test(sai_base_test.ThriftInterfaceDataP
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac2, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan(vlan_oid)
@@ -4662,7 +4662,7 @@ class scenario_36_v6_route_bridge_to_sub_test(sai_base_test.ThriftInterfaceDataP
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac2, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan(vlan_oid)
@@ -4742,8 +4742,8 @@ class scenario_37_v4_route_bridge_to_bridge_test(sai_base_test.ThriftInterfaceDa
             self.client.sai_thrift_remove_router_interface(rif_id2)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac2, bport1_id)
             sai_thrift_delete_fdb(self.client, bridge_id1, dmac1, bport2_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2_id, port2)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_bridge(bridge_id1)
@@ -4819,8 +4819,8 @@ class scenario_38_v6_route_bridge_to_bridge_test(sai_base_test.ThriftInterfaceDa
             self.client.sai_thrift_remove_router_interface(rif_id2)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac2, bport1_id)
             sai_thrift_delete_fdb(self.client, bridge_id1, dmac1, bport2_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port1)
-            sai_thrift_remove_bridge_sub_port(self.client, bport2_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2_id, port2)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_bridge(bridge_id1)
@@ -5045,7 +5045,7 @@ class scenario_40_v6_stress_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
 
-class route_shake_update_nexthop_attribute_test(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_41_route_shake_update_nexthop_attribute_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
         port1 = port_list[0]
@@ -5253,7 +5253,7 @@ class route_shake_update_nexthop_attribute_test(sai_base_test.ThriftInterfaceDat
             self.client.sai_thrift_remove_router_interface(rif_id3)
             self.client.sai_thrift_remove_router_interface(rif_id4)
             sai_thrift_delete_fdb(self.client, bridge_id, dmac1, bport1_id)
-            sai_thrift_remove_bridge_sub_port(self.client, bport1_id, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport1_id, port2)
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_bridge(bridge_id)
             self.client.sai_thrift_remove_vlan(vlan_oid)

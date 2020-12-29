@@ -1748,6 +1748,7 @@ _ctc_sai_hostif_add_acl_qos_info(uint8 lchip, ctc_sai_hostif_trap_t* p_hostif_tr
     sai_object_id_t policer_id = 0;
     uint32 ctc_policer_id = 0;
     uint32 queue_id = 0;
+    uint8 chip_type = 0;
     ctc_sai_switch_master_t* p_switch_master = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_HOSTIF);
@@ -1812,13 +1813,17 @@ _ctc_sai_hostif_add_acl_qos_info(uint8 lchip, ctc_sai_hostif_trap_t* p_hostif_tr
 
     if(SAI_NULL_OBJECT_ID != p_hostif_trap->counter_id)
     {
-        sal_memset(&qos_queue_cfg, 0, sizeof(ctc_qos_queue_cfg_t));
-        qos_queue_cfg.type = CTC_QOS_QUEUE_CFG_QUEUE_STATS_EN;
-        qos_queue_cfg.value.stats.queue.queue_type = CTC_QUEUE_TYPE_EXCP_CPU;
-        qos_queue_cfg.value.stats.queue.cpu_reason = p_hostif_trap->custom_reason_id;
-        qos_queue_cfg.value.stats.queue.queue_id = queue_id%CTC_SAI_CPU_MAX_QNUM_PER_GROUP;
-        qos_queue_cfg.value.stats.stats_en = 1;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_queue(lchip, &qos_queue_cfg));
+        chip_type = ctcs_get_chip_type(lchip);
+        if (CTC_CHIP_TSINGMA == chip_type)
+        {
+            sal_memset(&qos_queue_cfg, 0, sizeof(ctc_qos_queue_cfg_t));
+            qos_queue_cfg.type = CTC_QOS_QUEUE_CFG_QUEUE_STATS_EN;
+            qos_queue_cfg.value.stats.queue.queue_type = CTC_QUEUE_TYPE_EXCP_CPU;
+            qos_queue_cfg.value.stats.queue.cpu_reason = p_hostif_trap->custom_reason_id;
+            qos_queue_cfg.value.stats.queue.queue_id = queue_id%CTC_SAI_CPU_MAX_QNUM_PER_GROUP;
+            qos_queue_cfg.value.stats.stats_en = 1;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_queue(lchip, &qos_queue_cfg));
+        }
         CTC_SAI_CTC_ERROR_RETURN(ctc_sai_counter_id_hostif_trap_create(p_hostif_trap->counter_id, CTC_SAI_COUNTER_TYPE_HOSTIF,
                                  qos_queue_cfg.value.stats.queue.cpu_reason, qos_queue_cfg.value.stats.queue.queue_id));
     }
@@ -1922,6 +1927,7 @@ _ctc_sai_hostif_remove_acl_qos_info(uint8 lchip, ctc_sai_hostif_trap_t* p_hostif
     ctc_sai_hostif_trap_group_t* p_trap_group = NULL;
     ctc_object_id_t ctc_oid;
     uint32 policer_id = 0;
+    uint8 chip_type = 0;
     ctc_qos_queue_cfg_t    qos_queue_cfg;
     ctc_acl_field_action_t action_field;
 
@@ -1946,13 +1952,17 @@ _ctc_sai_hostif_remove_acl_qos_info(uint8 lchip, ctc_sai_hostif_trap_t* p_hostif
 
     if(SAI_NULL_OBJECT_ID != p_hostif_trap->counter_id)
     {
-        sal_memset(&qos_queue_cfg, 0, sizeof(ctc_qos_queue_cfg_t));
-        qos_queue_cfg.type = CTC_QOS_QUEUE_CFG_QUEUE_STATS_EN;
-        qos_queue_cfg.value.stats.queue.queue_type = CTC_QUEUE_TYPE_EXCP_CPU;
-        qos_queue_cfg.value.stats.queue.cpu_reason = p_hostif_trap->custom_reason_id;
-        qos_queue_cfg.value.stats.queue.queue_id = 0;
-        qos_queue_cfg.value.stats.stats_en = 0;
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_queue(lchip, &qos_queue_cfg));
+        chip_type = ctcs_get_chip_type(lchip);
+        if (CTC_CHIP_TSINGMA == chip_type)
+        {
+            sal_memset(&qos_queue_cfg, 0, sizeof(ctc_qos_queue_cfg_t));
+            qos_queue_cfg.type = CTC_QOS_QUEUE_CFG_QUEUE_STATS_EN;
+            qos_queue_cfg.value.stats.queue.queue_type = CTC_QUEUE_TYPE_EXCP_CPU;
+            qos_queue_cfg.value.stats.queue.cpu_reason = p_hostif_trap->custom_reason_id;
+            qos_queue_cfg.value.stats.queue.queue_id = 0;
+            qos_queue_cfg.value.stats.stats_en = 0;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_queue(lchip, &qos_queue_cfg));
+        }
         CTC_SAI_CTC_ERROR_RETURN(ctc_sai_counter_id_hostif_trap_remove(p_hostif_trap->counter_id, CTC_SAI_COUNTER_TYPE_HOSTIF));
     }
 
@@ -2839,7 +2849,7 @@ _ctc_sai_hostif_set_trap_action(uint8 lchip, ctc_sai_hostif_trap_t* p_hostif_tra
     }
     else
     {
-        return SAI_STATUS_NOT_SUPPORTED;
+        return SAI_STATUS_SUCCESS; //SONiC debug modify by cmodel
     }
 
     return SAI_STATUS_SUCCESS;
@@ -3021,7 +3031,7 @@ ctc_sai_hostif_create_hostif_trap(
         p_hostif_trap->exclude_port_list.list = mem_malloc(MEM_SYSTEM_MODULE, sizeof(sai_object_id_t)*(attr_val->objlist.count));
         if (p_hostif_trap->exclude_port_list.list)
         {
-            sal_memcpy(p_hostif_trap->exclude_port_list.list, attr_val->objlist.list, attr_val->objlist.count);
+            sal_memcpy(p_hostif_trap->exclude_port_list.list, attr_val->objlist.list, sizeof(sai_object_id_t)*(attr_val->objlist.count));
             p_hostif_trap->exclude_port_list.count = attr_val->objlist.count;
             CTC_SAI_ERROR_GOTO(_ctc_sai_hostif_set_port_trap_enable(lchip, p_hostif_trap->trap_type, &(p_hostif_trap->exclude_port_list), false), status, roll_back_0);
         }
@@ -3057,6 +3067,7 @@ ctc_sai_hostif_create_hostif_trap(
         p_sai_counter = ctc_sai_db_get_object_property(lchip, attr_val->oid);
         if (NULL == p_sai_counter)
         {
+            CTC_SAI_DB_UNLOCK(lchip);
             return SAI_STATUS_ITEM_NOT_FOUND;
         }
         p_hostif_trap->counter_id = attr_val->oid;
@@ -3198,6 +3209,7 @@ ctc_sai_hostif_set_trap_property(sai_object_key_t* key, const sai_attribute_t* a
 {
     sai_status_t status = SAI_STATUS_SUCCESS;
     uint8 lchip = 0;
+    uint8 chip_type = 0;
     ctc_sai_hostif_trap_t* p_hostif_trap = NULL;
     ctc_sai_switch_master_t* p_switch_master = NULL;
     ctc_sai_counter_t* p_counter_info = NULL;
@@ -3298,13 +3310,17 @@ ctc_sai_hostif_set_trap_property(sai_object_key_t* key, const sai_attribute_t* a
             {
                 if (SAI_NULL_OBJECT_ID != p_hostif_trap->counter_id)
                 {
-                    sal_memset(&qos_queue_cfg, 0, sizeof(ctc_qos_queue_cfg_t));
-                    qos_queue_cfg.type = CTC_QOS_QUEUE_CFG_QUEUE_STATS_EN;
-                    qos_queue_cfg.value.stats.queue.queue_type = CTC_QUEUE_TYPE_EXCP_CPU;
-                    qos_queue_cfg.value.stats.queue.cpu_reason = p_hostif_trap->custom_reason_id;
-                    qos_queue_cfg.value.stats.queue.queue_id = 0;
-                    qos_queue_cfg.value.stats.stats_en = 0;
-                    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_queue(lchip, &qos_queue_cfg));
+                    chip_type = ctcs_get_chip_type(lchip);
+                    if (CTC_CHIP_TSINGMA == chip_type)
+                    {
+                        sal_memset(&qos_queue_cfg, 0, sizeof(ctc_qos_queue_cfg_t));
+                        qos_queue_cfg.type = CTC_QOS_QUEUE_CFG_QUEUE_STATS_EN;
+                        qos_queue_cfg.value.stats.queue.queue_type = CTC_QUEUE_TYPE_EXCP_CPU;
+                        qos_queue_cfg.value.stats.queue.cpu_reason = p_hostif_trap->custom_reason_id;
+                        qos_queue_cfg.value.stats.queue.queue_id = 0;
+                        qos_queue_cfg.value.stats.stats_en = 0;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_queue(lchip, &qos_queue_cfg));
+                    }
                     CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_hostif_trap_remove(p_hostif_trap->counter_id, CTC_SAI_COUNTER_TYPE_HOSTIF));
                     p_hostif_trap->counter_id = SAI_NULL_OBJECT_ID;
                 }
@@ -4006,10 +4022,18 @@ _ctc_sai_hostif_packet_receive_from_sdk(ctc_pkt_rx_t* p_pkt_rx)
     uint8 channel_type = 0;
     uint16 packet_offset = 0;
     uint8 gchip = 0;
+	uint32  src_port = 0;
+
+    /* SYSTEM MODIFIED by taocy, SONIC only create phyport hostif, no VLANIF and portchannel. convert src_port to phy port. 20200510*/
+    src_port = p_pkt_rx->rx_info.src_port;
+    if (CTC_IS_LINKAGG_PORT(src_port))
+    {
+        src_port = p_pkt_rx->rx_info.lport;
+    }
 
     lchip = p_pkt_rx->lchip;
     ctcs_get_gchip_id(lchip, &gchip);
-    channel_type = _ctc_sai_hostif_get_reason_channel(lchip, p_pkt_rx->rx_info.src_port, p_pkt_rx->rx_info.reason);
+    channel_type = _ctc_sai_hostif_get_reason_channel(lchip, src_port, p_pkt_rx->rx_info.reason);
 
     CTC_SAI_DB_LOCK(lchip);
     p_switch_master = ctc_sai_get_switch_property(lchip);
@@ -4022,22 +4046,22 @@ _ctc_sai_hostif_packet_receive_from_sdk(ctc_pkt_rx_t* p_pkt_rx)
     packet_offset = CTC_FLAG_ISSET(p_switch_master->flag, CTC_SAI_SWITCH_FLAG_CPU_ETH_EN)?58:40;
     CTC_SAI_DB_UNLOCK(lchip);
 
-    CTC_SAI_LOG_INFO(SAI_API_HOSTIF, "get packet cpu_resason %d src_port 0x%x!\n", p_pkt_rx->rx_info.reason, p_pkt_rx->rx_info.src_port);
+    CTC_SAI_LOG_INFO(SAI_API_HOSTIF, "get packet cpu_resason %d src_port 0x%x!\n", p_pkt_rx->rx_info.reason, src_port);
     if (SAI_HOSTIF_TABLE_ENTRY_CHANNEL_TYPE_CB == channel_type)
     {
 
         attr_list[0].id = SAI_HOSTIF_PACKET_ATTR_HOSTIF_TRAP_ID;
         attr_list[0].value.oid = _ctc_sai_hostif_ctc_reason_id_to_trap_oid(lchip, p_pkt_rx->rx_info.reason);
 
-        if(CTC_IS_LINKAGG_PORT(p_pkt_rx->rx_info.src_port))
+        if(CTC_IS_LINKAGG_PORT(src_port))
         {
             attr_list[1].id = SAI_HOSTIF_PACKET_ATTR_INGRESS_LAG;
-            attr_list[1].id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, CTC_GPORT_LINKAGG_ID(p_pkt_rx->rx_info.src_port));
+            attr_list[1].id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, CTC_GPORT_LINKAGG_ID(src_port));
         }
         else
         {
             attr_list[1].id = SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT;
-            attr_list[1].value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, p_pkt_rx->rx_info.src_port);
+            attr_list[1].value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, src_port);
 
         }
 
@@ -4085,9 +4109,10 @@ _ctc_sai_hostif_packet_receive_from_sdk(ctc_pkt_rx_t* p_pkt_rx)
         || (SAI_HOSTIF_TABLE_ENTRY_CHANNEL_TYPE_NETDEV_L3 == channel_type))
     {
         /* get vlan interface */
-        p_hostif = _ctc_sai_hostif_get_hostif(lchip, p_pkt_rx->rx_info.src_port, p_pkt_rx->rx_info.src_svid, -1);
+        p_hostif = _ctc_sai_hostif_get_hostif(lchip, src_port, p_pkt_rx->rx_info.src_svid, -1);
         if (NULL == p_hostif)
         {
+            CTC_SAI_LOG_ERROR(SAI_API_HOSTIF, "Failed to get hostif. lchip:0x%x, src_port:0x%x, src_svid:0x%x!\n", lchip, p_pkt_rx->rx_info.src_port, p_pkt_rx->rx_info.src_svid);
             return SAI_STATUS_FAILURE;
         }
         else
@@ -4275,7 +4300,8 @@ ctc_sai_hostif_send_hostif_packet(
     ctc_ptp_time_t ts;
     sai_object_id_t tx_port_id = 0;
     sai_hostif_packet_ptp_tx_packet_op_type_t ptp_tx_op_type = 0;
-    sai_packet_event_ptp_tx_notification_t ptp_tx_event_data;
+    sai_packet_event_ptp_tx_notification_data_t ptp_tx_event_data;
+    uint8 msg_type = 0;
 
     CTC_SAI_PTR_VALID_CHECK(buffer);
     CTC_SAI_PTR_VALID_CHECK(attr_list);
@@ -4379,7 +4405,7 @@ ctc_sai_hostif_send_hostif_packet(
             return SAI_STATUS_ITEM_NOT_FOUND;
         }
 
-        if(SAI_Y1731_SESSION_DIR_UPMEP == p_y1731_session_info->dir)
+        if(SAI_Y1731_SESSION_DIRECTION_UPMEP == p_y1731_session_info->dir)
         {
             p_tx_info->oam.flags |= CTC_PKT_OAM_FLAG_IS_UP_MEP;
 
@@ -4395,7 +4421,7 @@ ctc_sai_hostif_send_hostif_packet(
                 return SAI_STATUS_INVALID_PARAMETER;
             }
         }
-        else if((SAI_Y1731_SESSION_DIR_DOWNMEP == p_y1731_session_info->dir))
+        else if((SAI_Y1731_SESSION_DIRECTION_DOWNMEP == p_y1731_session_info->dir))
         {
             //Ether or vpls/vpws upmep
             if(p_y1731_session_info->meg_type <= SAI_Y1731_MEG_TYPE_L2VPN_VPWS)
@@ -4491,8 +4517,13 @@ ctc_sai_hostif_send_hostif_packet(
         }
 
         p_tx_info->ptp.ts_offset = attr_val->u32;
+        msg_type = *((uint8*)buffer + p_tx_info->ptp.ts_offset) & 0xF;
+        if ((CTC_PTP_MSG_TYPE_DELAY_REQ == msg_type)||(CTC_PTP_MSG_TYPE_PDELAY_REQ == msg_type))
+        {
+            p_tx_info->ptp.delay_asymmetry_en = 1;
+        }
 
-        if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+        if(CTC_CHIP_TSINGMA <= ctcs_get_chip_type(lchip))
         {
             if(SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_1 == ptp_tx_op_type)
             {
@@ -4502,18 +4533,25 @@ ctc_sai_hostif_send_hostif_packet(
             }
             else if(SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_2 == ptp_tx_op_type)
             {
-                ctcs_ptp_get_clock_timestamp(lchip, &ts);
-                p_tx_info->ptp.ts.seconds = ts.seconds;
-                p_tx_info->ptp.ts.nanoseconds = ts.nanoseconds;
-                p_tx_info->ptp.oper = CTC_PTP_CORRECTION;
+                if (CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+                {
+                    ctcs_ptp_get_clock_timestamp(lchip, &ts);
+                    p_tx_info->ptp.ts.seconds = ts.seconds;
+                    p_tx_info->ptp.ts.nanoseconds = ts.nanoseconds;
+                    p_tx_info->ptp.oper = CTC_PTP_CORRECTION;
 
-                ptp_tx_event_data.tx_port = tx_port_id;
-                ptp_tx_event_data.msg_type = *((uint8*)buffer + p_tx_info->ptp.ts_offset) & 0xF;
-                ptp_tx_event_data.ptp_seq_id = *((uint8*)buffer + p_tx_info->ptp.ts_offset + 30); // 30 is sequenceId offset in PTP pdu
-                ptp_tx_event_data.tx_timestamp.tv_sec = ts.seconds;
-                ptp_tx_event_data.tx_timestamp.tv_nsec = ts.nanoseconds;
+                    ptp_tx_event_data.tx_port = tx_port_id;
+                    ptp_tx_event_data.msg_type = *((uint8*)buffer + p_tx_info->ptp.ts_offset) & 0xF;
+                    ptp_tx_event_data.ptp_seq_id = *((uint8*)buffer + p_tx_info->ptp.ts_offset + 30); // 30 is sequenceId offset in PTP pdu
+                    ptp_tx_event_data.tx_timestamp.tv_sec = ts.seconds;
+                    ptp_tx_event_data.tx_timestamp.tv_nsec = ts.nanoseconds;
 
-                p_switch_master->ptp_packet_tx_event_cb(1, &ptp_tx_event_data);
+                    p_switch_master->ptp_packet_tx_event_cb(1, &ptp_tx_event_data);
+                }
+                else if (CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+                {
+                    p_tx_info->ptp.oper = CTC_PTP_CAPTURE_ONLY;
+                }
             }
             else if(SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_3 == ptp_tx_op_type)
             {
@@ -4523,16 +4561,12 @@ ctc_sai_hostif_send_hostif_packet(
                     CTC_SAI_LOG_ERROR(SAI_API_HOSTIF, "Missing mandatory attribute ptp tx timestamp on send ptp op type 3 packet\n");
                     return SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
                 }
-                                    
+
                 p_tx_info->ptp.ts.seconds = attr_val->timespec.tv_sec;
                 p_tx_info->ptp.ts.nanoseconds = attr_val->timespec.tv_nsec;
                 p_tx_info->ptp.oper = CTC_PTP_CORRECTION;
             }
 
-        }
-        else if (CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
-        {
-            //TODO
         }
 
     }
@@ -5051,7 +5085,7 @@ ctc_sai_hostif_db_init(uint8 lchip)
         acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_COPP;
         CTC_SAI_CTC_ERROR_GOTO(ctcs_global_ctl_set(lchip, CTC_GLOBAL_ACL_LKUP_PROPERTY, &acl_prop), status, roll_back_4);
 
-        sal_memset(&acl_glb_prop, 0, sizeof(ctc_global_acl_property_t));        
+        sal_memset(&acl_glb_prop, 0, sizeof(ctc_global_acl_property_t));
         acl_glb_prop.lkup_level = CTC_SAI_DEFAULT_ACL_HOST_IF_PRIORITY;
         acl_glb_prop.dir = CTC_INGRESS;
         CTC_SAI_CTC_ERROR_GOTO(ctcs_global_ctl_get(lchip, CTC_GLOBAL_ACL_PROPERTY, &acl_glb_prop), status, roll_back_5);
@@ -5134,7 +5168,7 @@ sai_status_t
 ctc_sai_hostif_db_run(uint8 lchip)
 {
     ctc_sai_switch_master_t* p_switch_master = NULL;
-    
+
     p_switch_master = ctc_sai_get_switch_property(lchip);
     if (NULL == p_switch_master)
     {

@@ -56,6 +56,9 @@ typedef UINT8   sai_ip6_t[16];
 typedef UINT32  sai_switch_hash_seed_t;
 typedef UINT32  sai_label_id_t;
 typedef UINT32  sai_stat_id_t;
+typedef UINT8   sai_macsec_sak_t[32];
+typedef UINT8   sai_macsec_auth_key_t[16];
+typedef UINT8   sai_macsec_salt_t[12];
 
 #include <ws2def.h>
 #include <ws2ipdef.h>
@@ -96,6 +99,9 @@ typedef uint8_t  sai_ip6_t[16];
 typedef uint32_t sai_switch_hash_seed_t;
 typedef uint32_t sai_label_id_t;
 typedef uint32_t sai_stat_id_t;
+typedef uint8_t sai_macsec_sak_t[32];
+typedef uint8_t sai_macsec_auth_key_t[16];
+typedef uint8_t sai_macsec_salt_t[12];
 
 #define _In_
 #define _Out_
@@ -127,29 +133,28 @@ typedef struct _sai_timespec_t
     uint32_t tv_nsec;
 } sai_timespec_t;
 
-
 /**
- @brief  add a new struct to sai_attribute_value_t for captured timestamp , used for #SAI_PTP_DOMAIN_ATTR_CAPTURED_TIMESTAMP
-*/
+ * @brief Define for captured timestamp, used for PTP
+ */
 typedef struct _sai_captured_timespec_t
 {
-    sai_timespec_t timestamp ;
+    sai_timespec_t timestamp;
     sai_uint16_t secquence_id;
-    sai_object_id_t port_id;
-    
+    sai_uint64_t port_id;
+
 } sai_captured_timespec_t;
 
 /**
- @brief add a new struct to sai_attribute_value_t for Time offset, used for #SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET
-*/
+ * @brief Define for Time offset, used for PTP
+ */
 typedef struct _sai_timeoffset_t
 {
-    /**positive and negative flag bits, 0 indicates it is positive, 1 indicates it is negative */    
+    /** Positive and negative flag bits, 0 indicates it is positive, 1 indicates it is negative */
     uint8_t flag;
-    
-    /**the value for offset time, the unit is ns */    
+
+    /** The value for offset time, the unit is nanosecond */
     uint32_t value;
-    
+
 } sai_timeoffset_t;
 
 /**
@@ -287,18 +292,25 @@ typedef enum _sai_object_type_t
     SAI_OBJECT_TYPE_TAM_INT                  = 83,
     SAI_OBJECT_TYPE_COUNTER                  = 84,
     SAI_OBJECT_TYPE_DEBUG_COUNTER            = 85,
-    SAI_OBJECT_TYPE_PORT_SERDES              = 86,
-    SAI_OBJECT_TYPE_TWAMP                    = 87,
-    SAI_OBJECT_TYPE_NPM                      = 88,
-    SAI_OBJECT_TYPE_ES                       = 89,
-    SAI_OBJECT_TYPE_Y1731_MEG                = 90,
-    SAI_OBJECT_TYPE_Y1731_SESSION            = 91,
-    SAI_OBJECT_TYPE_Y1731_REMOTE_MEP         = 92,
-    SAI_OBJECT_TYPE_PTP_DOMAIN = 93,
-    SAI_OBJECT_TYPE_SYNCE = 94,
-    SAI_OBJECT_TYPE_MONITOR_BUFFER = 95,
-    SAI_OBJECT_TYPE_MONITOR_LATENCY = 96,
-    SAI_OBJECT_TYPE_MAX                      = 97,
+    SAI_OBJECT_TYPE_PORT_CONNECTOR           = 86,
+    SAI_OBJECT_TYPE_PORT_SERDES              = 87,
+    SAI_OBJECT_TYPE_MACSEC                   = 88,
+    SAI_OBJECT_TYPE_MACSEC_PORT              = 89,
+    SAI_OBJECT_TYPE_MACSEC_FLOW              = 90,
+    SAI_OBJECT_TYPE_MACSEC_SC                = 91,
+    SAI_OBJECT_TYPE_MACSEC_SA                = 92,
+    SAI_OBJECT_TYPE_SYSTEM_PORT              = 93,
+    SAI_OBJECT_TYPE_TWAMP_SESSION            = 94,
+    SAI_OBJECT_TYPE_NPM_SESSION              = 95,
+    SAI_OBJECT_TYPE_ES                       = 96,
+    SAI_OBJECT_TYPE_Y1731_MEG                = 97,
+    SAI_OBJECT_TYPE_Y1731_SESSION            = 98,
+    SAI_OBJECT_TYPE_Y1731_REMOTE_MEP         = 99,
+    SAI_OBJECT_TYPE_PTP_DOMAIN               = 100,
+    SAI_OBJECT_TYPE_SYNCE                    = 101,
+    SAI_OBJECT_TYPE_MONITOR_BUFFER_MONITOR   = 102,
+    SAI_OBJECT_TYPE_MONITOR_LATENCY_MONITOR  = 103,
+    SAI_OBJECT_TYPE_MAX                      = 104,
 
 } sai_object_type_t;
 
@@ -444,6 +456,9 @@ typedef union _sai_acl_field_data_mask_t
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_ACL_FIELD_DATA_INT32 */
     sai_int32_t s32;
 
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_ACL_FIELD_DATA_UINT64 */
+    sai_uint64_t u64;
+
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_ACL_FIELD_DATA_MAC */
     sai_mac_t mac;
 
@@ -488,6 +503,9 @@ typedef union _sai_acl_field_data_data_t
      * @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_ACL_FIELD_DATA_INT32
      */
     sai_int32_t s32;
+
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_ACL_FIELD_DATA_UINT64 */
+    sai_uint64_t u64;
 
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_ACL_FIELD_DATA_MAC */
     sai_mac_t mac;
@@ -680,6 +698,7 @@ typedef struct _sai_qos_map_params_t
 
     /** MPLS exp value */
     sai_uint8_t mpls_exp;
+
 } sai_qos_map_params_t;
 
 typedef struct _sai_qos_map_t
@@ -758,6 +777,12 @@ typedef enum _sai_acl_stage_t
 
     /** Egress Stage */
     SAI_ACL_STAGE_EGRESS,
+
+    /** Ingress Stage */
+    SAI_ACL_STAGE_INGRESS_MACSEC,
+
+    /** Egress Stage */
+    SAI_ACL_STAGE_EGRESS_MACSEC,
 
 } sai_acl_stage_t;
 
@@ -1001,6 +1026,104 @@ typedef enum _sai_outseg_exp_mode_t
 } sai_outseg_exp_mode_t;
 
 /**
+ * @brief System port configuration attributes
+ *
+ * Speed parameter should be the same value as SAI_PORT_ATTR_SPEED.
+ * This is used for VOQ scheduling.
+ *
+ * All elements are mandatory
+ */
+typedef struct _sai_system_port_config_t
+{
+    /** System Port ID */
+    uint32_t port_id;
+
+    /** Switch ID of where the system port exists */
+    uint32_t attached_switch_id;
+
+    /** Core associated with the system port */
+    uint32_t attached_core_index;
+
+    /** Port Index within the core associated with the system port */
+    uint32_t attached_core_port_index;
+
+    /** Speed of the system port */
+    uint32_t speed;
+
+    /** Number of Virtual Output Queues associated with the system port */
+    uint32_t num_voq;
+} sai_system_port_config_t;
+
+/**
+ * @brief System port configuration list
+ */
+typedef struct _sai_system_port_config_list_t
+{
+    /** Number of entries in the list */
+    uint32_t count;
+
+    /** System port configuration list */
+    sai_system_port_config_t *list;
+} sai_system_port_config_list_t;
+
+/**
+ * @brief Fabric port reachability
+ */
+typedef struct _sai_fabric_port_reachability_t
+{
+    /** Remote switch ID (SAI_SWITCH_TYPE_NPU) */
+    uint32_t switch_id;
+
+    /** Remote switch ID is reachable through the fabric port */
+    bool reachable;
+} sai_fabric_port_reachability_t;
+
+/**
+ * @brief Port error status
+ */
+typedef enum _sai_port_err_status_t
+{
+    /** Data Unit CRC Error */
+    SAI_PORT_ERR_STATUS_DATA_UNIT_CRC_ERROR,
+
+    /** Data Unit Size Error */
+    SAI_PORT_ERR_STATUS_DATA_UNIT_SIZE,
+
+    /** Data Unit Misalignment Error */
+    SAI_PORT_ERR_STATUS_DATA_UNIT_MISALIGNMENT_ERROR,
+
+    /** Uncorrectable RS-FEC code word error */
+    SAI_PORT_ERR_STATUS_CODE_GROUP_ERROR,
+
+    /** SerDes Signal is out of sync */
+    SAI_PORT_ERR_STATUS_SIGNAL_LOCAL_ERROR,
+
+    /** Port is not accepting reachability data units */
+    SAI_PORT_ERR_STATUS_NO_RX_REACHABILITY,
+
+    /** Rate of data units with CRC errors passed its threshold */
+    SAI_PORT_ERR_STATUS_CRC_RATE,
+
+    /** Error remote fault indication */
+    SAI_PORT_ERR_STATUS_REMOTE_FAULT_STATUS,
+
+    /** Error status max */
+    SAI_PORT_ERR_STATUS_MAX,
+} sai_port_err_status_t;
+
+/**
+ * @brief Attribute data for #SAI_PORT_ATTR_ERR_STATUS_LIST
+ */
+typedef struct _sai_port_err_status_list_t
+{
+    /** Number of entries in the list */
+    uint32_t count;
+
+    /** Port error list */
+    sai_port_err_status_t *list;
+} sai_port_err_status_list_t;
+
+/**
  * @brief Data Type
  *
  * To use enum values as attribute value is sai_int32_t s32
@@ -1069,7 +1192,7 @@ typedef union _sai_attribute_value_t
 
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_BOOL_LIST */
     sai_bool_list_t boollist;
-    
+
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_UINT8_LIST */
     sai_u8_list_t u8list;
 
@@ -1142,12 +1265,33 @@ typedef union _sai_attribute_value_t
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_TIMESPEC */
     sai_timespec_t timespec;
 
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_MACSEC_SAK */
+    sai_macsec_sak_t macsecsak;
+
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_MACSEC_AUTH_KEY */
+    sai_macsec_auth_key_t macsecauthkey;
+
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_MACSEC_SALT */
+    sai_macsec_salt_t macsecsalt;
+
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_SYSTEM_PORT_CONFIG */
+    sai_system_port_config_t sysportconfig;
+
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_SYSTEM_PORT_CONFIG_LIST */
+    sai_system_port_config_list_t sysportconfiglist;
+
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_FABRIC_PORT_REACHABILITY */
+    sai_fabric_port_reachability_t reachability;
+
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_PORT_ERR_STATUS_LIST */
+    sai_port_err_status_list_t porterror;
+
     /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_CAPTURED_TIMESPEC */
     sai_captured_timespec_t captured_timespec;
 
-    /** @validonly meta->attrvaluetype == SAI_PTP_DOMAIN_ATTR_ADJUEST_CLOCK_OFFSET */
+    /** @validonly meta->attrvaluetype == SAI_ATTR_VALUE_TYPE_TIMEOFFSET */
     sai_timeoffset_t timeoffset;
-    
+
 } sai_attribute_value_t;
 
 /**
@@ -1218,6 +1362,51 @@ typedef sai_status_t (*sai_bulk_object_create_fn)(
 typedef sai_status_t (*sai_bulk_object_remove_fn)(
         _In_ uint32_t object_count,
         _In_ const sai_object_id_t *object_id,
+        _In_ sai_bulk_op_error_mode_t mode,
+        _Out_ sai_status_t *object_statuses);
+
+/**
+ * @brief Bulk objects set attributes.
+ *
+ * @param[in] object_count Number of objects to set on attribute
+ * @param[in] object_id List of object ids
+ * @param[in] attr_list List of attributes for every object, one per object.
+ * @param[in] mode Bulk operation error handling mode.
+ * @param[out] object_statuses List of status for every object. Caller needs to allocate the buffer.
+ *
+ * @return #SAI_STATUS_SUCCESS when set attributes on all objects succeeded or
+ * #SAI_STATUS_FAILURE when any of the objects fails to set attribute. When
+ * there is failure, Caller is expected to go through the list of returned
+ * statuses to find out which fails and which succeeds.
+ */
+typedef sai_status_t (*sai_bulk_object_set_attribute_fn)(
+        _In_ uint32_t object_count,
+        _In_ const sai_object_id_t *object_id,
+        _In_ const sai_attribute_t *attr_list,
+        _In_ sai_bulk_op_error_mode_t mode,
+        _Out_ sai_status_t *object_statuses);
+
+/**
+ * @brief Bulk objects get attributes.
+ *
+ * @param[in] object_count Number of objects to get on attribute
+ * @param[in] object_id List of object ids
+ * @param[in] attr_count List of attr_count. Caller passes the number
+ *    of attribute for each object to get.
+ * @param[inout] attr_list List of attributes for every object.
+ * @param[in] mode Bulk operation error handling mode.
+ * @param[out] object_statuses List of status for every object. Caller needs to allocate the buffer.
+ *
+ * @return #SAI_STATUS_SUCCESS when get attributes on all objects succeeded or
+ * #SAI_STATUS_FAILURE when any of the objects fails to get attribute. When
+ * there is failure, Caller is expected to go through the list of returned
+ * statuses to find out which fails and which succeeds.
+ */
+typedef sai_status_t (*sai_bulk_object_get_attribute_fn)(
+        _In_ uint32_t object_count,
+        _In_ const sai_object_id_t *object_id,
+        _In_ const uint32_t *attr_count,
+        _Inout_ sai_attribute_t **attr_list,
         _In_ sai_bulk_op_error_mode_t mode,
         _Out_ sai_status_t *object_statuses);
 

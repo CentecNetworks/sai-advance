@@ -310,8 +310,8 @@ class func_03_set_and_get_switch_attribute_12_ECMP_MEMBERS(sai_base_test.ThriftI
     def runTest(self):
 
         switch_init(self.client)
-        #ecmp_member = 64
-        ecmp_member = 16
+        ecmp_member = 64
+        #ecmp_member = 16
 
         warmboot(self.client)
         try:
@@ -331,7 +331,9 @@ class func_03_set_and_get_switch_attribute_13_NUMBER_OF_ECMP_GROUPS(sai_base_tes
     def runTest(self):
 
         switch_init(self.client)
-        ecmp_group = 1024
+        # ecmp member number per group is 64, app init fix value
+        # sdk bug 112778
+        ecmp_group = 256
 
         warmboot(self.client)
         try:
@@ -1943,7 +1945,7 @@ class func_03_set_and_get_switch_attribute_50_NUMBER_OF_Y1731_SESSION(sai_base_t
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -1953,7 +1955,7 @@ class func_03_set_and_get_switch_attribute_50_NUMBER_OF_Y1731_SESSION(sai_base_t
         
         warmboot(self.client)
         try:
-            ids_list = [SAI_SWITCH_ATTR_NUMBER_OF_Y1731_SESSION,SAI_SWITCH_ATTR_MAX_Y1731_SESSION,SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE]
+            ids_list = [SAI_SWITCH_ATTR_NUMBER_OF_Y1731_SESSION,SAI_SWITCH_ATTR_MAX_Y1731_SESSION,SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             for attribute in attr_list:    
@@ -1966,11 +1968,11 @@ class func_03_set_and_get_switch_attribute_50_NUMBER_OF_Y1731_SESSION(sai_base_t
                     sys_logging("### SAI_SWITCH_ATTR_MAX_Y1731_SESSION = %d ###"  %attribute.value.u32)
                     assert ( 2048 == attribute.value.u32 ) 
 
-                if attribute.id == SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE:
-                    sys_logging("### SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE count = %d ###"  %attribute.value.s32list.count)
+                if attribute.id == SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE:
+                    sys_logging("### SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE count = %d ###"  %attribute.value.s32list.count)
                     assert ( 1 == attribute.value.s32list.count )
                     for att1 in attribute.value.s32list.s32list:
-                        sys_logging("### SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE list = %d ###"  %att1)
+                        sys_logging("### SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE list = %d ###"  %att1)
                         assert ( SAI_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE_PARTIAL == att1 )   
                         
         finally:     
@@ -2906,7 +2908,7 @@ class scenario_09_get_available_snat(sai_base_test.ThriftInterfaceDataPlane):
                         
         finally:
         
-            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist)           
+            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist, nat_type)           
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)        
             self.client.sai_thrift_remove_virtual_router(vr_id)    
@@ -2974,7 +2976,7 @@ class scenario_10_get_available_dnat(sai_base_test.ThriftInterfaceDataPlane):
                         
         finally:
         
-            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist)
+            sai_thrift_remove_nat(self.client, vr_id, keylist, masklist, nat_type)
             sai_thrift_remove_route(self.client, vr_id, addr_family, mod_dstip_addr, ip_mask, nhop1)
             self.client.sai_thrift_remove_next_hop(nhop1)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, mod_dstip_addr, dmac1)          

@@ -15,16 +15,16 @@ This module defines SAI Ethernet Segment.
 \p
 \b
 \t  |   API                                                     |       SUPPORT CHIPS LIST       |
-\t  |  create_es                                                |            CTC7132             |
-\t  |  remove_es                                                |            CTC7132             |
-\t  |  get_es_attribute                                         |            CTC7132             |
+\e  |  create_es                                                |        CTC7132,CTC8180         |
+\e  |  remove_es                                                |        CTC7132,CTC8180         |
+\e  |  get_es_attribute                                         |        CTC7132,CTC8180         |
 \b
 \p
  The Ethernet Segment attributes supported by centec devices:
 \p
 \b
 \t  |   ATTRIBUTE                                               |       SUPPORT CHIPS LIST       |
-\t  |  SAI_ES_ATTR_ESI_LABEL                                    |            CTC7132             |
+\e  |  SAI_ES_ATTR_ESI_LABEL                                    |        CTC7132,CTC8180         |
 \b
 */
 

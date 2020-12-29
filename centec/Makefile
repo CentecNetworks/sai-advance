@@ -5,6 +5,11 @@ OBJ_DIR=$(OBJ_BASE_DIR)/sai
 
 LIB = sai
 SRCS = $(shell find src/ -name "*.c")
+
+ifeq ($(SAI_CLI), TRUE)
+SRCS += $(shell find cli/src -name "*.c")
+endif
+
 ifeq ($(PLATFORM),ctc)
 SRCS += $(shell find platform/mgt -name "*.c")
 SRCS += $(shell find platform/driver/macled_handle -name "*.c")
@@ -13,22 +18,26 @@ SRCS += $(shell find platform/driver/fiber_handle -name "*.c")
 endif
 #SRCS = $(shell find dbclient/ -name "*.c")
 
-ifeq ($(findstring goldengate, $(CHIPNAME)),goldengate)
+ifeq (goldengate, $(filter $(chipname), goldengate))
 CPPFLAGS += -DGOLDENGATE
 endif
 
-ifeq ($(findstring duet2, $(CHIPNAME)),duet2)
+ifeq (duet2, $(filter $(chipname), duet2))
 CPPFLAGS += -DDUET2
 endif
 
-ifeq ($(findstring tsingma, $(CHIPNAME)),tsingma)
+ifeq (tsingma, $(filter $(chipname), tsingma))
 CPPFLAGS += -DTSINGMA
 endif
 
-ifeq ($(findstring tsingma_mx, $(CHIPNAME)),tsingma_mx)
+ifeq (tsingma_mx, $(filter $(chipname), tsingma_mx))
 CPPFLAGS += -DTSINGMA_MX
 #for TMMX note
 CPPFLAGS += -DSAI_ON_TMMX
+endif
+
+ifeq ($(SAI_CLI), TRUE)
+CPPFLAGS += -DCTC_SAI_CLI
 endif
 
 CPPFLAGS += -I$(SAI_SDK_DIR)/dal/include
@@ -39,6 +48,11 @@ CPPFLAGS += -I$(SAI_SDK_DIR)/core/app
 CPPFLAGS += -I$(SAI_SDK_DIR)/core/init
 CPPFLAGS += -I$(SAI_SDK_DIR)/core/common/include
 CPPFLAGS += -I$(SAI_SDK_DIR)/core/api/include
+ifeq ($(SAI_CLI), TRUE)
+CPPFLAGS += -I$(SAI_SDK_DIR)/libctccli/include
+CPPFLAGS += -I$(SAI_SDK_DIR)/ctccli/sdkcli
+CPPFLAGS += -I$(SAI_DIR)/centec/cli/inc
+endif
 CPPFLAGS += -I$(SAI_DIR)/inc
 CPPFLAGS += -I$(SAI_DIR)/centec/inc
 ifeq ($(PLATFORM),ctc)

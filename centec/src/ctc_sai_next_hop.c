@@ -48,7 +48,7 @@ _ctc_sai_next_hop_gen_mpls_push_para(ctc_mpls_nexthop_push_param_t* nh_param_pus
         if(p_tunnel->encap_cw_en)
         {
             nh_param_push->martini_encap_valid = TRUE;
-            nh_param_push->martini_encap_type = 1;
+            nh_param_push->martini_encap_type = 0;
         }
         if(SAI_TUNNEL_MPLS_PW_MODE_TAGGED == p_tunnel->encap_pw_mode)
         {
@@ -487,7 +487,14 @@ _ctc_sai_next_hop_add_mpls(uint8 lchip, uint32 nh_id, sai_u32_list_t label, ctc_
         ctcs_nh_get_mpls_tunnel_label(lchip, p_next_hop_info_next_level->ctc_mpls_tunnel_id, &next_level_nh_tunnel_param);
         if(next_level_nh_tunnel_param.nh_param.is_sr)
         {
-            nh_mpls_param.nh_para.nh_param_push.loop_nhid = ctc_object_id.value;
+            if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+            {
+                nh_mpls_param.nh_para.nh_param_push.loop_nhid = ctc_object_id.value;
+            }
+            else if(CTC_CHIP_TSINGMA_MX <= ctcs_get_chip_type(lchip))
+            {
+                nh_mpls_param.nh_para.nh_param_push.tunnel_id = p_next_hop_info_next_level->ctc_mpls_tunnel_id;
+            }
         }
         else
         {
@@ -1561,6 +1568,8 @@ ctc_sai_next_hop_create_nh(sai_object_id_t *next_hop_id, sai_object_id_t switch_
                 if (SAI_STATUS_SUCCESS == status)
                 {
                     p_next_hop_info->dest_vni = attr_value->u32;
+                }
+                /*SYSTEM MODIFIED by yoush for vxlan in 2020-04-23*/
                     if (SAI_STATUS_SUCCESS == ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NEXT_HOP_ATTR_TUNNEL_MAC, &attr_value, &index))
                     {
                         sal_memcpy(p_next_hop_info->tunnel_mac, attr_value->mac, sizeof(sai_mac_t));
@@ -1574,7 +1583,6 @@ ctc_sai_next_hop_create_nh(sai_object_id_t *next_hop_id, sai_object_id_t switch_
                         }
                         sal_memcpy(p_next_hop_info->tunnel_mac, p_switch_master->vxlan_default_router_mac, sizeof(sai_mac_t));
                     }
-                }
                 CTC_SAI_ERROR_GOTO(_ctc_sai_next_hop_add_ip_tunnel(lchip, nh_id, p_next_hop_info), status, error2);
             }
         }
@@ -1602,16 +1610,16 @@ ctc_sai_next_hop_create_nh(sai_object_id_t *next_hop_id, sai_object_id_t switch_
     *next_hop_id = next_hop_obj_id;
     if(p_tunnel)
     {
-        p_tunnel->ref_cnt++;
+        p_tunnel->egress_ref_cnt++;
     }
 
     goto out;
 
 error4:
-    CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP, "rollback to error3\n");
+    CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP, "rollback to error4\n");
     ctc_sai_db_remove_object_property(lchip, next_hop_obj_id);
 error3:
-    CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP, "rollback to error2\n");
+    CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP, "rollback to error3\n");
     if (SAI_NEXT_HOP_TYPE_IP == next_hop_type)
     {
         ctc_sai_neighbor_free_ipuc_nexthop(lchip, p_next_hop_info->rif_id, (sai_ip_address_t*)(&(p_next_hop_info->ip_address)), nh_id);
@@ -1727,7 +1735,7 @@ ctc_sai_next_hop_remove_nh(sai_object_id_t next_hop_id)
         p_tunnel = ctc_sai_db_get_object_property(lchip, p_next_hop_info->tunnel_id);
         if(NULL != p_tunnel)
         {
-            p_tunnel->ref_cnt--;
+            p_tunnel->egress_ref_cnt--;
         }
     }
     mem_free(p_next_hop_info);

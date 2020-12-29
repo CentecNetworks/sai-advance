@@ -2384,7 +2384,7 @@ class scenario_11_mpls_ipv4_lsp_bfd_tx_and_rx_test(sai_base_test.ThriftInterface
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -2410,7 +2410,7 @@ class scenario_11_mpls_ipv4_lsp_bfd_tx_and_rx_test(sai_base_test.ThriftInterface
                         raise NotImplementedError()
                         
             attr_value = sai_thrift_attribute_value_t(s32=mpls_encap_type)
-            attr = sai_thrift_attribute_t(id=SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE, value=attr_value)
             status = self.client.sai_thrift_set_bfd_attribute(bfd_id, attr)
             sys_logging("set bfd attr status = %d" %status)
             assert (status != SAI_STATUS_SUCCESS)
@@ -2589,7 +2589,7 @@ class scenario_12_mpls_pw_vccv_raw_bfd_tx_and_rx_test(sai_base_test.ThriftInterf
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -2609,7 +2609,7 @@ class scenario_12_mpls_pw_vccv_raw_bfd_tx_and_rx_test(sai_base_test.ThriftInterf
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
 
-                if a.id == SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                     sys_logging("get ach_type = 0x%x" %a.value.s32)
                     if SAI_BFD_ACH_CHANNEL_TYPE_VCCV_RAW != a.value.s32:
                         raise NotImplementedError()
@@ -2761,7 +2761,7 @@ class scenario_13_mpls_pw_vccv_ipv4_bfd_tx_and_rx_test(sai_base_test.ThriftInter
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -2781,7 +2781,7 @@ class scenario_13_mpls_pw_vccv_ipv4_bfd_tx_and_rx_test(sai_base_test.ThriftInter
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
 
-                if a.id == SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                     sys_logging("get ach_type = 0x%x" %a.value.s32)
                     if SAI_BFD_ACH_CHANNEL_TYPE_VCCV_IPV4 != a.value.s32:
                         raise NotImplementedError()
@@ -2944,7 +2944,7 @@ class scenario_14_mpls_pw_vccv_ipv6_bfd_tx_and_rx_test(sai_base_test.ThriftInter
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -2964,7 +2964,7 @@ class scenario_14_mpls_pw_vccv_ipv6_bfd_tx_and_rx_test(sai_base_test.ThriftInter
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
 
-                if a.id == SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                     sys_logging("get ach_type = 0x%x" %a.value.s32)
                     if SAI_BFD_ACH_CHANNEL_TYPE_VCCV_IPV6 != a.value.s32:
                         raise NotImplementedError()
@@ -3122,7 +3122,7 @@ class scenario_15_mpls_tp_pw_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -3142,7 +3142,7 @@ class scenario_15_mpls_tp_pw_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
 
-                if a.id == SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                     sys_logging("get ach_type = 0x%x" %a.value.s32)
                     if SAI_BFD_ACH_CHANNEL_TYPE_TP != a.value.s32:
                         raise NotImplementedError()
@@ -3297,7 +3297,7 @@ class scenario_16_mpls_tp_pw_tx_and_rx_test_without_gal(sai_base_test.ThriftInte
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -3317,7 +3317,7 @@ class scenario_16_mpls_tp_pw_tx_and_rx_test_without_gal(sai_base_test.ThriftInte
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
 
-                if a.id == SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                     sys_logging("get ach_type = 0x%x" %a.value.s32)
                     if SAI_BFD_ACH_CHANNEL_TYPE_TP != a.value.s32:
                         raise NotImplementedError()
@@ -3465,7 +3465,7 @@ class scenario_17_mpls_tp_lsp_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -3485,7 +3485,7 @@ class scenario_17_mpls_tp_lsp_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
 
-                if a.id == SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                     sys_logging("get ach_type = 0x%x" %a.value.s32)
                     if SAI_BFD_ACH_CHANNEL_TYPE_TP != a.value.s32:
                         raise NotImplementedError()
@@ -3647,7 +3647,7 @@ class scenario_18_mpls_tp_lsp_bfd_cv_test(sai_base_test.ThriftInterfaceDataPlane
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -3667,7 +3667,7 @@ class scenario_18_mpls_tp_lsp_bfd_cv_test(sai_base_test.ThriftInterfaceDataPlane
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
 
-                if a.id == SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                     sys_logging("get ach_type = 0x%x" %a.value.s32)
                     if SAI_BFD_ACH_CHANNEL_TYPE_TP != a.value.s32:
                         raise NotImplementedError()
@@ -3831,7 +3831,7 @@ class scenario_19_mpls_tp_section_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
             
             for a in attrs.attr_list:
             
-                if a.id == SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
                     sys_logging("get mpls_encap_type = 0x%x" %a.value.s32)
                     if mpls_encap_type != a.value.s32:
                         raise NotImplementedError()
@@ -3846,7 +3846,7 @@ class scenario_19_mpls_tp_section_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
             
-                if a.id == SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                if a.id == SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                     sys_logging("get ach_type = 0x%x" %a.value.s32)
                     if SAI_BFD_ACH_CHANNEL_TYPE_TP != a.value.s32:
                         raise NotImplementedError()

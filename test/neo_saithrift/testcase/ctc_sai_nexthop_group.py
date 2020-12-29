@@ -67,11 +67,16 @@ class fun_02_create_max_nexthop_group_fn(sai_base_test.ThriftInterfaceDataPlane)
     def runTest(self):
         print
         switch_init(self.client)
-        num = 1023
+        a = testutils.test_params_get()['chipname']
+        if a == 'tsingma':
+            num = 255
+        elif a == 'tsingma_mx':
+            num = 1024
         nhop_grp_list = []
-        sys_logging("======create 1023 nexthop group======")
+        sys_logging("======create 256(1024) nexthop group======")
         for i in range(num):
             nhop_group = sai_thrift_create_next_hop_group(self.client)
+            assert (nhop_group != SAI_NULL_OBJECT_ID)
             nhop_grp_list.append(nhop_group)
 
         warmboot(self.client)
@@ -378,6 +383,8 @@ class fun_09_create_max_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDat
         switch_init(self.client)
         port1 = port_list[0]
         port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
         v4_enabled = 1
         v6_enabled = 1
         mac_valid = 0
@@ -387,6 +394,9 @@ class fun_09_create_max_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDat
 
         vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
         rif1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+        rif3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+        rif4 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
 
         addr_family = SAI_IP_ADDR_FAMILY_IPV4
         ip_addr1 = '10.10.10.1'
@@ -410,22 +420,24 @@ class fun_09_create_max_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDat
         dmac1 = '00:11:22:33:44:55'
         dmac2 = '00:11:22:33:44:56'
         ip_addr_list = [ip_addr1, ip_addr2, ip_addr3, ip_addr4, ip_addr5, ip_addr6, ip_addr7, ip_addr8, ip_addr9, ip_addr10, ip_addr11, ip_addr12, ip_addr13, ip_addr14, ip_addr15, ip_addr16]
-
-        for a in ip_addr_list:
-            sai_thrift_create_neighbor(self.client, addr_family, rif1, a, dmac1)
-            nhop1 = sai_thrift_create_nhop(self.client, addr_family, a, rif1)
-            nhop_list.append(nhop1)
+        rif_list = [rif1, rif2, rif3, rif4]
+        for rif in rif_list:
+            for a in ip_addr_list:
+                sai_thrift_create_neighbor(self.client, addr_family, rif, a, dmac1)
+                nhop1 = sai_thrift_create_nhop(self.client, addr_family, a, rif)
+                nhop_list.append(nhop1)
         sai_thrift_create_neighbor(self.client, addr_family, rif1, ip_addr17, dmac1)
         nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr17, rif1)    
         nhop_group1 = sai_thrift_create_next_hop_group(self.client)
-        sys_logging("======create 16 nexthop group member======")
-        for i in range(16):
+        sys_logging("======create 64 nexthop group member======")
+        for i in range(64):
             nhop_gmember1 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop_list[i])
             sys_logging("nhop_gmember1 = 0x%x" %nhop_gmember1)
             nhop_gmember_list.append(nhop_gmember1)
 
         warmboot(self.client)
         try:
+            #pdb.set_trace()
             sys_logging("======create a new nexthop group member======")
             nhop_gmember2 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
 
@@ -436,18 +448,23 @@ class fun_09_create_max_nexthop_group_member_fn(sai_base_test.ThriftInterfaceDat
 
         finally:
             sys_logging("======clean up======")
-            for i in range(16):
+            for i in range(64):
                 self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember_list[i])
 
             self.client.sai_thrift_remove_next_hop_group(nhop_group1)
-            for i in range(16):
+            for i in range(64):
                 self.client.sai_thrift_remove_next_hop(nhop_list[i])
-                sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr_list[i], dmac1)
+            for rif in rif_list:
+                for a in ip_addr_list:
+                    sai_thrift_remove_neighbor(self.client, addr_family, rif, a, dmac1)
                 
             self.client.sai_thrift_remove_next_hop(nhop2)
             sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr17, dmac1)
 
             self.client.sai_thrift_remove_router_interface(rif1)
+            self.client.sai_thrift_remove_router_interface(rif2)
+            self.client.sai_thrift_remove_router_interface(rif3)
+            self.client.sai_thrift_remove_router_interface(rif4)
 
             self.client.sai_thrift_remove_virtual_router(vr_id)
 

@@ -26,7 +26,6 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
     ctc_sai_bridge_port_t *p_db_bridge_port = NULL;  
     sai_object_id_t sai_lag_oid;
     sai_object_id_t sai_bridge_port_oid;
-    sai_bridge_port_type_t bport_type = 0;
     ctc_port_scl_property_t port_scl_property;
     ctc_port_restriction_t port_restriction;
     ctc_object_id_t ctc_object_id = {0};
@@ -42,11 +41,9 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
         return;
     }
 
-    bport_type = p_db_lag->bind_bridge_port_type - 1 ; 
-
-    if(bport_type == SAI_BRIDGE_PORT_TYPE_PORT)
+    if(CTC_IS_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 0)) //1q port
     {
-        sai_bridge_port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, bport_type, 0, linkagg_id);
+        sai_bridge_port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_PORT, 0, linkagg_id);
 
         p_db_bridge_port = ctc_sai_db_get_object_property(lchip, sai_bridge_port_oid);
 
@@ -58,7 +55,7 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
     }
   
     
-    if(bport_type == SAI_BRIDGE_PORT_TYPE_PORT)
+    if(CTC_IS_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 0)) //1q port
     {
 
         // stp port restore
@@ -118,9 +115,14 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
             ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, p_db_bridge_port->isolation_group_oid, &ctc_object_id);
             port_restriction.isolated_id = ctc_object_id.value;
             ctcs_port_set_restriction(lchip, mem_port, &port_restriction);
-            
+
+            /* Do not set to disable, SONiC will set bridge port admin down first then remove bridge port 
+             * sai adv MODIFY !!
+             */
+            /*
             ctcs_port_set_transmit_en(lchip, mem_port, p_db_bridge_port->admin_state);
             ctcs_port_set_receive_en(lchip, mem_port, p_db_bridge_port->admin_state);
+            */
 
             learn_limit.limit_type = CTC_SECURITY_LEARN_LIMIT_TYPE_PORT;
             learn_limit.limit_num = p_db_bridge_port->limit_num;
@@ -141,8 +143,13 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
             port_restriction.isolated_id = 0;
             ctcs_port_set_restriction(lchip, mem_port, &port_restriction);
 
+            /* Do not set to disable, SONiC will set bridge port admin down first then remove bridge port 
+             * sai adv MODIFY !!
+             */
+            /*
             ctcs_port_set_transmit_en(lchip, mem_port, true);
             ctcs_port_set_receive_en(lchip, mem_port, true); 
+            */
 
             learn_limit.limit_type = CTC_SECURITY_LEARN_LIMIT_TYPE_PORT;
             learn_limit.limit_num = 0xFFFFFFFF;
@@ -154,7 +161,7 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
                                 
    }
     
-    if(bport_type == SAI_BRIDGE_PORT_TYPE_SUB_PORT)
+    if(CTC_IS_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 2)) //1d sub port
     {
         sal_memset(&port_scl_property, 0, sizeof(port_scl_property));
         port_scl_property.scl_id = 1;
@@ -165,16 +172,16 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
         if(change)
         {    
             ctcs_port_set_scl_property(lchip, mem_port, &port_scl_property);
-            //ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1);  
+            ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1);  
         }
         else
         {
             port_scl_property.hash_type = CTC_PORT_IGS_SCL_HASH_TYPE_DISABLE;
             ctcs_port_set_scl_property(lchip, mem_port, &port_scl_property);
-            //ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0); 
+            ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0); 
         }
     }    
-    else if(bport_type == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT)
+    else if((CTC_IS_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 1))||(CTC_IS_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 3))) //1d port or 1d qinq port
     {
         sal_memset(&port_scl_property, 0, sizeof(port_scl_property));
         port_scl_property.scl_id = 0;
@@ -185,13 +192,13 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
         if(change)
         {    
             ctcs_port_set_scl_property(lchip, mem_port, &port_scl_property);
-            //ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1);  
+            ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1);  
         }
         else
         {
             port_scl_property.hash_type = CTC_PORT_IGS_SCL_HASH_TYPE_DISABLE;
             ctcs_port_set_scl_property(lchip, mem_port, &port_scl_property);
-            //ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0); 
+            ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0); 
         }
     }
     
@@ -354,14 +361,16 @@ _ctc_sai_bridge_port_check_port_type_attr(sai_bridge_port_type_t port_type, sai_
 
         case SAI_BRIDGE_PORT_ATTR_PORT_ID:
             if ((SAI_BRIDGE_PORT_TYPE_PORT != port_type)
-                && (SAI_BRIDGE_PORT_TYPE_SUB_PORT != port_type))
+                && (SAI_BRIDGE_PORT_TYPE_SUB_PORT != port_type)
+                && (SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT != port_type))
             {
                 status = SAI_STATUS_INVALID_PARAMETER;
             }
             break;
         case SAI_BRIDGE_PORT_ATTR_VLAN_ID:
         case SAI_BRIDGE_PORT_ATTR_TAGGING_MODE:
-            if (SAI_BRIDGE_PORT_TYPE_SUB_PORT != port_type)
+            if ( ( SAI_BRIDGE_PORT_TYPE_SUB_PORT != port_type )
+                && (SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT != port_type))
             {
                 status = SAI_STATUS_INVALID_PARAMETER;
             }
@@ -373,13 +382,13 @@ _ctc_sai_bridge_port_check_port_type_attr(sai_bridge_port_type_t port_type, sai_
             }
             break;
         case SAI_BRIDGE_PORT_ATTR_TUNNEL_ID:
-            if (SAI_BRIDGE_PORT_TYPE_TUNNEL != port_type)
+            if ( (SAI_BRIDGE_PORT_TYPE_TUNNEL != port_type) && (SAI_BRIDGE_PORT_TYPE_FRR != port_type) )
             {
                 status = SAI_STATUS_INVALID_PARAMETER;
             }
             break;
         case SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE:
-            status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
+            //status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
             break;
         case SAI_BRIDGE_PORT_ATTR_MAX_LEARNED_ADDRESSES:
         case SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_LIMIT_VIOLATION_PACKET_ACTION:
@@ -391,6 +400,15 @@ _ctc_sai_bridge_port_check_port_type_attr(sai_bridge_port_type_t port_type, sai_
                 status = SAI_STATUS_ATTR_NOT_SUPPORTED_0;
             }
             break;
+        case SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP:
+        case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID:
+        case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE:
+        case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS:
+        case SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID:
+        case SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT:
+        case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE:
+        case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID:
+        case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID:
         default:
             break;
     }
@@ -404,19 +422,19 @@ _ctc_sai_bridge_packet_action_mapping_to_limit_action(uint32* p_action, const  s
     switch(attr_value->s32)
     {
     case SAI_PACKET_ACTION_FORWARD:
+    case SAI_PACKET_ACTION_TRANSIT:
         *p_action = CTC_MACLIMIT_ACTION_FWD;
         break;
     case SAI_PACKET_ACTION_DROP:
+    case SAI_PACKET_ACTION_DENY:
         *p_action = CTC_MACLIMIT_ACTION_DISCARD;
         break;
-    case SAI_PACKET_ACTION_COPY:
+    case SAI_PACKET_ACTION_TRAP:
         *p_action = CTC_MACLIMIT_ACTION_TOCPU;
         break;
     case SAI_PACKET_ACTION_COPY_CANCEL:
-    case SAI_PACKET_ACTION_TRAP :
+    case SAI_PACKET_ACTION_COPY:
     case SAI_PACKET_ACTION_LOG:
-    case SAI_PACKET_ACTION_DENY:
-    case SAI_PACKET_ACTION_TRANSIT:
         return SAI_STATUS_NOT_SUPPORTED;
     default:
         CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "invalid action\n");
@@ -432,13 +450,13 @@ _ctc_limit_action_mapping_to_sai_bridge_packet_action(sai_attribute_t *attr, uin
     switch(ctc_action)
     {
     case CTC_MACLIMIT_ACTION_FWD:
-        attr->value.s32 = SAI_PACKET_ACTION_FORWARD;
+        attr->value.s32 = SAI_PACKET_ACTION_TRANSIT;
         break;
     case CTC_MACLIMIT_ACTION_DISCARD:
-        attr->value.s32 = SAI_PACKET_ACTION_DROP;
+        attr->value.s32 = SAI_PACKET_ACTION_DENY;
         break;
     case CTC_MACLIMIT_ACTION_TOCPU:
-        attr->value.s32 = SAI_PACKET_ACTION_COPY;
+        attr->value.s32 = SAI_PACKET_ACTION_TRAP;
         break;
     default:
         CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "invalid action\n");
@@ -468,14 +486,20 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     ctc_sai_tunnel_t* p_tunnel = NULL;
     ctc_mpls_ilm_t ctc_mpls_ilm, ctc_mpls_ilm_p;
     ctc_mpls_ilm_t ctc_mpls_ilm_old;
-    sai_object_id_t     sai_lag_id;
-    ctc_sai_lag_info_t *p_db_lag = NULL;
+    //sai_object_id_t     sai_lag_id;
+    //ctc_sai_lag_info_t *p_db_lag = NULL;
     uint8 gchip = 0;
-    uint32 bit_cnt = 0;
+    //uint32 bit_cnt = 0;
     uint32 invalid_nh_id[64] = {0};
     ctc_sai_next_hop_grp_t* p_frr_nhp_grp = NULL;
     ctc_scl_field_action_t scl_action_field;
     ctc_scl_logic_port_t  scl_logic_port;
+    bool fdb_learn_enable = FALSE;
+    ctc_scl_default_action_t def_action;
+    ctc_scl_vlan_edit_t scl_vlan_edit;
+    sai_object_id_t sai_lag_id;
+    uint32 bit_cnt = 0;
+    ctc_sai_lag_info_t *p_db_lag;
     
     ctcs_get_gchip_id(lchip, &gchip);
     sal_memset(&ctc_mpls_ilm, 0, sizeof(ctc_mpls_ilm_t));
@@ -486,8 +510,26 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         return SAI_STATUS_SUCCESS;
     }
 
+    if(p_bridge_port->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_HW || 
+        p_bridge_port->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_CPU_TRAP)
+    {
+        fdb_learn_enable = TRUE;
+    }
+    else if(p_bridge_port->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_DISABLE)
+    {
+        fdb_learn_enable = FALSE;
+    }
+    else
+    {
+        return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    }
+
     if (p_bridge_port->port_type == SAI_BRIDGE_PORT_TYPE_PORT)
     {
+    /* Do not set to disable, SONiC will set bridge port admin down first then remove bridge port 
+     * sai adv MODIFY !!
+     */
+    /*
         if (CTC_IS_LINKAGG_PORT(p_bridge_port->gport))
         {
             sai_lag_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, p_bridge_port->gport);
@@ -510,6 +552,146 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
             CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_transmit_en(lchip, p_bridge_port->gport, admin_state));
             CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_receive_en(lchip, p_bridge_port->gport, admin_state));
         }
+    */
+        if((SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type)||(SAI_BRIDGE_TYPE_CROSS_CONNECT == p_bridge_port->bridge_type))
+        {
+
+            /*
+             * Reset default entry action field, add learning configure
+             * Same as _ctc_sai_bridge_port_create_port
+             * Not good, need sdk support update api
+             */
+            sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+
+            def_action.gport = p_bridge_port->gport;
+            def_action.mode = 1;
+
+            /* set pending status */
+            sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+            scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+            scl_action_field.data0 = 1;
+            def_action.field_action = &scl_action_field;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+
+            sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+            sal_memset(&scl_logic_port, 0, sizeof(ctc_scl_logic_port_t));
+            scl_logic_port.logic_port = p_bridge_port->logic_port;
+            scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_LOGIC_PORT;
+            scl_action_field.ext_data = (void*)&scl_logic_port;
+            def_action.field_action = &scl_action_field;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+
+            if (admin_state)
+            {
+                if(SAI_BRIDGE_TYPE_CROSS_CONNECT != p_bridge_port->bridge_type)
+                {
+                    sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                    scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_FID;
+                    scl_action_field.data0 = p_bridge_port->bridge_id;
+                    def_action.field_action = &scl_action_field;
+                    CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+                }
+                else
+                {
+                    sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                    scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_REDIRECT;
+                    if(0 == p_bridge_port->cross_connect_port)
+                    {
+                        scl_action_field.data0 = CTC_NH_RESERVED_NHID_FOR_DROP;
+                        def_action.field_action = &scl_action_field;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+                    }
+                    else
+                    {
+                        p_bport = ctc_sai_db_get_object_property(lchip, p_bridge_port->cross_connect_port);
+                        scl_action_field.data0 = p_bport->nh_id;
+                        def_action.field_action = &scl_action_field;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+                    }
+                }
+            }
+            else
+            {
+                sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_REDIRECT;
+                scl_action_field.data0 = CTC_NH_RESERVED_NHID_FOR_DROP;
+                def_action.field_action = &scl_action_field;
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+            }
+
+            sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+            sal_memset(&scl_vlan_edit, 0, sizeof(ctc_scl_vlan_edit_t));
+            scl_vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN;
+            scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_VLAN_EDIT;
+            scl_action_field.ext_data = (void*)&scl_vlan_edit;
+            def_action.field_action = &scl_action_field;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+
+            if(!fdb_learn_enable)
+            {
+                sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_DENY_LEARNING;
+                def_action.field_action = &scl_action_field;
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+            }
+
+            /* clear pending status and install ad immediately */
+            sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+            scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+            scl_action_field.data0 = 0;
+            def_action.field_action = &scl_action_field;
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+            
+            
+            /* update default entry */
+            sal_memset(&l2dflt_addr, 0, sizeof(ctc_l2dflt_addr_t));
+            l2dflt_addr.fid = p_bridge_port->bridge_id;
+            l2dflt_addr.with_nh = TRUE;
+            l2dflt_addr.member.nh_id = p_bridge_port->nh_id;
+            l2dflt_addr.member.mem_port = p_bridge_port->logic_port;
+            if (admin_state)
+            {
+                CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, p_bridge_port->nh_id), status, roll_back_0);
+                if( p_bridge_port->need_flood )
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_port_to_default_entry(lchip, &l2dflt_addr), status, roll_back_1);
+                }
+            }
+            else
+            {
+                ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, CTC_NH_RESERVED_NHID_FOR_DROP);
+                if( p_bridge_port->need_flood )
+                {
+                    ctcs_l2_remove_port_from_default_entry(lchip, &l2dflt_addr);
+                }
+            }
+        }
+        else
+        {
+            /* 1q bridge port set learn enable */
+            if(CTC_IS_LINKAGG_PORT(p_bridge_port->gport))
+            {
+                sai_lag_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, p_bridge_port->gport);
+                p_db_lag = ctc_sai_db_get_object_property(lchip, sai_lag_id);
+                if (NULL == p_db_lag)
+                {
+                    status = SAI_STATUS_INVALID_OBJECT_ID;
+                    goto out;
+                }
+
+                for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+                {
+                    if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+                    {
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_learning_en(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), fdb_learn_enable));
+                    }
+                }   
+            }
+            else
+            {
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_learning_en(lchip, p_bridge_port->gport, fdb_learn_enable));
+            }
+        }
     }
     else if (p_bridge_port->port_type == SAI_BRIDGE_PORT_TYPE_SUB_PORT || p_bridge_port->port_type == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT)
     {
@@ -529,7 +711,19 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_LOGIC_PORT;
         scl_action_field.ext_data = (void*)&scl_logic_port;
         ctcs_scl_add_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
-                
+
+        /* ac port learn enable */
+        sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+        scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_DENY_LEARNING;
+        if(!fdb_learn_enable)
+        {
+            ctcs_scl_add_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
+        }
+        else
+        {
+            ctcs_scl_remove_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
+        }
+
         if (admin_state)
         {
             if(SAI_BRIDGE_TYPE_CROSS_CONNECT != p_bridge_port->bridge_type)
@@ -593,7 +787,7 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
             ctcs_scl_install_entry(lchip, p_bridge_port->scl_entry_id);
             
             CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, p_bridge_port->nh_id), status, roll_back_0);
-            if(SAI_BRIDGE_TYPE_CROSS_CONNECT != p_bridge_port->bridge_type)
+            if( (SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type) && p_bridge_port->need_flood )
             {
                 CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_port_to_default_entry(lchip, &l2dflt_addr), status, roll_back_1);
             }
@@ -619,7 +813,7 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
             ctcs_scl_add_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
             
             ctcs_scl_install_entry(lchip, p_bridge_port->scl_entry_id);
-            if(SAI_BRIDGE_TYPE_CROSS_CONNECT != p_bridge_port->bridge_type)
+            if( (SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type) && p_bridge_port->need_flood )
             {
                 ctcs_l2_remove_port_from_default_entry(lchip, &l2dflt_addr);
             }
@@ -639,7 +833,7 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         l2dflt_addr.member.mem_port = p_bridge_port->logic_port;
         
         p_tunnel = ctc_sai_db_get_object_property(lchip, p_bridge_port->tunnel_id);
-        if(SAI_TUNNEL_TYPE_MPLS_L2 == p_tunnel->tunnel_type)
+        if( (SAI_TUNNEL_TYPE_MPLS_L2 == p_tunnel->tunnel_type) && (0 != p_tunnel->inseg_label) )
         {
             ctc_mpls_ilm.label = p_tunnel->inseg_label;
             CTC_SAI_CTC_ERROR_GOTO(ctcs_mpls_get_ilm(lchip, invalid_nh_id, &ctc_mpls_ilm), status, out);
@@ -674,7 +868,7 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
                 {
                     CTC_UNSET_FLAG(ctc_mpls_ilm.flag, CTC_MPLS_ILM_FLAG_L2VPN_OAM);
                     ctc_mpls_ilm.l2vpn_oam_id = 0;
-                }  
+                }
             }
             else
             {
@@ -684,6 +878,9 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
                     ctc_mpls_ilm.l2vpn_oam_id = p_bridge_port->bridge_id;  //vpls/vpws oam fid
                 }  
             }
+
+            /* mpls ilm learn enable */
+            ctc_mpls_ilm.learn_disable = !fdb_learn_enable;
 
             /* do in mpls inseg
             if(p_bridge_port->sub_port_or_tunnel_service_id)
@@ -716,14 +913,13 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
                 }
             }
             */
-            
             CTC_SAI_CTC_ERROR_GOTO(ctcs_mpls_update_ilm(lchip, &ctc_mpls_ilm), status, roll_back); 
         }
     
         if (admin_state)
         {
             CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, p_bridge_port->nh_id), status, roll_back_0);
-            if(SAI_BRIDGE_TYPE_CROSS_CONNECT != p_bridge_port->bridge_type)
+            if( (SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type) && p_bridge_port->need_flood )
             {
                 CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_port_to_default_entry(lchip, &l2dflt_addr), status, roll_back_1);
             }
@@ -731,7 +927,7 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         else
         {
             ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, CTC_NH_RESERVED_NHID_FOR_DROP);
-            if(SAI_BRIDGE_TYPE_CROSS_CONNECT != p_bridge_port->bridge_type)
+            if( (SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type) && p_bridge_port->need_flood )
             {
                 ctcs_l2_remove_port_from_default_entry(lchip, &l2dflt_addr);
             }
@@ -749,9 +945,12 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         if (admin_state)
         {
             CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, p_bridge_port->nh_id), status, roll_back_0);
-            if((SAI_BRIDGE_TYPE_CROSS_CONNECT != p_bridge_port->bridge_type)&&(SAI_BRIDGE_TYPE_1Q != p_bridge_port->bridge_type))
+            if( SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type)
             {
-                CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_port_to_default_entry(lchip, &l2dflt_addr), status, roll_back_1);
+                if(p_bridge_port->need_flood)
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_port_to_default_entry(lchip, &l2dflt_addr), status, roll_back_1);
+                }
             }
             else if(p_bridge_port->frr_nhp_grp_id)
             {
@@ -783,9 +982,12 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         else
         {          
             ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, CTC_NH_RESERVED_NHID_FOR_DROP);
-            if((SAI_BRIDGE_TYPE_CROSS_CONNECT != p_bridge_port->bridge_type)&&(SAI_BRIDGE_TYPE_1Q != p_bridge_port->bridge_type))
+            if( SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type )
             {
-                ctcs_l2_remove_port_from_default_entry(lchip, &l2dflt_addr);
+                if(p_bridge_port->need_flood)
+                {
+                    ctcs_l2_remove_port_from_default_entry(lchip, &l2dflt_addr);
+                }
             }
             else if(p_bridge_port->frr_nhp_grp_id)
             {
@@ -815,10 +1017,13 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
 
     return SAI_STATUS_SUCCESS;
 roll_back_2:
-    ctcs_mpls_update_ilm(lchip, &ctc_mpls_ilm_old);
+    if( (SAI_TUNNEL_TYPE_MPLS_L2 == p_tunnel->tunnel_type) && (0 != p_tunnel->inseg_label) )
+    {
+        ctcs_mpls_update_ilm(lchip, &ctc_mpls_ilm_old);
+    }
 
 roll_back_1:
-    if (admin_state && (SAI_BRIDGE_PORT_TYPE_TUNNEL == p_bridge_port->port_type || SAI_BRIDGE_PORT_TYPE_SUB_PORT == p_bridge_port->port_type))
+    if (admin_state && (SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type))
     {
         ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, CTC_NH_RESERVED_NHID_FOR_DROP);
     }
@@ -826,7 +1031,7 @@ roll_back_1:
 roll_back_0:
     if (admin_state)
     {
-        if (SAI_BRIDGE_PORT_TYPE_SUB_PORT == p_bridge_port->port_type)
+        if (SAI_BRIDGE_PORT_TYPE_SUB_PORT == p_bridge_port->port_type || SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT == p_bridge_port->port_type)
         {
             sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
             scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_REDIRECT;
@@ -970,6 +1175,9 @@ ctc_sai_bridge_port_get_port_property(sai_object_key_t* key, sai_attribute_t* at
         case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE:
             attr->value.s32 = p_bridge_port->outgoing_scos_mode;
             break;
+        case SAI_BRIDGE_PORT_ATTR_NEED_FLOOD:
+            attr->value.booldata = p_bridge_port->need_flood;
+            break;
         default:
             CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "bridge port attribute %d not implemented\n", attr->id);
             status = SAI_STATUS_ATTR_NOT_IMPLEMENTED_0;
@@ -997,7 +1205,10 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
     ctc_sai_lag_info_t *p_db_lag;
     uint8 gchip = 0;
     sai_object_id_t sai_lag_id;
-
+    ctc_scl_default_action_t def_action;
+    ctc_scl_field_action_t scl_action_field;
+    ctc_scl_logic_port_t scl_logic_port;
+    ctc_scl_vlan_edit_t scl_vlan_edit;
     
     sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
     sal_memset(&port_restriction, 0, sizeof(ctc_port_restriction_t));
@@ -1056,19 +1267,29 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
             break;
         case SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE:
             /* begin: modified by taocy for Warm reboot 20200326*/
+            /* begin: SAI modify for all kinds of bridge port 20201216*/
             {
-                bool enable = FALSE;
+                ctc_sai_tunnel_t* p_tunnel = NULL;
+                uint32 invalid_nh_id[64] = {0};
+                ctc_mpls_ilm_t ctc_mpls_ilm, ctc_mpls_ilm_p;
+                ctc_mpls_ilm_t ctc_mpls_ilm_old;
+
+                sal_memset(&ctc_mpls_ilm, 0, sizeof(ctc_mpls_ilm_t));
+                sal_memset(&ctc_mpls_ilm_p, 0, sizeof(ctc_mpls_ilm_t));
+                sal_memset(&ctc_mpls_ilm_old, 0, sizeof(ctc_mpls_ilm_t));
+    
+                bool fdb_learn_enable = FALSE;
                 switch (attr->value.s32)
                 {
                     case SAI_BRIDGE_PORT_FDB_LEARNING_MODE_DISABLE:
                     {
-                        enable = FALSE;
+                        fdb_learn_enable = FALSE;
                         break;
                     }
                     case SAI_BRIDGE_PORT_FDB_LEARNING_MODE_HW:
                     case SAI_BRIDGE_PORT_FDB_LEARNING_MODE_FDB_NOTIFICATION:
                     {
-                        enable = TRUE;
+                        fdb_learn_enable = TRUE;
                         break;
                     }
                     default:
@@ -1077,11 +1298,127 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
                     }
                 }
 
-                CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_learning_en(lchip, p_bridge_port->gport, enable));
+                //CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_learning_en(lchip, p_bridge_port->gport, enable));
+
+                if (p_bridge_port->port_type == SAI_BRIDGE_PORT_TYPE_PORT)
+                {
+                    if(SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type)
+                    {
+                        /*
+                         * Reset default entry action field, add learning configure
+                         * Same as _ctc_sai_bridge_port_create_port
+                         * Not good, need sdk support update api
+                         */
+                        sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+
+                        def_action.gport = p_bridge_port->gport;
+                        def_action.mode = 1;
+
+                        /* set pending status */
+                        sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                        scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+                        scl_action_field.data0 = 1;
+                        def_action.field_action = &scl_action_field;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+
+                        sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                        sal_memset(&scl_logic_port, 0, sizeof(ctc_scl_logic_port_t));
+                        scl_logic_port.logic_port = p_bridge_port->logic_port;
+                        scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_LOGIC_PORT;
+                        scl_action_field.ext_data = (void*)&scl_logic_port;
+                        def_action.field_action = &scl_action_field;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+
+                        sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                        scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_FID;
+                        scl_action_field.data0 = p_bridge_port->bridge_id;
+                        def_action.field_action = &scl_action_field;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+
+                        sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                        sal_memset(&scl_vlan_edit, 0, sizeof(ctc_scl_vlan_edit_t));
+                        scl_vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN;
+                        scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_VLAN_EDIT;
+                        scl_action_field.ext_data = (void*)&scl_vlan_edit;
+                        def_action.field_action = &scl_action_field;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+
+                        if(!fdb_learn_enable)
+                        {
+                            sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                            scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_DENY_LEARNING;
+                            def_action.field_action = &scl_action_field;
+                            CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+                        }
+
+                        /* clear pending status and install ad immediately */
+                        sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                        scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+                        scl_action_field.data0 = 0;
+                        def_action.field_action = &scl_action_field;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+
+                    }
+                    else
+                    {
+                        /* 1q bridge port set learn enable */
+                        if(CTC_IS_LINKAGG_PORT(p_bridge_port->gport))
+                        {
+                            sai_lag_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_LAG, lchip, 0, 0, p_bridge_port->gport);
+                            p_db_lag = ctc_sai_db_get_object_property(lchip, sai_lag_id);
+                            if (NULL == p_db_lag)
+                            {
+                                return SAI_STATUS_INVALID_OBJECT_ID;
+                            }
+
+                            for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+                            {
+                                if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+                                {
+                                    CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_learning_en(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), fdb_learn_enable));
+                                }
+                            }  
+                        }
+                        else
+                        {
+                            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_learning_en(lchip, p_bridge_port->gport, fdb_learn_enable));
+                        }
+                    }
+                }
+                else if (p_bridge_port->port_type == SAI_BRIDGE_PORT_TYPE_SUB_PORT || p_bridge_port->port_type == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT)
+                {
+                    /* ac port learn enable */
+                    sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                    scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_DENY_LEARNING;
+                    if(!fdb_learn_enable)
+                    {
+                        ctcs_scl_add_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
+                    }
+                    else
+                    {
+                        ctcs_scl_remove_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
+                    }
+                }
+                else if (p_bridge_port->port_type == SAI_BRIDGE_PORT_TYPE_TUNNEL)
+                {
+                    p_tunnel = ctc_sai_db_get_object_property(lchip, p_bridge_port->tunnel_id);
+                    if( (SAI_TUNNEL_TYPE_MPLS_L2 == p_tunnel->tunnel_type) && (0 != p_tunnel->inseg_label) )
+                    {
+                        ctc_mpls_ilm.label = p_tunnel->inseg_label;
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_get_ilm(lchip, invalid_nh_id, &ctc_mpls_ilm));
+                        sal_memcpy(&ctc_mpls_ilm_old, &ctc_mpls_ilm, sizeof(ctc_mpls_ilm_t));
+
+                        /* mpls ilm learn enable */
+                        ctc_mpls_ilm.learn_disable = !fdb_learn_enable;
+
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_mpls_update_ilm(lchip, &ctc_mpls_ilm)); 
+                    }
+                }
                 
                 p_bridge_port->fdb_learn_mode = attr->value.s32;
                 break;
             }
+            /* end: SAI modify for all kinds of bridge port 20201216*/
             /* end: modified by taocy for Warm reboot 20200326*/
             break;
         case SAI_BRIDGE_PORT_ATTR_MAX_LEARNED_ADDRESSES:
@@ -1225,13 +1562,19 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
             {
                 return SAI_STATUS_INVALID_ATTR_VALUE_0;
             }
+
+            if( attr->value.oid ==  p_bridge_port->cross_connect_port )
+            {
+                return status;
+            }
+            
             p_cross_connect_bport = ctc_sai_db_get_object_property(lchip, attr->value.oid);
             
             if(NULL != p_cross_connect_bport)
             {
                 if(0 != p_cross_connect_bport->nh_id && SAI_BRIDGE_TYPE_CROSS_CONNECT == p_bridge_port->bridge_type)
                 {
-                    if(SAI_BRIDGE_PORT_TYPE_SUB_PORT != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_TUNNEL != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_FRR != p_bridge_port->port_type)
+                    if(SAI_BRIDGE_PORT_TYPE_SUB_PORT != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_TUNNEL != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_FRR != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_PORT != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT != p_bridge_port->port_type)
                     {
                         CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "bridge port attribute %d value invalid\n", attr->id);
                         status = SAI_STATUS_INVALID_ATTR_VALUE_0;
@@ -1249,8 +1592,7 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
             }
             else
             {
-                CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "bridge port attribute %d value invalid\n", attr->id);
-                status = SAI_STATUS_INVALID_ATTR_VALUE_0;
+                p_bridge_port->cross_connect_port = SAI_NULL_OBJECT_ID;
             }
             
             break;
@@ -1280,7 +1622,37 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
 
             p_bridge_port->sub_port_or_tunnel_service_id = attr->value.u16;
             break;
+
+        case SAI_BRIDGE_PORT_ATTR_NEED_FLOOD:
+            if( ( ( SAI_BRIDGE_PORT_TYPE_SUB_PORT == p_bridge_port->port_type) || 
+                  ( SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT == p_bridge_port->port_type) || 
+                  ( SAI_BRIDGE_PORT_TYPE_TUNNEL == p_bridge_port->port_type) || 
+                  ( SAI_BRIDGE_PORT_TYPE_FRR == p_bridge_port->port_type) || 
+                  (SAI_BRIDGE_PORT_TYPE_PORT == p_bridge_port->port_type) ) && 
+                ( SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type) )
+            {
+                if(p_bridge_port->need_flood != attr->value.booldata)
+                {
+                    ctc_l2dflt_addr_t  l2dflt_addr;
+                    sal_memset(&l2dflt_addr, 0, sizeof(ctc_l2dflt_addr_t));
+                    l2dflt_addr.fid = p_bridge_port->bridge_id;
+                    l2dflt_addr.with_nh = TRUE;
+                    l2dflt_addr.member.nh_id = p_bridge_port->nh_id;
+                    l2dflt_addr.member.mem_port = p_bridge_port->logic_port;
+                    if(attr->value.booldata)
+                    {
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_l2_add_port_to_default_entry(lchip, &l2dflt_addr));
+                    } else {
+                        CTC_SAI_CTC_ERROR_RETURN(ctcs_l2_remove_port_from_default_entry(lchip, &l2dflt_addr));
+                    }
+                    p_bridge_port->need_flood = attr->value.booldata;
+                }
+            } else {
+                return SAI_STATUS_INVALID_ATTR_VALUE_0;
+            }
             
+            break;
+        
         default:
             CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "bridge port attribute %d not implemented\n", attr->id);
             status = SAI_STATUS_ATTR_NOT_IMPLEMENTED_0;
@@ -1575,14 +1947,18 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
     ctc_port_scl_property_t port_scl_property;
     //ctc_vlan_miss_t vlan_mismatch;
     ctc_scl_default_action_t def_action;
-    ctc_scl_action_t*     p_action =&def_action.action;
-    ctc_scl_igs_action_t* p_ingress_action;
+    //ctc_scl_action_t*     p_action =&def_action.action;
+    //ctc_scl_igs_action_t* p_ingress_action;
     ctc_vlan_edit_nh_param_t nh_param;
     ctc_vlan_egress_edit_info_t edit_info;
     uint32 logic_port = 0;
     uint32 nh_id = 0;
     sai_object_id_t port_oid;
     ctc_sai_port_db_t* p_port_db = NULL;
+    bool need_flood = true;
+    ctc_scl_field_action_t field_action;
+    ctc_scl_logic_port_t scl_logic_port;
+    ctc_scl_vlan_edit_t scl_vlan_edit;
 
     ctcs_get_gchip_id(lchip, &gchip);
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_PORT_ID, &attr_val, &attr_idx);
@@ -1628,60 +2004,59 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
     {
         status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING,
                                              &ingress_filter, &attr_idx);
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING,
-                                             &egress_filter, &attr_idx);        
-        if (ingress_filter)
+        if (!CTC_SAI_ERROR(status))
         {
             filter_en = ingress_filter->booldata ? TRUE : FALSE;
-    
-            if(is_lag_port)
-            {    
-                for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
-                {
-                    if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
-                    {
-                        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_vlan_filter_en(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt),  CTC_INGRESS, filter_en), status, roll_back_0);                           
-                    }
-                }   
-            }
-            else
-            {
-                status = ctcs_port_set_vlan_filter_en(lchip, gport,  CTC_INGRESS, filter_en);
-            }
-            
-            if (CTC_SAI_ERROR(status))
-            {
-                CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "Failed to set port %x ingress filter.\n", gport);
-                goto roll_back_0;
-            }
         }
-    
-        if (egress_filter)
+        else
+        {
+            filter_en = FALSE;
+        }
+
+        if(is_lag_port)
+        {    
+            for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_vlan_filter_en(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt),  CTC_INGRESS, filter_en), status, roll_back_0);                           
+                }
+            }   
+        }
+        else
+        {
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_vlan_filter_en(lchip, gport,  CTC_INGRESS, filter_en), status, roll_back_0);
+        }
+        
+        p_bridge_port->ingress_filter = filter_en;
+
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING,
+                                             &egress_filter, &attr_idx);
+        if (!CTC_SAI_ERROR(status))
         {
             filter_en = egress_filter->booldata ? TRUE : FALSE;
-    
-    
-            if(is_lag_port)
-            {
-                for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
-                {
-                    if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
-                    {
-                        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_vlan_filter_en(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt),  CTC_EGRESS, filter_en), status, roll_back_0);                           
-                    }
-                }   
-            }
-            else
-            {
-                status = ctcs_port_set_vlan_filter_en(lchip, gport,  CTC_EGRESS, filter_en);
-            }
-    
-            if (CTC_SAI_ERROR(status))
-            {
-                CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "Failed to set port %x egress filter.\n", gport);
-                goto roll_back_0;
-            }
         }
+        else
+        {
+            filter_en = FALSE;
+        }
+
+        if(is_lag_port)
+        {
+            for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_vlan_filter_en(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt),  CTC_EGRESS, filter_en), status, roll_back_0);                           
+                }
+            }   
+        }
+        else
+        {
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_vlan_filter_en(lchip, gport,  CTC_EGRESS, filter_en), status, roll_back_0);
+        }
+
+        p_bridge_port->egress_filter = filter_en;
     }
     else 
     {
@@ -1694,11 +2069,12 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
 
         edit_info.svlan_edit_type = CTC_VLAN_EGRESS_EDIT_STRIP_VLAN;
         
-        edit_info.edit_flag = CTC_VLAN_EGRESS_EDIT_SVLAN_AWARE;
+        CTC_SET_FLAG(edit_info.edit_flag,CTC_VLAN_EGRESS_EDIT_SVLAN_AWARE);
         nh_param.dsnh_offset = 0;
         nh_param.gport_or_aps_bridge_id = gport;
         nh_param.vlan_edit_info = edit_info;
         nh_param.logic_port_check = 1;
+        nh_param.logic_port_valid = 1;
         nh_param.logic_port = logic_port;
 
         sal_memset(&port_scl_property, 0, sizeof(port_scl_property));
@@ -1707,6 +2083,7 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
         port_scl_property.hash_type = CTC_PORT_IGS_SCL_HASH_TYPE_PORT_2VLAN;
         port_scl_property.action_type = CTC_PORT_SCL_ACTION_TYPE_SCL;
 
+/*
         sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
 
         def_action.gport = gport;
@@ -1720,6 +2097,7 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
         p_ingress_action->vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN; 
         p_ingress_action->logic_port.logic_port = logic_port;
         p_ingress_action->fid = p_bridge_port->bridge_id;
+        */
 /*
         status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SERVICE_VLAN_ID, &attr_val, &attr_idx);
         if (!CTC_SAI_ERROR(status))
@@ -1742,10 +2120,57 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
         //Egress action
         CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_xlate(lchip, nh_id, &nh_param), status, roll_back_2);
         CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_set_nhid_by_logic_port(lchip, logic_port, nh_id), status, roll_back_3);
+        
         //Ingress action
+        sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+
+        def_action.gport = gport;
+        def_action.mode = 1;
+
+        /* set pending status */
+        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+        field_action.data0 = 1;
+        def_action.field_action = &field_action;
         CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_3);
+
+        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+        sal_memset(&scl_logic_port, 0, sizeof(ctc_scl_logic_port_t));
+        scl_logic_port.logic_port = p_bridge_port->logic_port;
+        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_LOGIC_PORT;
+        field_action.ext_data = (void*)&scl_logic_port;
+        def_action.field_action = &field_action;
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+
+        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_FID;
+        field_action.data0 = p_bridge_port->bridge_id;
+        def_action.field_action = &field_action;
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+
+        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+        sal_memset(&scl_vlan_edit, 0, sizeof(ctc_scl_vlan_edit_t));
+        scl_vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN;
+        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_VLAN_EDIT;
+        field_action.ext_data = (void*)&scl_vlan_edit;
+        def_action.field_action = &field_action;
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+
+        /* clear pending status and install ad immediately */
+        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+        field_action.data0 = 0;
+        def_action.field_action = &field_action;
+        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+
     }
     
+    // need flood 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_NEED_FLOOD, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        need_flood = attr_val->booldata;
+    }
     sal_memset(&learn_limit, 0, sizeof(ctc_security_learn_limit_t));
     learn_limit.limit_type = CTC_SECURITY_LEARN_LIMIT_TYPE_PORT;
     learn_limit.gport = gport;
@@ -1800,7 +2225,7 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
                     if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
                     {
                         CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_scl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &port_scl_property), status, roll_back_5);
-                        //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_5);
+                        CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_5);
                     }
                 }
             }
@@ -1810,7 +2235,7 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
             if(0 == p_port_db->scl0_ref_cnt)
             {
                 CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_scl_property(lchip, gport, &port_scl_property), status, roll_back_5);
-                //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_5);
+                CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_5);
             }
         }        
     }
@@ -1820,10 +2245,14 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
     
     if( SAI_BRIDGE_TYPE_1Q != p_bridge_port->bridge_type )
     {
-        p_bridge_port->service_vlan_id = p_ingress_action->vlan_edit.svid_new;
-        p_bridge_port->service_vlan_cos = p_ingress_action->vlan_edit.scos_new;
+        //p_bridge_port->service_vlan_id = p_ingress_action->vlan_edit.svid_new;
+        //p_bridge_port->service_vlan_cos = p_ingress_action->vlan_edit.scos_new;
         p_bridge_port->logic_port = logic_port;
         p_bridge_port->nh_id = nh_id;
+        if(SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type)
+        {
+            p_bridge_port->need_flood = need_flood;
+        }
         if(is_lag_port)
         {
             p_db_lag->scl0_ref_cnt++;
@@ -1850,7 +2279,7 @@ roll_back_5:
                 if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
                 {
                     ctcs_port_set_scl_property(lchip, p_bridge_port->gport, &port_scl_property);
-                    //ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                    ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
                 }
             }
         }
@@ -1860,7 +2289,7 @@ roll_back_5:
         if(0 == p_port_db->scl0_ref_cnt )
         {
             ctcs_port_set_scl_property(lchip, p_bridge_port->gport, &port_scl_property);
-            //ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+            ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
         }
     }
     
@@ -1892,6 +2321,23 @@ roll_back_4:
         sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
         def_action.gport = gport;
         ctcs_scl_set_default_action(lchip, &def_action);
+    }
+    else
+    {
+        if(is_lag_port)
+        {    
+            for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+                {
+                    ctcs_port_set_vlan_filter_en(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt),  CTC_BOTH_DIRECTION, 0);
+                }
+            }   
+        }
+        else
+        {
+            ctcs_port_set_vlan_filter_en(lchip, p_bridge_port->gport,  CTC_BOTH_DIRECTION, 0);
+        }
     }
 
 roll_back_3:
@@ -1931,6 +2377,7 @@ _ctc_sai_bridge_port_destroy_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_p
     uint32 bit_cnt = 0;
     uint8 gchip = 0;
     ctc_scl_default_action_t def_action;
+    ctc_security_learn_limit_t learn_limit;
     
     ctcs_get_gchip_id(lchip, &gchip);
     
@@ -1978,7 +2425,10 @@ _ctc_sai_bridge_port_destroy_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_p
                     if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
                     {
                         ctcs_port_set_scl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &port_scl_property);
-                        //ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                        if(0 == p_db_lag->scl1_ref_cnt)
+                        {
+                            ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                        }
                     }
                 }
             }         
@@ -1993,12 +2443,56 @@ _ctc_sai_bridge_port_destroy_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_p
                 port_scl_property.direction = CTC_INGRESS;
                 port_scl_property.hash_type = CTC_PORT_IGS_SCL_HASH_TYPE_DISABLE;
                 ctcs_port_set_scl_property(lchip, p_bridge_port->gport, &port_scl_property);
-                //ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                if(0 == p_port_db->scl1_ref_cnt)
+                {
+                    ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                }
             }        
         }
         ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, p_bridge_port->nh_id);
         ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_LOGIC_PORT, p_bridge_port->logic_port);
     }
+    else
+    {
+        if(is_lag)
+        {    
+            for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+                {
+                    ctcs_port_set_vlan_filter_en(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt),  CTC_BOTH_DIRECTION, 0);
+                }
+            }   
+        }
+        else
+        {
+            ctcs_port_set_vlan_filter_en(lchip, p_bridge_port->gport,  CTC_BOTH_DIRECTION, 0);
+        }
+
+    }
+
+    sal_memset(&learn_limit, 0, sizeof(ctc_security_learn_limit_t));
+    learn_limit.limit_type = CTC_SECURITY_LEARN_LIMIT_TYPE_PORT;
+    learn_limit.gport = p_bridge_port->gport;
+    learn_limit.limit_num = 0xFFFFFFFF; 
+    learn_limit.limit_action = CTC_MACLIMIT_ACTION_FWD;
+    
+    if(is_lag)
+    {
+        for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+        {
+            if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+            {
+                learn_limit.gport = CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt);
+                ctcs_mac_security_set_learn_limit(lchip, &learn_limit);
+            }
+        }   
+    }
+    else
+    {
+        ctcs_mac_security_set_learn_limit(lchip, &learn_limit);
+    }
+    
     return SAI_STATUS_SUCCESS;
 }
                                                 
@@ -2033,6 +2527,7 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     ctc_field_port_t port_mask;
     uint32 scl_entry_id;
     int32 scos_mode = 0;
+    bool need_flood = true;
     
     sal_memset(&port_data, 0, sizeof(ctc_field_port_t));
     sal_memset(&port_mask, 0, sizeof(ctc_field_port_t));
@@ -2118,6 +2613,13 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         service_id = attr_val->u16;
     }
 
+    // need flood 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_NEED_FLOOD, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        need_flood = attr_val->booldata;
+    }
+
     status = ctc_sai_bridge_traverse_get_sub_port_info(lchip, gport, vlan_id, 0, &logic_port);
     if (status == SAI_STATUS_SUCCESS)
     {
@@ -2153,13 +2655,13 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
                 status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS, &attr_val, &attr_idx);
                 if (!CTC_SAI_ERROR(status))
                 {
-                    CTC_SET_FLAG(edit_info.flag,CTC_VLAN_EGRESS_EDIT_REPLACE_SVLAN_COS);
+                    CTC_SET_FLAG(edit_info.edit_flag,CTC_VLAN_EGRESS_EDIT_REPLACE_SVLAN_COS);
                     edit_info.stag_cos = attr_val->s32;
                 }
             }
             else if(SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_MAP == attr_val->s32)
             {
-                CTC_SET_FLAG(edit_info.flag,CTC_VLAN_EGRESS_EDIT_MAP_SVLAN_COS);
+                CTC_SET_FLAG(edit_info.edit_flag,CTC_VLAN_EGRESS_EDIT_MAP_SVLAN_COS);
             }
                
         }
@@ -2177,12 +2679,12 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     {
         edit_info.svlan_edit_type = CTC_VLAN_EGRESS_EDIT_STRIP_VLAN;
     }
-    
-    edit_info.edit_flag= CTC_VLAN_EGRESS_EDIT_OUPUT_SVID_VALID;
+    CTC_SET_FLAG(edit_info.edit_flag,CTC_VLAN_EGRESS_EDIT_OUPUT_SVID_VALID);
     nh_param.dsnh_offset = 0;
     nh_param.gport_or_aps_bridge_id = gport;
     nh_param.vlan_edit_info = edit_info;
     nh_param.logic_port_check = 1;
+    nh_param.logic_port_valid = 1;
     nh_param.logic_port = logic_port;
 
     CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_xlate(lchip, nh_id, &nh_param), status, roll_back_3);
@@ -2226,7 +2728,7 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
                 if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
                 {
                     CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_scl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &port_scl_property), status, roll_back_8);
-                    //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_8);
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_8);
                 }
             }
         }
@@ -2236,7 +2738,7 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         if(0 == p_port_db->scl1_ref_cnt) 
         {
             CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_scl_property(lchip, gport, &port_scl_property), status, roll_back_8);
-            //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_8);
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_8);
         }
     }
     p_bridge_port->gport = gport;
@@ -2251,6 +2753,7 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     p_bridge_port->outgoing_svid = edit_info.output_svid;
     p_bridge_port->outgoing_scos = edit_info.stag_cos;
     p_bridge_port->outgoing_scos_mode = scos_mode;
+    p_bridge_port->need_flood = need_flood;
 
     if(is_lag)
     {
@@ -2344,7 +2847,10 @@ _ctc_sai_bridge_port_destroy_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_brid
                 if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
                 {
                     ctcs_port_set_scl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &port_scl_property);
-                    //ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                    if (0 == p_db_lag->scl0_ref_cnt)
+                    {
+                        ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                    }
                 }
             }
         }         
@@ -2359,7 +2865,10 @@ _ctc_sai_bridge_port_destroy_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_brid
             port_scl_property.direction = CTC_INGRESS;
             port_scl_property.hash_type = CTC_PORT_IGS_SCL_HASH_TYPE_DISABLE;
             ctcs_port_set_scl_property(lchip, p_bridge_port->gport, &port_scl_property);
-            //ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+            if (0 == p_port_db->scl0_ref_cnt)
+            {
+                ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+            }
         }        
     }
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_SDK_SCL_ENTRY_ID, p_bridge_port->scl_entry_id);
@@ -2399,7 +2908,8 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
     ctc_field_port_t port_data;
     ctc_field_port_t port_mask;
     int32 scos_mode = 0;
-    
+    bool need_flood = true;
+
     sal_memset(&port_data, 0, sizeof(ctc_field_port_t));
     sal_memset(&port_mask, 0, sizeof(ctc_field_port_t));
     port_data.type = CTC_FIELD_PORT_TYPE_GPORT;
@@ -2495,6 +3005,13 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
         service_id = attr_val->u16;
     }
 
+    // need flood 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_NEED_FLOOD, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        need_flood = attr_val->booldata;
+    }
+
     status = ctc_sai_bridge_traverse_get_sub_port_info(lchip, gport, vlan_id, customer_vlan_id, &logic_port);
     if (status == SAI_STATUS_SUCCESS)
     {
@@ -2530,13 +3047,13 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
                 status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS, &attr_val, &attr_idx);
                 if (!CTC_SAI_ERROR(status))
                 {
-                    CTC_SET_FLAG(edit_info.flag,CTC_VLAN_EGRESS_EDIT_REPLACE_SVLAN_COS);
+                    CTC_SET_FLAG(edit_info.edit_flag,CTC_VLAN_EGRESS_EDIT_REPLACE_SVLAN_COS);
                     edit_info.stag_cos = attr_val->s32;
                 }
             }
             else if(SAI_BRIDGE_PORT_OUTGOING_SERVICE_VLAN_COS_MODE_MAP == attr_val->s32)
             {
-                CTC_SET_FLAG(edit_info.flag,CTC_VLAN_EGRESS_EDIT_MAP_SVLAN_COS);
+                CTC_SET_FLAG(edit_info.edit_flag,CTC_VLAN_EGRESS_EDIT_MAP_SVLAN_COS);
             }
                
         }
@@ -2554,12 +3071,12 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
     {
         edit_info.svlan_edit_type = CTC_VLAN_EGRESS_EDIT_STRIP_VLAN;
     }
-    
-    edit_info.edit_flag= CTC_VLAN_EGRESS_EDIT_OUPUT_SVID_VALID;
+    CTC_SET_FLAG(edit_info.edit_flag,CTC_VLAN_EGRESS_EDIT_OUPUT_SVID_VALID);
     nh_param.dsnh_offset = 0;
     nh_param.gport_or_aps_bridge_id = gport;
     nh_param.vlan_edit_info = edit_info;
     nh_param.logic_port_check = 1;
+    nh_param.logic_port_valid = 1;
     nh_param.logic_port = logic_port;
 
     CTC_SAI_CTC_ERROR_GOTO(ctcs_nh_add_xlate(lchip, nh_id, &nh_param), status, roll_back_3);
@@ -2609,7 +3126,7 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
                 if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
                 {
                     CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_scl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &port_scl_property), status, roll_back_5);
-                    //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_5);
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_5);
                 }
             }
         }
@@ -2619,7 +3136,7 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
         if(0 == p_port_db->scl0_ref_cnt) 
         {
             CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_scl_property(lchip, gport, &port_scl_property), status, roll_back_5);
-            //CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_5);
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1), status, roll_back_5);
         }
     }
     p_bridge_port->gport = gport;
@@ -2635,6 +3152,7 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
     p_bridge_port->outgoing_svid = edit_info.output_svid;
     p_bridge_port->outgoing_scos = edit_info.stag_cos;
     p_bridge_port->outgoing_scos_mode = scos_mode;
+    p_bridge_port->need_flood = need_flood;
     if(is_lag)
     {
         p_db_lag->scl0_ref_cnt++;
@@ -2732,7 +3250,10 @@ _ctc_sai_bridge_port_destroy_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_po
                 if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
                 {
                     ctcs_port_set_scl_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), &port_scl_property);
-                    //ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                    if(0 == p_db_lag->scl1_ref_cnt)
+                    {
+                        ctcs_port_set_property(lchip, CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt), CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+                    }
                 }
             }
         }         
@@ -2747,7 +3268,10 @@ _ctc_sai_bridge_port_destroy_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_po
             port_scl_property.direction = CTC_INGRESS;
             port_scl_property.hash_type = CTC_PORT_IGS_SCL_HASH_TYPE_DISABLE;
             ctcs_port_set_scl_property(lchip, p_bridge_port->gport, &port_scl_property);
-            //ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+            if(0 == p_port_db->scl0_ref_cnt)
+            {
+                ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0);
+            }
         }        
     }
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_SDK_SCL_ENTRY_ID, p_bridge_port->scl_entry_id);
@@ -2791,7 +3315,7 @@ _ctc_sai_bridge_port_create_tunnel_port(uint8 lchip, ctc_sai_bridge_port_t* p_br
     
     p_bridge_port->nh_id = ctc_nhp_id.value;
     p_bridge_port->logic_port = p_tunnel->logic_port;
-
+    p_bridge_port->need_flood = true;
     /*vpls, vpws oam enable */
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE, &attr_val, &attr_idx);
     if (!CTC_SAI_ERROR(status))
@@ -2813,7 +3337,14 @@ _ctc_sai_bridge_port_create_tunnel_port(uint8 lchip, ctc_sai_bridge_port_t* p_br
     {
         p_bridge_port->sub_port_or_tunnel_service_id = attr_val->u16;
     }
-    
+
+    // need flood 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_NEED_FLOOD, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        p_bridge_port->need_flood = attr_val->booldata;
+    }
+
     return SAI_STATUS_SUCCESS;
 
 roll_back_0:
@@ -2863,12 +3394,19 @@ _ctc_sai_bridge_port_create_frr_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
     CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_LOGIC_PORT, &logic_port), status, out);
+    p_bridge_port->need_flood = true;
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_NEED_FLOOD, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        p_bridge_port->need_flood = attr_val->booldata;
+    }
     p_bridge_port->port_type = SAI_BRIDGE_PORT_TYPE_FRR;    
     p_bridge_port->frr_nhp_grp_id = attr_val->oid;
     p_bridge_port->logic_port = logic_port;
     p_bridge_port->nh_id = ctc_object_id.value;
     p_next_hop_grp->logic_port = logic_port;
     
+    return SAI_STATUS_SUCCESS;
 out:
     return status;
 }
@@ -3047,7 +3585,6 @@ ctc_sai_bridge_create_bridge_port(sai_object_id_t* bridge_port_id,
             status = SAI_STATUS_INVALID_ATTR_VALUE_0 + attr_idx;
             goto roll_back_0;
     }
-    
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE, &attr_val, &attr_idx);
     if (status == SAI_STATUS_SUCCESS )
@@ -3072,10 +3609,14 @@ ctc_sai_bridge_create_bridge_port(sai_object_id_t* bridge_port_id,
             }
         }
 
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_learning_en(lchip, p_bridge_port->gport, enable));
+        //CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_learning_en(lchip, p_bridge_port->gport, enable));
         
         p_bridge_port->fdb_learn_mode = attr_val->s32;
 
+    }
+    else
+    {
+        p_bridge_port->fdb_learn_mode = SAI_BRIDGE_PORT_FDB_LEARNING_MODE_HW;
     }
     
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_ADMIN_STATE, &attr_val, &attr_idx);
@@ -3102,13 +3643,21 @@ ctc_sai_bridge_create_bridge_port(sai_object_id_t* bridge_port_id,
             status = SAI_STATUS_INVALID_OBJECT_ID;
             goto roll_back_3;
         } 
-        if (bport_type == SAI_BRIDGE_PORT_TYPE_PORT ) 
+        if ((bport_type == SAI_BRIDGE_PORT_TYPE_PORT )&&(SAI_BRIDGE_TYPE_1Q == bridge_type))
         {
-            p_db_lag->bind_bridge_port_type = 1;
+            CTC_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 0);
         }
-        if (bport_type == SAI_BRIDGE_PORT_TYPE_SUB_PORT)
+        else if ((bport_type == SAI_BRIDGE_PORT_TYPE_PORT)&&(SAI_BRIDGE_TYPE_1D == bridge_type))
         {
-            p_db_lag->bind_bridge_port_type = 2;
+            CTC_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 1);
+        }
+        else if (bport_type == SAI_BRIDGE_PORT_TYPE_SUB_PORT)
+        {
+            CTC_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 2);
+        }
+        else if (bport_type == SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT)
+        {
+            CTC_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 3);
         }
 
         ctc_sai_lag_register_member_change_cb(lchip, CTC_SAI_LAG_MEM_CHANGE_TYPE_BRIDGE_PORT, p_bridge_port->gport, _ctc_sai_bridge_port_lag_member_change_cb_fn);
@@ -3221,7 +3770,21 @@ static sai_status_t ctc_sai_bridge_remove_bridge_port( sai_object_id_t bridge_po
         ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, bridge_port_id, &ctc_object_id);
         bport_type = ctc_object_id.sub_type;
 
-        if ((bport_type != SAI_BRIDGE_PORT_TYPE_SUB_PORT)||(p_db_lag->scl1_ref_cnt == 0))
+        if ((bport_type == SAI_BRIDGE_PORT_TYPE_PORT)&&(p_bridge_port->bridge_type == SAI_BRIDGE_TYPE_1Q))
+        {
+            CTC_BIT_UNSET(p_db_lag->bind_bridge_port_type_bmp, 0);
+        }
+        if (p_db_lag->scl1_ref_cnt == 0)
+        {
+            CTC_BIT_UNSET(p_db_lag->bind_bridge_port_type_bmp, 2);
+        }
+        if (p_db_lag->scl0_ref_cnt == 0)
+        {
+            CTC_BIT_UNSET(p_db_lag->bind_bridge_port_type_bmp, 1);
+            CTC_BIT_UNSET(p_db_lag->bind_bridge_port_type_bmp, 3);
+        }
+
+        if (!p_db_lag->bind_bridge_port_type_bmp)
         {
             ctc_sai_lag_remove_member_change_cb(lchip, CTC_SAI_LAG_MEM_CHANGE_TYPE_BRIDGE_PORT, p_bridge_port->gport);
         }
@@ -3256,6 +3819,7 @@ static  ctc_sai_attr_fn_entry_t brg_port_attr_fn_entries[] = {
     {SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID, ctc_sai_bridge_port_get_port_property, NULL},
     {SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE, ctc_sai_bridge_port_get_port_property, NULL},
     {SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS, ctc_sai_bridge_port_get_port_property, NULL},
+    {SAI_BRIDGE_PORT_ATTR_NEED_FLOOD, ctc_sai_bridge_port_get_port_property, ctc_sai_bridge_port_set_port_property},
     {CTC_SAI_FUNC_ATTR_END_ID,NULL,NULL}
  };
 
@@ -3328,14 +3892,20 @@ roll_back_0:
 #define ________Bridge______
 
 static sai_status_t
-_ctc_sai_bridge_get_port_list_from_db(ctc_sai_oid_property_t* bucket_data, sai_attribute_t* user_data)
+_ctc_sai_bridge_get_port_list_from_db(ctc_sai_oid_property_t* bucket_data, ctc_sai_bridge_traverse_param_t* user_data)
 {
     sai_status_t           status = SAI_STATUS_SUCCESS;
     ctc_sai_bridge_port_t* p_bridge_port = (ctc_sai_bridge_port_t*)bucket_data->data;
 
-    if (p_bridge_port->bridge_id == user_data->id)
+    uint16 bridge_id = *((uint16*)(user_data->cmp_value1));
+    uint16 bridge_type = *((uint16*)(user_data->cmp_value2));
+    sai_object_id_t *list = user_data->out_value1;
+    uint32 count = *((uint32*)(user_data->out_value2));
+
+    if ((p_bridge_port->bridge_id == bridge_id) && (p_bridge_port->bridge_type == bridge_type))
     {
-        user_data->value.objlist.list[user_data->value.objlist.count++] = bucket_data->oid;
+        list[count++] = bucket_data->oid;
+        *((uint32*)(user_data->out_value2)) = count;
     }
 
     return status;
@@ -3356,11 +3926,16 @@ ctc_sai_bridge_get_port_list(sai_object_key_t* key, sai_attribute_t* attr, uint3
     uint32 count = 0;
     sai_attribute_t attr_temp;
     uint8 lchip = 0;
+    ctc_sai_bridge_traverse_param_t traverse_param;
+    uint8 bridge_type = SAI_BRIDGE_TYPE_1Q;
+    
+    sal_memset(&traverse_param, 0, sizeof(traverse_param));
 
     CTC_SAI_LOG_ENTER(SAI_API_BRIDGE);
     status = ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_BRIDGE, key->key.object_id, &ctc_oid);
     bridge_id = ctc_oid.value;
     lchip = ctc_oid.lchip;
+    bridge_type = ctc_oid.sub_type;
 
     CTC_SAI_ERROR_RETURN(ctc_sai_db_get_object_property_count(lchip, SAI_OBJECT_TYPE_BRIDGE_PORT, &count));
     sal_memset(&attr_temp, 0, sizeof(sai_attribute_t));
@@ -3370,7 +3945,13 @@ ctc_sai_bridge_get_port_list(sai_object_key_t* key, sai_attribute_t* attr, uint3
         return SAI_STATUS_NO_MEMORY;
     }
     attr_temp.id = bridge_id;
-    ctc_sai_db_traverse_object_property(lchip, SAI_OBJECT_TYPE_BRIDGE_PORT, (hash_traversal_fn)_ctc_sai_bridge_get_port_list_from_db, (void*)&attr_temp);
+
+    traverse_param.cmp_value1 = (void*)(&bridge_id);
+    traverse_param.cmp_value2 = (void*)(&bridge_type);
+    traverse_param.out_value1 = attr_temp.value.objlist.list;
+    traverse_param.out_value2 = (void*)(&attr_temp.value.objlist.count);
+    
+    ctc_sai_db_traverse_object_property(lchip, SAI_OBJECT_TYPE_BRIDGE_PORT, (hash_traversal_fn)_ctc_sai_bridge_get_port_list_from_db, (void*)&traverse_param);
 
     CTC_SAI_ERROR_GOTO(ctc_sai_fill_object_list(sizeof(sai_object_id_t),attr_temp.value.objlist.list,attr_temp.value.objlist.count, &attr->value.objlist), status, roll_back_0);
 
@@ -4222,6 +4803,7 @@ ctc_sai_bridge_db_init(uint8 lchip)
     ctc_sai_switch_master_t* p_switch_master = NULL;
     ctc_scl_group_info_t ginfo0,ginfo1;
     ctc_sai_db_wb_t wb_info;
+    bool enable = TRUE;
     sal_memset(&wb_info, 0, sizeof(wb_info));
     sal_memset(&ginfo0, 0, sizeof(ctc_scl_group_info_t));
     sal_memset(&ginfo1, 0, sizeof(ctc_scl_group_info_t));
@@ -4267,10 +4849,11 @@ ctc_sai_bridge_db_init(uint8 lchip)
         p_bridge_port->limit_num = 0xFFFFFFFF;
         p_bridge_port->limit_action = CTC_MACLIMIT_ACTION_DISCARD;
         p_bridge_port->admin_state = true;
+        p_bridge_port->fdb_learn_mode = SAI_BRIDGE_PORT_FDB_LEARNING_MODE_HW;
         p_bridge_port->gport = CTC_MAP_LPORT_TO_GPORT(gchip_id, local_panel_ports.lport[index]);
         bridge_port_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_PORT, 0, p_bridge_port->gport);
         CTC_SAI_ERROR_RETURN(ctc_sai_db_add_object_property(lchip, bridge_port_id, p_bridge_port));
-        ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1);
+        //ctcs_port_set_property(lchip, p_bridge_port->gport, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 1);
     }
     ginfo0.type = CTC_SCL_GROUP_TYPE_NONE;
     ginfo0.priority = 0;
@@ -4278,6 +4861,7 @@ ctc_sai_bridge_db_init(uint8 lchip)
     ginfo1.priority = 1;
     CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_create_group(lchip, 0, &ginfo0));
     CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_create_group(lchip, 1, &ginfo1));
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_global_ctl_set(lchip, CTC_GLOBAL_PARSER_OUTER_ALWAYS_CVLAN_EN, &enable));
     return SAI_STATUS_SUCCESS;
 }
 

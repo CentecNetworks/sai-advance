@@ -16,21 +16,20 @@
 \p
 \b
 \t  |   API                                                     |   SUPPORT CHIPS LIST   |
-\t  |  create_synce;                                            |        CTC7132         |
-\t  |  set_synce_attribute;                                     |        CTC7132         |
-\t  |  remove_synce;                                            |        CTC7132         |
-\t  |  get_synce_attribute;                                     |        CTC7132         |
-\b
+\e  |  create_synce;                                            |    CTC7132,CTC8180     |
+\e  |  remove_synce;                                            |    CTC7132,CTC8180     |
+\e  |  set_synce_attribute;                                     |    CTC7132,CTC8180     |
+\e  |  get_synce_attribute;                                     |    CTC7132,CTC8180     |
 \p
  The synce attributes supported by centec devices:
 \p
 \b
 \t  |   ATTRIBUTE                                               |   SUPPORT CHIPS LIST   |
-\t  |  SAI_SYNCE_ATTR_CLOCK_ID                                  |        CTC7132         |
-\t  |  SAI_SYNCE_ATTR_RECOVERED_PORT                            |        CTC7132         |
-\t  |  SAI_SYNCE_ATTR_CLOCK_DIVIDER                             |        CTC7132         |
-\t  |  SAI_SYNCE_ATTR_CLOCK_OUTPUT_ENABLE                       |        CTC7132         |
-\t  |  SAI_SYNCE_ATTR_LINK_DETECT_ENABLE                        |        CTC7132         |
+\e  |  SAI_SYNCE_ATTR_CLOCK_ID                                  |    CTC7132,CTC8180     |
+\e  |  SAI_SYNCE_ATTR_RECOVERED_PORT                            |    CTC7132,CTC8180     |
+\e  |  SAI_SYNCE_ATTR_CLOCK_DIVIDER                             |    CTC7132,CTC8180     |
+\e  |  SAI_SYNCE_ATTR_CLOCK_OUTPUT_ENABLE                       |    CTC7132,CTC8180     |
+\e  |  SAI_SYNCE_ATTR_LINK_DETECT_ENABLE                        |    CTC7132,CTC8180     |
 \b
 */
 
@@ -49,6 +48,10 @@ typedef struct ctc_sai_synce_db_s
 
 extern sai_status_t
 ctc_sai_synce_api_init();
+
+extern sai_status_t
+ctc_sai_synce_db_init(uint8 lchip);
+
 
 
 #endif /*_CTC_SAI_SYNCE_H*/

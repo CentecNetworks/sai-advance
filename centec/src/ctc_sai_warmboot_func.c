@@ -4,6 +4,8 @@
 #define SAI_WB_DB_SIZE_8192    8192
 #define SAI_WB_DB_SIZE_FFFF    0xffff
 
+#ifdef CTCREDIS  
+
 extern int32
 ctc_redis_client_init();
 
@@ -25,12 +27,15 @@ ctc_redis_client_flushdb();
 extern int32
 ctc_redis_client_save();
 
+#endif
 int32 ctc_sai_wb_func_init(uint8 lchip, uint8 reloading)
 {
     int32 ret = 0;
     if (reloading)
-    {
+    {    
+#ifdef CTCREDIS    
         ret = ctc_redis_client_init();
+#endif
     }
     return ret;
 }
@@ -38,23 +43,29 @@ int32 ctc_sai_wb_func_init(uint8 lchip, uint8 reloading)
 int32 ctc_sai_wb_func_init_done(uint8 lchip)
 {
     int32 ret = 0;
+#ifdef CTCREDIS      
     ret = ctc_redis_client_deinit();
+#endif
     return ret;
 }
 
 int32 ctc_sai_wb_func_sync(uint8 lchip)
 {
     int32 ret = 0;
+#ifdef CTCREDIS    
     ret = ctc_redis_client_init();
     ret = ret? ret : ctc_redis_client_flushdb();
+#endif    
     return ret;
 }
 
 int32 ctc_sai_wb_func_sync_done(uint8 lchip, int32 result)
 {
     int32 ret = 0;
+#ifdef CTCREDIS     
     ret = ctc_redis_client_save();
     ret = ret? ret : ctc_redis_client_deinit();
+#endif    
     return ret;
 }
 
@@ -84,7 +95,9 @@ int32 ctc_sai_wb_func_add_entry(ctc_wb_data_t *data)
     {
         sal_memcpy(p_buffer, (uint8*)(data->buffer) + offset, len);
         offset += len;
+#ifdef CTCREDIS         
         ret = ctc_redis_client_lpush_binary(key, p_buffer, len);
+#endif
         if (ret)
         {
             return ret;
@@ -104,7 +117,9 @@ int32 _ctc_sai_wb_func_query_entry_by_key(ctc_wb_query_t *query)
     uint32 return_cnt = 0;
 
     sal_snprintf(key, SAI_WB_DB_SIZE_32, "SDK_%u", query->app_id);
+#ifdef CTCREDIS     
     ret = ctc_redis_client_llen_binary(key, &total_num);
+#endif
     if (ret)
     {
         return ret;
@@ -116,7 +131,9 @@ int32 _ctc_sai_wb_func_query_entry_by_key(ctc_wb_query_t *query)
     for (i = 0; i < total_num; i++)
     {
         buffer_len = query->buffer_len;
+#ifdef CTCREDIS         
         ret = ctc_redis_client_lrange_binary(key, i, i, (uint8*)query->buffer, &buffer_len, &return_cnt);
+#endif
         if ((0 == buffer_len) || (0 == return_cnt))
         {
             continue;
@@ -156,8 +173,9 @@ int32 ctc_sai_wb_func_query_entry(ctc_wb_query_t *query)
 
     sal_snprintf(key, SAI_WB_DB_SIZE_32, "SDK_%u", query->app_id);
     query_cnt = query->buffer_len / (query->key_len + query->data_len);
-
+#ifdef CTCREDIS 
     ret = ctc_redis_client_lrange_binary(key, query->cursor, (query->cursor + query_cnt -1), (uint8*)query->buffer, &buffer_len, &return_cnt);
+#endif
     query->valid_cnt = return_cnt;
     if (query_cnt > return_cnt)
     {

@@ -385,14 +385,16 @@ public:
             thrift_attr_list.push_back(thrift_attr);
         }
     }
-    
-    void sai_thrift_parse_fdb_entry(const sai_thrift_fdb_entry_t &thrift_fdb_entry, sai_fdb_entry_t *fdb_entry)
+
+    void
+    sai_thrift_parse_fdb_entry(const sai_thrift_fdb_entry_t &thrift_fdb_entry,
+                               sai_fdb_entry_t *fdb_entry)
     {
         fdb_entry->bv_id = (sai_object_id_t) thrift_fdb_entry.bv_id;
         fdb_entry->switch_id = gSwitchId;
         sai_thrift_string_to_mac(thrift_fdb_entry.mac_address, fdb_entry->mac_address);
     }
-    
+
     void sai_thrift_parse_route_entry(const sai_thrift_route_entry_t &thrift_route_entry, sai_route_entry_t *route_entry)
     {
         route_entry->switch_id = gSwitchId;
@@ -454,6 +456,8 @@ public:
         nat_entry->data.mask.proto = (sai_uint8_t) thrift_nat_entry.proto_mask;
         nat_entry->data.mask.l4_src_port = (sai_uint16_t) thrift_nat_entry.l4_src_port_mask;
         nat_entry->data.mask.l4_dst_port = (sai_uint16_t) thrift_nat_entry.l4_dst_port_mask;
+
+        nat_entry->nat_type = (sai_int32_t)thrift_nat_entry.nat_type;
     }
     
     void sai_thrift_parse_port_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
@@ -563,8 +567,9 @@ public:
         }
     }
 
-
-    void sai_thrift_parse_fdb_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, sai_attribute_t *attr_list)
+    void
+    sai_thrift_parse_fdb_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list,
+                                    sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -583,11 +588,14 @@ public:
                 case SAI_FDB_ENTRY_ATTR_PACKET_ACTION:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
+                case SAI_FDB_ENTRY_ATTR_META_DATA:
+                    attr_list[i].value.u32 = attribute.value.u32;
+                    break;
                 case SAI_FDB_ENTRY_ATTR_ENDPOINT_IP:
                     sai_thrift_parse_ip_address(attribute.value.ipaddr, &attr_list[i].value.ipaddr);
                     break;
-                case SAI_FDB_ENTRY_ATTR_META_DATA:
-                    attr_list[i].value.u32 = attribute.value.u32;
+                case SAI_FDB_ENTRY_ATTR_ALLOW_MAC_MOVE:
+                    attr_list[i].value.booldata = attribute.value.booldata;
                     break;
                 default:
                     break;
@@ -595,7 +603,9 @@ public:
         }
     }
 
-    void sai_thrift_parse_fdb_flush_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, sai_attribute_t *attr_list)
+    void
+    sai_thrift_parse_fdb_flush_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list,
+                                          sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -617,7 +627,7 @@ public:
             }
         }
     }
-    
+
     void sai_thrift_parse_vr_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
@@ -1232,224 +1242,499 @@ public:
     
     sai_thrift_status_t sai_thrift_remove_port(const sai_thrift_object_id_t port_oid)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
-    
+        SAI_THRIFT_FUNC_LOG();
         sai_port_api_t *port_api = nullptr;
-    
         sai_status_t status = SAI_STATUS_SUCCESS;
-    
+
         status = sai_api_query(SAI_API_PORT, (void **) &port_api);
-    
         if (status != SAI_STATUS_SUCCESS)
         {
           SAI_THRIFT_LOG_ERR("Failed to get PORT API.");
           return SAI_NULL_OBJECT_ID;
         }
-    
+
         status = port_api->remove_port(port_oid);
         return status;
     }
-    
-    
-    sai_thrift_status_t sai_thrift_create_fdb_entry(const sai_thrift_fdb_entry_t& thrift_fdb_entry, 
-                                                    const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+
+    sai_thrift_status_t
+    sai_thrift_create_fdb_entry(const sai_thrift_fdb_entry_t& thrift_fdb_entry,
+                                const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_fdb_entry\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
-        sai_fdb_api_t *fdb_api;
-        sai_fdb_entry_t fdb_entry;
-        status = sai_api_query(SAI_API_FDB, (void **) &fdb_api);
+        sai_fdb_api_t* fdb_api;
+
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
         if (status != SAI_STATUS_SUCCESS)
         {
+           SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
            return status;
         }
+
+        sai_fdb_entry_t fdb_entry;
         sai_thrift_parse_fdb_entry(thrift_fdb_entry, &fdb_entry);
-        sai_attribute_t *attr_list = (sai_attribute_t *) malloc(sizeof(sai_attribute_t) * thrift_attr_list.size());
-        sai_thrift_parse_fdb_attributes(thrift_attr_list, attr_list);
+
         uint32_t attr_count = thrift_attr_list.size();
+        sai_attribute_t* attr_list = (sai_attribute_t*) malloc(sizeof(sai_attribute_t) * attr_count);
+        memset(attr_list, 0, sizeof(sai_attribute_t) * attr_count);
+        sai_thrift_parse_fdb_attributes(thrift_attr_list, attr_list);
+
         status = fdb_api->create_fdb_entry(&fdb_entry, attr_count, attr_list);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to create fdb entry, status:%d", status);
+        }
+
         free(attr_list);
-        return status;
-    }
-    
-    sai_thrift_status_t sai_thrift_delete_fdb_entry(const sai_thrift_fdb_entry_t& thrift_fdb_entry)
-    {
-        printf("sai_thrift_delete_fdb_entry\n");
-        sai_status_t status = SAI_STATUS_SUCCESS;
-        sai_fdb_api_t *fdb_api;
-        sai_fdb_entry_t fdb_entry;
-        status = sai_api_query(SAI_API_FDB, (void **) &fdb_api);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            return status;
-        }
-        sai_thrift_parse_fdb_entry(thrift_fdb_entry, &fdb_entry);
-        status = fdb_api->remove_fdb_entry(&fdb_entry);
-        return status;
-    }
-    
-    sai_thrift_status_t sai_thrift_flush_fdb_entries(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
-    {
-        printf("sai_thrift_flush_fdb_entries\n");
-        sai_status_t status = SAI_STATUS_SUCCESS;
-        sai_fdb_api_t *fdb_api;
-        status = sai_api_query(SAI_API_FDB, (void **) &fdb_api);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-           return status;
-        }
-        sai_attribute_t *attr_list = (sai_attribute_t *) malloc(sizeof(sai_attribute_t) * thrift_attr_list.size());
-        sai_thrift_parse_fdb_flush_attributes(thrift_attr_list, attr_list);
-        uint32_t attr_count = thrift_attr_list.size();
-        status = fdb_api->flush_fdb_entries(gSwitchId, attr_count, attr_list);
-        free(attr_list);
-        return status;
-    }
-    
-    sai_thrift_status_t sai_thrift_set_fdb_entry_attribute(const sai_thrift_fdb_entry_t& thrift_fdb_entry, const sai_thrift_attribute_t& thrift_attr)
-    {
-        sai_status_t status;
-        const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
-        sai_fdb_api_t *fdb_api;
-        sai_fdb_entry_t fdb_entry;
-        sai_attribute_t *attr_list = nullptr;
-    
-        printf("sai_thrift_set_fdb_entry_attribute\n");
-        status = sai_api_query(SAI_API_FDB, (void **) &fdb_api);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            return status;
-        }
-    
-        sai_thrift_alloc_attr(attr_list, 1);
-        sai_thrift_parse_fdb_attributes(thrift_attr_list, attr_list);
-        sai_thrift_parse_fdb_entry(thrift_fdb_entry, &fdb_entry);
-    
-        status = fdb_api->set_fdb_entry_attribute(&fdb_entry, attr_list);
-        sai_thrift_free_attr(attr_list);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("Failed to set FDB attribute");
-        }
-    
         return status;
     }
 
-    void sai_thrift_get_fdb_entry_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_fdb_entry_t& thrift_fdb_entry)
+    sai_thrift_status_t
+    sai_thrift_delete_fdb_entry(const sai_thrift_fdb_entry_t& thrift_fdb_entry)
     {
-        printf("sai_thrift_get_fdb_entry_attribute\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
-        sai_fdb_api_t *fdb_api;
-        sai_fdb_entry_t fdb_entry;
-        sai_attribute_t sai_attrs[4];
-        sai_thrift_attribute_t thrift_attr;
-    
-        status = sai_api_query(SAI_API_FDB, (void **) &fdb_api);
+        sai_fdb_api_t* fdb_api;
+
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain fdb_api, status:%d", status);
+           SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
+           return status;
+        }
+
+        sai_fdb_entry_t fdb_entry;
+        sai_thrift_parse_fdb_entry(thrift_fdb_entry, &fdb_entry);
+
+        status = fdb_api->remove_fdb_entry(&fdb_entry);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to delete fdb entry, status:%d", status);
+        }
+
+        return status;
+    }
+
+    sai_thrift_status_t
+    sai_thrift_set_fdb_entry_attribute(const sai_thrift_fdb_entry_t& thrift_fdb_entry,
+                                       const sai_thrift_attribute_t& thrift_attr)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_fdb_api_t* fdb_api;
+
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+           SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
+           return status;
+        }
+
+        sai_fdb_entry_t fdb_entry;
+        sai_thrift_parse_fdb_entry(thrift_fdb_entry, &fdb_entry);
+        sai_attribute_t* attr_list = nullptr;
+        sai_thrift_alloc_attr(attr_list, 1);
+        const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
+        sai_thrift_parse_fdb_attributes(thrift_attr_list, attr_list);
+
+        status = fdb_api->set_fdb_entry_attribute(&fdb_entry, attr_list);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to set fdb entry attribute, status:%d", status);
+        }
+
+        sai_thrift_free_attr(attr_list);
+        return status;
+    }
+
+    void
+    sai_thrift_get_fdb_entry_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                       const sai_thrift_fdb_entry_t& thrift_fdb_entry)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_fdb_api_t* fdb_api;
+
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
             return;
         }
-    
-        SAI_THRIFT_FUNC_LOG();
-    
+
+        sai_attribute_t sai_attrs[4];
         sai_attrs[0].id = SAI_FDB_ENTRY_ATTR_TYPE;
         sai_attrs[1].id = SAI_FDB_ENTRY_ATTR_PACKET_ACTION;
         sai_attrs[2].id = SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID;
         sai_attrs[3].id = SAI_FDB_ENTRY_ATTR_META_DATA;
-        
+        //sai_attrs[4].id = SAI_FDB_ENTRY_ATTR_ENDPOINT_IP;
+        //sai_attrs[5].id = SAI_FDB_ENTRY_ATTR_ALLOW_MAC_MOVE;
+
+        sai_fdb_entry_t fdb_entry;
         sai_thrift_parse_fdb_entry(thrift_fdb_entry, &fdb_entry);
+
         status = fdb_api->get_fdb_entry_attribute(&fdb_entry, 4, sai_attrs);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain fdb attributes, status:%d", status);
-            return;
+            SAI_THRIFT_LOG_ERR("Failed to get fdb entry attributes, status:%d", status);
         }
-    
-        //sai_attributes_to_sai_thrift_list(sai_attrs, 3, thrift_attr_list.attr_list);
-    
-    
-        thrift_attr.id        = sai_attrs[0].id;
+
+        thrift_attr_list.status = status;
+        thrift_attr_list.attr_count = 4;
+        sai_thrift_attribute_t thrift_attr;
+
+        thrift_attr.id = sai_attrs[0].id;
         thrift_attr.value.__set_s32(sai_attrs[0].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
-        thrift_attr.id        = sai_attrs[1].id;
+
+        thrift_attr.id = sai_attrs[1].id;
         thrift_attr.value.__set_s32(sai_attrs[1].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
-        thrift_attr.id        = sai_attrs[2].id;
+
+        thrift_attr.id = sai_attrs[2].id;
         thrift_attr.value.__set_oid(sai_attrs[2].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
-        thrift_attr.id        = sai_attrs[3].id;
+
+        thrift_attr.id = sai_attrs[3].id;
         thrift_attr.value.__set_u32(sai_attrs[3].value.u32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
+
+        return;
+    }
+
+    sai_thrift_status_t
+    sai_thrift_flush_fdb_entries(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_fdb_api_t* fdb_api;
+
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
+            return status;
+        }
+
+        uint32_t attr_count = thrift_attr_list.size();
+        sai_attribute_t* attr_list = (sai_attribute_t*) malloc(sizeof(sai_attribute_t) * attr_count);
+        memset(attr_list, 0, sizeof(sai_attribute_t) * attr_count);
+        sai_thrift_parse_fdb_flush_attributes(thrift_attr_list, attr_list);
+
+        status = fdb_api->flush_fdb_entries(gSwitchId, attr_count, attr_list);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to flush fdb entries, status:%d", status);
+        }
+
+        free(attr_list);
+        return status;
+    }
+
+    sai_thrift_status_t
+    sai_thrift_create_fdb_entries(const std::vector<sai_thrift_fdb_entry_t> & thrift_fdb_entry_list,
+                                  const std::vector<sai_thrift_attribute_list_t> & thrift_attribute_list,
+                                  const int8_t mode)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+
+        sai_fdb_api_t* fdb_api;
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
+            return status;
+        }
+
+        std::vector<sai_thrift_fdb_entry_t>::const_iterator thrift_fdb_entry = thrift_fdb_entry_list.begin();
+        std::vector<sai_thrift_attribute_list_t>::const_iterator thrift_attr_list = thrift_attribute_list.begin();
+        uint32_t object_count = thrift_fdb_entry_list.size();
+        sai_fdb_entry_t* fdb_entries = malloc(sizeof(sai_fdb_entry_t) * object_count);
+        memset(fdb_entries, 0, sizeof(sai_fdb_entry_t) * object_count);
+        uint32_t* attr_counts = malloc(sizeof(uint32_t) * object_count);
+        memset(attr_counts, 0, sizeof(uint32_t) * object_count);
+        sai_attribute_t** bulk_attr_list = malloc(sizeof(sai_attribute_t*) * object_count);
+        memset(bulk_attr_list, 0, sizeof(sai_attribute_t*) * object_count);
+
+        sai_thrift_fdb_entry_t thrift_fdb_entry_temp;
+        sai_fdb_entry_t fdb_entry;
+        for(uint32_t i = 0; i < object_count; i++, thrift_fdb_entry++, thrift_attr_list++)
+        {
+            thrift_fdb_entry_temp = (sai_thrift_fdb_entry_t) *thrift_fdb_entry;
+            sai_thrift_parse_fdb_entry(thrift_fdb_entry_temp, &fdb_entry);
+            fdb_entries[i] = fdb_entry;
+
+            attr_counts[i] = (*thrift_attr_list).attr_list.size();
+
+            bulk_attr_list[i] = (sai_attribute_t*) malloc(sizeof(sai_attribute_t) * attr_counts[i]);
+            memset(bulk_attr_list[i], 0, sizeof(sai_attribute_t*) * attr_counts[i]);
+            sai_thrift_parse_fdb_attributes((*thrift_attr_list).attr_list, bulk_attr_list[i]);
+        }
+
+        sai_status_t* object_statuses = malloc(sizeof(sai_status_t) * object_count);
+        memset(object_statuses, 0, sizeof(sai_status_t) * object_count);
+        status = fdb_api->create_fdb_entries(object_count, fdb_entries, attr_counts, bulk_attr_list,
+                                             mode, object_statuses);
+
+        for(uint32_t i = 0; i < object_count; i++)
+        {
+            if(object_statuses[i] != SAI_STATUS_SUCCESS)
+            {
+                SAI_THRIFT_LOG_ERR("No.%d fdb entry is failed to create, status:%d", i, object_statuses[i]);
+            }
+        }
+
+        for(uint32_t i = 0; i < object_count; i++)
+        {
+            free(bulk_attr_list[i]);
+        }
+        free(bulk_attr_list);
+        free(attr_counts);
+        free(fdb_entries);
+        free(object_statuses);
+        return status;
+    }
+
+    sai_thrift_status_t
+    sai_thrift_remove_fdb_entries(const std::vector<sai_thrift_fdb_entry_t> & thrift_fdb_entry_list,
+                                  const int8_t mode)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+
+        sai_fdb_api_t* fdb_api;
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
+            return status;
+        }
+
+        std::vector<sai_thrift_fdb_entry_t>::const_iterator thrift_fdb_entry = thrift_fdb_entry_list.begin();
+        uint32_t object_count = thrift_fdb_entry_list.size();
+        sai_fdb_entry_t* fdb_entries = malloc(sizeof(sai_fdb_entry_t) * object_count);
+        memset(fdb_entries, 0, sizeof(sai_fdb_entry_t) * object_count);
+
+        sai_thrift_fdb_entry_t thrift_fdb_entry_temp;
+        sai_fdb_entry_t fdb_entry;
+        for(uint32_t i = 0; i < object_count; i++, thrift_fdb_entry++)
+        {
+            thrift_fdb_entry_temp = (sai_thrift_fdb_entry_t) *thrift_fdb_entry;
+            sai_thrift_parse_fdb_entry(thrift_fdb_entry_temp, &fdb_entry);
+            fdb_entries[i] = fdb_entry;
+        }
+
+        sai_status_t* object_statuses = malloc(sizeof(sai_status_t) * object_count);
+        memset(object_statuses, 0, sizeof(sai_status_t) * object_count);
+        status = fdb_api->remove_fdb_entries(object_count, fdb_entries, mode, object_statuses);
+
+        for(uint32_t i = 0; i < object_count; i++)
+        {
+            if(object_statuses[i] != SAI_STATUS_SUCCESS)
+            {
+                SAI_THRIFT_LOG_ERR("No.%d fdb entry is failed to remove, status:%d", i, object_statuses[i]);
+            }
+        }
+
+        free(fdb_entries);
+        free(object_statuses);
+        return status;
+    }
+
+    sai_thrift_status_t
+    sai_thrift_set_fdb_entries_attribute(const std::vector<sai_thrift_fdb_entry_t> & thrift_fdb_entry_list,
+                                         const std::vector<sai_thrift_attribute_t> & thrift_attr_list,
+                                         const int8_t mode)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+
+        sai_fdb_api_t* fdb_api;
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
+            return status;
+        }
+
+        std::vector<sai_thrift_fdb_entry_t>::const_iterator thrift_fdb_entry = thrift_fdb_entry_list.begin();
+        uint32_t object_count = thrift_fdb_entry_list.size();
+        sai_fdb_entry_t* fdb_entries = malloc(sizeof(sai_fdb_entry_t) * object_count);
+        memset(fdb_entries, 0, sizeof(sai_fdb_entry_t) * object_count);
+        sai_attribute_t* attr_list = malloc(sizeof(sai_attribute_t) * object_count);
+        memset(attr_list, 0, sizeof(sai_attribute_t) * object_count);
+
+        sai_thrift_fdb_entry_t thrift_fdb_entry_temp;
+        sai_fdb_entry_t fdb_entry;
+        for(uint32_t i = 0; i < object_count; i++, thrift_fdb_entry++)
+        {
+            thrift_fdb_entry_temp = (sai_thrift_fdb_entry_t) *thrift_fdb_entry;
+            sai_thrift_parse_fdb_entry(thrift_fdb_entry_temp, &fdb_entry);
+            fdb_entries[i] = fdb_entry;
+        }
+        sai_thrift_parse_fdb_attributes(thrift_attr_list, attr_list);
+
+        sai_status_t* object_statuses = malloc(sizeof(sai_status_t) * object_count);
+        memset(object_statuses, 0, sizeof(sai_status_t) * object_count);
+        status = fdb_api->set_fdb_entries_attribute(object_count, fdb_entries, attr_list, mode, object_statuses);
+
+        for(uint32_t i = 0; i < object_count; i++)
+        {
+            if(object_statuses[i] != SAI_STATUS_SUCCESS)
+            {
+                SAI_THRIFT_LOG_ERR("No.%d fdb entry is failed to set attribute, status:%d", i, object_statuses[i]);
+            }
+        }
+
+        free(fdb_entries);
+        free(attr_list);
+        free(object_statuses);
+        return status;
+    }
+
+    void
+    sai_thrift_get_fdb_entries_attribute(std::vector<sai_thrift_attribute_list_t> & thrift_attribute_list,
+                                         const std::vector<sai_thrift_fdb_entry_t> & thrift_fdb_entry_list,
+                                         const int8_t mode)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+
+        sai_fdb_api_t* fdb_api;
+        status = sai_api_query(SAI_API_FDB, (void**) &fdb_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain fdb_api, status:%d", status);
+            return status;
+        }
+
+        std::vector<sai_thrift_fdb_entry_t>::const_iterator thrift_fdb_entry = thrift_fdb_entry_list.begin();
+        uint32_t object_count = thrift_fdb_entry_list.size();
+        sai_fdb_entry_t* fdb_entries = malloc(sizeof(sai_fdb_entry_t) * object_count);
+        memset(fdb_entries, 0, sizeof(sai_fdb_entry_t) * object_count);
+        uint32_t* attr_counts = malloc(sizeof(uint32_t) * object_count);
+        memset(attr_counts, 0, sizeof(uint32_t) * object_count);
+        sai_attribute_t** bulk_attr_list = malloc(sizeof(sai_attribute_t*) * object_count);
+        memset(bulk_attr_list, 0, sizeof(sai_attribute_t*) * object_count);
+
+        sai_thrift_fdb_entry_t thrift_fdb_entry_temp;
+        sai_fdb_entry_t fdb_entry;
+        for(uint32_t i = 0; i < object_count; i++, thrift_fdb_entry++)
+        {
+            thrift_fdb_entry_temp = (sai_thrift_fdb_entry_t) *thrift_fdb_entry;
+            sai_thrift_parse_fdb_entry(thrift_fdb_entry_temp, &fdb_entry);
+            fdb_entries[i] = fdb_entry;
+
+            attr_counts[i] = 4;
+            bulk_attr_list[i] = (sai_attribute_t*) malloc(sizeof(sai_attribute_t) * attr_counts[i]);
+            memset(bulk_attr_list[i], 0, sizeof(sai_attribute_t*) * attr_counts[i]);
+            bulk_attr_list[i][0].id = SAI_FDB_ENTRY_ATTR_TYPE;
+            bulk_attr_list[i][1].id = SAI_FDB_ENTRY_ATTR_PACKET_ACTION;
+            bulk_attr_list[i][2].id = SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID;
+            bulk_attr_list[i][3].id = SAI_FDB_ENTRY_ATTR_META_DATA;
+        }
+
+        sai_status_t* object_statuses = malloc(sizeof(sai_status_t) * object_count);
+        memset(object_statuses, 0, sizeof(sai_status_t) * object_count);
+        status = fdb_api->get_fdb_entries_attribute(object_count, fdb_entries, attr_counts, bulk_attr_list,
+                                                    mode, object_statuses);
+
+        for(uint32_t i = 0; i < object_count; i++)
+        {
+            sai_thrift_attribute_t thrift_attr;
+            sai_thrift_attribute_list_t thrift_attr_list;
+
+            thrift_attr_list.status = object_statuses[i];
+            thrift_attr_list.attr_count = 4;
+
+            thrift_attr.id = bulk_attr_list[i][0].id;
+            thrift_attr.value.__set_s32(bulk_attr_list[i][0].value.s32);
+            thrift_attr_list.attr_list.push_back(thrift_attr);
+
+            thrift_attr.id = bulk_attr_list[i][1].id;
+            thrift_attr.value.__set_s32(bulk_attr_list[i][1].value.s32);
+            thrift_attr_list.attr_list.push_back(thrift_attr);
+
+            thrift_attr.id = bulk_attr_list[i][2].id;
+            thrift_attr.value.__set_oid(bulk_attr_list[i][2].value.oid);
+            thrift_attr_list.attr_list.push_back(thrift_attr);
+
+            thrift_attr.id = bulk_attr_list[i][3].id;
+            thrift_attr.value.__set_u32(bulk_attr_list[i][3].value.u32);
+            thrift_attr_list.attr_list.push_back(thrift_attr);
+
+            thrift_attribute_list.push_back(thrift_attr_list);
+
+            if(object_statuses[i] != SAI_STATUS_SUCCESS)
+            {
+                SAI_THRIFT_LOG_ERR("No.%d fdb entry is failed to get attribute, status:%d", i, object_statuses[i]);
+            }
+        }
+
+        for(uint32_t i = 0; i < object_count; i++)
+        {
+            free(bulk_attr_list[i]);
+        }
+        free(bulk_attr_list);
+        free(attr_counts);
+        free(fdb_entries);
+        free(object_statuses);
+        return status;
     }
 
     void sai_thrift_parse_vlan_attributes(const std_sai_thrift_attr_vctr_t &thrift_attr_list, sai_attribute_t *attr_list)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
-    
         std_sai_thrift_attr_vctr_t::const_iterator cit = thrift_attr_list.begin();
-    
         for (sai_uint32_t i = 0; i < thrift_attr_list.size(); i++, cit++)
         {
             sai_thrift_attribute_t attribute = *cit;
             attr_list[i].id = attribute.id;
-    
+
             switch (attribute.id)
             {
                 case SAI_VLAN_ATTR_VLAN_ID:
                     attr_list[i].value.u16 = attribute.value.u16;
                     break;
-    
+
                 case SAI_VLAN_ATTR_MAX_LEARNED_ADDRESSES:
+				case SAI_VLAN_ATTR_META_DATA:
                     attr_list[i].value.u32 = attribute.value.u32;
                     break;
-    
+
                 case SAI_VLAN_ATTR_STP_INSTANCE:
+				case SAI_VLAN_ATTR_INGRESS_ACL:
+				case SAI_VLAN_ATTR_EGRESS_ACL:
+				case SAI_VLAN_ATTR_PTP_DOMAIN_ID:
+				case SAI_VLAN_ATTR_POLICER_ID:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
-    
+
                 case SAI_VLAN_ATTR_LEARN_DISABLE:
+				case SAI_VLAN_ATTR_CUSTOM_IGMP_SNOOPING_ENABLE:
+				case SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE:
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
+
                 case SAI_VLAN_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE:
                 case SAI_VLAN_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE:
                 case SAI_VLAN_ATTR_BROADCAST_FLOOD_CONTROL_TYPE:
-                    attr_list[i].value.s32 = attribute.value.s32;
-                    break;
-                case SAI_VLAN_ATTR_CUSTOM_IGMP_SNOOPING_ENABLE:
-                    attr_list[i].value.booldata = attribute.value.booldata;
-                    break;
-    
                 case SAI_VLAN_ATTR_IPV4_MCAST_LOOKUP_KEY_TYPE:
                 case SAI_VLAN_ATTR_IPV6_MCAST_LOOKUP_KEY_TYPE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
-    
-                case SAI_VLAN_ATTR_META_DATA:
-                    attr_list[i].value.u32 = attribute.value.u32;
-                    break;
-    
-                case SAI_VLAN_ATTR_INGRESS_ACL:
-                case SAI_VLAN_ATTR_EGRESS_ACL:
-                case SAI_VLAN_ATTR_POLICER_ID:
-                    attr_list[i].value.oid = attribute.value.oid;
-                    break;
-                case SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE:
-                    attr_list[i].value.booldata = attribute.value.booldata;
-                    break;
-    
+
                 default:
                     SAI_THRIFT_LOG_ERR("Failed to parse VLAN attributes.");
                     break;
             }
         }
     }
-    
-    void sai_thrift_parse_bridge_port_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, sai_attribute_t *attr_list)
+
+    void
+    sai_thrift_parse_bridge_port_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list,
+                                            sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -1457,7 +1742,7 @@ public:
         {
             attribute = (sai_thrift_attribute_t)*it;
             attr_list[i].id = attribute.id;
-    
+
             switch (attribute.id)
             {
                 case SAI_BRIDGE_PORT_ATTR_TYPE:
@@ -1468,22 +1753,26 @@ public:
                 case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
-    
+
                 case SAI_BRIDGE_PORT_ATTR_ADMIN_STATE:
                 case SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING:
                 case SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE:
+                case SAI_BRIDGE_PORT_ATTR_NEED_FLOOD:
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
+
                 case SAI_BRIDGE_PORT_ATTR_MAX_LEARNED_ADDRESSES:
                     attr_list[i].value.u32 = attribute.value.u32;
                     break;
+
                 case SAI_BRIDGE_PORT_ATTR_VLAN_ID:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID:
                 case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID:
                 case SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID:
                     attr_list[i].value.u16 = attribute.value.u16;
                     break;
+
                 case SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP:
                 case SAI_BRIDGE_PORT_ATTR_PORT_ID:
                 case SAI_BRIDGE_PORT_ATTR_RIF_ID:
@@ -1493,17 +1782,18 @@ public:
                 case SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID:
                     attr_list[i].value.oid = attribute.value.oid;
-    
                     break;
-    
+
                 default:
-                    SAI_THRIFT_LOG_ERR("Failed to parse Bridge Port attributes");
+                    SAI_THRIFT_LOG_ERR("Failed to parse bridge port attributes");
                     break;
             }
         }
     }
-    
-    void sai_thrift_parse_bridge_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, sai_attribute_t *attr_list)
+
+    void
+    sai_thrift_parse_bridge_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list,
+                                       sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -1511,34 +1801,34 @@ public:
         {
             attribute = (sai_thrift_attribute_t)*it;
             attr_list[i].id = attribute.id;
-    
+
             switch (attribute.id)
             {
                 case SAI_BRIDGE_ATTR_TYPE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
-    
+
                 case SAI_BRIDGE_ATTR_MAX_LEARNED_ADDRESSES:
                     attr_list[i].value.u32 = attribute.value.u32;
                     break;
-    
+
                 case SAI_BRIDGE_ATTR_LEARN_DISABLE:
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
-    
+
                 case SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE:
                 case SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE:
                 case SAI_BRIDGE_ATTR_BROADCAST_FLOOD_CONTROL_TYPE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
-    
+
                 default:
-                    SAI_THRIFT_LOG_ERR("Failed to parse Bridge attributes.");
+                    SAI_THRIFT_LOG_ERR("Failed to parse bridge attributes");
                     break;
             }
         }
     }
-    
+
     void sai_thrift_parse_samplepacket_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
                                                   sai_attribute_t *attr_list) const noexcept
     {
@@ -1817,8 +2107,7 @@ public:
     
     void sai_thrift_parse_debug_counter_attributes(const std_sai_thrift_attr_vctr_t &thrift_attr_list, sai_attribute_t *attr_list)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
-    
+        SAI_THRIFT_FUNC_LOG();
         std_sai_thrift_attr_vctr_t::const_iterator cit = thrift_attr_list.begin();
     
         for (sai_uint32_t i = 0; i < thrift_attr_list.size(); i++, cit++)
@@ -1892,8 +2181,7 @@ public:
 
     sai_thrift_object_id_t sai_thrift_create_vlan(const std_sai_thrift_attr_vctr_t &thrift_attr_list)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
-    
+        SAI_THRIFT_FUNC_LOG();
         sai_vlan_api_t *vlan_api = nullptr;
         sai_status_t status = SAI_STATUS_SUCCESS;
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -1919,8 +2207,7 @@ public:
     
     sai_thrift_status_t sai_thrift_remove_vlan(const sai_thrift_object_id_t vlan_oid)
     {
-    
-        SAI_THRIFT_LOG_DBG("Called.");
+        SAI_THRIFT_FUNC_LOG();
         sai_vlan_api_t *vlan_api = nullptr;
         sai_status_t status = SAI_STATUS_SUCCESS;
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -1937,7 +2224,7 @@ public:
                                    const std::vector<sai_thrift_vlan_stat_counter_t> &thrift_counter_ids,
                                    const int32_t number_of_counters)
     {
-        printf("sai_thrift_get_vlan_stats\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api;
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -1971,7 +2258,7 @@ public:
                                        int8_t mode,
                                        int32_t number_of_counters)
     {
-        printf("sai_thrift_get_vlan_stats_ext\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api;
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -2007,7 +2294,7 @@ public:
                                                     const std::vector<sai_thrift_vlan_stat_counter_t> &thrift_counter_ids,
                                                     int32_t number_of_counters)
     {
-        printf("sai_thrift_clear_vlan_stats\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api;
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -2038,8 +2325,7 @@ public:
 
     sai_thrift_status_t sai_thrift_set_vlan_attribute(const sai_thrift_object_id_t vlan_id, const sai_thrift_attribute_t &thrift_attr)
     {
-
-        SAI_THRIFT_LOG_DBG("Called.");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api = nullptr;
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -2066,7 +2352,7 @@ public:
 
     void sai_thrift_get_vlan_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t vlan_id)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api = 	nullptr;
     	sai_attribute_t sai_attrs[22];
@@ -2081,7 +2367,6 @@ public:
     	SAI_THRIFT_LOG_ERR("Failed to get VLAN API.");
     	return SAI_NULL_OBJECT_ID;
     	}
-    
     
         sai_attrs[i].id = SAI_VLAN_ATTR_VLAN_ID;
     	i++;
@@ -2110,9 +2395,13 @@ public:
         //sai_attrs[].id = SAI_VLAN_ATTR_UNKNOWN_IPV4_MCAST_OUTPUT_GROUP_ID;
         //sai_attrs[].id = SAI_VLAN_ATTR_UNKNOWN_IPV6_MCAST_OUTPUT_GROUP_ID;
         //sai_attrs[].id = SAI_VLAN_ATTR_UNKNOWN_LINKLOCAL_MCAST_OUTPUT_GROUP_ID;
-        //sai_attrs[].id = SAI_VLAN_ATTR_INGRESS_ACL;
-    	//sai_attrs[].id = SAI_VLAN_ATTR_EGRESS_ACL;
-    
+
+		sai_attrs[i].id = SAI_VLAN_ATTR_INGRESS_ACL;
+		i++;
+		
+    	sai_attrs[i].id = SAI_VLAN_ATTR_EGRESS_ACL;
+		i++;
+		
         sai_attrs[i].id = SAI_VLAN_ATTR_META_DATA;
         i++;
     
@@ -2133,24 +2422,28 @@ public:
     
     	sai_attrs[i].id = SAI_VLAN_ATTR_CUSTOM_IGMP_SNOOPING_ENABLE;
         i++;
-    
+		
+    	//sai_attrs[].id = SAI_VLAN_ATTR_TAM_OBJECT;
+    	
+        sai_attrs[i].id = SAI_VLAN_ATTR_PTP_DOMAIN_ID;
+		i++;
+		
         sai_attrs[i].id = SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE;
         i++;
 
         sai_attrs[i].id = SAI_VLAN_ATTR_POLICER_ID;
         i++;
-    	//sai_attrs[].id = SAI_VLAN_ATTR_TAM_OBJECT;
-    
     
         vlan_api->get_vlan_attribute(vlan_id,i,sai_attrs);
     
         int j = 0 ;
-    
+        //SAI_VLAN_ATTR_VLAN_ID
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_u16(sai_attrs[j].value.u16);
         thrift_attr_list.attr_list.push_back(thrift_attr);
         j++;
-    
+		
+    	//SAI_VLAN_ATTR_MEMBER_LIST
     	thrift_attr_list.attr_count = 1;
         std::vector < sai_thrift_attribute_t > & attr_list = thrift_attr_list.attr_list;
         thrift_vlan_member_list_attribute.id = SAI_VLAN_ATTR_MEMBER_LIST;
@@ -2164,66 +2457,95 @@ public:
         thrift_vlan_member_list_attribute.value.__isset.objlist = true;
         attr_list.push_back(thrift_vlan_member_list_attribute);
         j++;
-    
+		
+        //SAI_VLAN_ATTR_MAX_LEARNED_ADDRESSES
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_u32(sai_attrs[j].value.u32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+        //SAI_VLAN_ATTR_STP_INSTANCE
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_oid(sai_attrs[j].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+        //SAI_VLAN_ATTR_LEARN_DISABLE
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_booldata(sai_attrs[j].value.booldata);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+        //SAI_VLAN_ATTR_IPV4_MCAST_LOOKUP_KEY_TYPE
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_s32(sai_attrs[j].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+        //SAI_VLAN_ATTR_IPV6_MCAST_LOOKUP_KEY_TYPE
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_s32(sai_attrs[j].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+        //SAI_VLAN_ATTR_INGRESS_ACL
+        thrift_attr.id        = sai_attrs[j].id;
+        thrift_attr.value.__set_oid(sai_attrs[j].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+    	j++;
+		
+    	//SAI_VLAN_ATTR_EGRESS_ACL
+        thrift_attr.id        = sai_attrs[j].id;
+        thrift_attr.value.__set_oid(sai_attrs[j].value.oid);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+    	j++;
+		
+		//SAI_VLAN_ATTR_META_DATA
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_u32(sai_attrs[j].value.u32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+        //SAI_VLAN_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_s32(sai_attrs[j].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+        //SAI_VLAN_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_s32(sai_attrs[j].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+        //SAI_VLAN_ATTR_BROADCAST_FLOOD_CONTROL_TYPE
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_s32(sai_attrs[j].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     	j++;
-    
+		
+    	//SAI_VLAN_ATTR_CUSTOM_IGMP_SNOOPING_ENABLE
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_booldata(sai_attrs[j].value.booldata);
         thrift_attr_list.attr_list.push_back(thrift_attr);
         j++;
-    
+		
+        //SAI_VLAN_ATTR_PTP_DOMAIN_ID
         thrift_attr.id        = sai_attrs[j].id;
-        thrift_attr.value.__set_booldata(sai_attrs[j].value.booldata);
+        thrift_attr.value.__set_oid(sai_attrs[j].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
         j++;
 
+		//SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE
+		thrift_attr.id        = sai_attrs[j].id;
+        thrift_attr.value.__set_booldata(sai_attrs[j].value.booldata);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+        j++;
+		
+        //SAI_VLAN_ATTR_POLICER_ID
         thrift_attr.id        = sai_attrs[j].id;
         thrift_attr.value.__set_oid(sai_attrs[j].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    	
     
         free(sai_attrs[1].value.objlist.list);
     
@@ -2231,7 +2553,7 @@ public:
 
     sai_thrift_object_id_t sai_thrift_create_vlan_member(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_vlan_member\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api;
         sai_object_id_t vlan_member_id = 0;
@@ -2252,7 +2574,7 @@ public:
                                         const std::vector<int32_t> & thrift_attr_count_lists,
                                         int8_t mode)
     {
-        printf("sai_thrift_create_vlan_members\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_status_t *status_list = NULL;
         sai_vlan_api_t *vlan_api;
@@ -2350,7 +2672,7 @@ public:
     sai_thrift_status_t sai_thrift_set_vlan_member_attribute(const sai_thrift_object_id_t vlan_member_id, 
                                                              const sai_thrift_attribute_t &thrift_attr)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api = nullptr;
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -2375,12 +2697,10 @@ public:
 
     void sai_thrift_get_vlan_member_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t vlan_member_id)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api;
         sai_attribute_t attr[3];
-    
-        SAI_THRIFT_FUNC_LOG();
-    
         thrift_attr_list.attr_count = 0;
     
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -2421,7 +2741,7 @@ public:
 
     sai_thrift_status_t sai_thrift_remove_vlan_member(const sai_thrift_object_id_t vlan_member_id)
     {
-        printf("sai_thrift_remove_vlan_member\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api;
         status = sai_api_query(SAI_API_VLAN, (void **) &vlan_api);
@@ -2437,7 +2757,7 @@ public:
                                         const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, 
                                         int8_t mode)
     {
-        printf("sai_thrift_remove_vlan_members\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_vlan_api_t *vlan_api;
         sai_status_t *statuslist;
@@ -3573,9 +3893,10 @@ public:
         }
     }
 
-    sai_thrift_object_id_t sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_object_id_t
+    sai_thrift_create_lag(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_lag\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_lag_api_t *lag_api;
         sai_object_id_t lag_id = 0;
@@ -3593,9 +3914,10 @@ public:
         return lag_id;
     }
 
-    sai_thrift_status_t sai_thrift_remove_lag(const sai_thrift_object_id_t lag_id)
+    sai_thrift_status_t
+    sai_thrift_remove_lag(const sai_thrift_object_id_t lag_id)
     {
-        printf("sai_thrift_remove_lag\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_lag_api_t *lag_api;
         status = sai_api_query(SAI_API_LAG, (void **) &lag_api);
@@ -3606,24 +3928,26 @@ public:
         status = lag_api->remove_lag((sai_object_id_t)lag_id);
         return status;
     }
-    
-    sai_thrift_status_t sai_thrift_set_lag_attribute(const sai_thrift_object_id_t lag_id, const sai_thrift_attribute_t& thrift_attr)
+
+    sai_thrift_status_t
+    sai_thrift_set_lag_attribute(const sai_thrift_object_id_t lag_id,
+                                 const sai_thrift_attribute_t& thrift_attr)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status;
         const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
         sai_lag_api_t *lag_api;
         sai_attribute_t *attr_list = nullptr;
-        printf("sai_thrift_set_lag_attribute\n");
-    
+
         status = sai_api_query(SAI_API_LAG, (void **) &lag_api);
         if (status != SAI_STATUS_SUCCESS)
         {
             return status;
         }
-    
+
         sai_thrift_alloc_attr(attr_list, 1);
         sai_thrift_parse_lag_attributes(thrift_attr_list, attr_list);
-    
+
         status = lag_api->set_lag_attribute(lag_id, attr_list);
         sai_thrift_free_attr(attr_list);
         if (status != SAI_STATUS_SUCCESS)
@@ -3631,13 +3955,14 @@ public:
             SAI_THRIFT_LOG_ERR("Failed to set LAG attribute");
             return status;
         }
-    
         return status;
     }
 
-    void sai_thrift_get_lag_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t lag_id)
+    void
+    sai_thrift_get_lag_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                 const sai_thrift_object_id_t lag_id)
     {
-        printf("sai_thrift_get_lag_attribute\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_lag_api_t *lag_api;
         sai_attribute_t sai_attrs[10];
@@ -3645,18 +3970,18 @@ public:
         sai_thrift_attribute_t thrift_attr;
         sai_object_list_t *port_list_object;
         int i = 0;
+
         status = sai_api_query(SAI_API_LAG, (void **) &lag_api);
         if (status != SAI_STATUS_SUCCESS)
         {
             return;
         }
-    
-    
+
         sai_attrs[i].id = SAI_LAG_ATTR_PORT_LIST;
         sai_attrs[i].value.objlist.list = (sai_object_id_t *) malloc(sizeof(sai_object_id_t) * 128);
         sai_attrs[i].value.objlist.count = 128;
         i++;
-    
+
         sai_attrs[i].id = SAI_LAG_ATTR_PORT_VLAN_ID;
         i++;
         sai_attrs[i].id = SAI_LAG_ATTR_DEFAULT_VLAN_PRIORITY;
@@ -3679,7 +4004,7 @@ public:
             thrift_attr_list.status = status;
             return;
         }
-    
+
         thrift_attr_list.attr_count = 1;
         std::vector < sai_thrift_attribute_t > & attr_list = thrift_attr_list.attr_list;
         thrift_port_list_attribute.id = SAI_LAG_ATTR_PORT_LIST;
@@ -3724,9 +4049,10 @@ public:
         free(sai_attrs[0].value.objlist.list);
     }
 
-    sai_thrift_object_id_t sai_thrift_create_lag_member(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_object_id_t
+    sai_thrift_create_lag_member(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_lag_member\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_lag_api_t *lag_api;
         sai_object_id_t lag_member_id = 0;
@@ -3742,9 +4068,10 @@ public:
         return lag_member_id;
     }
 
-    sai_thrift_status_t sai_thrift_remove_lag_member(const sai_thrift_object_id_t lag_member_id)
+    sai_thrift_status_t
+    sai_thrift_remove_lag_member(const sai_thrift_object_id_t lag_member_id)
     {
-        printf("sai_thrift_remove_lag_member\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_lag_api_t *lag_api;
         status = sai_api_query(SAI_API_LAG, (void **) &lag_api);
@@ -3756,15 +4083,16 @@ public:
         return status;
     }
 
-    sai_thrift_status_t sai_thrift_set_lag_member_attribute(const sai_thrift_object_id_t lag_member_id, 
-                                                            const sai_thrift_attribute_t& thrift_attr)
+    sai_thrift_status_t
+    sai_thrift_set_lag_member_attribute(const sai_thrift_object_id_t lag_member_id,
+                                        const sai_thrift_attribute_t& thrift_attr)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status;
         const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
         sai_lag_api_t *lag_api;
         sai_attribute_t *attr_list = nullptr;
-        printf("sai_thrift_set_lag_member_attribute\n");
-    
+
         status = sai_api_query(SAI_API_LAG, (void **) &lag_api);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -3785,12 +4113,15 @@ public:
         return status;
     }
 
-    void sai_thrift_get_lag_member_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t lag_member_id)
+    void
+    sai_thrift_get_lag_member_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                        const sai_thrift_object_id_t lag_member_id)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_attribute_t sai_attrs[4];
         sai_lag_api_t *lag_api;
-    
+
         status = sai_api_query(SAI_API_LAG, (void **) &lag_api);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -3798,14 +4129,12 @@ public:
             thrift_attr_list.status = status;
             return;
         }
-    
-        SAI_THRIFT_FUNC_LOG();
-    
+
         sai_attrs[0].id = SAI_LAG_MEMBER_ATTR_LAG_ID;
         sai_attrs[1].id = SAI_LAG_MEMBER_ATTR_PORT_ID;
         sai_attrs[2].id = SAI_LAG_MEMBER_ATTR_EGRESS_DISABLE;
         sai_attrs[3].id = SAI_LAG_MEMBER_ATTR_INGRESS_DISABLE;
-    
+
         status = lag_api->get_lag_member_attribute(lag_member_id, 4, sai_attrs);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -3833,9 +4162,10 @@ public:
         thrift_attr_list.attr_list.push_back(thrift_attr);
     }
 
-    sai_thrift_object_id_t sai_thrift_create_stp_entry(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_object_id_t
+    sai_thrift_create_stp_entry(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_stp\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api;
         sai_vlan_id_t *vlan_list;
@@ -3855,10 +4185,11 @@ public:
         }
         return stp_id;
     }
-    
-    sai_thrift_status_t sai_thrift_remove_stp_entry(const sai_thrift_object_id_t stp_id)
+
+    sai_thrift_status_t
+    sai_thrift_remove_stp_entry(const sai_thrift_object_id_t stp_id)
     {
-        printf("sai_thrift_remove_stp\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api;
         status = sai_api_query(SAI_API_STP, (void **) &stp_api);
@@ -3870,12 +4201,13 @@ public:
         return status;
     }
 
-    void sai_thrift_create_stp_ports(sai_thrift_results_t& ret,
-                                     const std::vector<sai_thrift_attribute_t> & thrift_attr_lists,
-                                     const std::vector<int32_t> & thrift_attr_count_lists,
-                                     int8_t mode)
+    void
+    sai_thrift_create_stp_ports(sai_thrift_results_t& ret,
+                                const std::vector<sai_thrift_attribute_t> & thrift_attr_lists,
+                                const std::vector<int32_t> & thrift_attr_count_lists,
+                                int8_t mode)
     {
-        printf("sai_thrift_create_stp_ports\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_status_t *status_list = NULL;
         sai_stp_api_t *stp_api;
@@ -3896,7 +4228,6 @@ public:
         memset(attr_count_list, 0, sizeof(uint32_t) * thrift_attr_count_lists.size());
 
         sai_attribute_t **p_attr_list = malloc(sizeof(sai_attribute_t*) * thrift_attr_count_lists.size());
-
 
         for(uint32_t i = 0; i < thrift_attr_count_lists.size(); i++, it_count++)
         {
@@ -3942,15 +4273,15 @@ public:
         {
             free(p_attr_list[i]);
         }
-
         free(p_attr_list);
     }
 
-    void sai_thrift_remove_stp_ports(sai_thrift_status_list_t & ret, 
-                                     const std::vector<sai_thrift_object_id_t> & thrift_object_id_list, 
-                                     int8_t mode)
+    void
+    sai_thrift_remove_stp_ports(sai_thrift_status_list_t & ret,
+                                const std::vector<sai_thrift_object_id_t> & thrift_object_id_list,
+                                int8_t mode)
     {
-        printf("sai_thrift_remove_stp_ports\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api;
         sai_status_t *statuslist;
@@ -3960,7 +4291,6 @@ public:
         {
             return status;
         }
-    
         uint32 obj_count = thrift_object_id_list.size();
         statuslist = malloc(sizeof(sai_status_t) * obj_count);
         memset(statuslist, 0, sizeof(sai_status_t) * obj_count);
@@ -3985,9 +4315,11 @@ public:
         free(statuslist);
     }
 
-    void sai_thrift_get_stp_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t stp_id)
+    void
+    sai_thrift_get_stp_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                 const sai_thrift_object_id_t stp_id)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api = 	nullptr;
         sai_attribute_t sai_attrs[3];
@@ -3996,7 +4328,7 @@ public:
         sai_thrift_attribute_t thrift_attr;
         sai_object_list_t *stp_port_list_object;
         sai_vlan_list_t   *stp_vlan_list_object;
-    
+
         status = sai_api_query(SAI_API_STP, (void **) &stp_api);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -4053,9 +4385,9 @@ public:
         free(sai_attrs[2].value.objlist.list);
     }
 
-
-    void sai_thrift_parse_stp_port_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
-                                              sai_attribute_t *attr_list)
+    void
+    sai_thrift_parse_stp_port_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
+                                         sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -4078,9 +4410,10 @@ public:
         }
     }
 
-    sai_thrift_object_id_t sai_thrift_create_stp_port(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_object_id_t
+    sai_thrift_create_stp_port(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_stp_port\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api = nullptr;
         sai_object_id_t stp_port_id = 0;
@@ -4100,10 +4433,11 @@ public:
     
         return stp_port_id;
     }
-    
-    sai_thrift_status_t sai_thrift_remove_stp_port(const sai_thrift_object_id_t stp_port_id)
+
+    sai_thrift_status_t
+    sai_thrift_remove_stp_port(const sai_thrift_object_id_t stp_port_id)
     {
-        printf("sai_thrift_remove_stp_port\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api;
         status = sai_api_query(SAI_API_STP, (void **) &stp_api);
@@ -4115,11 +4449,12 @@ public:
         return status;
     }
 
-    sai_thrift_status_t sai_thrift_set_stp_port_state(const sai_thrift_object_id_t stp_id, 
-                                                      const sai_thrift_object_id_t port_id, 
-                                                      const sai_thrift_port_stp_port_state_t stp_port_state)
+    sai_thrift_status_t
+    sai_thrift_set_stp_port_state(const sai_thrift_object_id_t stp_id, 
+                                  const sai_thrift_object_id_t port_id, 
+                                  const sai_thrift_port_stp_port_state_t stp_port_state)
     {
-        printf("sai_thrift_set_stp_port_state\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api;
         status = sai_api_query(SAI_API_STP, (void **) &stp_api);
@@ -4135,10 +4470,11 @@ public:
         return status;
     }
 
-    sai_thrift_port_stp_port_state_t sai_thrift_get_stp_port_state(const sai_thrift_object_id_t stp_id, 
-                                                                   const sai_thrift_object_id_t port_id)
+    sai_thrift_port_stp_port_state_t
+    sai_thrift_get_stp_port_state(const sai_thrift_object_id_t stp_id, 
+                                  const sai_thrift_object_id_t port_id)
     {
-        printf("sai_thrift_get_stp_port_state\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api;
         status = sai_api_query(SAI_API_STP, (void **) &stp_api);
@@ -4153,9 +4489,11 @@ public:
         return (sai_thrift_port_stp_port_state_t) attr[0].value.s32;
     }
 
-    void sai_thrift_get_stp_port_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t stp_port_id)
+    void
+    sai_thrift_get_stp_port_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                      const sai_thrift_object_id_t stp_port_id)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_stp_api_t *stp_api =	  nullptr;
         sai_attribute_t sai_attrs[3];
@@ -4373,33 +4711,33 @@ public:
         default_router_id = (sai_thrift_object_id_t)attr.value.oid;
         return default_router_id;
     }
-    
-    sai_thrift_object_id_t sai_thrift_get_default_1q_bridge_id()
+
+    sai_thrift_object_id_t
+    sai_thrift_get_default_1q_bridge_id()
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_switch_api_t *switch_api;
         sai_attribute_t attr;
         sai_status_t status;
-    
-        SAI_THRIFT_FUNC_LOG();
-    
+
         status = sai_api_query(SAI_API_SWITCH, (void **) &switch_api);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain switch_api, status:%d\n", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain switch_api, status:%d", status);
             return SAI_NULL_OBJECT_ID;
         }
-    
+
         attr.id = SAI_SWITCH_ATTR_DEFAULT_1Q_BRIDGE_ID;
         status = switch_api->get_switch_attribute(gSwitchId, 1, &attr);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("Failed to get switch virtual router ID, status %d", status);
+            SAI_THRIFT_LOG_ERR("Failed to get switch default 1Q bridge id, status:%d", status);
             return SAI_NULL_OBJECT_ID;
         }
-    
+
         return (sai_thrift_object_id_t)attr.value.oid;
     }
-    
+
     void sai_thrift_get_default_vlan_id(sai_thrift_result_t &ret)
     {
         sai_switch_api_t *switch_api;
@@ -4609,31 +4947,31 @@ public:
         return status;
     }
 
-    void sai_thrift_convert_to_port_thrift_attributes(sai_attribute_t *attr_list,
-                                                      uint32_t attr_count,
-                                                      sai_thrift_attribute_list_t& thrift_attr_list)
+    void
+    sai_thrift_convert_to_port_thrift_attributes(sai_attribute_t *attr_list,
+                                                 uint32_t attr_count,
+                                                 sai_thrift_attribute_list_t& thrift_attr_list)
     {
-    
         sai_attribute_t attribute;
         sai_thrift_attribute_t thrift_attr;
-        thrift_attr_list.attr_count= thrift_attr_list.attr_count+attr_count;
-    
+        thrift_attr_list.attr_count = thrift_attr_list.attr_count + attr_count;
+
         for (uint32_t i = 0; i < attr_count; i++)
         {
             attribute = attr_list[i];
-            switch (attribute.id)
+            switch(attribute.id)
             {
                 /*sai_bridge_port_type_t*/
                 case SAI_BRIDGE_PORT_ATTR_TYPE:
                 case SAI_BRIDGE_PORT_ATTR_TAGGING_MODE:
                 case SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE:
                 case SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_LIMIT_VIOLATION_PACKET_ACTION:
-                    thrift_attr.id        = attribute.id;
-                    thrift_attr.value.__set_s32 (attribute.value.s32);
+                case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE:
+                    thrift_attr.id = attribute.id;
+                    thrift_attr.value.__set_s32(attribute.value.s32);
                     thrift_attr_list.attr_list.push_back(thrift_attr);
                     break;
-    
-    
+
                 /*sai_object_id_t*/
                 case SAI_BRIDGE_PORT_ATTR_PORT_ID:
                 case SAI_BRIDGE_PORT_ATTR_RIF_ID:
@@ -4641,39 +4979,51 @@ public:
                 case SAI_BRIDGE_PORT_ATTR_BRIDGE_ID:
                 case SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP:
                 case SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT:
+                case SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID:
-                    thrift_attr.id        = attribute.id;
-                    thrift_attr.value.__set_oid (attribute.value.oid);
+                    thrift_attr.id = attribute.id;
+                    thrift_attr.value.__set_oid(attribute.value.oid);
                     thrift_attr_list.attr_list.push_back(thrift_attr);
                     break;
-    
+
                 /*sai_uint32_t*/
                 case SAI_BRIDGE_PORT_ATTR_MAX_LEARNED_ADDRESSES:
-                    thrift_attr.id        = attribute.id;
-                    thrift_attr.value.__set_u32 (attribute.value.u32);
+                    thrift_attr.id = attribute.id;
+                    thrift_attr.value.__set_u32(attribute.value.u32);
                     thrift_attr_list.attr_list.push_back(thrift_attr);
                     break;
-    
+
                 /* sai_uint16_t*/
                 case SAI_BRIDGE_PORT_ATTR_VLAN_ID:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID:
-                    thrift_attr.id        = attribute.id;
+                case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID:
+                case SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID:
+                    thrift_attr.id = attribute.id;
                     thrift_attr.value.__set_u16(attribute.value.u16);
                     thrift_attr_list.attr_list.push_back(thrift_attr);
                     break;
-                /* bool */
+
+                /* sai_uint8_t*/
+                case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS:
+                    thrift_attr.id = attribute.id;
+                    thrift_attr.value.__set_u8(attribute.value.u8);
+                    thrift_attr_list.attr_list.push_back(thrift_attr);
+                    break;
+
+                    /* bool */
                 case SAI_BRIDGE_PORT_ATTR_ADMIN_STATE:
                 case SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING:
                 case SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE:
-                    thrift_attr.id        = attribute.id;
+                    thrift_attr.id = attribute.id;
                     thrift_attr.value.__set_booldata(attribute.value.booldata);
                     thrift_attr_list.attr_list.push_back(thrift_attr);
                     break;
-    
+
+                default:
+                    break;
             }
-       }
-    
+        }
     }
 
     void sai_thrift_convert_to_switch_thrift_attributes(sai_attribute_t *attr_list,
@@ -4913,7 +5263,7 @@ public:
                 case SAI_SWITCH_ATTR_SUPPORTED_PROTECTED_OBJECT_TYPE:
                 case SAI_SWITCH_ATTR_SUPPORTED_IPV4_BFD_SESSION_OFFLOAD_TYPE:
                 case SAI_SWITCH_ATTR_SUPPORTED_IPV6_BFD_SESSION_OFFLOAD_TYPE:
-                case SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE:
+                case SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE:
                 case SAI_SWITCH_ATTR_SUPPORTED_EXTENDED_STATS_MODE:
                     {
                         thrift_attr.id        = attribute.id;
@@ -4969,7 +5319,7 @@ public:
                 case SAI_SWITCH_ATTR_TAM_EVENT_NOTIFY:
                 case SAI_SWITCH_ATTR_QUEUE_PFC_DEADLOCK_NOTIFY:
                 case SAI_SWITCH_ATTR_BFD_SESSION_STATE_CHANGE_NOTIFY:
-                case SAI_SWITCH_ATTR_Y1731_SESSION_EVENT_NOTIFY:
+                case SAI_SWITCH_ATTR_Y1731_SESSION_STATE_CHANGE_NOTIFY:
                     break;
                 case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE:
                 case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_OVERTHRD_EVENT:
@@ -4979,13 +5329,13 @@ public:
                     thrift_attr.value.__set_booldata (attribute.value.booldata);
                     thrift_attr_list.attr_list.push_back(thrift_attr);
                     break;
-                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
-                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MIN_THRD:
+                case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
                 case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL:
                 case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK:
                 case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK:
-                case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
-                case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
+                case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD:
+                case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD:
                 case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
                     thrift_attr.id        = attribute.id;
                     thrift_attr.value.__set_u32 (attribute.value.u32);
@@ -5029,7 +5379,7 @@ public:
 
     void sai_thrift_get_switch_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const std::vector < int32_t > & thrift_attr_ids)
 	{
-        printf("sai_thrift_get_switch_attribute\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_switch_api_t *switch_api;
 		sai_attribute_t sai_attribute;
@@ -5094,7 +5444,7 @@ public:
                 attr_list[i].value.s32list.list = (int32_t *) malloc(sizeof(int32_t) * 10);
                 memset(attr_list[i].value.s32list.list, 0, sizeof(sizeof(int32_t) * 10));
                 break;
-             case SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE:
+             case SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE:
                 attr_list[i].value.s32list.count = 10;
                 attr_list[i].value.s32list.list = (int32_t *) malloc(sizeof(int32_t) * 10);
                 break;
@@ -5163,7 +5513,7 @@ public:
             {
                 free(attr_list[i].value.s32list.list);
             }
-            if ((SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERFORMANCE_MONITOR_OFFLOAD_TYPE == attr_list[i].id) && (attr_list[i].value.s32list.list))
+            if ((SAI_SWITCH_ATTR_SUPPORTED_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE == attr_list[i].id) && (attr_list[i].value.s32list.list))
             {
                 free(attr_list[i].value.s32list.list);
             }
@@ -5187,23 +5537,21 @@ public:
 
     sai_thrift_status_t sai_thrift_set_switch_attribute(const sai_thrift_attribute_t& thrift_attr)
     {
-        printf("sai_thrift_set_switch_attribute\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_switch_api_t *switch_api;
         sai_attribute_t attr;
         memset(&attr, 0, sizeof(sai_attribute_t));
-    
+
         status = sai_api_query(SAI_API_SWITCH, (void **) &switch_api);
         if (status != SAI_STATUS_SUCCESS)
         {
             printf("sai_api_query failed!!!\n");
             return status;
         }
-    
+
         sai_thrift_parse_switch_attribute(thrift_attr, &attr);
-    
         status = switch_api->set_switch_attribute(gSwitchId, &attr);
-    
         if (status != SAI_STATUS_SUCCESS)
         {
             SAI_THRIFT_LOG_ERR("Failed to set switch attributes, status:%d", status);
@@ -5214,14 +5562,13 @@ public:
     void sai_thrift_parse_switch_attribute(const sai_thrift_attribute_t &thrift_attr, sai_attribute_t *attr)
     {
         attr->id = thrift_attr.id;
-    
         switch(thrift_attr.id)
         {
             case SAI_SWITCH_ATTR_SRC_MAC_ADDRESS:
             case SAI_SWITCH_ATTR_VXLAN_DEFAULT_ROUTER_MAC:
                 sai_thrift_string_to_mac(thrift_attr.value.mac, attr->value.mac);
                 break;
-    
+
             case SAI_SWITCH_ATTR_FDB_UNICAST_MISS_PACKET_ACTION:
             case SAI_SWITCH_ATTR_FDB_BROADCAST_MISS_PACKET_ACTION:
             case SAI_SWITCH_ATTR_FDB_MULTICAST_MISS_PACKET_ACTION:
@@ -5229,23 +5576,25 @@ public:
             case SAI_SWITCH_ATTR_LAG_DEFAULT_HASH_ALGORITHM:
                 attr->value.s32 = thrift_attr.value.s32;
                 break;
+
             case SAI_SWITCH_ATTR_FDB_AGING_TIME:
             case SAI_SWITCH_ATTR_MAX_LEARNED_ADDRESSES:
             case SAI_SWITCH_ATTR_MAX_TWAMP_SESSION:
-	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
-	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
+	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MIN_THRD:
+	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
 	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL:
 	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK:
 	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK:
-	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
-	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
+	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD:
+	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD:
 	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
                 attr->value.u32 = thrift_attr.value.u32;
                 break;
-				
+
             case SAI_SWITCH_ATTR_QOS_DEFAULT_TC:
                 attr->value.u8 = thrift_attr.value.u8;
                 break;
+
             case SAI_SWITCH_ATTR_QOS_TC_TO_QUEUE_MAP:
             case SAI_SWITCH_ATTR_QOS_DOT1P_TO_TC_MAP:
             case SAI_SWITCH_ATTR_QOS_DOT1P_TO_COLOR_MAP:
@@ -5256,6 +5605,7 @@ public:
             case SAI_SWITCH_ATTR_INGRESS_ACL:
                 attr->value.oid = thrift_attr.value.oid;
                 break;
+
             case SAI_SWITCH_ATTR_RESTART_WARM:
             case SAI_SWITCH_ATTR_UNINIT_DATA_PLANE_ON_REMOVAL:
             case SAI_SWITCH_ATTR_ECMP_DEFAULT_SYMMETRIC_HASH:
@@ -5272,6 +5622,7 @@ public:
             case SAI_SWITCH_ATTR_ECN_ACTION_ENABLE:
                 attr->value.booldata = thrift_attr.value.booldata;
                 break;
+
             case SAI_SWITCH_ATTR_VXLAN_DEFAULT_PORT:
             case SAI_SWITCH_ATTR_TPID_OUTER_VLAN:
             case SAI_SWITCH_ATTR_TPID_INNER_VLAN:
@@ -5280,19 +5631,20 @@ public:
 
             case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD:
             case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD:
-            	{
-			int count = thrift_attr.value.u32list.u32list.size();
-			sai_uint32_t *u32_list = NULL;
-			std::vector<sai_int32_t>::const_iterator it = thrift_attr.value.u32list.u32list.begin();
-			u32_list = (sai_uint32_t *) malloc(sizeof(sai_uint32_t) * count);
-			for(int j = 0; j < count; j++, it++)
-			*(u32_list + j) = (sai_uint32_t) *it;
-			attr->value.u32list.list = u32_list;
-			attr->value.u32list.count = count;
-            	}
-                break;                                        
+                {
+                    int count = thrift_attr.value.u32list.u32list.size();
+                    sai_uint32_t *u32_list = NULL;
+                    std::vector<sai_int32_t>::const_iterator it = thrift_attr.value.u32list.u32list.begin();
+                    u32_list = (sai_uint32_t *) malloc(sizeof(sai_uint32_t) * count);
+                    for(int j = 0; j < count; j++, it++)
+                        *(u32_list + j) = (sai_uint32_t) *it;
+                    attr->value.u32list.list = u32_list;
+                    attr->value.u32list.count = count;
+                }
+                break;
+
             default:
-                break;	
+                break;
         }
     }
 
@@ -5464,303 +5816,104 @@ public:
         return SAI_NULL_OBJECT_ID;
     }
 
-    void sai_thrift_create_bridge_port(sai_thrift_result_t &ret, const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    void
+    sai_thrift_create_bridge(sai_thrift_result_t &ret,
+                             const std::vector<sai_thrift_attribute_t> &thrift_attr_list)
     {
-        sai_bridge_api_t *bridge_api;
-        sai_attribute_t *sai_attrs = nullptr;
-    
         SAI_THRIFT_FUNC_LOG();
-    
-        ret.__isset.status = true;
-    
-        ret.status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
-        if (ret.status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", ret.status);
-            return;
-        }
-    
-        sai_uint32_t attr_size = thrift_attr_list.size();
-    
-        sai_thrift_alloc_attr(sai_attrs, attr_size);
-    
-        sai_thrift_parse_bridge_port_attributes(thrift_attr_list, sai_attrs);
-    
-        ret.status = bridge_api->create_bridge_port((sai_object_id_t *) &ret.data.oid, gSwitchId, attr_size, sai_attrs);
-        if (ret.status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to create bridge port, status:%d", ret.status);
-        }
-        ret.__isset.data = true;
-        ret.data.__isset.oid = true;
-    
-        sai_thrift_free_attr(sai_attrs);
-    }
-    
-    sai_thrift_status_t sai_thrift_remove_bridge_port(const sai_thrift_object_id_t bridge_port_id)
-    {
-        sai_bridge_api_t *bridge_api;
-        sai_status_t status;
-    
-        SAI_THRIFT_FUNC_LOG();
-    
-        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", status);
-            return status;
-        }
-    
-        return bridge_api->remove_bridge_port((sai_object_id_t) bridge_port_id);
-    }
-    
-    void sai_thrift_get_bridge_port_list(sai_thrift_result_t &ret, sai_thrift_object_id_t bridge_id)
-    {
-        std::vector<sai_thrift_object_id_t>& port_list = ret.data.objlist.object_id_list;
-        sai_bridge_api_t *bridge_api;
-        uint32_t max_ports = 128;
-        sai_attribute_t attr;
-    
-        SAI_THRIFT_FUNC_LOG();
-    
-        ret.__isset.status = true;
-    
-        ret.status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
-        if (ret.status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", ret.status);
-            return;
-        }
-    
-        attr.id = SAI_BRIDGE_ATTR_PORT_LIST;
-        attr.value.objlist.list = (sai_object_id_t *) calloc(max_ports, sizeof(sai_object_id_t));
-        attr.value.objlist.count = max_ports;
-    
-        ret.status = bridge_api->get_bridge_attribute(bridge_id, 1, &attr);
-        if (ret.status != SAI_STATUS_SUCCESS && attr.value.objlist.count > max_ports)
-        {
-            /* retry one more time with a bigger list */
-            max_ports = attr.value.objlist.count;
-            attr.value.objlist.list = (sai_object_id_t *) realloc(attr.value.objlist.list, max_ports * sizeof(sai_object_id_t));
-    
-            ret.status = bridge_api->get_bridge_attribute(bridge_id, 1, &attr);
-        }
-    
-        if (ret.status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("Failed to obtain bridge ports list, status:%d", ret.status);
-            free(attr.value.objlist.list);
-            return;
-        }
-    
-        for (int index = 0; index < attr.value.objlist.count; index++)
-        {
-            port_list.push_back((sai_thrift_object_id_t) attr.value.objlist.list[index]);
-        }
-    
-        ret.data.objlist.count = attr.value.objlist.count;
-    
-        ret.__isset.data = true;
-        ret.data.__isset.objlist=true;
-    
-        free(attr.value.objlist.list);
-    }
-    
-    sai_thrift_status_t sai_thrift_set_bridge_port_attribute(const sai_thrift_object_id_t bridge_port_id,
-                                                             const sai_thrift_attribute_t& thrift_attr)
-    {
-        sai_status_t status = SAI_STATUS_SUCCESS;
-        sai_bridge_api_t *bridge_api;
-        sai_attribute_t attr;
-        const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
-    
-        SAI_THRIFT_FUNC_LOG();
-    
-        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", status);
-            return status;
-        }
-    
-        sai_thrift_parse_bridge_port_attributes(thrift_attr_list, &attr);
-    
-        return bridge_api->set_bridge_port_attribute(bridge_port_id, &attr);
-    }
-
-    void sai_thrift_get_bridge_port_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t bridge_port_id) 
-    {
-        sai_status_t status = SAI_STATUS_SUCCESS;
-        sai_bridge_api_t *bridge_api;
-        uint32_t attr_count = 0;
-        sai_attribute_t attr[13];
-        sai_thrift_attribute_t thrift_attr;
-    
-        SAI_THRIFT_FUNC_LOG();
-    
-        thrift_attr_list.attr_count = 0;
-    
-        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", status);
-            return;
-        }
-    
-        attr[0].id = SAI_BRIDGE_PORT_ATTR_TYPE;
-        attr[1].id = SAI_BRIDGE_PORT_ATTR_ADMIN_STATE;
-        attr_count = 2;
-    
-        status = bridge_api->get_bridge_port_attribute(bridge_port_id, attr_count, attr);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to get bridge port attribute: type,bridge-id,admin-state, status:%d", status);
-            return;
-        }
-    
-        sai_thrift_convert_to_port_thrift_attributes(attr,attr_count,thrift_attr_list);
-    
-        switch (attr[0].value.s32)
-        {
-            case SAI_BRIDGE_PORT_TYPE_PORT:
-                attr[0].id = SAI_BRIDGE_PORT_ATTR_PORT_ID;
-                attr[1].id = SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING;
-                attr[2].id = SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING;
-                attr[3].id = SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP;
-                attr[4].id = SAI_BRIDGE_PORT_ATTR_MAX_LEARNED_ADDRESSES;
-                attr[5].id = SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_LIMIT_VIOLATION_PACKET_ACTION;
-                attr_count = 6;
-                break;
-            
-            case SAI_BRIDGE_PORT_TYPE_1D_ROUTER:
-                attr[0].id = SAI_BRIDGE_PORT_ATTR_RIF_ID;
-                attr[1].id = SAI_BRIDGE_PORT_ATTR_BRIDGE_ID;
-                attr_count = 2;
-                break;
-            
-            case SAI_BRIDGE_PORT_TYPE_TUNNEL:
-                attr[0].id = SAI_BRIDGE_PORT_ATTR_TUNNEL_ID;
-                attr[1].id = SAI_BRIDGE_PORT_ATTR_BRIDGE_ID;
-                attr[2].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE;
-                attr[3].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID;
-                attr[4].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID;
-                attr_count = 5;
-                break;
-            
-            case SAI_BRIDGE_PORT_TYPE_SUB_PORT:
-                attr[0].id = SAI_BRIDGE_PORT_ATTR_PORT_ID;
-                attr[1].id = SAI_BRIDGE_PORT_ATTR_VLAN_ID;
-                attr[2].id = SAI_BRIDGE_PORT_ATTR_TAGGING_MODE;
-                attr[3].id = SAI_BRIDGE_PORT_ATTR_BRIDGE_ID;
-                attr[4].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE;
-                attr[5].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID;
-                attr[6].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID;
-                attr_count = 7;
-                break;
-            
-            default:
-                return;
-        }
-    
-        status = bridge_api->get_bridge_port_attribute(bridge_port_id, attr_count, attr);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to get bridge port attribute for specified bridge port type, status:%d", status);
-            return;
-        }
-    
-        sai_thrift_convert_to_port_thrift_attributes(attr,attr_count,thrift_attr_list);
-    }
-
-    void sai_thrift_create_bridge(sai_thrift_result_t &ret, const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
-    {
         sai_bridge_api_t *bridge_api;
         sai_attribute_t  *sai_attrs = nullptr;
-    
-        SAI_THRIFT_FUNC_LOG();
-    
+
         ret.status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
         if (ret.status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", ret.status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", ret.status);
             return;
         }
-    
+
         sai_uint32_t attr_size = thrift_attr_list.size();
-    
         sai_thrift_alloc_attr(sai_attrs, attr_size);
-    
         sai_thrift_parse_bridge_attributes(thrift_attr_list, sai_attrs);
-    
+
         ret.status = bridge_api->create_bridge((sai_object_id_t *) &ret.data.oid, gSwitchId, attr_size, sai_attrs);
         if (ret.status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to create bridge, status:%d", ret.status);
+            SAI_THRIFT_LOG_ERR("Failed to create bridge, status:%d", ret.status);
         }
-    
+
         ret.__isset.status = true;
         ret.__isset.data = true;
         ret.data.__isset.oid = true;
-    
         sai_thrift_free_attr(sai_attrs);
     }
-    
-    sai_thrift_status_t sai_thrift_remove_bridge(const sai_thrift_object_id_t bridge_port_id)
+
+    sai_thrift_status_t
+    sai_thrift_remove_bridge(const sai_thrift_object_id_t bridge_port_id)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_bridge_api_t *bridge_api;
         sai_status_t status;
-    
-        SAI_THRIFT_FUNC_LOG();
-    
+
         status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
             return status;
         }
-    
-        return bridge_api->remove_bridge((sai_object_id_t) bridge_port_id);
+
+        status = bridge_api->remove_bridge((sai_object_id_t) bridge_port_id);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to remove bridge, status:%d", status);
+        }
+        return status;
     }
-    
-    sai_thrift_status_t sai_thrift_set_bridge_attribute(const sai_thrift_object_id_t bridge_id,
-                                                        const sai_thrift_attribute_t& thrift_attr)
+
+    sai_thrift_status_t
+    sai_thrift_set_bridge_attribute(const sai_thrift_object_id_t bridge_id,
+                                    const sai_thrift_attribute_t &thrift_attr)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_bridge_api_t *bridge_api;
         sai_attribute_t attr;
         const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
-    
-        SAI_THRIFT_FUNC_LOG();
-    
+
         status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
             return status;
         }
-    
+
         sai_thrift_parse_bridge_attributes(thrift_attr_list, &attr);
-    
-        return bridge_api->set_bridge_attribute(bridge_id, &attr);
+        status = bridge_api->set_bridge_attribute(bridge_id, &attr);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to set bridge attribute, status:%d", status);
+        }
+        return status;
     }
 
-    void sai_thrift_get_bridge_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t bridge_id)
+    void
+    sai_thrift_get_bridge_attribute(sai_thrift_attribute_list_t &thrift_attr_list,
+                                    const sai_thrift_object_id_t bridge_id)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_bridge_api_t *bridge_api;
         uint32_t attr_count = 0;
         sai_attribute_t attr[6];
         sai_thrift_attribute_t thrift_attr;
-    
-        SAI_THRIFT_FUNC_LOG();
-    
+
         status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain bridge_api, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
             return;
         }
-    
+
+        attr_count = 6;
         attr[0].id = SAI_BRIDGE_ATTR_TYPE;
         //attr[1].id = SAI_BRIDGE_ATTR_PORT_LIST;
         attr[1].id = SAI_BRIDGE_ATTR_MAX_LEARNED_ADDRESSES;
@@ -5768,88 +5921,326 @@ public:
         attr[3].id = SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE;
         attr[4].id = SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE;
         attr[5].id = SAI_BRIDGE_ATTR_BROADCAST_FLOOD_CONTROL_TYPE;
-    
-        attr_count = 6;
-    
+
         status = bridge_api->get_bridge_attribute(bridge_id, attr_count, attr);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to get bridge attribute, status:%d", status);
-            return;
-        }
-    
+
+        thrift_attr_list.status = status;
+        thrift_attr_list.attr_count = attr_count;
+
         thrift_attr.id = attr[0].id;
         thrift_attr.value.__set_s32(attr[0].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
+
         thrift_attr.id = attr[1].id;
         thrift_attr.value.__set_u32(attr[1].value.u32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
+
         thrift_attr.id = attr[2].id;
         thrift_attr.value.__set_booldata(attr[2].value.booldata);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
+
         thrift_attr.id = attr[3].id;
         thrift_attr.value.__set_s32(attr[3].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
+
         thrift_attr.id = attr[4].id;
         thrift_attr.value.__set_s32(attr[4].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-    
+
         thrift_attr.id = attr[5].id;
         thrift_attr.value.__set_s32(attr[5].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
+
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to get bridge attribute, status:%d", status);
+            return;
+        }
     }
 
+    void
+    sai_thrift_get_bridge_port_list(sai_thrift_result_t &ret, sai_thrift_object_id_t bridge_id)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        std::vector<sai_thrift_object_id_t>& port_list = ret.data.objlist.object_id_list;
+        sai_bridge_api_t *bridge_api;
+        uint32_t max_ports = 128;
+        sai_attribute_t attr;
+        ret.__isset.status = true;
 
+        ret.status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
+        if (ret.status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", ret.status);
+            return;
+        }
 
+        attr.id = SAI_BRIDGE_ATTR_PORT_LIST;
+        attr.value.objlist.list = (sai_object_id_t *) calloc(max_ports, sizeof(sai_object_id_t));
+        attr.value.objlist.count = max_ports;
 
-    void sai_thrift_get_bridge_port_stats(std::vector<int64_t> &thrift_counters,
-                                          const sai_thrift_object_id_t bridge_port_id,
-                                          const std::vector<sai_thrift_bridge_port_stat_counter_t> &thrift_counter_ids,
-                                          const int32_t number_of_counters)
-   {
-        printf("sai_thrift_get_bridge_port_stats\n");
+        ret.status = bridge_api->get_bridge_attribute(bridge_id, 1, &attr);
+        if (ret.status != SAI_STATUS_SUCCESS && attr.value.objlist.count > max_ports)
+        {
+            /* retry one more time with a bigger list */
+            max_ports = attr.value.objlist.count;
+            attr.value.objlist.list = (sai_object_id_t*)realloc(attr.value.objlist.list, max_ports*sizeof(sai_object_id_t));
+
+            ret.status = bridge_api->get_bridge_attribute(bridge_id, 1, &attr);
+        }
+
+        if (ret.status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge ports list, status:%d", ret.status);
+            free(attr.value.objlist.list);
+            return;
+        }
+
+        for (int index = 0; index < attr.value.objlist.count; index++)
+        {
+            port_list.push_back((sai_thrift_object_id_t) attr.value.objlist.list[index]);
+        }
+
+        ret.data.objlist.count = attr.value.objlist.count;
+        ret.__isset.data = true;
+        ret.data.__isset.objlist=true;
+        free(attr.value.objlist.list);
+    }
+
+    void
+    sai_thrift_create_bridge_port(sai_thrift_result_t &ret,
+                                  const std::vector<sai_thrift_attribute_t> &thrift_attr_list)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_bridge_api_t *bridge_api;
+        sai_attribute_t *sai_attrs = nullptr;
+        ret.__isset.status = true;
+
+        ret.status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
+        if (ret.status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", ret.status);
+            return;
+        }
+
+        sai_uint32_t attr_size = thrift_attr_list.size();
+        sai_thrift_alloc_attr(sai_attrs, attr_size);
+        sai_thrift_parse_bridge_port_attributes(thrift_attr_list, sai_attrs);
+
+        ret.status = bridge_api->create_bridge_port((sai_object_id_t *) &ret.data.oid, gSwitchId, attr_size, sai_attrs);
+        if (ret.status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to create bridge port, status:%d", ret.status);
+        }
+
+        ret.__isset.data = true;
+        ret.data.__isset.oid = true;
+        sai_thrift_free_attr(sai_attrs);
+    }
+
+    sai_thrift_status_t
+    sai_thrift_remove_bridge_port(const sai_thrift_object_id_t bridge_port_id)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_bridge_api_t *bridge_api;
+        sai_status_t status;
+
+        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
+            return status;
+        }
+
+        status = bridge_api->remove_bridge_port((sai_object_id_t) bridge_port_id);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to remove bridge port, status:%d", status);
+        }
+        return status;
+    }
+
+    sai_thrift_status_t
+    sai_thrift_set_bridge_port_attribute(const sai_thrift_object_id_t bridge_port_id,
+                                         const sai_thrift_attribute_t &thrift_attr)
+    {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_bridge_api_t *bridge_api;
+        sai_attribute_t attr;
+        const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
+
         status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
-        
-        if (status != SAI_STATUS_SUCCESS) { return; }
-        
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
+            return status;
+        }
+
+        sai_thrift_parse_bridge_port_attributes(thrift_attr_list, &attr);
+        status = bridge_api->set_bridge_port_attribute(bridge_port_id, &attr);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to set bridge port attribute, status:%d", status);
+        }
+        return status;
+    }
+
+    void
+    sai_thrift_get_bridge_port_attribute(sai_thrift_attribute_list_t &thrift_attr_list,
+                                         const sai_thrift_object_id_t bridge_port_id)
+    {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_bridge_api_t *bridge_api;
+        uint32_t attr_count = 0;
+        sai_attribute_t attr[13];
+        sai_thrift_attribute_t thrift_attr;
+        thrift_attr_list.attr_count = 0;
+
+        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
+            return;
+        }
+
+        attr[0].id = SAI_BRIDGE_PORT_ATTR_TYPE;
+        attr[1].id = SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE;
+        attr[2].id = SAI_BRIDGE_PORT_ATTR_ADMIN_STATE;
+        attr_count = 3;
+
+        status = bridge_api->get_bridge_port_attribute(bridge_port_id, attr_count, attr);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to get bridge port attribute, status:%d", status);
+            return;
+        }
+        sai_thrift_convert_to_port_thrift_attributes(attr,attr_count,thrift_attr_list);
+
+        switch (attr[0].value.s32)
+        {
+            case SAI_BRIDGE_PORT_TYPE_PORT:
+                attr[0].id = SAI_BRIDGE_PORT_ATTR_PORT_ID;
+                attr[1].id = SAI_BRIDGE_PORT_ATTR_MAX_LEARNED_ADDRESSES;
+                attr[2].id = SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_LIMIT_VIOLATION_PACKET_ACTION;
+                attr[3].id = SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING;
+                attr[4].id = SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING;
+                attr[5].id = SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP;
+                attr[6].id = SAI_BRIDGE_PORT_ATTR_NEED_FLOOD;
+                attr_count = 7;
+                break;
+
+            case SAI_BRIDGE_PORT_TYPE_SUB_PORT:
+                attr[0].id = SAI_BRIDGE_PORT_ATTR_PORT_ID;
+                attr[1].id = SAI_BRIDGE_PORT_ATTR_TAGGING_MODE;
+                attr[2].id = SAI_BRIDGE_PORT_ATTR_VLAN_ID;
+                attr[3].id = SAI_BRIDGE_PORT_ATTR_BRIDGE_ID;
+                attr[4].id = SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT;
+                attr[5].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE;
+                attr[6].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID;
+                attr[7].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID;
+                attr[8].id = SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID;
+                attr[9].id = SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE;
+                attr[10].id = SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS;
+                attr[11].id = SAI_BRIDGE_PORT_ATTR_NEED_FLOOD;
+                attr_count = 12;
+                break;
+
+            case SAI_BRIDGE_PORT_TYPE_1D_ROUTER:
+                attr[0].id = SAI_BRIDGE_PORT_ATTR_RIF_ID;
+                attr[1].id = SAI_BRIDGE_PORT_ATTR_BRIDGE_ID;
+                attr_count = 2;
+                break;
+
+            case SAI_BRIDGE_PORT_TYPE_TUNNEL:
+                attr[0].id = SAI_BRIDGE_PORT_ATTR_TUNNEL_ID;
+                attr[1].id = SAI_BRIDGE_PORT_ATTR_BRIDGE_ID;
+                attr[2].id = SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT;
+                attr[3].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE;
+                attr[4].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID;
+                attr[5].id = SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID;
+                attr[6].id = SAI_BRIDGE_PORT_ATTR_NEED_FLOOD;
+                attr_count = 7;
+                break;
+
+            case SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT:
+                attr[0].id = SAI_BRIDGE_PORT_ATTR_PORT_ID;
+                attr[1].id = SAI_BRIDGE_PORT_ATTR_TAGGING_MODE;
+                attr[2].id = SAI_BRIDGE_PORT_ATTR_VLAN_ID;
+                attr[3].id = SAI_BRIDGE_PORT_ATTR_BRIDGE_ID;
+                attr[4].id = SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID;
+                attr[5].id = SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE;
+                attr[6].id = SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS;
+                attr[7].id = SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID;
+                attr[8].id = SAI_BRIDGE_PORT_ATTR_NEED_FLOOD;
+                attr_count = 9;
+                break;
+
+            default:
+                return;
+        }
+
+        status = bridge_api->get_bridge_port_attribute(bridge_port_id, attr_count, attr);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to get bridge port attribute for specific bridge port type, status:%d", status);
+            return;
+        }
+        sai_thrift_convert_to_port_thrift_attributes(attr,attr_count,thrift_attr_list);
+    }
+
+    void
+    sai_thrift_get_bridge_port_stats(std::vector<int64_t> &thrift_counters,
+                                     const sai_thrift_object_id_t bridge_port_id,
+                                     const std::vector<sai_thrift_bridge_port_stat_counter_t> &thrift_counter_ids,
+                                     const int32_t number_of_counters)
+   {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_bridge_api_t *bridge_api;
+
+        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
+            return;
+        }
+
         sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(sai_bridge_stat_t) * thrift_counter_ids.size());
         std::vector<int32_t>::const_iterator it = thrift_counter_ids.begin();
         uint64_t *counters = (uint64_t *) malloc(sizeof(uint64_t) * thrift_counter_ids.size());
         memset(counters, 0, sizeof(uint64_t) * thrift_counter_ids.size());
         for(uint32_t i = 0; i < thrift_counter_ids.size(); i++, it++)
         { counter_ids[i] = (sai_bridge_stat_t) *it; }
-        
-        status = bridge_api->get_bridge_port_stats(bridge_port_id,
-                                                   number_of_counters,
-                                                   counter_ids,
-                                                   counters);
-        
-        for (uint32_t i = 0; i < thrift_counter_ids.size(); i++) { thrift_counters.push_back(counters[i]); }
-        
+
+        status = bridge_api->get_bridge_port_stats(bridge_port_id, number_of_counters, counter_ids, counters);
+
+        for (uint32_t i = 0; i < thrift_counter_ids.size(); i++)
+        { thrift_counters.push_back(counters[i]); }
+
         free(counter_ids);
         free(counters);
-        
         return;
     }
 
-    void sai_thrift_get_bridge_port_stats_ext(std::vector<int64_t> &thrift_counters,
-                                              const sai_thrift_object_id_t bridge_port_id,
-                                              const std::vector<sai_thrift_bridge_port_stat_counter_t> &thrift_counter_ids,
-                                              int8_t mode,
-                                              int32_t number_of_counters)
+    void
+    sai_thrift_get_bridge_port_stats_ext(std::vector<int64_t> &thrift_counters,
+                                          const sai_thrift_object_id_t bridge_port_id,
+                                          const std::vector<sai_thrift_bridge_port_stat_counter_t> &thrift_counter_ids,
+                                          int8_t mode,
+                                          int32_t number_of_counters)
     {
-        printf("sai_thrift_get_bridge_port_stats_ext\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_bridge_api_t *bridge_api;
-        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
 
-        if (status != SAI_STATUS_SUCCESS) { return; }
+        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
+            return;
+        }
 
         sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(sai_bridge_stat_t) * thrift_counter_ids.size());
         std::vector<int32_t>::const_iterator it = thrift_counter_ids.begin();
@@ -5862,31 +6253,31 @@ public:
             counter_ids[i] = (sai_bridge_stat_t) *it;
         }
 
-        status = bridge_api->get_bridge_port_stats_ext(bridge_port_id,
-                                          number_of_counters,
-                                          counter_ids,
-                                          (sai_stats_mode_t)mode,
-                                          counters);
+        status = bridge_api->get_bridge_port_stats_ext(bridge_port_id, number_of_counters,
+                                                       counter_ids, (sai_stats_mode_t)mode, counters);
 
         for (uint32_t i = 0; i < thrift_counter_ids.size(); i++) { thrift_counters.push_back(counters[i]); }
 
         free(counter_ids);
         free(counters);
-
         return;
     }
 
-
-    sai_thrift_status_t sai_thrift_clear_bridge_port_stats(const sai_thrift_object_id_t bridge_port_id,
-                                                           const std::vector<sai_thrift_bridge_port_stat_counter_t> &thrift_counter_ids,
-                                                           int32_t number_of_counters)
+    sai_thrift_status_t
+    sai_thrift_clear_bridge_port_stats(const sai_thrift_object_id_t bridge_port_id,
+                                       const std::vector<sai_thrift_bridge_port_stat_counter_t> &thrift_counter_ids,
+                                       int32_t number_of_counters)
     {
-        printf("sai_thrift_clear_bridge_port_stats\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_bridge_api_t *bridge_api;
-        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
 
-        if (status != SAI_STATUS_SUCCESS) { return status; }
+        status = sai_api_query(SAI_API_BRIDGE, (void **) &bridge_api);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain bridge_api, status:%d", status);
+            return;
+        }
 
         sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(sai_bridge_stat_t) * thrift_counter_ids.size());
         std::vector<int32_t>::const_iterator it = thrift_counter_ids.begin();
@@ -5899,13 +6290,10 @@ public:
             counter_ids[i] = (sai_bridge_stat_t) *it;
         }
 
-        status = bridge_api->clear_bridge_port_stats(bridge_port_id,
-                                          number_of_counters,
-                                          counter_ids);
+        status = bridge_api->clear_bridge_port_stats(bridge_port_id, number_of_counters, counter_ids);
 
         free(counter_ids);
         free(counters);
-
         return status;
     }
 
@@ -6529,8 +6917,250 @@ public:
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+13:
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+14:
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+15:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+16:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+17:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+18:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+19:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+20:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+21:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+22:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+23:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+24:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+25:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+26:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+27:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+28:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+29:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+30:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+31:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+32:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+33:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+34:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+35:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+36:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+37:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+38:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+39:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+40:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+41:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+42:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+43:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+44:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+45:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+46:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+47:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+48:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+49:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+50:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+51:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+52:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+53:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+54:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+55:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+56:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+57:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+58:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+59:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+60:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+61:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+62:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+63:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+64:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+65:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+66:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+67:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+68:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+69:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+70:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+71:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+72:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+73:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+74:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+75:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+76:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+77:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+78:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+79:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+80:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+81:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+82:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+83:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+84:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+85:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+86:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+87:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+88:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+89:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+90:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+91:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+92:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+93:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+94:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+95:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+96:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+97:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+98:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+99:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+100:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+101:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+102:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+103:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+104:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+105:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+106:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+107:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+108:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+109:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+110:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+111:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+112:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+113:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+114:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+115:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+116:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+117:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+118:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+119:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+120:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+121:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+122:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+123:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+124:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+125:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+126:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+127:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+128:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+129:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+130:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+131:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+132:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+133:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+134:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+135:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+136:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+137:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+138:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+139:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+140:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+141:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+142:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+143:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+144:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+145:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+146:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+147:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+148:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+149:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+150:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+151:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+152:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+153:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+154:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+155:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+156:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+157:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+158:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+159:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+160:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+161:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+162:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+163:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+164:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+165:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+166:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+167:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+168:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+169:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+170:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+171:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+172:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+173:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+174:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+175:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+176:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+177:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+178:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+179:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+180:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+181:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+182:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+183:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+184:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+185:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+186:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+187:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+188:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+189:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+190:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+191:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+192:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+193:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+194:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+195:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+196:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+197:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+198:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+199:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+200:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+201:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+202:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+203:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+204:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+205:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+206:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+207:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+208:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+209:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+210:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+211:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+212:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+213:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+214:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+215:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+216:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+217:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+218:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+219:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+220:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+221:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+222:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+223:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+224:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+225:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+226:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+227:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+228:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+229:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+230:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+231:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+232:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+233:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+234:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+235:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+236:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+237:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+238:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+239:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+240:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+241:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+242:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+243:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+244:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+245:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+246:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+247:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+248:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+249:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+250:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+251:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+252:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+253:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+254:
+                case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+255:
                 case SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER:
+                case SAI_ACL_TABLE_ATTR_FIELD_GRE_KEY:
                 case SAI_ACL_TABLE_ATTR_FIELD_TAM_INT_TYPE:
+                case SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID:
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
                 default:
@@ -6726,7 +7356,13 @@ public:
                     attr_list[i].value.aclfield.enable = attribute.value.aclfield.enable;
                     attr_list[i].value.aclfield.data.u8 = attribute.value.aclfield.data.u8;
                     attr_list[i].value.aclfield.mask.u8 = attribute.value.aclfield.mask.u8;
-                    break;                    
+                    break;
+                case SAI_ACL_ENTRY_ATTR_FIELD_GRE_KEY:
+                    printf("%s %d, SAI_ACL_ENTRY_ATTR_FIELD_GRE_KEY:%u\n", __FUNCTION__, __LINE__, attribute.value.aclfield.data.u8);
+                    attr_list[i].value.aclfield.enable = attribute.value.aclfield.enable;
+                    attr_list[i].value.aclfield.data.u32 = attribute.value.aclfield.data.u32;
+                    attr_list[i].value.aclfield.mask.u32 = attribute.value.aclfield.mask.u32;
+                    break;
                 case SAI_ACL_ENTRY_ATTR_FIELD_DSCP:
                     printf("%s %d, SAI_ACL_ENTRY_ATTR_FIELD_DSCP\n", __FUNCTION__, __LINE__);
                     attr_list[i].value.aclfield.enable = attribute.value.aclfield.enable;
@@ -7710,12 +8346,28 @@ public:
                     thrift_attr.value.__isset.aclfield = true;
                     thrift_attr.value.aclfield.data.__isset.u8 = true;
                     break;
-                case SAI_ACL_ENTRY_ATTR_FIELD_ACL_RANGE_TYPE :    /* need revise */
+                case SAI_ACL_ENTRY_ATTR_FIELD_ACL_RANGE_TYPE:
+                    {
+                        thrift_attr.value.aclfield.data.objlist.count = attr_list[index].value.aclfield.data.objlist.count;
+                        std :: vector < sai_thrift_object_id_t > & range_list = thrift_attr.value.aclfield.data.objlist.object_id_list;
+
+                        for (ii = 0; ii < attr_list[index].value.aclfield.data.objlist.count; ii++)
+                        {
+                            range_list.push_back((sai_thrift_object_id_t)attr_list[index].value.aclfield.data.objlist.list[ii]);
+                        }
+                        thrift_attr.value.__isset.aclfield = true;
+                        thrift_attr.value.aclfield.data.__isset.objlist = true;
+                    }
                     break;
                 case SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER:
                     thrift_attr.value.aclfield.data.u8 = attr_list[index].value.aclfield.data.u8;
                     thrift_attr.value.__isset.aclfield = true;
                     thrift_attr.value.aclfield.data.__isset.u8 = true;
+                    break;
+                case SAI_ACL_ENTRY_ATTR_FIELD_GRE_KEY:
+                    thrift_attr.value.aclfield.data.u32 = attr_list[index].value.aclfield.data.u32;
+                    thrift_attr.value.__isset.aclfield = true;
+                    thrift_attr.value.aclfield.data.__isset.u32 = true;
                     break;
                     /* key end */
                 case SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT:
@@ -9248,7 +9900,7 @@ public:
                 case SAI_TWAMP_SESSION_ATTR_NEXT_HOP_ID:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
-                case SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE:
+                case SAI_TWAMP_SESSION_ATTR_TWAMP_PKT_TX_MODE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;                    
                 case SAI_TWAMP_SESSION_ATTR_TX_PKT_PERIOD:
@@ -9263,7 +9915,7 @@ public:
                 case SAI_TWAMP_SESSION_ATTR_TX_PKT_DURATION:
                     attr_list[i].value.u32 = attribute.value.u32;
                     break;
-	          case SAI_TWAMP_SESSION_ATTR_MODE:
+	          case SAI_TWAMP_SESSION_ATTR_TWAMP_MODE:
                     attr_list[i].value.s32 = attribute.value.s32;
 	              break;
 	          case SAI_TWAMP_SESSION_ATTR_TIMESTAMP_FORMAT:
@@ -9778,12 +10430,12 @@ public:
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_PACKET_LENGTH;
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_AUTH_MODE;
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_NEXT_HOP_ID;
-        attr[i++].id = SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE;        
+        attr[i++].id = SAI_TWAMP_SESSION_ATTR_TWAMP_PKT_TX_MODE;        
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_TX_PKT_PERIOD;
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_TX_RATE;
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_TX_PKT_CNT;
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_TX_PKT_DURATION;
-        attr[i++].id = SAI_TWAMP_SESSION_ATTR_MODE;
+        attr[i++].id = SAI_TWAMP_SESSION_ATTR_TWAMP_MODE;
         attr[i++].id = SAI_TWAMP_SESSION_ATTR_TIMESTAMP_FORMAT;
       
         status = twamp_api->get_twamp_session_attribute(twamp_session_id, i, attr);
@@ -13534,99 +14186,95 @@ public:
         free(statuslist);
     }
 
-	sai_thrift_object_id_t sai_thrift_create_l2mc_group(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_object_id_t
+    sai_thrift_create_l2mc_group(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_l2mc_group\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_l2mc_group_api_t *l2mc_grp_api;
-        sai_object_id_t	grp_id = SAI_NULL_OBJECT_ID;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+        sai_object_id_t grp_id = SAI_NULL_OBJECT_ID;
+
         status = sai_api_query(SAI_API_L2MC_GROUP, (void **) &l2mc_grp_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
            return status;
         }
-        
+
         status = l2mc_grp_api->create_l2mc_group(&grp_id, gSwitchId, 0, NULL);
-        
         return grp_id;
     }
 
-	sai_thrift_status_t sai_thrift_remove_l2mc_group(const sai_thrift_object_id_t grp_id)
+    sai_thrift_status_t
+    sai_thrift_remove_l2mc_group(const sai_thrift_object_id_t grp_id)
     {
-        printf("sai_thrift_remove_l2mc_group\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_l2mc_group_api_t *l2mc_grp_api;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+
         status = sai_api_query(SAI_API_L2MC_GROUP, (void **) &l2mc_grp_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
            return status;
         }
-        
+
         status = l2mc_grp_api->remove_l2mc_group(grp_id);
-        
         return status;
     }
 
-	void sai_thrift_get_l2mc_group_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t grp_id)
+    void
+    sai_thrift_get_l2mc_group_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                        const sai_thrift_object_id_t grp_id)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_l2mc_group_api_t *l2mc_grp_api;
         uint32_t attr_count = 0;
         sai_attribute_t attr[2];
-	    sai_thrift_attribute_t thrift_attr;
-	    sai_object_list_t *member_list_object;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+        sai_thrift_attribute_t thrift_attr;
+        sai_object_list_t *member_list_object;
         thrift_attr_list.attr_count = 0;
-        
+
         thrift_attr_list.status = sai_api_query(SAI_API_L2MC_GROUP, (void **) &l2mc_grp_api);
-        if (thrift_attr_list.status != SAI_STATUS_SUCCESS)
+        if(thrift_attr_list.status != SAI_STATUS_SUCCESS)
         {
             return;
         }
-        
-	    attr_count = 2;
-        
+
+        attr_count = 2;
         attr[0].id = SAI_L2MC_GROUP_ATTR_L2MC_OUTPUT_COUNT;
         attr[1].id = SAI_L2MC_GROUP_ATTR_L2MC_MEMBER_LIST;
         attr[1].value.objlist.list = (sai_object_id_t *) malloc(sizeof(sai_object_id_t) * 128);
         attr[1].value.objlist.count = 128;
-        
+
         thrift_attr_list.status = l2mc_grp_api->get_l2mc_group_attribute(grp_id, attr_count, attr);
-        if (thrift_attr_list.status != SAI_STATUS_SUCCESS)
+        if(thrift_attr_list.status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain l2mc group attribute, status:%d", thrift_attr_list.status);
-	        free(attr[1].value.objlist.list);
+            SAI_THRIFT_LOG_ERR("Failed to obtain l2mc group attribute, status:%d", thrift_attr_list.status);
+            free(attr[1].value.objlist.list);
             return;
         }
-        
+
         thrift_attr.id = attr[0].id;
-	    thrift_attr.value.__set_u32(attr[0].value.u32);
-	    thrift_attr_list.attr_list.push_back(thrift_attr);
-        
-	    thrift_attr.id = attr[1].id;
-	    thrift_attr.value.objlist.count = attr[1].value.objlist.count;
-	    std::vector<sai_thrift_object_id_t>& member_list = thrift_attr.value.objlist.object_id_list;
+        thrift_attr.value.__set_u32(attr[0].value.u32);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+
+        thrift_attr.id = attr[1].id;
+        thrift_attr.value.objlist.count = attr[1].value.objlist.count;
+        std::vector<sai_thrift_object_id_t>& member_list = thrift_attr.value.objlist.object_id_list;
         member_list_object = &attr[1].value.objlist;
         for (int index = 0; index < attr[1].value.objlist.count; index++)
         {
             member_list.push_back((sai_thrift_object_id_t) member_list_object->list[index]);
         }
-        
+
         thrift_attr.value.__isset.objlist = true;
         thrift_attr_list.attr_list.push_back(thrift_attr);
-        
-	    free(attr[1].value.objlist.list);
+
+        free(attr[1].value.objlist.list);
     }
 
-	void sai_thrift_parse_l2mc_group_member_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
-                                                       sai_attribute_t *attr_list)
+    void
+    sai_thrift_parse_l2mc_group_member_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list,
+                                                  sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -13634,127 +14282,123 @@ public:
         {
             attribute = (sai_thrift_attribute_t)*it;
             attr_list[i].id = attribute.id;
-        
+
             switch (attribute.id)
             {
                 case SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_GROUP_ID:
                 case SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_OUTPUT_ID:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
-        
+
                 default:
-                    SAI_THRIFT_LOG_ERR("Failed to parse l2mc member attributes.");
+                    SAI_THRIFT_LOG_ERR("Failed to parse l2mc member attributes");
                     break;
             }
         }
     }
 
-	sai_thrift_object_id_t sai_thrift_create_l2mc_group_member(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_object_id_t
+    sai_thrift_create_l2mc_group_member(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_l2mc_group_member\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_l2mc_group_api_t *l2mc_grp_api;
-	    sai_attribute_t  *sai_attrs = nullptr;
-	    sai_object_id_t	member_oid = SAI_NULL_OBJECT_ID;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+        sai_attribute_t  *sai_attrs = nullptr;
+        sai_object_id_t	member_oid = SAI_NULL_OBJECT_ID;
+
         status = sai_api_query(SAI_API_L2MC_GROUP, (void **) &l2mc_grp_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
            return status;
         }
+
         sai_uint32_t attr_size = thrift_attr_list.size();
-
         sai_thrift_alloc_attr(sai_attrs, attr_size);
-
         sai_thrift_parse_l2mc_group_member_attributes(thrift_attr_list, sai_attrs);
 
         status = l2mc_grp_api->create_l2mc_group_member(&member_oid, gSwitchId, attr_size, sai_attrs);
-
         return member_oid;
     }
 
-	sai_thrift_status_t sai_thrift_remove_l2mc_group_member(const sai_thrift_object_id_t member_id)
+    sai_thrift_status_t
+    sai_thrift_remove_l2mc_group_member(const sai_thrift_object_id_t member_id)
     {
-        printf("sai_thrift_remove_l2mc_group_member\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_l2mc_group_api_t *l2mc_grp_api;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+
         status = sai_api_query(SAI_API_L2MC_GROUP, (void **) &l2mc_grp_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
            return status;
         }
-        
+
         status = l2mc_grp_api->remove_l2mc_group_member(member_id);
-        
         return status;
     }
 
-	sai_thrift_status_t sai_thrift_set_l2mc_group_member_attribute(const sai_thrift_object_id_t member_id,
-                                                                   const sai_thrift_attribute_t& thrift_attr)
+    sai_thrift_status_t
+    sai_thrift_set_l2mc_group_member_attribute(const sai_thrift_object_id_t member_id,
+                                               const sai_thrift_attribute_t& thrift_attr)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_l2mc_group_api_t *l2mc_grp_api;
         sai_attribute_t attr;
         const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+
         status = sai_api_query(SAI_API_L2MC_GROUP, (void **) &l2mc_grp_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain l2mc_grp_api, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain l2mc_grp_api, status:%d", status);
             return status;
         }
-        
+
         sai_thrift_parse_l2mc_group_member_attributes(thrift_attr_list, &attr);
-        
+
         return l2mc_grp_api->set_l2mc_group_member_attribute(member_id, &attr);
     }
 
-	void sai_thrift_get_l2mc_group_member_attribute(sai_thrift_attribute_list_t& thrift_attr_list, 
-                                                    const sai_thrift_object_id_t member_id)
+    void
+    sai_thrift_get_l2mc_group_member_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                               const sai_thrift_object_id_t member_id)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_l2mc_group_api_t *l2mc_grp_api;
         uint32_t attr_count = 0;
         sai_attribute_t attr[4];
-	    sai_thrift_attribute_t thrift_attr;
-	    sai_object_list_t *member_list_object;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+        sai_thrift_attribute_t thrift_attr;
+        sai_object_list_t *member_list_object;
         thrift_attr_list.attr_count = 0;
-        
+
         thrift_attr_list.status = sai_api_query(SAI_API_L2MC_GROUP, (void **) &l2mc_grp_api);
-        if (thrift_attr_list.status != SAI_STATUS_SUCCESS)
+        if(thrift_attr_list.status != SAI_STATUS_SUCCESS)
         {
             return;
         }
+
         attr_count = 2;
         attr[0].id = SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_GROUP_ID;
         attr[1].id = SAI_L2MC_GROUP_MEMBER_ATTR_L2MC_OUTPUT_ID;
-        
         thrift_attr_list.status = l2mc_grp_api->get_l2mc_group_member_attribute(member_id, attr_count, attr);
         if (thrift_attr_list.status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain l2mc group member attribute, status:%d", thrift_attr_list.status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain l2mc group member attribute, status:%d", thrift_attr_list.status);
             return;
         }
-        
+
         thrift_attr.id = attr[0].id;
         thrift_attr.value.__set_oid(attr[0].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-        
+
         thrift_attr.id = attr[1].id;
         thrift_attr.value.__set_oid(attr[1].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     }
 
-	void sai_thrift_parse_l2mc_entry_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, sai_attribute_t *attr_list)
+    void
+    sai_thrift_parse_l2mc_entry_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list,
+                                           sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -13762,16 +14406,16 @@ public:
         {
             attribute = (sai_thrift_attribute_t)*it;
             attr_list[i].id = attribute.id;
-        
-            switch (attribute.id)
+
+            switch(attribute.id)
             {
-	    	    case SAI_L2MC_ENTRY_ATTR_PACKET_ACTION:
-	    	    	attr_list[i].value.s32 = attribute.value.s32;
-	    	    	break;
+                case SAI_L2MC_ENTRY_ATTR_PACKET_ACTION:
+                    attr_list[i].value.s32 = attribute.value.s32;
+                    break;
                 case SAI_L2MC_ENTRY_ATTR_OUTPUT_GROUP_ID:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
-                
+
                 default:
                     SAI_THRIFT_LOG_ERR("Failed to parse l2mc member attributes.");
                     break;
@@ -13779,124 +14423,118 @@ public:
         }
     }
 
-	sai_thrift_status_t sai_thrift_create_l2mc_entry(const sai_thrift_l2mc_entry_t &thrift_l2mc_entry,
-                                                     const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_status_t
+    sai_thrift_create_l2mc_entry(const sai_thrift_l2mc_entry_t &thrift_l2mc_entry,
+                                 const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_l2mc_entry\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_l2mc_api_t *l2mc_api;
         sai_l2mc_entry_t l2mc_entry;
         sai_attribute_t  *sai_attrs = nullptr;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+
         status = sai_api_query(SAI_API_L2MC, (void **) &l2mc_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
            return status;
         }
-    
-	    sai_thrift_parse_l2mc_entry(thrift_l2mc_entry, &l2mc_entry);
-        
-	    sai_uint32_t attr_size = thrift_attr_list.size();
 
+        sai_thrift_parse_l2mc_entry(thrift_l2mc_entry, &l2mc_entry);
+
+        sai_uint32_t attr_size = thrift_attr_list.size();
         sai_thrift_alloc_attr(sai_attrs, attr_size);
-
         sai_thrift_parse_l2mc_entry_attributes(thrift_attr_list, sai_attrs);
 
         status = l2mc_api->create_l2mc_entry(&l2mc_entry, attr_size, sai_attrs);
-
         return status;
     }
 
-	sai_thrift_status_t sai_thrift_remove_l2mc_entry(const sai_thrift_l2mc_entry_t &thrift_l2mc_entry)
+    sai_thrift_status_t
+    sai_thrift_remove_l2mc_entry(const sai_thrift_l2mc_entry_t &thrift_l2mc_entry)
     {
-        printf("sai_thrift_remove_l2mc_entry\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_l2mc_api_t *l2mc_api;
         sai_l2mc_entry_t l2mc_entry;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+
         status = sai_api_query(SAI_API_L2MC, (void **) &l2mc_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
            return status;
         }
 
-	    sai_thrift_parse_l2mc_entry(thrift_l2mc_entry, &l2mc_entry);
+        sai_thrift_parse_l2mc_entry(thrift_l2mc_entry, &l2mc_entry);
 
         status = l2mc_api->remove_l2mc_entry(&l2mc_entry);
-
         return status;
     }
 
-	sai_thrift_status_t sai_thrift_set_l2mc_entry_attribute(const sai_thrift_l2mc_entry_t &thrift_l2mc_entry,
-                                                            const sai_thrift_attribute_t& thrift_attr)
+    sai_thrift_status_t
+    sai_thrift_set_l2mc_entry_attribute(const sai_thrift_l2mc_entry_t &thrift_l2mc_entry,
+                                        const sai_thrift_attribute_t& thrift_attr)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_l2mc_api_t *l2mc_api;
         sai_l2mc_entry_t l2mc_entry;
         sai_attribute_t attr;
         const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+
         status = sai_api_query(SAI_API_L2MC, (void **) &l2mc_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain l2mc_api, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain l2mc_api, status:%d", status);
             return status;
         }
-        
-	    sai_thrift_parse_l2mc_entry(thrift_l2mc_entry, &l2mc_entry);
+
+        sai_thrift_parse_l2mc_entry(thrift_l2mc_entry, &l2mc_entry);
         sai_thrift_parse_l2mc_entry_attributes(thrift_attr_list, &attr);
-    
+
         return l2mc_api->set_l2mc_entry_attribute(&l2mc_entry, &attr);
     }
 
-	void sai_thrift_get_l2mc_entry_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
-                                             const sai_thrift_l2mc_entry_t &thrift_l2mc_entry)
+    void
+    sai_thrift_get_l2mc_entry_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                        const sai_thrift_l2mc_entry_t &thrift_l2mc_entry)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_l2mc_api_t *l2mc_api;
         sai_l2mc_entry_t l2mc_entry;
         uint32_t attr_count = 0;
         sai_attribute_t attr[4];
-	    sai_thrift_attribute_t thrift_attr;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+        sai_thrift_attribute_t thrift_attr;
         thrift_attr_list.attr_count = 0;
-        
+
         thrift_attr_list.status = sai_api_query(SAI_API_L2MC, (void **) &l2mc_api);
-        if (thrift_attr_list.status != SAI_STATUS_SUCCESS)
+        if(thrift_attr_list.status != SAI_STATUS_SUCCESS)
         {
-            return;
-        }
-        
-        attr_count = 2;
-        attr[0].id = SAI_L2MC_ENTRY_ATTR_PACKET_ACTION;
-        attr[1].id = SAI_L2MC_ENTRY_ATTR_OUTPUT_GROUP_ID;
-        
-        sai_thrift_parse_l2mc_entry(thrift_l2mc_entry, &l2mc_entry);
-        thrift_attr_list.status = l2mc_api->get_l2mc_entry_attribute(&l2mc_entry, attr_count, attr);
-        if (thrift_attr_list.status != SAI_STATUS_SUCCESS)
-        {
-            SAI_THRIFT_LOG_ERR("failed to obtain l2mc entry attribute, status:%d", thrift_attr_list.status);
             return;
         }
 
-		thrift_attr.id = attr[0].id;
+        attr_count = 2;
+        attr[0].id = SAI_L2MC_ENTRY_ATTR_PACKET_ACTION;
+        attr[1].id = SAI_L2MC_ENTRY_ATTR_OUTPUT_GROUP_ID;
+        sai_thrift_parse_l2mc_entry(thrift_l2mc_entry, &l2mc_entry);
+
+        thrift_attr_list.status = l2mc_api->get_l2mc_entry_attribute(&l2mc_entry, attr_count, attr);
+        if(thrift_attr_list.status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to obtain l2mc entry attribute, status:%d", thrift_attr_list.status);
+            return;
+        }
+
+        thrift_attr.id = attr[0].id;
         thrift_attr.value.__set_s32(attr[0].value.s32);
-		thrift_attr_list.attr_list.push_back(thrift_attr);
+        thrift_attr_list.attr_list.push_back(thrift_attr);
 
         thrift_attr.id = attr[1].id;
         thrift_attr.value.__set_oid(attr[1].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
     }
 
-	void sai_thrift_parse_mcast_fdb_entry_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
-                                                     sai_attribute_t *attr_list)
+    void
+    sai_thrift_parse_mcast_fdb_entry_attributes(const std::vector<sai_thrift_attribute_t> &thrift_attr_list, 
+                                                sai_attribute_t *attr_list)
     {
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
@@ -13904,21 +14542,21 @@ public:
         {
             attribute = (sai_thrift_attribute_t)*it;
             attr_list[i].id = attribute.id;
-        
-            switch (attribute.id)
+
+            switch(attribute.id)
             {
                 case SAI_MCAST_FDB_ENTRY_ATTR_PACKET_ACTION:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
-        
+
                 case SAI_MCAST_FDB_ENTRY_ATTR_GROUP_ID:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
-        
+
                 case SAI_MCAST_FDB_ENTRY_ATTR_META_DATA:
                     attr_list[i].value.u32 = attribute.value.u32;
                     break;
-        
+
                 default:
                     SAI_THRIFT_LOG_ERR("Failed to parse mcast fdb entry attributes.");
                     break;
@@ -13926,73 +14564,66 @@ public:
         }
     }
 
-	sai_thrift_status_t sai_thrift_create_mcast_fdb_entry(const sai_thrift_mcast_fdb_entry_t &thrift_mcast_fdb_entry,
-                                                          const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_status_t
+    sai_thrift_create_mcast_fdb_entry(const sai_thrift_mcast_fdb_entry_t &thrift_mcast_fdb_entry,
+                                      const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-        printf("sai_thrift_create_mcast_fdb_entry\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_mcast_fdb_api_t *mcast_fdb_api;
         sai_mcast_fdb_entry_t mcast_fdb_entry;
         sai_attribute_t  *sai_attrs = nullptr;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+
         status = sai_api_query(SAI_API_MCAST_FDB, (void **) &mcast_fdb_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
            return status;
         }
 
-	    sai_thrift_parse_mcast_fdb_entry(thrift_mcast_fdb_entry, &mcast_fdb_entry);
-
-	    sai_uint32_t attr_size = thrift_attr_list.size();
-
-	    sai_thrift_alloc_attr(sai_attrs, attr_size);
-
-	    sai_thrift_parse_mcast_fdb_entry_attributes(thrift_attr_list, sai_attrs);
-
-	    status = mcast_fdb_api->create_mcast_fdb_entry(&mcast_fdb_entry, attr_size, sai_attrs);
-
-	    return status;
-    }
-
-	sai_thrift_status_t sai_thrift_remove_mcast_fdb_entry(const sai_thrift_mcast_fdb_entry_t &thrift_mcast_fdb_entry)
-    {
-        printf("sai_thrift_remove_mcast_fdb_entry\n");
-        sai_status_t status = SAI_STATUS_SUCCESS;
-        sai_mcast_fdb_api_t *mcast_fdb_api;
-        sai_mcast_fdb_entry_t mcast_fdb_entry;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
-        status = sai_api_query(SAI_API_MCAST_FDB, (void **) &mcast_fdb_api);
-        if (status != SAI_STATUS_SUCCESS)
-        {
-           return status;
-        }
-        
         sai_thrift_parse_mcast_fdb_entry(thrift_mcast_fdb_entry, &mcast_fdb_entry);
+        sai_uint32_t attr_size = thrift_attr_list.size();
+        sai_thrift_alloc_attr(sai_attrs, attr_size);
+        sai_thrift_parse_mcast_fdb_entry_attributes(thrift_attr_list, sai_attrs);
 
-        status = mcast_fdb_api->remove_mcast_fdb_entry(&mcast_fdb_entry);
-
+        status = mcast_fdb_api->create_mcast_fdb_entry(&mcast_fdb_entry, attr_size, sai_attrs);
         return status;
     }
 
-	sai_thrift_status_t sai_thrift_set_mcast_fdb_entry_attribute(const sai_thrift_mcast_fdb_entry_t &thrift_mcast_fdb_entry,
-                                                                 const sai_thrift_attribute_t& thrift_attr)
+    sai_thrift_status_t
+    sai_thrift_remove_mcast_fdb_entry(const sai_thrift_mcast_fdb_entry_t &thrift_mcast_fdb_entry)
     {
+        SAI_THRIFT_FUNC_LOG();
+        sai_status_t status = SAI_STATUS_SUCCESS;
+        sai_mcast_fdb_api_t *mcast_fdb_api;
+        sai_mcast_fdb_entry_t mcast_fdb_entry;
+
+        status = sai_api_query(SAI_API_MCAST_FDB, (void **) &mcast_fdb_api);
+        if(status != SAI_STATUS_SUCCESS)
+        {
+           return status;
+        }
+
+        sai_thrift_parse_mcast_fdb_entry(thrift_mcast_fdb_entry, &mcast_fdb_entry);
+
+        status = mcast_fdb_api->remove_mcast_fdb_entry(&mcast_fdb_entry);
+        return status;
+    }
+
+    sai_thrift_status_t
+    sai_thrift_set_mcast_fdb_entry_attribute(const sai_thrift_mcast_fdb_entry_t &thrift_mcast_fdb_entry,
+                                             const sai_thrift_attribute_t& thrift_attr)
+    {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_mcast_fdb_api_t *mcast_fdb_api;
         sai_mcast_fdb_entry_t mcast_fdb_entry;
         sai_attribute_t attr;
         const std::vector<sai_thrift_attribute_t> thrift_attr_list = { thrift_attr };
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+
         status = sai_api_query(SAI_API_MCAST_FDB, (void **) &mcast_fdb_api);
-        if (status != SAI_STATUS_SUCCESS)
+        if(status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain mcast_fdb_api, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain mcast_fdb_api, status:%d", status);
             return status;
         }
 
@@ -14002,46 +14633,45 @@ public:
         return mcast_fdb_api->set_mcast_fdb_entry_attribute(&mcast_fdb_entry, &attr);
     }
 
-	void sai_thrift_get_mcast_fdb_entry_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
-                                                  const sai_thrift_mcast_fdb_entry_t &thrift_mcast_fdb_entry)
+    void
+    sai_thrift_get_mcast_fdb_entry_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                             const sai_thrift_mcast_fdb_entry_t &thrift_mcast_fdb_entry)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_mcast_fdb_api_t *mcast_fdb_api;
         sai_mcast_fdb_entry_t mcast_fdb_entry;
         uint32_t attr_count = 0;
         sai_attribute_t attr[4];
-	    sai_thrift_attribute_t thrift_attr;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+        sai_thrift_attribute_t thrift_attr;
+
         thrift_attr_list.attr_count = 0;
-        
         thrift_attr_list.status = sai_api_query(SAI_API_MCAST_FDB, (void **) &mcast_fdb_api);
-        if (thrift_attr_list.status != SAI_STATUS_SUCCESS)
+        if(thrift_attr_list.status != SAI_STATUS_SUCCESS)
         {
             return;
         }
-        
+
         attr_count = 3;
         attr[0].id = SAI_MCAST_FDB_ENTRY_ATTR_PACKET_ACTION;
         attr[1].id = SAI_MCAST_FDB_ENTRY_ATTR_GROUP_ID;
         attr[2].id = SAI_MCAST_FDB_ENTRY_ATTR_META_DATA;
-        
+
         sai_thrift_parse_mcast_fdb_entry(thrift_mcast_fdb_entry, &mcast_fdb_entry);
         thrift_attr_list.status = mcast_fdb_api->get_mcast_fdb_entry_attribute(&mcast_fdb_entry, attr_count, attr);
-        if (thrift_attr_list.status != SAI_STATUS_SUCCESS)
+        if(thrift_attr_list.status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain mcast fdb entry attribute, status:%d", thrift_attr_list.status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain mcast fdb entry attribute, status:%d", thrift_attr_list.status);
             return;
         }
-        
+
         thrift_attr.id = attr[0].id;
         thrift_attr.value.__set_s32(attr[0].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-        
+
         thrift_attr.id = attr[1].id;
         thrift_attr.value.__set_oid(attr[1].value.oid);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-        
+
         thrift_attr.id = attr[2].id;
         thrift_attr.value.__set_u32(attr[2].value.u32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
@@ -14554,7 +15184,16 @@ public:
         sai_thrift_parse_ipmc_entry_attributes(thrift_attr_list, sai_attrs);
 
         status = ipmc_api->create_ipmc_entry(&ipmc_entry, attr_size, sai_attrs);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to create ipmc entry, status:%d", status);
+        }
 
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("failed to create ipmc entry, status:%d", status);
+            return status;
+        }
         return status;
     }
 
@@ -16258,8 +16897,8 @@ public:
                 case SAI_BFD_SESSION_ATTR_TYPE:
                 case SAI_BFD_SESSION_ATTR_BFD_ENCAPSULATION_TYPE:
                 case SAI_BFD_SESSION_ATTR_OFFLOAD_TYPE:
-                case SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE:
-                case SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE:
+                case SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE:
+                case SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE:
                 case SAI_BFD_SESSION_ATTR_STATE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
@@ -16430,7 +17069,7 @@ public:
         attr[attr_id].id = SAI_BFD_SESSION_ATTR_ACH_HEADER_VALID;
         attr_id++;
         
-        attr[attr_id].id = SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE;
+        attr[attr_id].id = SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE;
         attr_id++;
         
         attr_count = attr_id;
@@ -16531,7 +17170,7 @@ public:
         attr_id++;
         attr[attr_id].id = SAI_BFD_SESSION_ATTR_REMOTE_STATE;
         attr_id++;        
-        attr[attr_id].id = SAI_BFD_SESSION_ATTR_MPLS_ENCAP_BFD_TYPE;
+        attr[attr_id].id = SAI_BFD_SESSION_ATTR_BFD_MPLS_TYPE;
         attr_id++;
         if(mpls_encap)
         {
@@ -16549,7 +17188,7 @@ public:
             
             if(ach_header_valid)
             {
-                attr[attr_id].id = SAI_BFD_SESSION_ATTR_ACH_CHANNEL_TYPE;
+                attr[attr_id].id = SAI_BFD_SESSION_ATTR_BFD_ACH_CHANNEL_TYPE;
                 attr_id++;
             }
         
@@ -17622,15 +18261,15 @@ public:
         {
             return;
         }
-        sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(sai_lm_stat_id_t) * thrift_stats_ids.size());
+        sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(sai_stat_id_t) * thrift_stats_ids.size());
         std::vector<int32_t>::const_iterator it = thrift_stats_ids.begin();
         uint64_t *counters = (uint64_t *) malloc(sizeof(uint64_t) * thrift_stats_ids.size());
         for(uint32_t i = 0; i < thrift_stats_ids.size(); i++, it++)
         {
-            counter_ids[i] = (sai_lm_stat_id_t) *it;
+            counter_ids[i] = (sai_stat_id_t) *it;
         }
         
-        status = y1731_api->get_y1731_session_lm_stats(
+        status = y1731_api->get_y1731_session_stats(
                                (sai_object_id_t) y1731_session_oid,
                                number_of_stats,
                                counter_ids,
@@ -17901,7 +18540,7 @@ public:
             return;
         }
         
-        if(SAI_PTP_TOD_INTERFACE_INPUT == attr[attr_id].value.s32)
+        if(SAI_PTP_TOD_INTF_MODE_INPUT == attr[attr_id].value.s32)
         {
         
             attr[attr_id].id = SAI_PTP_DOMAIN_ATTR_PTP_ENABLE_BASED_TYPE;
@@ -18150,6 +18789,8 @@ public:
             switch (attribute.id)
             {
                 case SAI_SYNCE_ATTR_RECOVERED_PORT:
+                    attr_list[i].value.oid = attribute.value.oid;
+                    break;
 	            case SAI_SYNCE_ATTR_CLOCK_DIVIDER:
                     attr_list[i].value.u16 = attribute.value.u16;
                     break;
@@ -18270,7 +18911,7 @@ public:
         
         //SAI_SYNCE_ATTR_RECOVERED_PORT
         thrift_attr.id = attr[attr_id].id;
-        thrift_attr.value.__set_u16(attr[attr_id].value.u16);  
+        thrift_attr.value.__set_oid(attr[attr_id].value.oid);  
         thrift_attr_list.attr_list.push_back(thrift_attr);
         attr_id++;
         
@@ -18436,8 +19077,8 @@ public:
                     break;
 
                 
-                case SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
-                case SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+                case SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
+                case SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 case SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_UNICAST_WATERMARK:
                 case SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_MULTICAST_WATERMARK:
                 case SAI_MONITOR_BUFFER_MONITOR_ATTR_EGRESS_PORT_TOTAL_WATERMARK:
@@ -18468,7 +19109,7 @@ public:
         sai_thrift_alloc_attr(attr_list, attr_size);
         sai_thrift_parse_monitor_buffer_attributes(thrift_attr_list, attr_list);
         sai_object_id_t monitor_buffer_oid = 0;
-        status = monitor_api->create_monitor_buffer(&monitor_buffer_oid, gSwitchId, attr_size, attr_list);
+        status = monitor_api->create_monitor_buffer_monitor(&monitor_buffer_oid, gSwitchId, attr_size, attr_list);
         sai_thrift_free_attr(attr_list);
 
         if (status == SAI_STATUS_SUCCESS)
@@ -18490,7 +19131,7 @@ public:
         {
             return status;
         }
-        status = monitor_api->remove_monitor_buffer(monitor_buffer_oid);
+        status = monitor_api->remove_monitor_buffer_monitor(monitor_buffer_oid);
         
         return status;
     }
@@ -18517,7 +19158,7 @@ public:
         
         sai_thrift_parse_monitor_buffer_attributes(thrift_attr_list, attr_list);
         
-        return monitor_api->set_monitor_buffer_attribute(monitor_buffer_oid, attr_list);
+        return monitor_api->set_monitor_buffer_monitor_attribute(monitor_buffer_oid, attr_list);
     }
 
 
@@ -18544,10 +19185,10 @@ public:
 	attr[attr_id].id = SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT;
 	attr_id++;
             
-	attr[attr_id].id = SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN;
+	attr[attr_id].id = SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD;
        attr_id++;
 
-	attr[attr_id].id = SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX;
+	attr[attr_id].id = SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD;
 	attr_id++;
 
 	attr[attr_id].id = SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE;
@@ -18571,7 +19212,7 @@ public:
        attr_count = attr_id;
             
             
-	status = monitor_api->get_monitor_buffer_attribute(monitor_buffer_oid, attr_count, attr);
+	status = monitor_api->get_monitor_buffer_monitor_attribute(monitor_buffer_oid, attr_count, attr);
 	if (status != SAI_STATUS_SUCCESS)
 	{
 		SAI_THRIFT_LOG_ERR("failed to obtain monitor buffer attribute, status:%d", status);
@@ -18587,13 +19228,13 @@ public:
 	thrift_attr_list.attr_list.push_back(thrift_attr);
 	attr_id++;
             
-	//SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN
+	//SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD
        thrift_attr.id = attr[attr_id].id;
 	thrift_attr.value.__set_u32(attr[attr_id].value.u32);
        thrift_attr_list.attr_list.push_back(thrift_attr);
        attr_id++;
             
-	//SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX
+	//SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD
        thrift_attr.id = attr[attr_id].id;
 	thrift_attr.value.__set_u32(attr[attr_id].value.u32);
        thrift_attr_list.attr_list.push_back(thrift_attr);
@@ -18650,7 +19291,7 @@ public:
         
             switch (attribute.id)
             {
-                case SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+                case SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 case SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
@@ -18697,7 +19338,7 @@ public:
         sai_thrift_alloc_attr(attr_list, attr_size);
         sai_thrift_parse_monitor_latency_attributes(thrift_attr_list, attr_list);
         sai_object_id_t monitor_latency_oid = 0;
-        status = monitor_api->create_monitor_latency(&monitor_latency_oid, gSwitchId, attr_size, attr_list);
+        status = monitor_api->create_monitor_latency_monitor(&monitor_latency_oid, gSwitchId, attr_size, attr_list);
         sai_thrift_free_attr(attr_list);
 
         if (status == SAI_STATUS_SUCCESS)
@@ -18719,7 +19360,7 @@ public:
         {
             return status;
         }
-        status = monitor_api->remove_monitor_latency(monitor_latency_oid);
+        status = monitor_api->remove_monitor_latency_monitor(monitor_latency_oid);
         
         return status;
     }
@@ -18747,7 +19388,7 @@ public:
         
         sai_thrift_parse_monitor_latency_attributes(thrift_attr_list, attr_list);
         
-        return monitor_api->set_monitor_latency_attribute(monitor_latency_oid, attr_list);
+        return monitor_api->set_monitor_latency_monitor_attribute(monitor_latency_oid, attr_list);
     }
 
 
@@ -18775,7 +19416,7 @@ public:
 	attr[attr_id].id = SAI_MONITOR_LATENCY_MONITOR_ATTR_PORT;
 	attr_id++;
             
-	attr[attr_id].id = SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE;
+	attr[attr_id].id = SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE;
        attr_id++;
 
 	attr[attr_id].id = SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_OVERTHRD_EVENT;
@@ -18796,7 +19437,7 @@ public:
             
        attr_count = attr_id;
             
-	status = monitor_api->get_monitor_latency_attribute(monitor_latency_oid, attr_count, attr);
+	status = monitor_api->get_monitor_latency_monitor_attribute(monitor_latency_oid, attr_count, attr);
 	if (status != SAI_STATUS_SUCCESS)
 	{
 		SAI_THRIFT_LOG_ERR("failed to obtain monitor latency attribute, status:%d", status);
@@ -18896,6 +19537,8 @@ void on_fdb_event(_In_ uint32_t count,
     printf ("\r\n===process fdb %s event===\r\n",
                       (SAI_FDB_EVENT_AGED == event_tmp->event_type )?"aging"
                       :((SAI_FDB_EVENT_LEARNED == event_tmp->event_type )?"learning":"flush"));
+
+    printf("learn bvid %x, mac : %x \r\n", event_tmp->fdb_entry.bv_id, event_tmp->fdb_entry.mac_address);
 }
 
 void on_port_state_change(_In_ uint32_t count,
@@ -19013,7 +19656,7 @@ void on_y1731_event(_In_ uint32_t count,
 }
 
 void on_ptp_tx_event(_In_ uint32_t count,
-                    _In_ sai_packet_event_ptp_tx_notification_t *data)
+                    _In_ sai_packet_event_ptp_tx_notification_data_t *data)
 {
     int index = 0, j = 0;
 
@@ -19039,21 +19682,21 @@ void on_buffer_monitor_event(_In_ uint32_t count,
 
     for(index = 0; index < count ; index++)
     {
-        printf("\r\n===NO. %d monitor buffer id 0x%lx ===\r\n", index, data[index].monitor_buffer_id);
+        printf("\r\n===NO. %d monitor buffer id 0x%lx ===\r\n", index, data[index].monitor_buffer_monitor_id);
 
-        if (data[index].buffer_monitor_based_on_type == SAI_MONITOR_BUFFER_BASED_ON_PORT)
+        if (data[index].buffer_monitor_based_on_type == SAI_BUFFER_MONITOR_BASED_ON_TYPE_PORT)
         {
-        	printf("\r\n===buffer monitor based on type: SAI_MONITOR_BUFFER_BASED_ON_PORT = %d ===\r\n", data[index].buffer_monitor_based_on_type);
+        	printf("\r\n===buffer monitor based on type: SAI_BUFFER_MONITOR_BASED_ON_TYPE_PORT = %d ===\r\n", data[index].buffer_monitor_based_on_type);
         }
 
-        if (data[index].buffer_monitor_based_on_type == SAI_MONITOR_BUFFER_BASED_ON_TOTAL)
+        if (data[index].buffer_monitor_based_on_type == SAI_BUFFER_MONITOR_BASED_ON_TYPE_TOTAL)
         {
-        	printf("\r\n===buffer monitor based on type: SAI_MONITOR_BUFFER_BASED_ON_TOTAL = %d ===\r\n", data[index].buffer_monitor_based_on_type);
+        	printf("\r\n===buffer monitor based on type: SAI_BUFFER_MONITOR_BASED_ON_TYPE_TOTAL = %d ===\r\n", data[index].buffer_monitor_based_on_type);
         }
 
-        if (data[index].buffer_monitor_message_type == SAI_MONITOR_BUFFER_EVENT_MESSAGE)
+        if (data[index].buffer_monitor_message_type == SAI_BUFFER_MONITOR_MESSAGE_TYPE_EVENT_MESSAGE)
         {
-        	printf("\r\n===buffer monitor message type: SAI_MONITOR_BUFFER_EVENT_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
+        	printf("\r\n===buffer monitor message type: SAI_BUFFER_MONITOR_MESSAGE_TYPE_EVENT_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
 
         	printf("\r\n===NO. %d buffer monitor event port 0x%lx ===\r\n", index, data[index].u.buffer_event.buffer_monitor_event_port);
 
@@ -19066,9 +19709,9 @@ void on_buffer_monitor_event(_In_ uint32_t count,
         	printf("\r\n===buffer monitor event stats %d ===\r\n", data[index].u.buffer_event.buffer_monitor_event_state);
         }
 
-        if (data[index].buffer_monitor_message_type == SAI_MONITOR_BUFFER_STATS_MESSAGE)
+        if (data[index].buffer_monitor_message_type == SAI_BUFFER_MONITOR_MESSAGE_TYPE_STATS_MESSAGE)
         {
-        	printf("\r\n===buffer monitor message type: SAI_MONITOR_BUFFER_STATS_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
+        	printf("\r\n===buffer monitor message type: SAI_BUFFER_MONITOR_MESSAGE_TYPE_STATS_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
 
         	printf("\r\n===NO. %d buffer monitor stats port 0x%lx ===\r\n", index, data[index].u.buffer_stats.buffer_monitor_stats_port);
 
@@ -19077,9 +19720,9 @@ void on_buffer_monitor_event(_In_ uint32_t count,
         	printf("\r\n===buffer monitor stats port cnt %d ===\r\n", data[index].u.buffer_stats.buffer_monitor_stats_port_cnt);
         }
 
-        if (data[index].buffer_monitor_message_type == SAI_MONITOR_MICORBURST_STATS_MESSAGE)
+        if (data[index].buffer_monitor_message_type == SAI_BUFFER_MONITOR_MESSAGE_TYPE_MICORBURST_STATS_MESSAGE)
         {
-        	printf("\r\n===buffer monitor message type: SAI_MONITOR_MICORBURST_STATS_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
+        	printf("\r\n===buffer monitor message type: SAI_BUFFER_MONITOR_MESSAGE_TYPE_MICORBURST_STATS_MESSAGE = %d ===\r\n", data[index].buffer_monitor_message_type);
 
         	printf("\r\n===NO. %d buffer monitor microburst port 0x%lx ===\r\n", index, data[index].u.microburst_stats.buffer_monitor_microburst_port);
 
@@ -19100,11 +19743,11 @@ void on_latency_monitor_event(_In_ uint32_t count,
 
     for(index = 0; index < count ; index++)
     {
-        printf("\r\n===NO. %d monitor latency id 0x%lx ===\r\n", index, data[index].monitor_latency_id);
+        printf("\r\n===NO. %d monitor latency id 0x%lx ===\r\n", index, data[index].monitor_latency_monitor_id);
 
-        if (data[index].latency_monitor_message_type == SAI_MONITOR_LATENCY_EVENT_MESSAGE)
+        if (data[index].latency_monitor_message_type == SAI_LATENCY_MONITOR_MESSAGE_TYPE_EVENT_MESSAGE)
         {
-        	printf("\r\n===latency monitor message type: SAI_MONITOR_LATENCY_EVENT_MESSAGE = %d ===\r\n", data[index].latency_monitor_message_type);
+        	printf("\r\n===latency monitor message type: SAI_LATENCY_MONITOR_MESSAGE_TYPE_EVENT_MESSAGE = %d ===\r\n", data[index].latency_monitor_message_type);
 
         	printf("\r\n===NO. %d latency monitor event port 0x%lx ===\r\n", index, data[index].u.latency_event.latency_monitor_event_port);
 
@@ -19117,9 +19760,9 @@ void on_latency_monitor_event(_In_ uint32_t count,
         	printf("\r\n===latency monitor event source port %d ===\r\n", data[index].u.latency_event.latency_monitor_event_source_port);
         }
 
-        if (data[index].latency_monitor_message_type == SAI_MONITOR_LATENCY_STATS_MESSAGE)
+        if (data[index].latency_monitor_message_type == SAI_LATENCY_MONITOR_MESSAGE_TYPE_STATS_MESSAGE)
         {
-        	printf("\r\n===latency monitor message type: SAI_MONITOR_LATENCY_STATS_MESSAGE = %d ===\r\n", data[index].latency_monitor_message_type);
+        	printf("\r\n===latency monitor message type: SAI_LATENCY_MONITOR_MESSAGE_TYPE_STATS_MESSAGE = %d ===\r\n", data[index].latency_monitor_message_type);
 
         	printf("\r\n===NO. %d latency monitor stats port 0x%lx ===\r\n", index, data[index].u.latency_stats.latency_monitor_stats_port);
 
@@ -19226,7 +19869,8 @@ struct cmdOptions
     std::string initScript;
     std::string sockPath;
     std::string dutname;
-    std::string  thriftport;
+    std::string thriftport;
+    int sdk_shell_mode;
 };
 
 cmdOptions handleCmdLine(int argc, char **argv)
@@ -19234,23 +19878,25 @@ cmdOptions handleCmdLine(int argc, char **argv)
 
     cmdOptions options = {};
 
+    options.sdk_shell_mode = 0;
 
     while(1)
     {
         static struct option long_options[] =
         {
-            { "profile",          required_argument, 0, 'p' },
+            { "profile",        required_argument, 0, 'p' },
             { "portmap",        required_argument, 0, 'f' },
-            { "init-script",      required_argument, 0, 'S' },
-             { "sockPath",      required_argument, 0, 'h' },
-            	{"dutname",        required_argument,0, 'n'},
-            	{"thriftport",        required_argument,0, 't'},
-            { 0,                  0,                 0,  0  }
+            { "init-script",    required_argument, 0, 'S' },
+            { "sockPath",       required_argument, 0, 'h' },
+            { "dutname",        required_argument, 0, 'n' },
+            { "thriftport",     required_argument, 0, 't' },
+            { "shellmode",      0, 0, 'm' },
+            { 0,                0,                 0,  0  }
         };
 
         int option_index = 0;
 
-        int c = getopt_long(argc, argv, "p:f:S:h:n:t:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "p:f:S:h:n:t:m", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -19281,6 +19927,10 @@ cmdOptions handleCmdLine(int argc, char **argv)
                 printf("thriftport: %s\n", optarg);
                 options.thriftport = std::string(optarg);
                 break;
+            case 'm':
+                printf("shellmode use shell mode\n");
+                options.sdk_shell_mode = 1;
+                break;
             default:
                 printf("getopt_long failure\n");
                 exit(EXIT_FAILURE);
@@ -19302,6 +19952,7 @@ void help_print( )
      printf("Option Paras:\n")	;
      printf("    -p The profile file path.\n");
      printf("    -S  The init scipy.\n");
+     printf("    -m  Use shell mode, do not need arg.\n");
      printf(" \n");
      printf(" \n");
 }
@@ -19561,10 +20212,10 @@ main(int argc, char* argv[])
     attr[6].id = SAI_SWITCH_ATTR_BFD_SESSION_STATE_CHANGE_NOTIFY;
     attr[6].value.ptr = reinterpret_cast<sai_pointer_t>(&on_bfd_event);
 
-    attr[7].id = SAI_SWITCH_ATTR_Y1731_SESSION_EVENT_NOTIFY;
+    attr[7].id = SAI_SWITCH_ATTR_Y1731_SESSION_STATE_CHANGE_NOTIFY;
     attr[7].value.ptr = reinterpret_cast<sai_pointer_t>(&on_y1731_event);
 
-    attr[8].id = SAI_SWITCH_ATTR_PTP_PACKET_TX_EVENT_NOTIFY;
+    attr[8].id = SAI_SWITCH_ATTR_PACKET_EVENT_PTP_TX_NOTIFY;
     attr[8].value.ptr = reinterpret_cast<sai_pointer_t>(&on_ptp_tx_event);
 
     attr[9].id = SAI_SWITCH_ATTR_MONITOR_BUFFER_NOTIFY;
@@ -19618,8 +20269,22 @@ main(int argc, char* argv[])
     mythread->detach();
 
     //ctc_master_cli(ctc_shell_mode); //do not need, init in create switch
-    ctc_cli_read(ctc_shell_mode);
-    rv= ctc_cli_start(ctc_shell_mode);
+
+    if (options.sdk_shell_mode == 0)
+    {
+        ctc_cli_read(ctc_shell_mode);
+        rv= ctc_cli_start(ctc_shell_mode);
+    }
+    else
+    {
+        while(1)
+        {
+            sleep(1000);
+        }
+    }
+
+    
+
 
     //rv = ctc_cli_start(ctc_shell_mode);
     //mythread->join();

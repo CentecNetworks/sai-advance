@@ -337,7 +337,9 @@ typedef enum _sai_tunnel_ttl_mode_t
      *
      * Where the TTL field is preserved end-to-end by copying into the outer
      * header on encapsulation and copying from the outer header on
-     * decapsulation.
+     * decapsulation. This is applicable for inner IP packets. If the inner
+     * packet is a non-IP packet, then the value is undefined and implementation
+     * can chose a valid/meaningful outer TTL value, say in the case of VXLAN encap.
      */
     SAI_TUNNEL_TTL_MODE_UNIFORM_MODEL,
 
@@ -364,7 +366,9 @@ typedef enum _sai_tunnel_dscp_mode_t
      *
      * Where the DSCP field is preserved end-to-end by copying into the
      * outer header on encapsulation and copying from the outer header on
-     * decapsulation.
+     * decapsulation. This is applicable for inner IP packets. If the inner
+     * packet is a non-IP packet, then the value is undefined and implementation
+     * can chose a valid/meaningful outer DSCP value, say in the case of VXLAN encap.
      */
     SAI_TUNNEL_DSCP_MODE_UNIFORM_MODEL,
 
@@ -455,6 +459,23 @@ typedef enum _sai_tunnel_decap_ecn_mode_t
 } sai_tunnel_decap_ecn_mode_t;
 
 /**
+ * @brief Defines tunnel peer mode
+ */
+typedef enum _sai_tunnel_peer_mode_t
+{
+    /**
+     * @brief P2P Tunnel
+     */
+    SAI_TUNNEL_PEER_MODE_P2P,
+
+    /**
+     * @brief P2MP Tunnel
+     */
+    SAI_TUNNEL_PEER_MODE_P2MP,
+
+} sai_tunnel_peer_mode_t;
+
+/**
  * @brief Defines tunnel MPLS PW mode
  */
 typedef enum _sai_tunnel_mpls_pw_mode_t
@@ -463,15 +484,17 @@ typedef enum _sai_tunnel_mpls_pw_mode_t
      * @brief MPLS PW Tagged mode
      */
     SAI_TUNNEL_MPLS_PW_MODE_TAGGED,
-    
+
     /**
      * @brief MPLS PW Raw mode
      */
     SAI_TUNNEL_MPLS_PW_MODE_RAW,
 } sai_tunnel_mpls_pw_mode_t;
-    
+
 /**
  * @brief Defines tunnel attributes
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_tunnel_attr_t
 {
@@ -516,6 +539,15 @@ typedef enum _sai_tunnel_attr_t
     /* Tunnel encap attributes */
 
     /**
+     * @brief Tunnel Peer Mode
+     *
+     * @type sai_tunnel_peer_mode_t
+     * @flags CREATE_ONLY
+     * @default SAI_TUNNEL_PEER_MODE_P2MP
+     */
+    SAI_TUNNEL_ATTR_PEER_MODE,
+
+    /**
      * @brief Tunnel src IP
      *
      * @type sai_ip_address_t
@@ -525,9 +557,17 @@ typedef enum _sai_tunnel_attr_t
     SAI_TUNNEL_ATTR_ENCAP_SRC_IP,
 
     /**
-     * @brief Tunnel TTL mode (pipe or uniform model)
+     * @brief Tunnel Destination IP
      *
-     * Default would be
+     * @type sai_ip_address_t
+     * @flags CREATE_ONLY
+     * @default 0.0.0.0
+     * @validonly SAI_TUNNEL_ATTR_PEER_MODE == SAI_TUNNEL_PEER_MODE_P2P
+     */
+    SAI_TUNNEL_ATTR_ENCAP_DST_IP,
+
+    /**
+     * @brief Tunnel TTL mode (pipe or uniform model)
      *
      * @type sai_tunnel_ttl_mode_t
      * @flags CREATE_ONLY
@@ -651,7 +691,7 @@ typedef enum _sai_tunnel_attr_t
      * @objects SAI_OBJECT_TYPE_TUNNEL_TERM_TABLE_ENTRY
      */
     SAI_TUNNEL_ATTR_TERM_TABLE_ENTRY_LIST,
-        
+
     /**
      * @brief End of attributes
      */
@@ -665,77 +705,77 @@ typedef enum _sai_tunnel_attr_t
      *
      * @type sai_object_id_t
      * @flags READ_ONLY
-     * @objects SAI_OBJECT_TYPE_NEXT_HOP or SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+     * @objects SAI_OBJECT_TYPE_NEXT_HOP, SAI_OBJECT_TYPE_NEXT_HOP_GROUP
      */
-    SAI_TUNNEL_ATTR_ENCAP_NEXTHOP_ID = SAI_TUNNEL_ATTR_CUSTOM_RANGE_START,
+    SAI_TUNNEL_ATTR_ENCAP_NEXTHOP_ID,
 
     /**
-     * @brief MPLS VPN Tunnel mode for decap.
+     * @brief MPLS Virtual Private Network Tunnel mode for decap.
      *
      * @type sai_tunnel_mpls_pw_mode_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @default SAI_TUNNEL_MPLS_PW_MODE_RAW
      * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
      */
     SAI_TUNNEL_ATTR_DECAP_MPLS_PW_MODE,
 
     /**
-     * @brief MPLS VPN Tunnel with Control Word for decap.
+     * @brief MPLS Virtual Private Network Tunnel with Control Word for decap.
      *
      * @type bool
      * @flags CREATE_AND_SET
      * @default false
-     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
+     * @validonly SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
      */
     SAI_TUNNEL_ATTR_DECAP_MPLS_PW_WITH_CW,
 
     /**
-     * @brief MPLS VPN Tunnel mode for encap.
+     * @brief MPLS Virtual Private Network Tunnel mode for encap.
      *
      * @type sai_tunnel_mpls_pw_mode_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @default SAI_TUNNEL_MPLS_PW_MODE_RAW
      * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
      */
     SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_MODE,
 
     /**
-     * @brief MPLS VPN Tunnel with Control Word for encap.
+     * @brief MPLS Virtual Private Network Tunnel with Control Word for encap.
      *
      * @type bool
      * @flags CREATE_AND_SET
      * @default false
-     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
+     * @validonly SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
      */
     SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_WITH_CW,
 
     /**
-     * @brief Tunnel encap mpls pw tagged mode vlan
+     * @brief Tunnel encap MPLS Pseudo wire tagged mode vlan
+     *
+     * Valid when SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2 and SAI_TUNNEL_ATTR_DECAP_MPLS_PW_MODE == SAI_TUNNEL_MPLS_PW_MODE_TAGGED
      *
      * @type sai_uint16_t
      * @flags CREATE_AND_SET
+     * @isvlan false
      * @default 0
-     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2 and SAI_TUNNEL_ATTR_DECAP_MPLS_PW_MODE == SAI_TUNNEL_MPLS_PW_MODE_TAGGED
      */
     SAI_TUNNEL_ATTR_ENCAP_MPLS_PW_TAGGED_VLAN,
 
     /**
-     * @brief MPLS VPN Tunnel ESI Label Enable.
+     * @brief MPLS Virtual Private Network Tunnel Ethernet Segment Identifier Label Enable.
      *
      * @type bool
      * @flags CREATE_AND_SET
      * @default false
-     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
+     * @validonly SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
      */
     SAI_TUNNEL_ATTR_DECAP_ESI_LABEL_VALID,
 
     /**
-     * @brief MPLS VPN Tunnel ESI Label Enable.
+     * @brief MPLS Virtual Private Network Tunnel Ethernet Segment Identifier Label Enable.
      *
      * @type bool
      * @flags CREATE_AND_SET
      * @default false
-     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
+     * @validonly SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
      */
     SAI_TUNNEL_ATTR_ENCAP_ESI_LABEL_VALID,
 
@@ -745,28 +785,29 @@ typedef enum _sai_tunnel_attr_t
      * Default SAI_TUNNEL_EXP_MODE_UNIFORM_MODEL
      *
      * @type sai_tunnel_exp_mode_t
-     * @flags CREATE_ONLY
-     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS
+     * @flags CREATE_AND_SET
      * @default SAI_TUNNEL_EXP_MODE_UNIFORM_MODEL
+     * @validonly SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS
      */
     SAI_TUNNEL_ATTR_DECAP_EXP_MODE,
+
     /**
      * @brief Tunnel EXP mode (pipe or uniform model)
      *
      * @type sai_tunnel_exp_mode_t
-     * @flags CREATE_ONLY
-     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS
+     * @flags CREATE_AND_SET
      * @default SAI_TUNNEL_EXP_MODE_UNIFORM_MODEL
+     * @validonly SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS
      */
     SAI_TUNNEL_ATTR_ENCAP_EXP_MODE,
 
     /**
      * @brief Tunnel EXP value (3 bits)
      *
+     * Valid when SAI_TUNNEL_ATTR_ENCAP_EXP_MODE == SAI_TUNNEL_EXP_MODE_PIPE_MODEL and SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS
+     *
      * @type sai_uint8_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @condition SAI_TUNNEL_ATTR_ENCAP_EXP_MODE == SAI_TUNNEL_EXP_MODE_PIPE_MODEL and SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS
-     * @default 0
      */
     SAI_TUNNEL_ATTR_ENCAP_EXP_VAL,
 
@@ -775,17 +816,17 @@ typedef enum _sai_tunnel_attr_t
      *
      * @type bool
      * @flags CREATE_AND_SET
-     * @default 0
+     * @default false
      */
     SAI_TUNNEL_ATTR_DECAP_ACL_USE_OUTER_HDR_INFO,
 
     /**
-     * @brief MPLS VPN Tunnel Split-Horizon Enable for flooding or multicast.
+     * @brief MPLS Virtual Private Network Tunnel Split-Horizon Enable for flooding or multicast.
      *
      * @type bool
      * @flags CREATE_AND_SET
      * @default true
-     * @condition SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
+     * @validonly SAI_TUNNEL_ATTR_TYPE == SAI_TUNNEL_TYPE_MPLS_L2
      */
     SAI_TUNNEL_ATTR_DECAP_SPLIT_HORIZON_ENABLE,
 

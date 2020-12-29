@@ -2420,7 +2420,7 @@ class scenario_11_lag_hash_mpls_label_stack_test(sai_base_test.ThriftInterfaceDa
         packet_action = SAI_PACKET_ACTION_FORWARD
 
         hash_id_lag = 0
-        field_list = [SAI_NATIVE_HASH_FIELD_MPLS_LABEL_STACK]
+        field_list = [SAI_NATIVE_HASH_FIELD_MPLS_LABEL_ALL]
 
         sys_logging("======create a lag include three ports======")
         lag_id1 = sai_thrift_create_lag(self.client)
@@ -4175,6 +4175,7 @@ class scenario_22_lag_hash_l3vpn_inner_l4_dst_port_test(sai_base_test.ThriftInte
 #===============
 
 #=====l2VPN=====
+'''
 class scenario_23_lag_hash_l2vpn_inner_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("scenario_23_lag_hash_l2vpn_inner_src_ip_test")
@@ -4319,7 +4320,7 @@ class scenario_23_lag_hash_l2vpn_inner_src_ip_test(sai_base_test.ThriftInterface
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -4496,7 +4497,7 @@ class scenario_24_lag_hash_l2vpn_inner_dst_ip_test(sai_base_test.ThriftInterface
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -4674,7 +4675,7 @@ class scenario_25_lag_hash_l2vpn_inner_ip_protocol_test(sai_base_test.ThriftInte
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -4706,6 +4707,7 @@ class scenario_25_lag_hash_l2vpn_inner_ip_protocol_test(sai_base_test.ThriftInte
                 attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+'''
 
 class scenario_26_lag_hash_l2vpn_inner_ethertype_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -4844,7 +4846,7 @@ class scenario_26_lag_hash_l2vpn_inner_ethertype_test(sai_base_test.ThriftInterf
             #sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -4877,6 +4879,7 @@ class scenario_26_lag_hash_l2vpn_inner_ethertype_test(sai_base_test.ThriftInterf
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
 
+'''
 class scenario_27_lag_hash_l2vpn_inner_l4_src_port_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("scenario_27_lag_hash_l2vpn_inner_l4_src_port_test")
@@ -5026,7 +5029,7 @@ class scenario_27_lag_hash_l2vpn_inner_l4_src_port_test(sai_base_test.ThriftInte
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -5208,7 +5211,7 @@ class scenario_28_lag_hash_l2vpn_inner_l4_dst_port_test(sai_base_test.ThriftInte
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -5240,6 +5243,7 @@ class scenario_28_lag_hash_l2vpn_inner_l4_dst_port_test(sai_base_test.ThriftInte
                 attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+'''
 
 class scenario_29_lag_hash_l2vpn_inner_src_mac_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -5387,7 +5391,7 @@ class scenario_29_lag_hash_l2vpn_inner_src_mac_test(sai_base_test.ThriftInterfac
             #sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -5566,7 +5570,7 @@ class scenario_30_lag_hash_l2vpn_inner_dst_mac_test(sai_base_test.ThriftInterfac
             #sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -7334,7 +7338,7 @@ class scenario_39_ecmp_hash_mpls_label_stack_test(sai_base_test.ThriftInterfaceD
         packet_action = SAI_PACKET_ACTION_FORWARD
 
         hash_id_ecmp = 0
-        field_list = [SAI_NATIVE_HASH_FIELD_MPLS_LABEL_STACK]
+        field_list = [SAI_NATIVE_HASH_FIELD_MPLS_LABEL_ALL]
 
         # get ecmp hash object id
         sys_logging("======get ecmp hash object id======")
@@ -11232,7 +11236,7 @@ class scenario_61_lag_hash_multi_test(sai_base_test.ThriftInterfaceDataPlane):
                       SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, 
                       SAI_NATIVE_HASH_FIELD_INNER_L4_SRC_PORT, SAI_NATIVE_HASH_FIELD_INNER_L4_DST_PORT, 
                       SAI_NATIVE_HASH_FIELD_INNER_SRC_MAC, SAI_NATIVE_HASH_FIELD_INNER_DST_MAC,
-                      SAI_NATIVE_HASH_FIELD_MPLS_LABEL_STACK]
+                      SAI_NATIVE_HASH_FIELD_MPLS_LABEL_ALL]
 
         #get lag hash object id
         sys_logging("======get lag hash object id======")
@@ -11379,7 +11383,7 @@ class scenario_61_lag_hash_multi_test(sai_base_test.ThriftInterfaceDataPlane):
             #sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -13603,6 +13607,7 @@ class scenario_76_lag_hash_l3vpn_ipv6_inner_ip_protocol_test(sai_base_test.Thrif
 #===========================================
 
 #====================L2VPN==================
+'''
 class scenario_77_lag_hash_l2vpn_ipv6_inner_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("scenario_77_lag_hash_l2vpn_ipv6_inner_src_ip_test")
@@ -13741,7 +13746,7 @@ class scenario_77_lag_hash_l2vpn_ipv6_inner_src_ip_test(sai_base_test.ThriftInte
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -13912,7 +13917,7 @@ class scenario_78_lag_hash_l2vpn_ipv6_inner_dst_ip_test(sai_base_test.ThriftInte
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -14083,7 +14088,7 @@ class scenario_79_lag_hash_l2vpn_ipv6_inner_src_port_test(sai_base_test.ThriftIn
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -14254,7 +14259,7 @@ class scenario_80_lag_hash_l2vpn_ipv6_inner_dst_port_test(sai_base_test.ThriftIn
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -14423,7 +14428,7 @@ class scenario_81_lag_hash_l2vpn_ipv6_inner_ip_protocol_test(sai_base_test.Thrif
             sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -14455,7 +14460,7 @@ class scenario_81_lag_hash_l2vpn_ipv6_inner_ip_protocol_test(sai_base_test.Thrif
                 attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
-
+'''
 class scenario_82_lag_hash_l2vpn_ipv6_inner_src_mac_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("scenario_82_lag_hash_l2vpn_ipv6_inner_src_mac_test")
@@ -14596,7 +14601,7 @@ class scenario_82_lag_hash_l2vpn_ipv6_inner_src_mac_test(sai_base_test.ThriftInt
             #sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -14769,7 +14774,7 @@ class scenario_83_lag_hash_l2vpn_ipv6_inner_dst_mac_test(sai_base_test.ThriftInt
             #sai_thrift_delete_fdb(self.client, bridge_id, mac1, bport)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac2, tunnel_bport)
             
-            sai_thrift_remove_bridge_sub_port(self.client, bport, lag_id1)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, lag_id1)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -18361,3 +18366,538 @@ class scenario_102_ecmp_hash_ipv6_multi_test(sai_base_test.ThriftInterfaceDataPl
                 attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+class scenario_103_lag_hash_mpls_label_0_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_103_lag_hash_mpls_label_0_test======")
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        
+        ip_da = '5.5.5.1'
+        dmac = '00:55:55:55:55:55'
+
+        label = [201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220]
+
+        label_list = [(200<<12) | 32]
+        pop_nums = 0
+        packet_action = SAI_PACKET_ACTION_FORWARD
+
+        hash_id_lag = 0
+        field_list = [SAI_NATIVE_HASH_FIELD_MPLS_LABEL_0]
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        print"lag:%u" %lag_id1
+        print"lag:%lu" %lag_id1
+        print"lag:%lx" %lag_id1
+        print"lag:%x" %lag_id1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        sys_logging("======set mpls label stack to calculate hash======")
+        if field_list:
+            hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+            attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                            value=attr_value)
+            self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+        sys_logging("======create a VRF======")
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        sys_logging("======create two interfaces======")
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, lag_id1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+
+        sys_logging("======create a neighbor======")
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+
+        sys_logging("======create a mpls nexthop======")
+        next_hop = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list, outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_UNIFORM, outseg_type = SAI_OUTSEG_TYPE_SWAP)
+
+        sys_logging("======create entrys======")
+        for i in range(0, len(label)):
+            sai_thrift_create_inseg_entry(self.client, label[i], pop_nums, None, next_hop, packet_action)
+
+        mplss = [[{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':202,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':203,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':204,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':205,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':206,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':207,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':208,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':209,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':210,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':211,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':212,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':213,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':214,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':215,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':216,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':217,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':218,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':219,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':220,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}]]
+
+        exp_mpls = [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}]
+
+        warmboot(self.client)
+        try:
+            max_itrs = 20
+            count = [0, 0, 0]
+            sys_logging("======send 20 packages to lag,every package's mpls label stack is not equal======")
+            for i in range(0, max_itrs):
+                ip_only_pkt = simple_ip_only_packet(pktlen=86,
+                                        ip_src='1.1.1.2',
+                                        ip_dst='10.10.10.1',
+                                        ip_ttl=64,
+                                        ip_id=105,
+                                        ip_ihl=5
+                                        )
+                pkt = simple_mpls_packet(
+                                        eth_dst=router_mac,
+                                        eth_src='00:11:11:11:11:33',
+                                        mpls_type=0x8847,
+                                        mpls_tags= mplss[i],
+                                        inner_frame = ip_only_pkt)   
+            
+                ip_only_exp_pkt = simple_ip_only_packet(pktlen=86,
+                                        ip_src='1.1.1.2',
+                                        ip_dst='10.10.10.1',
+                                        ip_ttl=64,
+                                        ip_id=105,
+                                        ip_ihl=5
+                                        )
+                                        
+                exp_pkt = simple_mpls_packet(
+                                        eth_dst=dmac,
+                                        eth_src=router_mac,
+                                        mpls_type=0x8847,
+                                        mpls_tags= exp_mpls,
+                                        inner_frame = ip_only_exp_pkt) 
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                       "Not all paths are equally balanced")
+
+        finally:
+            sys_logging("======clean up======")
+            for i in range(0, len(label)):
+                mpls = sai_thrift_inseg_entry_t(label[i]) 
+                self.client.sai_thrift_remove_inseg_entry(mpls)
+
+            self.client.sai_thrift_remove_next_hop(next_hop)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_104_lag_hash_mpls_label_1_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_104_lag_hash_mpls_label_1_test======")
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        
+        ip_da = '5.5.5.1'
+        dmac = '00:55:55:55:55:55'
+
+        label = 201
+
+        label_list = [(200<<12) | 32]
+        pop_nums = 0
+        packet_action = SAI_PACKET_ACTION_FORWARD
+
+        hash_id_lag = 0
+        field_list = [SAI_NATIVE_HASH_FIELD_MPLS_LABEL_1]
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        print"lag:%u" %lag_id1
+        print"lag:%lu" %lag_id1
+        print"lag:%lx" %lag_id1
+        print"lag:%x" %lag_id1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        sys_logging("======set mpls label stack to calculate hash======")
+        if field_list:
+            hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+            attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                            value=attr_value)
+            self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+        sys_logging("======create a VRF======")
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        sys_logging("======create two interfaces======")
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, lag_id1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+
+        sys_logging("======create a neighbor======")
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+
+        sys_logging("======create a mpls nexthop======")
+        next_hop = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list, outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_UNIFORM, outseg_type = SAI_OUTSEG_TYPE_SWAP)
+
+        sys_logging("======create entrys======")
+        sai_thrift_create_inseg_entry(self.client, label, pop_nums, None, next_hop, packet_action)
+
+        mplss = [[{'label':201,'tc':0,'ttl':32,'s':0},{'label':301,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':302,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':303,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':304,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':305,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':306,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':307,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':308,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':309,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':310,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':311,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':312,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':313,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':314,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':315,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':316,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':317,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':318,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':319,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':320,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}]]
+
+        exp_mpls = [[{'label':200,'tc':0,'ttl':31,'s':0},{'label':301,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':302,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':303,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':304,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':305,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':306,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':307,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':308,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':309,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':310,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':311,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':312,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':313,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':314,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':315,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':316,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':317,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':318,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':319,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':320,'tc':0,'ttl':100,'s':0},{'label':400,'tc':0,'ttl':100,'s':1}]]
+
+        warmboot(self.client)
+        try:
+            max_itrs = 20
+            count = [0, 0, 0]
+            sys_logging("======send 20 packages to lag,every package's mpls label stack is not equal======")
+            for i in range(0, max_itrs):
+                ip_only_pkt = simple_ip_only_packet(pktlen=86,
+                                        ip_src='1.1.1.2',
+                                        ip_dst='10.10.10.1',
+                                        ip_ttl=64,
+                                        ip_id=105,
+                                        ip_ihl=5
+                                        )
+                pkt = simple_mpls_packet(
+                                        eth_dst=router_mac,
+                                        eth_src='00:11:11:11:11:33',
+                                        mpls_type=0x8847,
+                                        mpls_tags= mplss[i],
+                                        inner_frame = ip_only_pkt)   
+            
+                ip_only_exp_pkt = simple_ip_only_packet(pktlen=86,
+                                        ip_src='1.1.1.2',
+                                        ip_dst='10.10.10.1',
+                                        ip_ttl=64,
+                                        ip_id=105,
+                                        ip_ihl=5
+                                        )
+                                        
+                exp_pkt = simple_mpls_packet(
+                                        eth_dst=dmac,
+                                        eth_src=router_mac,
+                                        mpls_type=0x8847,
+                                        mpls_tags= exp_mpls[i],
+                                        inner_frame = ip_only_exp_pkt) 
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                       "Not all paths are equally balanced")
+
+        finally:
+            sys_logging("======clean up======")
+            mpls = sai_thrift_inseg_entry_t(label) 
+            self.client.sai_thrift_remove_inseg_entry(mpls)
+
+            self.client.sai_thrift_remove_next_hop(next_hop)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_105_lag_hash_mpls_label_2_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_105_lag_hash_mpls_label_2_test======")
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        
+        ip_da = '5.5.5.1'
+        dmac = '00:55:55:55:55:55'
+
+        label = 201
+
+        label_list = [(200<<12) | 32]
+        pop_nums = 0
+        packet_action = SAI_PACKET_ACTION_FORWARD
+
+        hash_id_lag = 0
+        field_list = [SAI_NATIVE_HASH_FIELD_MPLS_LABEL_2]
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        print"lag:%u" %lag_id1
+        print"lag:%lu" %lag_id1
+        print"lag:%lx" %lag_id1
+        print"lag:%x" %lag_id1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        sys_logging("======set mpls label stack to calculate hash======")
+        if field_list:
+            hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+            attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                            value=attr_value)
+            self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+        sys_logging("======create a VRF======")
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        sys_logging("======create two interfaces======")
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, lag_id1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+
+        sys_logging("======create a neighbor======")
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+
+        sys_logging("======create a mpls nexthop======")
+        next_hop = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list, outseg_ttl_mode= SAI_OUTSEG_TTL_MODE_UNIFORM, outseg_type = SAI_OUTSEG_TYPE_SWAP)
+
+        sys_logging("======create entrys======")
+        sai_thrift_create_inseg_entry(self.client, label, pop_nums, None, next_hop, packet_action)
+
+        mplss = [[{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':401,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':402,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':403,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':404,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':405,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':406,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':407,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':408,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':409,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':410,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':411,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':412,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':413,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':414,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':415,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':416,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':417,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':418,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':419,'tc':0,'ttl':100,'s':1}],
+                 [{'label':201,'tc':0,'ttl':32,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':420,'tc':0,'ttl':100,'s':1}]]
+
+        exp_mpls = [[{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':401,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':402,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':403,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':404,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':405,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':406,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':407,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':408,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':409,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':410,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':411,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':412,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':413,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':414,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':415,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':416,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':417,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':418,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':419,'tc':0,'ttl':100,'s':1}],
+                    [{'label':200,'tc':0,'ttl':31,'s':0},{'label':300,'tc':0,'ttl':100,'s':0},{'label':420,'tc':0,'ttl':100,'s':1}]]
+
+        warmboot(self.client)
+        try:
+            max_itrs = 20
+            count = [0, 0, 0]
+            sys_logging("======send 20 packages to lag,every package's mpls label stack is not equal======")
+            for i in range(0, max_itrs):
+                ip_only_pkt = simple_ip_only_packet(pktlen=86,
+                                        ip_src='1.1.1.2',
+                                        ip_dst='10.10.10.1',
+                                        ip_ttl=64,
+                                        ip_id=105,
+                                        ip_ihl=5
+                                        )
+                pkt = simple_mpls_packet(
+                                        eth_dst=router_mac,
+                                        eth_src='00:11:11:11:11:33',
+                                        mpls_type=0x8847,
+                                        mpls_tags= mplss[i],
+                                        inner_frame = ip_only_pkt)   
+            
+                ip_only_exp_pkt = simple_ip_only_packet(pktlen=86,
+                                        ip_src='1.1.1.2',
+                                        ip_dst='10.10.10.1',
+                                        ip_ttl=64,
+                                        ip_id=105,
+                                        ip_ihl=5
+                                        )
+                                        
+                exp_pkt = simple_mpls_packet(
+                                        eth_dst=dmac,
+                                        eth_src=router_mac,
+                                        mpls_type=0x8847,
+                                        mpls_tags= exp_mpls[i],
+                                        inner_frame = ip_only_exp_pkt) 
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                       "Not all paths are equally balanced")
+
+        finally:
+            sys_logging("======clean up======")
+            mpls = sai_thrift_inseg_entry_t(label) 
+            self.client.sai_thrift_remove_inseg_entry(mpls)
+
+            self.client.sai_thrift_remove_next_hop(next_hop)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)

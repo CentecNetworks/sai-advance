@@ -14,23 +14,23 @@ This module defines SAI Virtual Router.
  The Virtual Router Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                               |       SUPPORT CHIPS LIST       |
-\t  |  create_virtual_router                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_virtual_router                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_virtual_router_attribute                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_virtual_router_attribute                       |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                               |           SUPPORT CHIPS LIST           |
+\t  |  create_virtual_router                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_virtual_router                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_virtual_router_attribute                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_virtual_router_attribute                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Virtual Router attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                                   |       SUPPORT CHIPS LIST       |
-\t  |  SAI_VIRTUAL_ROUTER_ATTR_ADMIN_V4_STATE                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VIRTUAL_ROUTER_ATTR_ADMIN_V6_STATE                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VIRTUAL_ROUTER_ATTR_VIOLATION_TTL1_PACKET_ACTION         |              -                 |
-\t  |  SAI_VIRTUAL_ROUTER_ATTR_VIOLATION_IP_OPTIONS_PACKET_ACTION   |              -                 |
-\t  |  SAI_VIRTUAL_ROUTER_ATTR_UNKNOWN_L3_MULTICAST_PACKET_ACTION   |              -                 |
+\t  |   ATTRIBUTE                                                   |           SUPPORT CHIPS LIST           |
+\t  |  SAI_VIRTUAL_ROUTER_ATTR_ADMIN_V4_STATE                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VIRTUAL_ROUTER_ATTR_ADMIN_V6_STATE                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VIRTUAL_ROUTER_ATTR_VIOLATION_TTL1_PACKET_ACTION         |                  -                     |
+\t  |  SAI_VIRTUAL_ROUTER_ATTR_VIOLATION_IP_OPTIONS_PACKET_ACTION   |                  -                     |
+\t  |  SAI_VIRTUAL_ROUTER_ATTR_UNKNOWN_L3_MULTICAST_PACKET_ACTION   |                  -                     |
 \b
 */
 

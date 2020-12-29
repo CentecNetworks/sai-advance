@@ -172,6 +172,17 @@ _ctc_sai_fdb_mapping_l2_addr(const sai_fdb_entry_t* fdb_entry,
                 *nh_id = port->nh_id;
             }
         }
+        else
+        {
+            /* use for normal fdb action SAI_PACKET_ACTION_DROP, keep port info 
+             * fdb with nexthop, do not need
+             */
+            if(CTC_FLAG_ISSET(p_l2_addr->flag, CTC_L2_FLAG_DISCARD))
+            {
+                CTC_SET_FLAG(p_l2_addr->flag, CTC_L2_FLAG_ASSIGN_OUTPUT_PORT);
+                p_l2_addr->assign_port = port->gport;
+            }
+        }
     }
 
     return SAI_STATUS_SUCCESS;
@@ -254,7 +265,13 @@ sai_status_t  ctc_sai_fdb_get_fdb_info(  sai_object_key_t      *key,   sai_attri
             {
                 attr->value.oid = bridge_port_oid;
                 break;
-            }            
+            }
+            bridge_port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT, 0, query_rst.buffer->gport);
+            if (ctc_sai_db_get_object_property(lchip, bridge_port_oid))
+            {
+                attr->value.oid = bridge_port_oid;
+                break;
+            }
         }
         else
         {
@@ -345,6 +362,15 @@ static sai_status_t ctc_sai_fdb_set_fdb_info(  sai_object_key_t      *key, const
     case SAI_FDB_ENTRY_ATTR_PACKET_ACTION:
         sal_memcpy(&l2_addr, query_rst.buffer, sizeof(ctc_l2_addr_t));
         CTC_SAI_ERROR_GOTO(_ctc_sai_fdb_mapping_ctc_action(&l2_addr.flag, attr), status, out);
+
+        /* use for normal fdb action SAI_PACKET_ACTION_DROP, keep port info 
+         * fdb with nexthop, do not need
+         */
+        if(!l2_addr.is_logic_port && CTC_FLAG_ISSET(l2_addr.flag, CTC_L2_FLAG_DISCARD))
+        {
+            CTC_SET_FLAG(l2_addr.flag, CTC_L2_FLAG_ASSIGN_OUTPUT_PORT);
+            l2_addr.assign_port = l2_addr.gport;
+        }
         break;
 
     case SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID:
@@ -359,7 +385,8 @@ static sai_status_t ctc_sai_fdb_set_fdb_info(  sai_object_key_t      *key, const
         
         ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, attr->value.oid, &ctc_object_id);
     
-        if ((SAI_BRIDGE_PORT_TYPE_SUB_PORT == ctc_object_id.sub_type) || (SAI_BRIDGE_PORT_TYPE_TUNNEL == ctc_object_id.sub_type) || (SAI_BRIDGE_PORT_TYPE_FRR == ctc_object_id.sub_type))
+        if ((SAI_BRIDGE_PORT_TYPE_SUB_PORT == ctc_object_id.sub_type) || (SAI_BRIDGE_PORT_TYPE_TUNNEL == ctc_object_id.sub_type) 
+            || (SAI_BRIDGE_PORT_TYPE_FRR == ctc_object_id.sub_type) || (SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT == ctc_object_id.sub_type))
         {
             l2_addr.is_logic_port = TRUE;
             nh_id = p_bridge_port->nh_id;
@@ -383,6 +410,12 @@ static sai_status_t ctc_sai_fdb_set_fdb_info(  sai_object_key_t      *key, const
         status =  SAI_STATUS_NOT_IMPLEMENTED;
         goto out;
 
+    }
+
+    //update non bridge port id attribute
+    if((attr->id != SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID) && l2_addr.is_logic_port)
+    {
+        ctcs_l2_get_nhid_by_logic_port(lchip, l2_addr.gport, &nh_id);
     }
 
     if(l2_addr.is_logic_port)
@@ -481,25 +514,31 @@ ctc_sai_fdb_flush_fdb( sai_object_id_t        switch_id,
     status =  ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_FDB_FLUSH_ATTR_BRIDGE_PORT_ID, &attr_value, &attr_index);
     if (!CTC_SAI_ERROR(status))
     {
-        bridge_port = ctc_sai_db_get_object_property(lchip, attr_value->oid);
-        if (NULL == bridge_port)
+        if(attr_value->oid != SAI_NULL_OBJECT_ID)
         {
-            status =  SAI_STATUS_INVALID_OBJECT_ID;
-            goto out;
+            bridge_port = ctc_sai_db_get_object_property(lchip, attr_value->oid);
+            if (NULL == bridge_port)
+            {
+                status =  SAI_STATUS_INVALID_OBJECT_ID;
+                goto out;
+            }
+            Flush.gport = (SAI_BRIDGE_TYPE_1D == bridge_port->bridge_type) ? bridge_port->logic_port: bridge_port->gport;
+            Flush.use_logic_port = (SAI_BRIDGE_TYPE_1D == bridge_port->bridge_type) ? 1:0;
+            port_found_flag = TRUE;
+            attr_event[0].id = SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID;
+            attr_event[0].value.oid = attr_value->oid;
         }
-        Flush.gport = bridge_port->gport;
-        Flush.use_logic_port = ((SAI_BRIDGE_PORT_TYPE_SUB_PORT == bridge_port->port_type) || (SAI_BRIDGE_PORT_TYPE_TUNNEL == bridge_port->port_type))?1:0;
-        port_found_flag = TRUE;
-        attr_event[0].id = SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID;
-        attr_event[0].value.oid = attr_value->oid;
     }
 
     status =  ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_FDB_FLUSH_ATTR_BV_ID, &attr_value, &attr_index);
     if (!CTC_SAI_ERROR(status))
     {
-        bv_id_found_flag = TRUE;
-        fdb_entry.bv_id = attr_value->oid;
-        CTC_SAI_ERROR_GOTO(ctc_sai_bridge_get_fid(attr_value->oid, &Flush.fid), status, out);
+        if(attr_value->oid != SAI_NULL_OBJECT_ID)
+        {
+            bv_id_found_flag = TRUE;
+            fdb_entry.bv_id = attr_value->oid;
+            CTC_SAI_ERROR_GOTO(ctc_sai_bridge_get_fid(attr_value->oid, &Flush.fid), status, out);
+        }
     }
 
     status =  ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_FDB_FLUSH_ATTR_ENTRY_TYPE, &attr_value, &attr_index);
@@ -907,12 +946,169 @@ out:
     return status;
 }
 
- sai_fdb_api_t g_ctc_sai_fdb_api = {
+ static sai_status_t
+ ctc_sai_fdb_create_fdb_entries(
+        _In_ uint32_t object_count,
+        _In_ const sai_fdb_entry_t *fdb_entry,
+        _In_ const uint32_t *attr_count,
+        _In_ const sai_attribute_t **attr_list,
+        _In_ sai_bulk_op_error_mode_t mode,
+        _Out_ sai_status_t *object_statuses)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    uint8 lchip = 0;
+    uint32 i = 0;
+    ctc_sai_switch_master_t* p_switch_master = NULL;
+    CTC_SAI_PTR_VALID_CHECK(fdb_entry);
+    CTC_SAI_LOG_ENTER(SAI_API_FDB);
+    for (i = 0; i < object_count; i++)
+    {
+       object_statuses[i] = SAI_STATUS_NOT_EXECUTED;
+    }
+    for (i = 0; i < object_count; i++)
+    {
+        CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(fdb_entry[i].switch_id, &lchip));
+        //CTC_SAI_DB_LOCK(lchip);
+        p_switch_master = ctc_sai_get_switch_property(lchip);
+        object_statuses[i] = ctc_sai_fdb_create_fdb_entry(&(fdb_entry[i]), attr_count[i], (attr_list[i]));
+        if (CTC_SAI_ERROR(object_statuses[i]) && (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode))
+        {
+            //CTC_SAI_DB_UNLOCK(lchip);
+            return SAI_STATUS_FAILURE;
+        }
+        else if (CTC_SAI_ERROR(object_statuses[i]))
+        {
+           status = SAI_STATUS_FAILURE;
+        }
+        //CTC_SAI_DB_UNLOCK(lchip);
+    }
+    return status;
+}
+
+static sai_status_t
+ctc_sai_fdb_remove_fdb_entries(
+        _In_ uint32_t object_count,
+        _In_ const sai_fdb_entry_t *fdb_entry,
+        _In_ sai_bulk_op_error_mode_t mode,
+        _Out_ sai_status_t *object_statuses)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    uint8 lchip = 0;
+    uint32 i = 0;
+    ctc_sai_switch_master_t* p_switch_master = NULL;
+    CTC_SAI_PTR_VALID_CHECK(fdb_entry);
+    CTC_SAI_LOG_ENTER(SAI_API_FDB);
+    for (i = 0; i < object_count; i++)
+    {
+       object_statuses[i] = SAI_STATUS_NOT_EXECUTED;
+    }
+    for (i = 0; i < object_count; i++)
+    {
+        CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(fdb_entry[i].switch_id, &lchip));
+        //CTC_SAI_DB_LOCK(lchip);
+        p_switch_master = ctc_sai_get_switch_property(lchip);
+        object_statuses[i] = ctc_sai_fdb_remove_fdb_entry(&(fdb_entry[i]));
+        if (CTC_SAI_ERROR(object_statuses[i]) && (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode))
+        {
+            //CTC_SAI_DB_UNLOCK(lchip);
+            return SAI_STATUS_FAILURE;
+        }
+        else if (CTC_SAI_ERROR(object_statuses[i]))
+        {
+           status = SAI_STATUS_FAILURE;
+        }
+
+        //CTC_SAI_DB_UNLOCK(lchip);
+    }
+    return status;
+}
+
+static sai_status_t
+ctc_sai_fdb_set_fdb_entries_attribute(
+        _In_ uint32_t object_count,
+        _In_ const sai_fdb_entry_t *fdb_entry,
+        _In_ const sai_attribute_t *attr_list,
+        _In_ sai_bulk_op_error_mode_t mode,
+        _Out_ sai_status_t *object_statuses)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    uint8 lchip = 0;
+    uint32 i = 0;
+
+    CTC_SAI_LOG_ENTER(SAI_API_FDB);
+    for (i = 0; i < object_count; i++)
+    {
+       object_statuses[i] = SAI_STATUS_NOT_EXECUTED;
+    }
+    for (i = 0; i < object_count; i++)
+    {
+        CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(fdb_entry[i].switch_id, &lchip));
+        //CTC_SAI_DB_LOCK(lchip);
+        object_statuses[i] = ctc_sai_fdb_set_fdb_entry_attribute(&(fdb_entry[i]), &(attr_list[i]));
+        if (CTC_SAI_ERROR(object_statuses[i]) && (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode))
+        {
+            //CTC_SAI_DB_UNLOCK(lchip);
+            return SAI_STATUS_FAILURE;
+        }
+        else if (CTC_SAI_ERROR(object_statuses[i]))
+        {
+           status = SAI_STATUS_FAILURE;
+        }
+
+        //CTC_SAI_DB_UNLOCK(lchip);
+    }
+    return status;
+}
+
+static sai_status_t
+ctc_sai_fdb_get_fdb_entries_attribute(
+        _In_ uint32_t object_count,
+        _In_ const sai_fdb_entry_t *fdb_entry,
+        _In_ const uint32_t *attr_count,
+        _Inout_ sai_attribute_t **attr_list,
+        _In_ sai_bulk_op_error_mode_t mode,
+        _Out_ sai_status_t *object_statuses)
+{
+    sai_status_t           status = SAI_STATUS_SUCCESS;
+    uint8 lchip = 0;
+    uint32 i = 0;
+
+    CTC_SAI_LOG_ENTER(SAI_API_FDB);
+    for (i = 0; i < object_count; i++)
+    {
+        object_statuses[i] = SAI_STATUS_NOT_EXECUTED;
+    }
+    for (i = 0; i < object_count; i++)
+    {
+        CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(fdb_entry[i].switch_id, &lchip));
+        //CTC_SAI_DB_LOCK(lchip);
+        object_statuses[i] = ctc_sai_fdb_get_fdb_entry_attribute(&(fdb_entry[i]), attr_count[i], (attr_list[i]));
+        if (CTC_SAI_ERROR(object_statuses[i]) && (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode))
+        {
+            //CTC_SAI_DB_UNLOCK(lchip);
+            return SAI_STATUS_FAILURE;
+        }
+        else if (CTC_SAI_ERROR(object_statuses[i]))
+        {
+            status = SAI_STATUS_FAILURE;
+        }
+
+        //CTC_SAI_DB_UNLOCK(lchip);
+    }
+    return status;
+}
+
+
+sai_fdb_api_t g_ctc_sai_fdb_api = {
     ctc_sai_fdb_create_fdb_entry,
     ctc_sai_fdb_remove_fdb_entry,
     ctc_sai_fdb_set_fdb_entry_attribute,
     ctc_sai_fdb_get_fdb_entry_attribute,
-    ctc_sai_fdb_flush_fdb_entries
+    ctc_sai_fdb_flush_fdb_entries,
+    ctc_sai_fdb_create_fdb_entries,
+    ctc_sai_fdb_remove_fdb_entries,
+    ctc_sai_fdb_set_fdb_entries_attribute,
+    ctc_sai_fdb_get_fdb_entries_attribute
 };
 
 sai_status_t

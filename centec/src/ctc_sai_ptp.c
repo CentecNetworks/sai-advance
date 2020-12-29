@@ -164,18 +164,18 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         break;
         
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_FORMAT_TYPE:
-        if (attr->value.s32 != SAI_PTP_TOD_INTERFACE_FORMAT_CCSA_YDT2375)
+        if (attr->value.s32 != SAI_PTP_TOD_INTERFACE_FORMAT_TYPE_CCSA_YDT2375)
         {
             CTC_SAI_LOG_INFO(SAI_API_PTP, "Failed to set tod interface format, invalid tod_interface_format %d!\n", attr->value.s32);
-            p_ptp_db->tod_format = SAI_PTP_TOD_INTERFACE_FORMAT_USER_DEFINE;
+            p_ptp_db->tod_format = SAI_PTP_TOD_INTERFACE_FORMAT_TYPE_USER_DEFINE;
             return SAI_STATUS_FAILURE;
         }
-        p_ptp_db->tod_format = SAI_PTP_TOD_INTERFACE_FORMAT_CCSA_YDT2375;
+        p_ptp_db->tod_format = SAI_PTP_TOD_INTERFACE_FORMAT_TYPE_CCSA_YDT2375;
         break;
 
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND:
-        if(p_ptp_db->tod_enable && (p_ptp_db->tod_mode !=TOD_INTF_DISABLE))
+        if(p_ptp_db->tod_enable && (p_ptp_db->tod_mode !=SAI_TOD_INTF_DISABLE))
         {
             CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:PLEASE CLOSE THE SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE FIRST!");
             return SAI_STATUS_FAILURE;
@@ -192,7 +192,7 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS:
-        if(p_ptp_db->tod_enable && (p_ptp_db->tod_mode !=TOD_INTF_DISABLE))
+        if(p_ptp_db->tod_enable && (p_ptp_db->tod_mode !=SAI_TOD_INTF_DISABLE))
         {
             CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:PLEASE CLOSE THE SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE FIRST!");
             return SAI_STATUS_FAILURE;
@@ -208,7 +208,7 @@ ctc_sai_ptp_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY:
-        if(p_ptp_db->tod_enable &&  (p_ptp_db->tod_mode !=TOD_INTF_DISABLE))
+        if(p_ptp_db->tod_enable &&  (p_ptp_db->tod_mode !=SAI_TOD_INTF_DISABLE))
         {
             CTC_SAI_LOG_ERROR(SAI_API_PTP, "NOTE:PLEASE CLOSE THE SAI_PTP_DOMAIN_ATTR_TOD_INTF_ENABLE FIRST!");
             return SAI_STATUS_FAILURE;
@@ -298,11 +298,11 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_global_property(lchip, CTC_PTP_GLOBAL_PROP_PORT_BASED_PTP_EN, &enable_basedon_port));
         if(enable_basedon_port)
             {
-                attr->value.s32 = SAI_PTP_ENABLE_BASED_ON_PORT;
+                attr->value.s32 = SAI_PTP_ENABLE_BASED_TYPE_PORT;
             }
         else
             {
-                attr->value.s32 = SAI_PTP_ENABLE_BASED_ON_VLAN;
+                attr->value.s32 = SAI_PTP_ENABLE_BASED_TYPE_VLAN;
             }
         break;
 
@@ -332,12 +332,12 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_LEAP_SECOND:
-        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTF_MODE_INPUT)
         {
             CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.s8 = tod_interface_code.leap_second;            
         }
-        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
+        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTF_MODE_OUTPUT)
         {
             attr->value.s8 = p_ptp_db->leap_second; 
         }
@@ -348,12 +348,12 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_STATUS:
-        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTF_MODE_INPUT)
         {
             CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.u8 = tod_interface_code.pps_status;       
         }
-        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
+        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTF_MODE_OUTPUT)
         {
             attr->value.u8 = p_ptp_db->pps_status;
         }
@@ -364,12 +364,12 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_PPS_ACCURACY:
-        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTF_MODE_INPUT)
         {
             CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.u8 = tod_interface_code.pps_accuracy;       
         }
-        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_OUTPUT)
+        else if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTF_MODE_OUTPUT)
         {
             attr->value.u8 = p_ptp_db->pps_accuracy;
         }
@@ -380,7 +380,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_WEEK:
-        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTF_MODE_INPUT)
         {
             CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.u16 = tod_interface_code.gps_week;   
@@ -392,7 +392,7 @@ ctc_sai_ptp_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 attr
         break;
 
     case SAI_PTP_DOMAIN_ATTR_TOD_INTF_GPS_SECOND_OF_WEEK:
-        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTERFACE_INPUT)
+        if(p_ptp_db->tod_mode == SAI_PTP_TOD_INTF_MODE_INPUT)
         {
             CTC_SAI_CTC_ERROR_RETURN(ctcs_ptp_get_tod_intf_rx_code(lchip, &tod_interface_code));
             attr->value.u32 = tod_interface_code.gps_second_time_of_week; 
@@ -562,7 +562,7 @@ static sai_status_t ctc_sai_ptp_create_ptp_domain( sai_object_id_t *ptp_domain_i
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_PTP_DOMAIN_ATTR_PTP_ENABLE_BASED_TYPE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        if (attr_value->s32 == SAI_PTP_ENABLE_BASED_ON_PORT)
+        if (attr_value->s32 == SAI_PTP_ENABLE_BASED_TYPE_PORT)
             {
                 enable_basedon_port = 1;
             }

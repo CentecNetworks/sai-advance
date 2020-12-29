@@ -55,6 +55,7 @@ _ctc_sai_router_interface_build_db(uint8 lchip, sai_object_id_t router_interface
     p_rif_info->v4_state = 1;
     p_rif_info->v6_state = 1;
     p_rif_info->mtu = 1514;
+    p_rif_info->stats_state = 1;
     *oid_property = p_rif_info;
 
     return SAI_STATUS_SUCCESS;
@@ -903,10 +904,10 @@ static  ctc_sai_attr_fn_entry_t rif_attr_fn_entries[] = {
       _ctc_sai_router_interface_set_attr},
     { SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL,
       _ctc_sai_router_interface_get_attr,
-      _ctc_sai_router_interface_set_attr},
+      ctc_sai_acl_bind_point_set},
     { SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL,
       _ctc_sai_router_interface_get_attr,
-      _ctc_sai_router_interface_set_attr},
+      ctc_sai_acl_bind_point_set},
     { SAI_ROUTER_INTERFACE_ATTR_NEIGHBOR_MISS_PACKET_ACTION,
       _ctc_sai_router_interface_get_attr,
       _ctc_sai_router_interface_set_attr},
@@ -940,12 +941,6 @@ static  ctc_sai_attr_fn_entry_t rif_attr_fn_entries[] = {
     { SAI_ROUTER_INTERFACE_ATTR_UPDATE_DSCP,
       _ctc_sai_router_interface_get_attr,
       _ctc_sai_router_interface_set_attr},
-    { SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL,
-      _ctc_sai_router_interface_get_attr,
-      ctc_sai_acl_bind_point_set},
-    { SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL,
-      _ctc_sai_router_interface_get_attr,
-      ctc_sai_acl_bind_point_set},
     {CTC_SAI_FUNC_ATTR_END_ID,NULL,NULL}
 };
 
@@ -1524,6 +1519,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
             break;
     }
 #endif
+
     sub_type = attr_value->s32;
     rif_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_ROUTER_INTERFACE, lchip, sub_type, 0, l3if_id);
     CTC_SAI_LOG_INFO(SAI_API_ROUTER_INTERFACE, "create router_interface_id = 0x%"PRIx64"\n", rif_obj_id);
@@ -1608,7 +1604,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
             CTC_SAI_DB_UNLOCK(lchip);
             return SAI_STATUS_NO_MEMORY;
         }
-        else if ((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) && router_mac.num >= 8)
+        else if (((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) || (CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))) && router_mac.num >= 8)
         {
             CTC_SAI_DB_UNLOCK(lchip);
             return SAI_STATUS_NO_MEMORY;
@@ -1767,7 +1763,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
 
     CTC_SAI_ERROR_GOTO(_ctc_sai_router_interface_set_attr_hw(rif_obj_id), status, error6);
 
-    if (port_valid && (CTC_CHIP_DUET2 == ctcs_get_chip_type(lchip)||CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)))
+    if (port_valid && (CTC_CHIP_DUET2 == ctcs_get_chip_type(lchip)||CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip) || CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip)))
     {
         /*D2 need set l3if*/
         for (index = 0; index < agg_member_cnt; index++)
@@ -2121,6 +2117,12 @@ ctc_sai_router_interface_api_init()
 sai_status_t
 ctc_sai_router_interface_db_init(uint8 lchip)
 {
+    // skip Tsingma_mx rsv L3IF 4093,4094
+    uint32 l3if_id = 0;
+	for(l3if_id = L3IF_RSV_START; l3if_id <= L3IF_RSV_END; l3if_id++)
+	{
+        CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_L3IF, l3if_id));
+	}
     ctc_sai_db_wb_t wb_info;
     sal_memset(&wb_info, 0, sizeof(wb_info));
     wb_info.version = SYS_WB_VERSION_ROUTERINTERFACE;

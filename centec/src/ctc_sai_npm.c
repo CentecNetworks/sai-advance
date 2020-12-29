@@ -476,7 +476,7 @@ _ctc_sai_npm_mapping_npm_session(ctc_sai_npm_t *p_npm_attr, ctc_npm_cfg_t *p_npm
 
     p_npm_cfg->rate = p_npm_attr->tx_rate;
 
-    if (SAI_NPM_TX_MODE_CONTINUOUS == p_npm_attr->pkt_tx_mode)
+    if (SAI_NPM_PKT_TX_MODE_CONTINUOUS == p_npm_attr->pkt_tx_mode)
     {
         p_npm_cfg->tx_mode = CTC_NPM_TX_MODE_CONTINUOUS;
         if (p_npm_attr->pkt_duration)
@@ -488,12 +488,12 @@ _ctc_sai_npm_mapping_npm_session(ctc_sai_npm_t *p_npm_attr, ctc_npm_cfg_t *p_npm
             p_npm_cfg->timeout = 0;
         }
     }
-    else if (SAI_NPM_TX_MODE_PACKET_NUM == p_npm_attr->pkt_tx_mode)
+    else if (SAI_NPM_PKT_TX_MODE_PACKET_NUM == p_npm_attr->pkt_tx_mode)
     {
         p_npm_cfg->tx_mode = CTC_NPM_TX_MODE_PACKET_NUM;
         p_npm_cfg->packet_num = p_npm_attr->pkt_cnt;
     }
-    else if (SAI_NPM_TX_MODE_PERIOD == p_npm_attr->pkt_tx_mode)
+    else if (SAI_NPM_PKT_TX_MODE_PERIOD == p_npm_attr->pkt_tx_mode)
     {
         p_npm_cfg->tx_mode = CTC_NPM_TX_MODE_PERIOD;
         p_npm_cfg->tx_period = p_npm_attr->period;
@@ -739,7 +739,7 @@ _ctc_sai_npm_create_e2iloop_nexthop(ctc_sai_npm_t *p_npm_attr, uint8 lchip)
         iloop_nh.lpbk_lport = port_assign.inter_port;
 
         
-        if ( p_npm_attr->encap_type == SAI_NPM_ENCAPSULATION_TYPE_MPLS_L3VPN && p_npm_attr->role == SAI_NPM_SESSION_REFLECTOR )
+        if ( p_npm_attr->encap_type == SAI_NPM_ENCAPSULATION_TYPE_MPLS_L3VPN && p_npm_attr->role == SAI_NPM_SESSION_ROLE_REFLECTOR )
         {
             iloop_nh.inner_packet_type_valid = 1;
 
@@ -845,7 +845,7 @@ _ctc_sai_npm_create_e2iloop_nexthop(ctc_sai_npm_t *p_npm_attr, uint8 lchip)
     nh_param.misc_param.flex_edit.dscp_select = CTC_NH_DSCP_SELECT_NONE;
 
 
-    if (p_npm_attr->role == SAI_NPM_SESSION_SENDER)
+    if (p_npm_attr->role == SAI_NPM_SESSION_ROLE_SENDER)
     {        
         nh_param.misc_param.flex_edit.packet_type = CTC_MISC_NH_PACKET_TYPE_UDPORTCP;
         nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_UPDATE_UDP_CHKSUM;
@@ -858,7 +858,7 @@ _ctc_sai_npm_create_e2iloop_nexthop(ctc_sai_npm_t *p_npm_attr, uint8 lchip)
         nh_param.misc_param.flex_edit.flag |= CTC_MISC_NH_FLEX_EDIT_REPLACE_IP_HDR;   // just for match sdk api
     }
     
-    else if ( p_npm_attr->role == SAI_NPM_SESSION_REFLECTOR )
+    else if ( p_npm_attr->role == SAI_NPM_SESSION_ROLE_REFLECTOR )
     {
 
         nh_param.misc_param.flex_edit.packet_type = CTC_MISC_NH_PACKET_TYPE_UDPORTCP;
@@ -1501,7 +1501,7 @@ _ctc_sai_npm_ingress_acl_add(ctc_sai_npm_t *p_npm_attr, uint8  lchip)
         return ret;
     }
 
-    if (p_npm_attr->role == SAI_NPM_SESSION_SENDER )
+    if (p_npm_attr->role == SAI_NPM_SESSION_ROLE_SENDER )
     {
         sal_memset(&act_field, 0, sizeof(ctc_acl_field_action_t));
         sal_memset(&npm_acl_oam, 0, sizeof(ctc_acl_oam_t));
@@ -1521,7 +1521,7 @@ _ctc_sai_npm_ingress_acl_add(ctc_sai_npm_t *p_npm_attr, uint8  lchip)
             goto error1;
         }
     }
-    else if (p_npm_attr->role == SAI_NPM_SESSION_REFLECTOR )
+    else if (p_npm_attr->role == SAI_NPM_SESSION_ROLE_REFLECTOR )
     {
 
         sal_memset(&act_field, 0, sizeof(act_field));
@@ -1796,7 +1796,7 @@ _ctc_sai_npm_parser_session_attr(uint32_t attr_count, const sai_attribute_t *att
         p_npm_attr->hw_lookup = true;
     }
 
-    if (SAI_NPM_SESSION_SENDER == p_npm_attr->role)
+    if (SAI_NPM_SESSION_ROLE_SENDER == p_npm_attr->role)
     {
     
         status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NPM_SESSION_ATTR_TTL, &attr_value, &index);
@@ -1853,7 +1853,7 @@ _ctc_sai_npm_parser_session_attr(uint32_t attr_count, const sai_attribute_t *att
             return  SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
         } 
 
-        if(p_npm_attr->pkt_tx_mode == SAI_NPM_TX_MODE_CONTINUOUS)
+        if(p_npm_attr->pkt_tx_mode == SAI_NPM_PKT_TX_MODE_CONTINUOUS)
         {
             status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NPM_SESSION_ATTR_TX_PKT_DURATION, &attr_value, &index);
             if(SAI_STATUS_SUCCESS == status)
@@ -1866,7 +1866,7 @@ _ctc_sai_npm_parser_session_attr(uint32_t attr_count, const sai_attribute_t *att
                 return  SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
             }         
         }
-        else if(p_npm_attr->pkt_tx_mode == SAI_NPM_TX_MODE_PACKET_NUM)
+        else if(p_npm_attr->pkt_tx_mode == SAI_NPM_PKT_TX_MODE_PACKET_NUM)
         {   
             status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NPM_SESSION_ATTR_TX_PKT_CNT, &attr_value, &index);
             if(SAI_STATUS_SUCCESS == status)
@@ -1879,7 +1879,7 @@ _ctc_sai_npm_parser_session_attr(uint32_t attr_count, const sai_attribute_t *att
                 return  SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
             }                 
         }    
-        else if(p_npm_attr->pkt_tx_mode == SAI_NPM_TX_MODE_PERIOD)
+        else if(p_npm_attr->pkt_tx_mode == SAI_NPM_PKT_TX_MODE_PERIOD)
         {
             status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_NPM_SESSION_ATTR_TX_PKT_PERIOD, &attr_value, &index);
             if(SAI_STATUS_SUCCESS == status)
@@ -2091,7 +2091,7 @@ _ctc_sai_npm_set_npm_session_attr(sai_object_key_t *key, const sai_attribute_t* 
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    if (SAI_NPM_SESSION_SENDER != p_npm_info->role)
+    if (SAI_NPM_SESSION_ROLE_SENDER != p_npm_info->role)
     {
         return  SAI_STATUS_INVALID_PARAMETER;
     }
@@ -2324,7 +2324,7 @@ _ctc_sai_npm_wb_reload_cb(uint8 lchip, void* key, void* data)
     
     sal_memset(&npm_ctc_oid, 0, sizeof(ctc_object_id_t));
     
-    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NPM, npm_sai_oid, &npm_ctc_oid));
+    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NPM_SESSION, npm_sai_oid, &npm_ctc_oid));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_NPM, npm_ctc_oid.value));
 
@@ -2382,7 +2382,7 @@ ctc_sai_npm_create_npm_session(sai_object_id_t *npm_session_id,  sai_object_id_t
     
     CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_NPM, &npm_id),status, error0);
     
-    npm_tmp_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_NPM, lchip, 0, 0, npm_id);
+    npm_tmp_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_NPM_SESSION, lchip, 0, 0, npm_id);
 
     sal_memset(&npm_attr, 0, sizeof(ctc_sai_npm_t));
 
@@ -2442,7 +2442,7 @@ ctc_sai_npm_create_npm_session(sai_object_id_t *npm_session_id,  sai_object_id_t
     }
 
 
-    if (SAI_NPM_SESSION_SENDER == npm_attr.role)
+    if (SAI_NPM_SESSION_ROLE_SENDER == npm_attr.role)
     {
 
         npm_attr.is_swap_acl_key = 1;        
@@ -2481,7 +2481,7 @@ ctc_sai_npm_create_npm_session(sai_object_id_t *npm_session_id,  sai_object_id_t
      
     }
     
-    else if (SAI_NPM_SESSION_REFLECTOR == npm_attr.role)
+    else if (SAI_NPM_SESSION_ROLE_REFLECTOR == npm_attr.role)
     {
 
         npm_attr.is_swap_acl_key = 0;
@@ -2524,12 +2524,12 @@ ctc_sai_npm_create_npm_session(sai_object_id_t *npm_session_id,  sai_object_id_t
     return status;
 
 error6: 
-    if(SAI_NPM_SESSION_REFLECTOR == npm_attr.role)
+    if(SAI_NPM_SESSION_ROLE_REFLECTOR == npm_attr.role)
     {
         _ctc_sai_npm_acl_del(npm_attr.egress_acl_entry_id, lchip);
     }
 error5:   
-    if(SAI_NPM_SESSION_REFLECTOR == npm_attr.role)
+    if(SAI_NPM_SESSION_ROLE_REFLECTOR == npm_attr.role)
     {
         acl_prop.acl_en = 0;
         acl_prop.acl_priority = NPM_PORT_ACL_LOOKUP_PRIORITY; 
@@ -2613,7 +2613,7 @@ ctc_sai_npm_remove_npm_session(sai_object_id_t npm_session_oid)
         goto error1;
     }    
     
-    if (SAI_NPM_SESSION_SENDER == p_npm_info->role)
+    if (SAI_NPM_SESSION_ROLE_SENDER == p_npm_info->role)
     {
 
         status = ctc_sai_oid_get_npm_session_id(npm_session_oid, &session_id);
@@ -2631,7 +2631,7 @@ ctc_sai_npm_remove_npm_session(sai_object_id_t npm_session_oid)
     
     }
     
-    else if (SAI_NPM_SESSION_REFLECTOR == p_npm_info->role)
+    else if (SAI_NPM_SESSION_ROLE_REFLECTOR == p_npm_info->role)
     {
 
         if( p_npm_info->encap_type == SAI_NPM_ENCAPSULATION_TYPE_L2VPN_VPLS || p_npm_info->encap_type == SAI_NPM_ENCAPSULATION_TYPE_L2VPN_VPWS)
@@ -2687,7 +2687,7 @@ ctc_sai_npm_set_npm_attr(sai_object_id_t npm_session_id, const sai_attribute_t *
     CTC_SAI_LOG_ENTER(SAI_API_NPM);
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(npm_session_id, &lchip));
-    status = ctc_sai_set_attribute(&key, key_str, SAI_OBJECT_TYPE_NPM, npm_attr_fn_entries, attr);
+    status = ctc_sai_set_attribute(&key, key_str, SAI_OBJECT_TYPE_NPM_SESSION, npm_attr_fn_entries, attr);
     if (SAI_STATUS_SUCCESS != status)
     {
         CTC_SAI_LOG_ERROR(SAI_API_NPM, "Failed to set npm attr:%d, status:%d\n", attr->id,status);
@@ -2711,7 +2711,7 @@ ctc_sai_npm_get_npm_attr(sai_object_id_t npm_session_id, uint32_t attr_count, sa
 
     while (loop_index < attr_count)
     {
-        CTC_SAI_ERROR_GOTO(ctc_sai_get_attribute(&key, key_str, SAI_OBJECT_TYPE_NPM,
+        CTC_SAI_ERROR_GOTO(ctc_sai_get_attribute(&key, key_str, SAI_OBJECT_TYPE_NPM_SESSION,
                                     loop_index, npm_attr_fn_entries, &attr_list[loop_index]), status, out);
         loop_index ++;
     }
@@ -2755,7 +2755,7 @@ ctc_sai_npm_get_npm_session_stats(sai_object_id_t npm_session_id,
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    if(p_npm_info->role != SAI_NPM_SESSION_SENDER)
+    if(p_npm_info->role != SAI_NPM_SESSION_ROLE_SENDER)
     {
         return SAI_STATUS_INVALID_PARAMETER;        
     }
@@ -2849,7 +2849,7 @@ ctc_sai_npm_clear_npm_session_stats( sai_object_id_t npm_session_oid, uint32_t s
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    if(p_npm_info->role != SAI_NPM_SESSION_SENDER)
+    if(p_npm_info->role != SAI_NPM_SESSION_ROLE_SENDER)
     {
         return SAI_STATUS_INVALID_PARAMETER;        
     }
@@ -2996,6 +2996,7 @@ const sai_npm_api_t ctc_sai_npm_api = {
     ctc_sai_npm_set_npm_attr,
     ctc_sai_npm_get_npm_attr,
     ctc_sai_npm_get_npm_session_stats,
+    NULL,
     ctc_sai_npm_clear_npm_session_stats,
 };
 
@@ -3021,7 +3022,7 @@ ctc_sai_npm_db_init(uint8 lchip)
     wb_info.wb_sync_cb1 = _ctc_sai_npm_wb_sync_cb1;
     wb_info.wb_reload_cb1 = _ctc_sai_npm_wb_reload_cb1;
     
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_NPM, (void*)(&wb_info));
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_NPM_SESSION, (void*)(&wb_info));
 
 
     if(NULL != p_ctc_sai_npm[lchip])

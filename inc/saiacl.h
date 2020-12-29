@@ -1272,6 +1272,18 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER,
 
     /**
+     * @brief GRE key
+     *
+     * The key is dedicated for GRE packets.
+     * The VNI key should not be used for matching on GRE packets or NVGRE packets.
+     *
+     * @type bool
+     * @flags CREATE_ONLY
+     * @default false
+     */
+    SAI_ACL_TABLE_ATTR_FIELD_GRE_KEY,
+
+    /**
      * @brief TAM INT type
      *
      * @type bool
@@ -1281,9 +1293,18 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_TAM_INT_TYPE,
 
     /**
+     * @brief Interface id defined
+     *
+     * @type bool
+     * @flags CREATE_ONLY
+     * @default false
+     */
+    SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID,
+
+    /**
      * @brief End of ACL Table Match Field
      */
-    SAI_ACL_TABLE_ATTR_FIELD_END = SAI_ACL_TABLE_ATTR_FIELD_TAM_INT_TYPE,
+    SAI_ACL_TABLE_ATTR_FIELD_END = SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID,
 
     /**
      * @brief ACL table entries associated with this table.
@@ -1321,18 +1342,9 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
-     * @brief interface id defined
-     *
-     * @type bool
-     * @flags CREATE_ONLY
-     * @default false
-     */
-    SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID = SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_START,
-
-    /**
      * @brief End of Custom range base
      */
-    SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_END = SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID,
+    SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_END,
 
 } sai_acl_table_attr_t;
 
@@ -1900,7 +1912,7 @@ typedef enum _sai_acl_entry_attr_t
      *
      * @type sai_acl_field_data_t sai_uint8_t
      * @flags CREATE_AND_SET
-     * @default disable
+     * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_EXP,
 
@@ -2189,6 +2201,15 @@ typedef enum _sai_acl_entry_attr_t
     SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER,
 
     /**
+     * @brief GRE Key (32 bits)
+     *
+     * @type sai_acl_field_data_t sai_uint32_t
+     * @flags CREATE_AND_SET
+     * @default disabled
+     */
+    SAI_ACL_ENTRY_ATTR_FIELD_GRE_KEY,
+
+    /**
      * @brief TAM INT type
      *
      * @type sai_acl_field_data_t sai_tam_int_type_t
@@ -2198,9 +2219,19 @@ typedef enum _sai_acl_entry_attr_t
     SAI_ACL_ENTRY_ATTR_FIELD_TAM_INT_TYPE,
 
     /**
+     * @brief Interface id defined
+     *
+     * @type sai_acl_field_data_t sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_ROUTER_INTERFACE
+     * @default disabled
+     */
+    SAI_ACL_ENTRY_ATTR_FIELD_INTERFACE_ID,
+
+    /**
      * @brief End of Rule Match Fields
      */
-    SAI_ACL_ENTRY_ATTR_FIELD_END = SAI_ACL_ENTRY_ATTR_FIELD_TAM_INT_TYPE,
+    SAI_ACL_ENTRY_ATTR_FIELD_END = SAI_ACL_ENTRY_ATTR_FIELD_INTERFACE_ID,
 
     /*
      * Actions [sai_acl_action_data_t]
@@ -2215,7 +2246,7 @@ typedef enum _sai_acl_entry_attr_t
     SAI_ACL_ENTRY_ATTR_ACTION_START = 0x00002000,
 
     /**
-     * @brief Redirect Packet to a destination which can be a port,
+     * @brief Redirect Packet to a destination which can be a port, system port,
      * LAG, nexthop, nexthopgroup, bridge port, L2MC group,IPMC group
      *
      * When redirecting to a bridge port, the following behavior will happen according to the bridge port type:
@@ -2228,7 +2259,7 @@ typedef enum _sai_acl_entry_attr_t
      *
      * @type sai_acl_action_data_t sai_object_id_t
      * @flags CREATE_AND_SET
-     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_LAG, SAI_OBJECT_TYPE_NEXT_HOP, SAI_OBJECT_TYPE_NEXT_HOP_GROUP, SAI_OBJECT_TYPE_BRIDGE_PORT, SAI_OBJECT_TYPE_L2MC_GROUP, SAI_OBJECT_TYPE_IPMC_GROUP
+     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_SYSTEM_PORT, SAI_OBJECT_TYPE_LAG, SAI_OBJECT_TYPE_NEXT_HOP, SAI_OBJECT_TYPE_NEXT_HOP_GROUP, SAI_OBJECT_TYPE_BRIDGE_PORT, SAI_OBJECT_TYPE_L2MC_GROUP, SAI_OBJECT_TYPE_IPMC_GROUP
      * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT = SAI_ACL_ENTRY_ATTR_ACTION_START,
@@ -2251,7 +2282,7 @@ typedef enum _sai_acl_entry_attr_t
      *
      * @type sai_acl_action_data_t sai_object_list_t
      * @flags CREATE_AND_SET
-     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_LAG, SAI_OBJECT_TYPE_NEXT_HOP, SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_SYSTEM_PORT, SAI_OBJECT_TYPE_LAG, SAI_OBJECT_TYPE_NEXT_HOP, SAI_OBJECT_TYPE_NEXT_HOP_GROUP
      * @default disabled
      */
     SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT_LIST,
@@ -2711,15 +2742,6 @@ typedef enum _sai_acl_entry_attr_t
     /** Custom range base value */
     SAI_ACL_ENTRY_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
-    /**
-     * @brief interface id defined
-     *
-     * @type sai_u16_t interface id
-     * @flags CREATE_ONLY
-     * @default empty
-     */
-    SAI_ACL_ENTRY_ATTR_FIELD_INTERFACE_ID,
-
     /** End of custom range base */
     SAI_ACL_ENTRY_ATTR_CUSTOM_RANGE_END
 
@@ -2825,6 +2847,8 @@ typedef enum _sai_acl_range_type_t
 
 /**
  * @brief Attribute Id for ACL Range Object
+ *
+ * @flags Contains flag
  */
 typedef enum _sai_acl_range_attr_t
 {
@@ -2867,10 +2891,10 @@ typedef enum _sai_acl_range_attr_t
     /**
      * @brief ACL stage
      *
-     * @type sai_acl_stage_t
+     * @type sai_uint32_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      */
-    SAI_ACL_RANGE_ATTR_STAGE = SAI_ACL_RANGE_ATTR_CUSTOM_RANGE_START,
+    SAI_ACL_RANGE_ATTR_STAGE,
 
     /** End of custom range base */
     SAI_ACL_RANGE_ATTR_CUSTOM_RANGE_END

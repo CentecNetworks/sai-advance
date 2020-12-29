@@ -32,7 +32,7 @@
  *
  * @{
  */
- 
+
 /**
  * @brief Defines Ethernet Segment attributes
  */
@@ -44,14 +44,13 @@ typedef enum _sai_es_attr_t
     SAI_ES_ATTR_START,
 
     /**
-     * @brief ESI Label
+     * @brief Ethernet Segment Identifier Label
      *
      * @type sai_uint32_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @default 0
      */
     SAI_ES_ATTR_ESI_LABEL = SAI_ES_ATTR_START,
-    
+
     /**
      * @brief End of attributes
      */
@@ -65,11 +64,10 @@ typedef enum _sai_es_attr_t
 
 } sai_es_attr_t;
 
-
 /**
- * @brief Create ethernet segment item
+ * @brief Create Ethernet segment item
  *
- * @param[out] ethernet segment item id
+ * @param[out] es_id Ethernet segment item id
  * @param[in] switch_id Switch Id
  * @param[in] attr_count Number of attributes
  * @param[in] attr_list Array of attributes
@@ -81,21 +79,21 @@ typedef sai_status_t (*sai_create_es_fn)(
         _In_ sai_object_id_t switch_id,
         _In_ uint32_t attr_count,
         _In_ const sai_attribute_t *attr_list);
-        
+
 /**
- * @brief Remove ethernet segment item
+ * @brief Remove Ethernet segment item
  *
- * @param[in] es_id ethernet segment item id
+ * @param[in] es_id Ethernet segment item id
  *
  * @return #SAI_STATUS_SUCCESS on success, failure status code on error
  */
 typedef sai_status_t (*sai_remove_es_fn)(
         _In_ sai_object_id_t es_id);
-        
+
 /**
- * @brief Set ethernet segment item attribute
+ * @brief Set Ethernet segment item attribute
  *
- * @param[in] es_id ethernet segment item id
+ * @param[in] es_id Ethernet segment item id
  * @param[in] attr Attribute
  *
  * @return #SAI_STATUS_SUCCESS on success, failure status code on error
@@ -105,9 +103,9 @@ typedef sai_status_t (*sai_set_es_attribute_fn)(
         _In_ const sai_attribute_t *attr);
 
 /**
- * @brief Get ethernet segment item attributes
+ * @brief Get Ethernet segment item attributes
  *
- * @param[in] es_id ethernet segment item id
+ * @param[in] es_id Ethernet segment item id
  * @param[in] attr_count Number of attributes
  * @param[inout] attr_list Array of attributes
  *
@@ -117,7 +115,7 @@ typedef sai_status_t (*sai_get_es_attribute_fn)(
         _In_ sai_object_id_t es_id,
         _In_ uint32_t attr_count,
         _Inout_ sai_attribute_t *attr_list);
-        
+
 /**
  * @brief Ethernet Segment methods table retrieved with sai_api_query()
  */

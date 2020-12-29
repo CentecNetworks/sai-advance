@@ -15,62 +15,62 @@ This module defines SAI VLAN.
  The VLAN Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_vlan                                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_vlan                                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_vlan_attribute                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_vlan_attribute                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_vlan_member                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_vlan_member                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_vlan_member_attribute                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_vlan_member_attribute                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_vlan_members                                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_vlan_members                                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_vlan_stats                                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_vlan_stats_ext                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  clear_vlan_stats                                     |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_vlan                                          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_vlan                                          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_vlan_attribute                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_vlan_attribute                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_vlan_member                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_vlan_member                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_vlan_member_attribute                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_vlan_member_attribute                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_vlan_members                                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_vlan_members                                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_vlan_stats                                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_vlan_stats_ext                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  clear_vlan_stats                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 \p
  The VLAN attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_VLAN_ATTR_VLAN_ID                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_MEMBER_LIST                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_MAX_LEARNED_ADDRESSES                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_STP_INSTANCE                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_LEARN_DISABLE                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_IPV4_MCAST_LOOKUP_KEY_TYPE             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_IPV6_MCAST_LOOKUP_KEY_TYPE             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_UNKNOWN_NON_IP_MCAST_OUTPUT_GROUP_ID   |              -                 |
-\t  |  SAI_VLAN_ATTR_UNKNOWN_IPV4_MCAST_OUTPUT_GROUP_ID     |              -                 |
-\t  |  SAI_VLAN_ATTR_UNKNOWN_IPV6_MCAST_OUTPUT_GROUP_ID     |              -                 |
-\t  |  SAI_VLAN_ATTR_UNKNOWN_LINKLOCAL_MCAST_OUTPUT_GROUP_ID|              -                 |
-\t  |  SAI_VLAN_ATTR_INGRESS_ACL                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_EGRESS_ACL                             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_META_DATA                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_UNKNOWN_UNICAST_FLOOD_GROUP            |              -                 |
-\t  |  SAI_VLAN_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_UNKNOWN_MULTICAST_FLOOD_GROUP          |              -                 |
-\t  |  SAI_VLAN_ATTR_BROADCAST_FLOOD_CONTROL_TYPE           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_BROADCAST_FLOOD_GROUP                  |              -                 |
-\t  |  SAI_VLAN_ATTR_CUSTOM_IGMP_SNOOPING_ENABLE            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_ATTR_TAM_OBJECT                             |              -                 |
-\e  |  SAI_VLAN_ATTR_PTP_DOMAIN_ID                          |            CTC7132             |
-\e  |  SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE                    |            CTC7132             |
-\e  |  SAI_VLAN_ATTR_POLICER_ID                             |            CTC7132             |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_VLAN_ATTR_VLAN_ID                                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_MEMBER_LIST                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_MAX_LEARNED_ADDRESSES                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_STP_INSTANCE                           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_LEARN_DISABLE                          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_IPV4_MCAST_LOOKUP_KEY_TYPE             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_IPV6_MCAST_LOOKUP_KEY_TYPE             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_UNKNOWN_NON_IP_MCAST_OUTPUT_GROUP_ID   |                   -                    |
+\t  |  SAI_VLAN_ATTR_UNKNOWN_IPV4_MCAST_OUTPUT_GROUP_ID     |                   -                    |
+\t  |  SAI_VLAN_ATTR_UNKNOWN_IPV6_MCAST_OUTPUT_GROUP_ID     |                   -                    |
+\t  |  SAI_VLAN_ATTR_UNKNOWN_LINKLOCAL_MCAST_OUTPUT_GROUP_ID|                   -                    |
+\t  |  SAI_VLAN_ATTR_INGRESS_ACL                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_EGRESS_ACL                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_META_DATA                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_UNKNOWN_UNICAST_FLOOD_GROUP            |                   -                    |
+\t  |  SAI_VLAN_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_UNKNOWN_MULTICAST_FLOOD_GROUP          |                   -                    |
+\t  |  SAI_VLAN_ATTR_BROADCAST_FLOOD_CONTROL_TYPE           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_BROADCAST_FLOOD_GROUP                  |                   -                    |
+\t  |  SAI_VLAN_ATTR_CUSTOM_IGMP_SNOOPING_ENABLE            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_ATTR_TAM_OBJECT                             |                   -                    |
+\e  |  SAI_VLAN_ATTR_PTP_DOMAIN_ID                          |            CTC7132,CTC8180             |
+\e  |  SAI_VLAN_ATTR_CUSTOM_STATS_ENABLE                    |            CTC7132,CTC8180             |
+\e  |  SAI_VLAN_ATTR_POLICER_ID                             |            CTC7132,CTC8180             |
 \b
 
 \p
  The VLAN MEMBER attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_VLAN_MEMBER_ATTR_VLAN_ID                         |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_MEMBER_ATTR_BRIDGE_PORT_ID                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_VLAN_MEMBER_ATTR_VLAN_TAGGING_MODE               |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_VLAN_MEMBER_ATTR_VLAN_ID                         |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_MEMBER_ATTR_BRIDGE_PORT_ID                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_VLAN_MEMBER_ATTR_VLAN_TAGGING_MODE               |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 */

@@ -71,7 +71,7 @@ extern sai_status_t
 ctc_sai_samplepacket_set_port_samplepacket(uint8 lchip, uint32 gport, const sai_attribute_t *attr, void* p_port_db);
 
 extern sai_status_t
-ctc_sai_samplepacket_set_acl_samplepacket(uint8 lchip, uint8 ctc_dir, uint8 acl_priority, sai_object_id_t acl_entry_id, sai_attribute_t* attr, uint32* p_acl_log_id, uint32* p_log_rate);
+ctc_sai_samplepacket_set_acl_samplepacket(uint8 lchip, uint8 ctc_dir, uint8 acl_priority, sai_object_id_t acl_entry_id, sai_attribute_t *attr, uint32* ctc_log_id, uint32* ctc_session_id, uint32* ctc_log_rate);
 
 extern sai_status_t
 ctc_sai_samplepacket_db_init(uint8 lchip);

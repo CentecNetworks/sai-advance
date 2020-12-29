@@ -41,22 +41,33 @@ typedef enum _sai_queue_type_t
     /** H/w Queue for all types of traffic */
     SAI_QUEUE_TYPE_ALL = 0x00000000,
 
-    /** H/w Unicast Queue */
+    /** H/w Egress Unicast Queue */
     SAI_QUEUE_TYPE_UNICAST = 0x00000001,
 
-    /** H/w Multicast (Broadcast, Unknown unicast, Multicast) Queue */
+    /** H/w Multicast Egress (Broadcast, Unknown unicast, Multicast) Queue */
     SAI_QUEUE_TYPE_MULTICAST = 0x00000002,
 
+    /** H/w Virtual Output Queue (VOQ). This queue is ingress unicast queue */
+    SAI_QUEUE_TYPE_UNICAST_VOQ = 0x00000003,
+
+    /** H/w Virtual Output Queue (VOQ). This queue is fabric multicast queue */
+    SAI_QUEUE_TYPE_MULTICAST_VOQ = 0x00000004,
+
+    /** H/w Fabric Queue. */
+    SAI_QUEUE_TYPE_FABRIC_TX = 0x00000005,
+
     /** H/w Queue for service */
-    SAI_QUEUE_TYPE_SERVICE,
+    SAI_QUEUE_TYPE_SERVICE = 0x00000006,
 
     /** Custom range base value */
-    SAI_QUEUE_TYPE_CUSTOM_RANGE_BASE = 0x10000000,
-   
+    SAI_QUEUE_TYPE_CUSTOM_RANGE_BASE = 0x10000000
+
 } sai_queue_type_t;
 
 /**
  * @brief Enum defining queue attributes.
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_queue_attr_t
 {
@@ -197,15 +208,15 @@ typedef enum _sai_queue_attr_t
     SAI_QUEUE_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
-     * @brief service Id, if this queue is used for service
-     * if SAI_QUEUE_ATTR_TYPE == SAI_QUEUE_TYPE_SERVICE, this attribute is mandatory
+     * @brief Service Id, if this queue is used for service
      * the same service id should used in schedule group, and in bridge port,tunnel port
      *
      * @type sai_uint16_t
-     * @flags MANDATORY_ON_CREATE | CREATE_ONLY | KEY
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @isvlan false
      * @condition SAI_QUEUE_ATTR_TYPE == SAI_QUEUE_TYPE_SERVICE
      */
-    SAI_QUEUE_ATTR_SERVICE_ID = SAI_QUEUE_ATTR_CUSTOM_RANGE_START,
+    SAI_QUEUE_ATTR_SERVICE_ID,
 
     /** End of custom range base */
     SAI_QUEUE_ATTR_CUSTOM_RANGE_END
@@ -324,6 +335,12 @@ typedef enum _sai_queue_stat_t
 
     /** Get/set WRED red marked bytes count [uint64_t] */
     SAI_QUEUE_STAT_WRED_ECN_MARKED_BYTES = 0x00000023,
+
+    /** Get current queue occupancy percentage [uint64_t] */
+    SAI_QUEUE_STAT_CURR_OCCUPANCY_LEVEL = 0x00000024,
+
+    /** Get watermark queue occupancy percentage [uint64_t] */
+    SAI_QUEUE_STAT_WATERMARK_LEVEL = 0x00000025,
 
     /** Custom range base value */
     SAI_QUEUE_STAT_CUSTOM_RANGE_BASE = 0x10000000

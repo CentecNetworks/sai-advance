@@ -14,40 +14,40 @@
  The Next Hop Group Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                       |       SUPPORT CHIPS LIST       |
-\t  |  create_next_hop_group                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_next_hop_group                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_next_hop_group_attribute               |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_next_hop_group_attribute               |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_next_hop_group_member               |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_next_hop_group_member               |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_next_hop_group_member_attribute        |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_next_hop_group_member_attribute        |    CTC8096,CTC7148,CTC7132     |
-\t  |  create_next_hop_group_members              |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_next_hop_group_members              |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                       |           SUPPORT CHIPS LIST           |
+\t  |  create_next_hop_group                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_next_hop_group                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_next_hop_group_attribute               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_next_hop_group_attribute               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_next_hop_group_member               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_next_hop_group_member               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_next_hop_group_member_attribute        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_next_hop_group_member_attribute        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  create_next_hop_group_members              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_next_hop_group_members              |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Next Hop Group attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                   |       SUPPORT CHIPS LIST       |
-\t  |  SAI_NEXT_HOP_GROUP_ATTR_NEXT_HOP_COUNT       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_GROUP_ATTR_NEXT_HOP_MEMBER_LIST |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_GROUP_ATTR_TYPE                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_GROUP_ATTR_SET_SWITCHOVER       |        CTC7148,CTC7132         |
-\t  |  SAI_NEXT_HOP_GROUP_ATTR_COUNTER_ID           |            CTC7132             |
+\t  |   ATTRIBUTE                                   |           SUPPORT CHIPS LIST           |
+\t  |  SAI_NEXT_HOP_GROUP_ATTR_NEXT_HOP_COUNT       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_GROUP_ATTR_NEXT_HOP_MEMBER_LIST |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_GROUP_ATTR_TYPE                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_GROUP_ATTR_SET_SWITCHOVER       |        CTC7148,CTC7132,CTC8180         |
+\t  |  SAI_NEXT_HOP_GROUP_ATTR_COUNTER_ID           |            CTC7132,CTC8180             |
 \b
 \p
  The Next Hop Group Member attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                       |       SUPPORT CHIPS LIST       |
-\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_NEXT_HOP_GROUP_ID |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_NEXT_HOP_ID       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_WEIGHT            |              -                 |
-\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_CONFIGURED_ROLE   |        CTC7148,CTC7132         |
-\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_OBSERVED_ROLE     |        CTC7148 ,CTC7132        |
-\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_MONITORED_OBJECT  |              -                 |
+\t  |   ATTRIBUTE                                       |           SUPPORT CHIPS LIST           |
+\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_NEXT_HOP_GROUP_ID |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_NEXT_HOP_ID       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_WEIGHT            |                  -                     |
+\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_CONFIGURED_ROLE   |        CTC7148,CTC7132,CTC8180         |
+\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_OBSERVED_ROLE     |        CTC7148 ,CTC7132,CTC8180        |
+\t  |  SAI_NEXT_HOP_GROUP_MEMBER_ATTR_MONITORED_OBJECT  |                  -                     |
 \b
 
 */

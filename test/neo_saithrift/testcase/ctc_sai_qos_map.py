@@ -312,9 +312,9 @@ class func_05_remove_qos_map_fn_1(sai_base_test.ThriftInterfaceDataPlane):
 class func_06_remove_qos_map_fn_2(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         """
-        remove binded qos_map
+        remove qos_map in use
         """
-        sys_logging("### ----------remove binded qos_map---------- ###")
+        sys_logging("### ----------remove qos_map in use---------- ###")
 
         switch_init(self.client)
 
@@ -391,6 +391,11 @@ class func_06_remove_qos_map_fn_2(sai_base_test.ThriftInterfaceDataPlane):
             status = self.client.sai_thrift_remove_qos_map(map_id)
             sys_logging("### status = %d ###" %status)
             assert(SAI_STATUS_SUCCESS != status)
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_next_hop_attribute(next_hop, attr)
+            sys_logging("### status = 0x%x ###" %status)
+            assert(SAI_STATUS_SUCCESS != status)
             self.client.sai_thrift_remove_next_hop(next_hop)
             status = self.client.sai_thrift_remove_qos_map(map_id)
             sys_logging("### status = %d ###" %status)
@@ -407,7 +412,9 @@ class func_06_remove_qos_map_fn_2(sai_base_test.ThriftInterfaceDataPlane):
             status = self.client.sai_thrift_remove_qos_map(map_id)
             sys_logging("### status = %d ###" %status)
             assert(SAI_STATUS_SUCCESS != status)
-            self.client.sai_thrift_remove_inseg_entry(inseg)
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP, value = attr_value)
+            self.client.sai_thrift_set_inseg_entry_attribute(inseg, attr)
             status = self.client.sai_thrift_remove_qos_map(map_id)
             sys_logging("### status = %d ###" %status)
             assert(SAI_STATUS_SUCCESS == status)
@@ -606,9 +613,9 @@ class func_09_set_qos_map_attribute_fn_1(sai_base_test.ThriftInterfaceDataPlane)
 class func_10_set_qos_map_attribute_fn_2(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         """
-        set attribute: SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST of qos_map binded on port
+        set attribute: SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST of qos_map bound on port
         """
-        sys_logging("### set ---attribute: SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST of qos_map binded on port--- ###")
+        sys_logging("### set ---attribute: SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST of qos_map bound on port--- ###")
         
         switch_init(self.client)
 
@@ -859,166 +866,125 @@ class func_11_port_dot1p_max_domain(sai_base_test.ThriftInterfaceDataPlane):
                 self.client.sai_thrift_remove_qos_map(map_id_dot1p_tc[i])
                 self.client.sai_thrift_remove_qos_map(map_id_dot1p_color[i])
                 self.client.sai_thrift_remove_qos_map(map_id_tc_and_color_dot1p[i])
+          
 
-'''
 @group('QosMap')
-class bug(sai_base_test.ThriftInterfaceDataPlane):
+class func_12_remove_port_rif_inseg_entry_nexthop_with_qos_map(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         """
+        SAI Bug 112094
         """
-        sys_logging("### ----------bug---------- ###")
-        
-        switch_init(self.client)
+        sys_logging("### ----------func_12_remove_port_rif_inseg_entry_nexthop_with_qos_map---------- ###")
 
         switch_init(self.client)
 
-        dot1p_max_domain = 7
-        port_attrs = []
+        port = port_list[0]
+        sys_logging("### port = 0x%x ###" %port)
+        vr_id  = sai_thrift_get_default_router_id(self.client)
+        rif_id = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, 
+                                                     port, 0, 1, 1, '')
+        sys_logging("### rif_id = 0x%x ###" %rif_id)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id,
+                                                     SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER,
+                                                     0, 0, 1, 1, '')
+        inseg = sai_thrift_inseg_entry_t(400)
 
-        ports = []
-        port_num = dot1p_max_domain*2
-        for i in range(port_num):
-            ports.append(port_list[i])
-
-        map_id_dot1p_tc = []
-        for i in range(dot1p_max_domain):
-            sys_logging("### Create QosMap and get: dot1p --> tc ###")
-            key_list1   = [0, 1, 2, 3, 4, 5, 6, 7]
-            value_list  = [1, 1, 1, 3, 3, 3, 5, 5]
-            map_id_dot1p_tc.append(_QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_DOT1P_TO_TC,
-                                                      key_list1, [], value_list))
-            sys_logging("### qos_map_oid = 0x%x ###" %map_id_dot1p_tc[i])
-            _QosMapShowAttribute(self.client, map_id_dot1p_tc[i])
-
-        map_id_dot1p_color = []
-        for i in range(dot1p_max_domain):
-            sys_logging("### Create QosMap and get: dot1p --> color ###")
-            key_list1   = [0, 1, 2, 3, 4, 5, 6, 7]
-            value_list  = [SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN, 
-                           SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN, 
-                           SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN]
-            map_id_dot1p_color.append(_QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_DOT1P_TO_COLOR,
-                                                         key_list1, [], value_list))
-            sys_logging("### qos_map_oid = 0x%x ###" %map_id_dot1p_color[i])
-            _QosMapShowAttribute(self.client, map_id_dot1p_color[i])
-
-        map_id_tc_and_color_dot1p = []
-        for i in range(dot1p_max_domain):
-            sys_logging("### Create QosMap and get: tc & color --> dot1p ###")
-            key_list1  = [1, 1, 1, 3, 3, 3, 5, 5, 5]
-            key_list2  = [SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN, 
-                          SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN, 
-                          SAI_PACKET_COLOR_RED, SAI_PACKET_COLOR_YELLOW, SAI_PACKET_COLOR_GREEN]
-            value_list = [7, 6, 5, 4, 3, 2, 1, 0, 0]
-            map_id_tc_and_color_dot1p.append(_QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_DOT1P, 
-                                                       key_list1, key_list2 , value_list))
-            sys_logging("### qos_map_oid = 0x%x ###" %map_id_tc_and_color_dot1p[i])
-            _QosMapShowAttribute(self.client, map_id_tc_and_color_dot1p[i])
-
-        warmboot(self.client)
+        key_list   = [3]
+        key_list1  = [SAI_PACKET_COLOR_RED]
+        value_list = [3]
         
         try:
-            sys_logging("### ----------get ports attribute before apply QosMap---------- ###")
-            for i in range(port_num):
-                port_attrs.append(self.client.sai_thrift_get_port_attribute(ports[i]))
+            addr_family = SAI_IP_ADDR_FAMILY_IPV4
+            ipda3 = '3.3.3.1'
+            dmac3 = '00:33:33:33:33:33'
+            sai_thrift_create_neighbor(self.client, addr_family, rif_id, ipda3, dmac3)
+            label_list = [(100<<12) | 8]
+            outseg_ttl_mode = SAI_OUTSEG_TTL_MODE_UNIFORM 
+            outseg_exp_mode = SAI_OUTSEG_EXP_MODE_UNIFORM
+            outseg_type     = SAI_OUTSEG_TYPE_PUSH
+            map_id = _QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP,
+                                                     key_list, key_list1, value_list)
+            next_hop = sai_thrift_create_mpls_nhop(self.client, addr_family, ipda3, rif_id, label_list,
+                                                   None, None, None, outseg_ttl_mode, outseg_exp_mode,
+                                                   map_id, outseg_type)
+            sys_logging("### next_hop = 0x%x ###" %next_hop)
+            status = self.client.sai_thrift_remove_next_hop(next_hop)
+            sys_logging("### remove nexthop: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+            status = self.client.sai_thrift_remove_qos_map(map_id)
+            sys_logging("### remove qosmap: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+
+            status = sai_thrift_create_inseg_entry(self.client, 400, 1, None, rif_id1, SAI_PACKET_ACTION_FORWARD,
+                                                   None, None, SAI_INSEG_ENTRY_CONFIGURED_ROLE_PRIMARY,
+                                                   False, SAI_INSEG_ENTRY_POP_TTL_MODE_UNIFORM, None,
+                                                   SAI_INSEG_ENTRY_POP_QOS_MODE_UNIFORM)
+            sys_logging("### create inseg entry: status = %d ###" %status)
+            map_id = _QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_MPLS_EXP_TO_TC, key_list, [], value_list)
+            attr_value = sai_thrift_attribute_value_t(oid = map_id)
+            attr       = sai_thrift_attribute_t(id = SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_inseg_entry_attribute(inseg, attr)
+            sys_logging("### set inseg entry: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+            status = self.client.sai_thrift_remove_inseg_entry(inseg)
+            sys_logging("### remove inseg entry: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+            status = self.client.sai_thrift_remove_qos_map(map_id)
+            sys_logging("### remove qosmap: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+
+            map_id = _QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_DSCP_TO_TC, key_list, [], value_list)
+            attr_value = sai_thrift_attribute_value_t(oid = map_id)
+            attr       = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            sys_logging("### set router interface: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+            status = self.client.sai_thrift_remove_router_interface(rif_id)
+            sys_logging("### remove router interface: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+            sys_logging("### set router interface: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS != status)
+            status = self.client.sai_thrift_remove_qos_map(map_id)
+            sys_logging("### remove qosmap: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+
+            map_id = _QosMapCreateMapId(self.client, SAI_QOS_MAP_TYPE_DOT1P_TO_TC, key_list, [], value_list)
+            attr_value = sai_thrift_attribute_value_t(oid = map_id)
+            attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_port_attribute(port, attr)
+            sys_logging("### set port: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+            status = self.client.sai_thrift_remove_port(port)
+            sys_logging("### remove port: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP, value = attr_value)
+            status = self.client.sai_thrift_set_port_attribute(port, attr)
+            sys_logging("### set port: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS != status)
+            status = self.client.sai_thrift_remove_qos_map(map_id)
+            sys_logging("### remove qosmap: status = %d ###" %status)
+            assert(SAI_STATUS_SUCCESS == status)
             
-            for a in range(len(port_attrs)):
-                for b in range(len(port_attrs[a].attr_list)):
-                    if port_attrs[a].attr_list[b].id == SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP:
-                        sys_logging("### port %d attribute: SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP = 0x%x ###" 
-                                     %(a+1, port_attrs[a].attr_list[b].value.oid))
-                        assert (SAI_NULL_OBJECT_ID == port_attrs[a].attr_list[b].value.oid)         
-                    if port_attrs[a].attr_list[b].id == SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP:
-                        sys_logging("### port %d attribute: SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP = 0x%x ###" 
-                                     %(a+1, port_attrs[a].attr_list[b].value.oid))
-                        assert (SAI_NULL_OBJECT_ID == port_attrs[a].attr_list[b].value.oid)                
-                    if port_attrs[a].attr_list[b].id == SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP:
-                        sys_logging("### port %d attribute: SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP = 0x%x ###" 
-                                     %(a+1, port_attrs[a].attr_list[b].value.oid))
-                        assert (SAI_NULL_OBJECT_ID == port_attrs[a].attr_list[b].value.oid)
-            
-            #apply QosMap to port
-            for i in range(0, port_num-2, 2):
-                attr_value = sai_thrift_attribute_value_t(oid = map_id_dot1p_tc[i/2])
-                attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP, value = attr_value)
-                status = self.client.sai_thrift_set_port_attribute(ports[i], attr)
-                if i<(dot1p_max_domain*2):
-                    assert(SAI_STATUS_SUCCESS == status)
-                else:
-                    assert(SAI_STATUS_SUCCESS != status)
-                attr_value = sai_thrift_attribute_value_t(oid = map_id_dot1p_tc[i/2])
-                attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP, value = attr_value)
-                status = self.client.sai_thrift_set_port_attribute(ports[i+1], attr)
-                if i<(dot1p_max_domain*2):
-                    assert(SAI_STATUS_SUCCESS == status)
-                else:
-                    assert(SAI_STATUS_SUCCESS != status)
-
-            for i in range(0, port_num-2, 2):
-                pdb.set_trace()
-                attr_value = sai_thrift_attribute_value_t(oid = map_id_dot1p_color[i/2])
-                attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP, value = attr_value)
-                status = self.client.sai_thrift_set_port_attribute(ports[i], attr)
-                if i<(dot1p_max_domain*2):
-                    assert(SAI_STATUS_SUCCESS == status)
-                else:
-                    assert(SAI_STATUS_SUCCESS != status)
-                attr_value = sai_thrift_attribute_value_t(oid = map_id_dot1p_color[i/2])
-                attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP, value = attr_value)
-                status = self.client.sai_thrift_set_port_attribute(ports[i+1], attr)
-                if i<(dot1p_max_domain*2):
-                    assert(SAI_STATUS_SUCCESS == status)
-                else:
-                    assert(SAI_STATUS_SUCCESS != status)
-
-            for i in range(0, port_num, 2):
-                attr_value = sai_thrift_attribute_value_t(oid = map_id_tc_and_color_dot1p[i/2])
-                attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP, value = attr_value)
-                status = self.client.sai_thrift_set_port_attribute(ports[i], attr)
-                if i<(dot1p_max_domain*2):
-                    assert(SAI_STATUS_SUCCESS == status)
-                else:
-                    assert(SAI_STATUS_SUCCESS != status)
-                status = self.client.sai_thrift_set_port_attribute(ports[i+1], attr)
-                if i<(dot1p_max_domain*2):
-                    assert(SAI_STATUS_SUCCESS == status)
-                else:
-                    assert(SAI_STATUS_SUCCESS != status)
-
-            sys_logging("### ----------get ports attribute after apply QosMap---------- ###")
-            for i in range(port_num):
-                port_attrs[i] = (self.client.sai_thrift_get_port_attribute(ports[i]))
-            
-            for a in range(len(port_attrs)):
-                for b in range(len(port_attrs[a].attr_list)):
-                    if port_attrs[a].attr_list[b].id == SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP:
-                        sys_logging("### port %d attribute: SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP = 0x%x ###" 
-                                     %(a+1, port_attrs[a].attr_list[b].value.oid))
-                    if port_attrs[a].attr_list[b].id == SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP:
-                        sys_logging("### port %d attribute: SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP = 0x%x ###" 
-                                     %(a+1, port_attrs[a].attr_list[b].value.oid))
-                    if port_attrs[a].attr_list[b].id == SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP:
-                        sys_logging("### port %d attribute: SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP = 0x%x ###" 
-                                     %(a+1, port_attrs[a].attr_list[b].value.oid))
-
         finally:
             sys_logging("### ---------------clean up--------------- ###")
-            for i in range(port_num):
-                attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
-                attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP, value = attr_value)
-                self.client.sai_thrift_set_port_attribute(ports[i], attr)
-                attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
-                attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP, value = attr_value)
-                self.client.sai_thrift_set_port_attribute(ports[i], attr)
-                attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
-                attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP, value = attr_value)
-                self.client.sai_thrift_set_port_attribute(ports[i], attr)
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_PORT_ATTR_QOS_DSCP_TO_TC_MAP, value = attr_value)
+            self.client.sai_thrift_set_port_attribute(port, attr)
 
-            for i in range(dot1p_max_domain):
-                self.client.sai_thrift_remove_qos_map(map_id_dot1p_tc[i])
-                self.client.sai_thrift_remove_qos_map(map_id_dot1p_color[i])
-                self.client.sai_thrift_remove_qos_map(map_id_tc_and_color_dot1p[i])
-'''
+            attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
+            attr       = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_DSCP_TO_TC_MAP, value = attr_value)
+            self.client.sai_thrift_set_router_interface_attribute(rif_id, attr)
+
+            self.client.sai_thrift_remove_inseg_entry(inseg)
+            self.client.sai_thrift_remove_next_hop(next_hop)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id, ipda3, dmac3)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id)
+
 
 @group('QosMap')
 class scenario_01_bridging_port_dot1p_tagged(sai_base_test.ThriftInterfaceDataPlane):
@@ -8139,7 +8105,9 @@ class scenario_37_mpls_l3vpn_uniform_encap(sai_base_test.ThriftInterfaceDataPlan
 class scenario_38_mpls_l3vpn_uniform_swap(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
-
+        """
+        SAI Bug 112043
+        """
         sys_logging("### ----------scenario_38_mpls_l3vpn_uniform_swap---------- ###")
         
         switch_init(self.client)

@@ -13,8 +13,16 @@
 #include "ctc_sai_udf.h"
 #include "ctc_init.h"
 
-#define CTC_SAI_UDF_MAX_UDF_OFFSET(lchip) 4
-#define CTC_SAI_UDF_MAX_UDF_BASE(lchip)   4
+typedef enum _sai_udf_chunk_octet_type_t
+{
+    SAI_UDF_CHUNK_OCTET_TYPE_TMMX_DOUBLE = 2,
+    SAI_UDF_CHUNK_OCTET_TYPE_TMMX_QUAD   = 4,
+    SAI_UDF_CHUNK_OCTET_TYPE_TM_QUAD     = 4
+} sai_udf_chunk_octet_type_t;
+
+#define CTC_SAI_UDF_CHUNK_OCTET(lchip) ((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) \
+                                       ?SAI_UDF_CHUNK_OCTET_TYPE_TM_QUAD:((CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip)) \
+                                       ?SAI_UDF_CHUNK_OCTET_TYPE_TMMX_DOUBLE:0))
 
 struct ctc_sai_udf_group_member_wb_s
 {
@@ -361,6 +369,7 @@ _ctc_sai_udf_entry_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
 static sai_status_t
 _ctc_sai_udf_add_udf_entry(uint8 lchip, sai_object_id_t udf_entry_id, sai_object_id_t udf_match_id, sai_object_id_t udf_group_id)
 {
+    uint8  chip_type = 0;
     uint32 ii = 0;
     sai_status_t status = SAI_STATUS_SUCCESS;
     ctc_object_id_t ctc_object_id;
@@ -379,19 +388,35 @@ _ctc_sai_udf_add_udf_entry(uint8 lchip, sai_object_id_t udf_entry_id, sai_object
 
     sal_memset(&ctc_udf_entry, 0, sizeof(ctc_acl_classify_udf_t));
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF_GROUP, udf_group_id, &ctc_object_id);
-
     ctc_udf_entry.priority = p_udf_match->priority;
-    ctc_udf_entry.udf_ad_id = ctc_object_id.value;
+
+    chip_type = ctcs_get_chip_type(lchip);
+    if (CTC_CHIP_TSINGMA == chip_type)
+    {
+        ctc_udf_entry.udf_ad_id = ctc_object_id.value;
+    }
+    else if (CTC_CHIP_TSINGMA_MX == chip_type)
+    {
+        ctc_udf_entry.udf_ad_id = ctc_object_id.value + 1;
+    }
+
     ctc_udf_entry.shared_udf = 1;
+    ctc_udf_entry.granularity = (SAI_UDF_CHUNK_OCTET_TYPE_TMMX_DOUBLE == CTC_SAI_UDF_CHUNK_OCTET(lchip))?1:0;
 
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF, udf_entry_id, &ctc_object_id);
     ctc_udf_entry.udf_id = ctc_object_id.value;
 
-    udf_field_num = p_udf_group->length/sizeof(uint32);
-    
+    udf_field_num = p_udf_group->length/CTC_SAI_UDF_CHUNK_OCTET(lchip);
     for (ii = 0; ii < udf_field_num; ii++)
     {
-        ctc_udf_entry.offset[ii] = p_udf_entry->offset + sizeof(uint32)*(udf_field_num-1-ii);
+        if (4 == CTC_SAI_UDF_CHUNK_OCTET(lchip))
+        {
+            ctc_udf_entry.offset[ii] = p_udf_entry->offset + CTC_SAI_UDF_CHUNK_OCTET(lchip)*(udf_field_num-1-ii);
+        }
+        else
+        {
+            ctc_udf_entry.offset[ii] = p_udf_entry->offset + CTC_SAI_UDF_CHUNK_OCTET(lchip)*(((udf_field_num-1-ii)>>1)<<1) + (ii%2)*2;
+        }
         ctc_udf_entry.offset_type_array[ii] = p_udf_entry->base + 1;
         ctc_udf_entry.offset_num++;
     }
@@ -408,7 +433,6 @@ _ctc_sai_udf_add_udf_entry(uint8 lchip, sai_object_id_t udf_entry_id, sai_object
     }
     if (p_udf_match->ip_protocal[1])
     {
-
         if( p_udf_match->ip_protocal[0] == 6 )
         {
             layer4Type = CTC_PARSER_L4_TYPE_TCP;
@@ -429,7 +453,7 @@ _ctc_sai_udf_add_udf_entry(uint8 lchip, sai_object_id_t udf_entry_id, sai_object
         {
             layer4Type = CTC_PARSER_L4_TYPE_DCCP;
         }
-        
+
         if( layer4Type )
         {
             ctc_field_key.type = CTC_FIELD_KEY_L4_TYPE;
@@ -509,6 +533,30 @@ _ctc_sai_udf_remove_udf_entry(uint8 lchip, sai_object_id_t sai_udf_id)
     CTC_SAI_CTC_ERROR_RETURN(ctcs_acl_remove_udf_entry(lchip, &ctc_udf_entry));
 
     return status;
+}
+
+static sai_status_t
+_ctc_sai_udf_traverse_udf_match_hash_func(void* bucket_data, void* user_data)
+{
+    ctc_sai_oid_property_t *p_oid_property = NULL;
+    ctc_sai_udf_match_t* p_search_udf_match = NULL;
+    ctc_sai_udf_match_t* p_exist_udf_match = NULL;
+
+    p_oid_property = (ctc_sai_oid_property_t*)bucket_data;
+    p_exist_udf_match = (ctc_sai_udf_match_t*)user_data;
+    p_search_udf_match = (ctc_sai_udf_match_t*)(p_oid_property->data);
+
+    if (((p_exist_udf_match->ethertype[0]&p_exist_udf_match->ethertype[1]) == (p_search_udf_match->ethertype[0]&p_search_udf_match->ethertype[1]))
+       && ((p_exist_udf_match->ip_protocal[0]&p_exist_udf_match->ip_protocal[1]) == (p_search_udf_match->ip_protocal[0]&p_search_udf_match->ip_protocal[1]))
+       && ((p_exist_udf_match->l4_src_port[0]&p_exist_udf_match->l4_src_port[1]) == (p_search_udf_match->l4_src_port[0]&p_search_udf_match->l4_src_port[1]))
+       && ((p_exist_udf_match->l4_dst_port[0]&p_exist_udf_match->l4_dst_port[1]) == (p_search_udf_match->l4_dst_port[0]&p_search_udf_match->l4_dst_port[1]))
+       && ((p_exist_udf_match->gre_protocal_type[0]&p_exist_udf_match->gre_protocal_type[1]) == (p_search_udf_match->gre_protocal_type[0]&p_search_udf_match->gre_protocal_type[1]))
+       && (p_exist_udf_match->mpls_label_num == p_search_udf_match->mpls_label_num))
+    {
+        return SAI_STATUS_ITEM_ALREADY_EXISTS;
+    }
+
+    return SAI_STATUS_SUCCESS;
 }
 
 static sai_status_t
@@ -973,7 +1021,7 @@ ctc_sai_udf_create_udf_group(sai_object_id_t *udf_group_id, sai_object_id_t swit
     const sai_attribute_value_t *attr_value;
     ctc_sai_switch_master_t* p_switch_master = NULL;
     ctc_slist_t* hash_slist = NULL;
-    ctc_slist_t* member_slist = NULL;    
+    ctc_slist_t* member_slist = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_UDF);
     CTC_SAI_PTR_VALID_CHECK(udf_group_id);
@@ -1022,17 +1070,17 @@ ctc_sai_udf_create_udf_group(sai_object_id_t *udf_group_id, sai_object_id_t swit
     CTC_SAI_ERROR_GOTO(_ctc_sai_udf_build_udf_group_db(lchip, udf_group_obj_id, &p_udf_group), status, error1);
 
     hash_slist = ctc_slist_new();
-    member_slist = ctc_slist_new();    
+    member_slist = ctc_slist_new();
 
     if ( hash_slist == NULL || member_slist == NULL)
     {
         status = SAI_STATUS_NO_MEMORY;
         goto error2;
     }
-    
+
     p_udf_group->hash_list = hash_slist;
     p_udf_group->member_list = member_slist;
-    
+
     p_udf_group->length = length;
     p_udf_group->type = type;
 
@@ -1141,6 +1189,7 @@ ctc_sai_udf_create_udf_match(sai_object_id_t *udf_match_id, sai_object_id_t swit
     sai_object_id_t udf_match_obj_id = 0;
     uint8 lchip = 0;
     ctc_sai_udf_match_t* p_udf_match = NULL;
+    ctc_sai_udf_match_t udf_match;
     const sai_attribute_value_t *attr_value;
     uint32 attr_index = 0;
 
@@ -1149,6 +1198,49 @@ ctc_sai_udf_create_udf_match(sai_object_id_t *udf_match_id, sai_object_id_t swit
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(switch_id, &lchip));
     CTC_SAI_DB_LOCK(lchip);
+
+    sal_memset(&udf_match, 0, sizeof(ctc_sai_udf_match_t));
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_L2_TYPE, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        udf_match.ethertype[0]= attr_value->aclfield.data.u16;
+        udf_match.ethertype[1]= attr_value->aclfield.mask.u16;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_L3_TYPE, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        udf_match.ip_protocal[0]= attr_value->aclfield.data.u8;
+        udf_match.ip_protocal[1]= attr_value->aclfield.mask.u8;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_GRE_TYPE, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        udf_match.gre_protocal_type[0]= attr_value->aclfield.data.u16;
+        udf_match.gre_protocal_type[1]= attr_value->aclfield.mask.u16;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_CUSTOM_MPLS_LABEL_NUM, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        udf_match.mpls_label_num= attr_value->u8;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_CUSTOM_L4_SRC_PORT, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        udf_match.l4_src_port[0]= attr_value->aclfield.data.u16;
+        udf_match.l4_src_port[1]= attr_value->aclfield.mask.u16;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_CUSTOM_L4_DST_PORT, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        udf_match.l4_dst_port[0]= attr_value->aclfield.data.u16;
+        udf_match.l4_dst_port[1]= attr_value->aclfield.mask.u16;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_PRIORITY, &attr_value, &attr_index);
+    if (status == SAI_STATUS_SUCCESS)
+    {
+        udf_match.priority = attr_value->u8;
+    }
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_traverse_object_property(lchip, SAI_OBJECT_TYPE_UDF_MATCH, _ctc_sai_udf_traverse_udf_match_hash_func, (void*)(&udf_match)), status, error0);
 
     status = ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_UDF_MATCH, &ctc_sai_udf_match_id);
     if (status)
@@ -1163,47 +1255,7 @@ ctc_sai_udf_create_udf_match(sai_object_id_t *udf_match_id, sai_object_id_t swit
         CTC_SAI_LOG_ERROR(SAI_API_UDF, "Fail to build udf match db!\n");
         goto error1;
     }
-
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_L2_TYPE, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        p_udf_match->ethertype[0]= attr_value->aclfield.data.u16;
-        p_udf_match->ethertype[1]= attr_value->aclfield.mask.u16;
-    }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_L3_TYPE, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        p_udf_match->ip_protocal[0]= attr_value->aclfield.data.u8;
-        p_udf_match->ip_protocal[1]= attr_value->aclfield.mask.u8;
-    }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_GRE_TYPE, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        p_udf_match->gre_protocal_type[0]= attr_value->aclfield.data.u16;
-        p_udf_match->gre_protocal_type[1]= attr_value->aclfield.mask.u16;
-    }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_CUSTOM_MPLS_LABEL_NUM, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        p_udf_match->mpls_label_num= attr_value->u8;
-    }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_CUSTOM_L4_SRC_PORT, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        p_udf_match->l4_src_port[0]= attr_value->aclfield.data.u16;
-        p_udf_match->l4_src_port[1]= attr_value->aclfield.mask.u16;
-    }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_CUSTOM_L4_DST_PORT, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        p_udf_match->l4_dst_port[0]= attr_value->aclfield.data.u16;
-        p_udf_match->l4_dst_port[1]= attr_value->aclfield.mask.u16;
-    }
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_MATCH_ATTR_PRIORITY, &attr_value, &attr_index);
-    if (status == SAI_STATUS_SUCCESS)
-    {
-        p_udf_match->priority = attr_value->u8;
-    }
+    sal_memcpy(p_udf_match, &udf_match, sizeof(ctc_sai_udf_match_t));
     *udf_match_id = udf_match_obj_id;
     goto error0;
 
@@ -1322,7 +1374,7 @@ ctc_sai_udf_create_udf(sai_object_id_t *udf_id, sai_object_id_t switch_id, uint3
     else
     {
         status = SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
-        CTC_SAI_LOG_ERROR(SAI_API_UDF, "Must provide udf match id\n");
+        CTC_SAI_LOG_ERROR(SAI_API_UDF, "Must specify udf match id\n");
         goto error0;
     }
 
@@ -1348,7 +1400,7 @@ ctc_sai_udf_create_udf(sai_object_id_t *udf_id, sai_object_id_t switch_id, uint3
     else
     {
         status = SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
-        CTC_SAI_LOG_ERROR(SAI_API_UDF, "Must provide udf group id\n");
+        CTC_SAI_LOG_ERROR(SAI_API_UDF, "Must specify udf group id\n");
         goto error0;
     }
 
@@ -1514,7 +1566,7 @@ ctc_sai_udf_remove_udf(sai_object_id_t udf_id)
         CTC_SAI_LOG_ERROR(SAI_API_UDF, "Failed to remove udf entry 0x%"PRIx64", Its group hash been refered by hash!\n", p_udf_entry->group_id);
         goto error0;
     }
-    
+
     p_udf_match->ref_cnt--;
 
     CTC_SLIST_LOOP(p_udf_group->member_list, p_member_node)

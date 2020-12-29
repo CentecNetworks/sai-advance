@@ -91,6 +91,7 @@ typedef enum _sai_udf_attr_t
      *
      * @type sai_uint16_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @isvlan false
      */
     SAI_UDF_ATTR_OFFSET,
 
@@ -124,6 +125,8 @@ typedef enum _sai_udf_attr_t
 
 /**
  * @brief Attribute id for UDF match
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_udf_match_attr_t
 {
@@ -193,7 +196,7 @@ typedef enum _sai_udf_match_attr_t
      * @flags CREATE_ONLY
      * @default 0
      */
-    SAI_UDF_MATCH_ATTR_CUSTOM_MPLS_LABEL_NUM = SAI_UDF_MATCH_ATTR_CUSTOM_RANGE_START,
+    SAI_UDF_MATCH_ATTR_CUSTOM_MPLS_LABEL_NUM,
 
     /**
      * @brief UDF L4 src port match rule
@@ -208,7 +211,7 @@ typedef enum _sai_udf_match_attr_t
     SAI_UDF_MATCH_ATTR_CUSTOM_L4_SRC_PORT,
 
     /**
-     * @brief UDF L4 dest port match rule
+     * @brief UDF L4 destination port match rule
      *
      * Default to None
      *

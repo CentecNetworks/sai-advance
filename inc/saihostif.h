@@ -304,6 +304,12 @@ typedef enum _sai_hostif_trap_type_t
      */
     SAI_HOSTIF_TRAP_TYPE_NAT_HAIRPIN = 0x00002011,
 
+    /** Default packet action is forward */
+    SAI_HOSTIF_TRAP_TYPE_IPV6_NEIGHBOR_SOLICITATION = 0x00002012,
+
+    /** Default packet action is forward */
+    SAI_HOSTIF_TRAP_TYPE_IPV6_NEIGHBOR_ADVERTISEMENT = 0x00002013,
+
     /** Router traps custom range start */
     SAI_HOSTIF_TRAP_TYPE_ROUTER_CUSTOM_RANGE_BASE = 0x00003000,
 
@@ -397,68 +403,77 @@ typedef enum _sai_hostif_trap_type_t
      */
     SAI_HOSTIF_TRAP_TYPE_PIPELINE_DISCARD_ROUTER = 0x00007002,
 
-    /** 
-     * @brief Exception traps custom range start
+    /**
+     * @brief MPLS packets with expiring TTL value of 1
      * (default packet action is drop)
      */
-    SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_RANGE_BASE = 0x00008000,
+    SAI_HOSTIF_TRAP_TYPE_MPLS_TTL_ERROR = 0x00008000,
 
-    /** 
-     * @brief Y1731 1DM/DMR to local switch send to CPU
+    /**
+     * @brief MPLS packet with router alert label
+     * (default packet action is forward)
+     */
+    SAI_HOSTIF_TRAP_TYPE_MPLS_ROUTER_ALERT_LABEL = 0x00008001,
+
+    /** Exception traps custom range start */
+    SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_RANGE_BASE = 0x00009000,
+
+    /**
+     * @brief Y1731 1-way Delay Measurement/Delay Measurement Reply to local switch send to CPU
      * (default packet action is drop)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_DM,
-    
-    /** 
-     * @brief Y1731 LinkTrace to local switch send to CPU
+
+    /**
+     * @brief Y1731 link trace to local switch send to CPU
      * (default packet action is drop)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LT,
-    
-    /** 
-     * @brief Y1731 LBR to local switch send to CPU
+
+    /**
+     * @brief Y1731 Loopback Reply Message to local switch send to CPU
      * (default packet action is drop)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LBR,
-    
-    /** 
-     * @brief Y1731 LMR to local switch send to CPU
+
+    /**
+     * @brief Y1731 Loss Measurement Reply to local switch send to CPU
      * (default packet action is drop)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_LMR,
-    
-    /** 
-     * @brief Y1731 TP LBM CV check fail send to CPU
+
+    /**
+     * @brief Y1731 MPLS Transport Loopback Message CV check fail send to CPU
      * (default packet action is drop)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_CV_FAIL,
-    
-    /** 
-     * @brief Y1731 APS to local switch send to CPU
+
+    /**
+     * @brief Y1731 Automatic Protection Switching to local switch send to CPU
      * (default packet action is drop)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_APS,
-    
-    /** 
-     * @brief Y1731 TP DLM to local switch send to CPU
+
+    /**
+     * @brief Y1731 MPLS Transport Direct Loss Measurement to local switch send to CPU
      * (default packet action is drop)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DLM,
-    
-    /** 
-     * @brief Y1731 TP DM/DLMDM to local switch send to CPU
+
+    /**
+     * @brief Y1731 MPLS Transport Delay Measurement/Direct Loss and Delay Measurement to local switch send to CPU
      * (default packet action is drop)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DM,
 
-    /** 
-     * @brief log all packet to cpu when micro burst occur
+    /**
+     * @brief Log all packet to CPU when micro burst occur
      * (default packet action is SAI_PACKET_ACTION_COPY)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_MICROBURST_LOG,
 
-    /** 
-     * @brief log packet to cpu when latency over the threshold
+    /**
+     * @brief Log packet to CPU when latency over the threshold
      * (default packet action is SAI_PACKET_ACTION_COPY)
      */
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_LATENCY_OVERFLOW_LOG,
@@ -466,7 +481,7 @@ typedef enum _sai_hostif_trap_type_t
     /**
      * @brief End of trap types
      */
-    SAI_HOSTIF_TRAP_TYPE_END = 0x00009000
+    SAI_HOSTIF_TRAP_TYPE_END = 0x0000a000
 
 } sai_hostif_trap_type_t;
 
@@ -649,6 +664,9 @@ typedef enum _sai_hostif_user_defined_trap_type_t
 
     /** FDB traps */
     SAI_HOSTIF_USER_DEFINED_TRAP_TYPE_FDB,
+
+    /** In Segment Entry traps */
+    SAI_HOSTIF_USER_DEFINED_TRAP_TYPE_INSEG_ENTRY,
 
     /** Custom range base */
     SAI_HOSTIF_USER_DEFINED_TRAP_TYPE_CUSTOM_RANGE_BASE = 0x00001000,
@@ -836,10 +854,11 @@ typedef enum _sai_hostif_attr_t
      * Port netdev will be created when object type is SAI_OBJECT_TYPE_PORT
      * LAG netdev will be created when object type is SAI_OBJECT_TYPE_LAG
      * VLAN netdev will be created when object type is SAI_OBJECT_TYPE_VLAN
+     * System Port netdev will be created when object type is SAI_OBJECT_TYPE_SYSTEM_PORT
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_LAG, SAI_OBJECT_TYPE_VLAN
+     * @objects SAI_OBJECT_TYPE_PORT, SAI_OBJECT_TYPE_LAG, SAI_OBJECT_TYPE_VLAN, SAI_OBJECT_TYPE_SYSTEM_PORT
      * @condition SAI_HOSTIF_ATTR_TYPE == SAI_HOSTIF_TYPE_NETDEV
      */
     SAI_HOSTIF_ATTR_OBJ_ID,
@@ -1064,8 +1083,6 @@ typedef enum _sai_hostif_table_entry_attr_t
     /**
      * @brief Host interface table entry action target host interface object
      *
-     * Valid only when #SAI_HOSTIF_TABLE_ENTRY_ATTR_CHANNEL_TYPE = #SAI_HOSTIF_TABLE_ENTRY_CHANNEL_TYPE_FD or #SAI_HOSTIF_TABLE_ENTRY_CHANNEL_TYPE_GENETLINK
-     *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_HOSTIF
@@ -1169,54 +1186,60 @@ typedef enum _sai_hostif_tx_type_t
 typedef enum _sai_hostif_packet_oam_tx_type_t
 {
     /** Non-OAM packet tx */
-    SAI_HOSTIF_PACKET_OAM_TX_TYPE_NONE,    
-    
-    /** OAM packet LMM/LMR tx */
+    SAI_HOSTIF_PACKET_OAM_TX_TYPE_NONE,
+
+    /** OAM packet Loss Measurement Message/Loss Measurement Reply tx */
     SAI_HOSTIF_PACKET_OAM_TX_TYPE_LM,
-    
-    /** OAM packet DMM/DMR tx */
+
+    /** OAM packet Delay Measurement Message/Delay Measurement Reply tx */
     SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM,
-    
-    /** OAM packet other tx 
-    *   indicate those OAM packet do not need extra edit in ASIC
-    *   like LTM/LTR, AIS, LBM/LBR, APS
-    */
+
+    /**
+     * @brief OAM packet other tx
+     * indicate those OAM packet do not need extra edit in ASIC
+     * like link trace Message/link trace Reply Message, Alarm Indication Signal, Loopback Message/Loopback Reply Message, Automatic Protection Switching Message
+     */
     SAI_HOSTIF_PACKET_OAM_TX_TYPE_OTHER,
-    
+
 } sai_hostif_packet_oam_tx_type_t;
 
 typedef enum _sai_hostif_packet_ptp_tx_packet_op_type_t
 {
-    /** PTP event packet for below packet
+    /**
+     * @brief PTP event packet for below packet
      *
      * 1-step sync
-     * 
+     *
      * update TS and CF in PTP packet, do not notify
      */
     SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_1,
 
-    /** PTP event packet for below packet
+    /**
+     * @brief PTP event packet for below packet
      *
      * 2-step sync
-     * delay-req/pdelay-req
-     * 2-step pdelay-resp
-     * 
+     * delay-request/peer delay-request
+     * 2-step peer delay-response
+     *
      * update CF in PTP packet, do notify
      */
     SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_2,
 
-    /** PTP event packet for below packet
+    /**
+     * @brief PTP event packet for below packet
      *
-     * 1-step pdelay-resp
+     * 1-step peer delay-response
      *
      * update CF in PTP packet, do not notify
      */
     SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_3,
-    
+
 } sai_hostif_packet_ptp_tx_packet_op_type_t;
 
 /**
  * @brief Host interface packet attributes
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_hostif_packet_attr_t
 {
@@ -1293,7 +1316,18 @@ typedef enum _sai_hostif_packet_attr_t
      * @type sai_timespec_t
      * @flags READ_ONLY
      */
-    SAI_HOSTIF_PACKET_ATTR_TIMESTAMP,    
+    SAI_HOSTIF_PACKET_ATTR_TIMESTAMP,
+
+    /**
+     * @brief Egress queue index
+     *
+     * The egress queue id for egress port or LAG.
+     *
+     * @type sai_uint8_t
+     * @flags CREATE_ONLY
+     * @default 0
+     */
+    SAI_HOSTIF_PACKET_ATTR_EGRESS_QUEUE_INDEX,
 
     /**
      * @brief End of attributes
@@ -1304,57 +1338,53 @@ typedef enum _sai_hostif_packet_attr_t
     SAI_HOSTIF_PACKET_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
     /**
-     * @brief local counter RXFCL for Y.1731 LM (for receive-only)
+     * @brief Local counter for in-profile data frames received from the peer Maintenance End Point for Y.1731 Loss Measurement (for receive-only)
      *
-     * The local counter RXFCL on which the LM packet was received.
+     * The local counter for in-profile data frames received from the peer Maintenance End Point on which the Loss Measurement packet was received.
      *
      * @type sai_uint64_t
      * @flags READ_ONLY
      */
-    SAI_HOSTIF_PACKET_ATTR_Y1731_RXFCL = SAI_HOSTIF_PACKET_ATTR_CUSTOM_RANGE_START,
+    SAI_HOSTIF_PACKET_ATTR_Y1731_RXFCL,
 
     /**
      * @brief OAM Tx packet type (for transmit-only)
-     * indicate special process in ASIC whie different OAM packet type
-     *
+     * indicate special process in ASIC while different OAM packet type
      *
      * @type sai_hostif_packet_oam_tx_type_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      */
     SAI_HOSTIF_PACKET_ATTR_CUSTOM_OAM_TX_TYPE,
-    
+
     /**
      * @brief OAM Session ID
-     * 
+     *
      * get transmit info from Y.1731 Session
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
      * @objects SAI_OBJECT_TYPE_Y1731_SESSION
-     * @condition SAI_HOSTIF_PACKET_ATTR_CUSTOM_OAM_TX_TYPE != SAI_HOSTIF_PACKET_OAM_TX_TYPE_NONE
      */
     SAI_HOSTIF_PACKET_ATTR_CUSTOM_OAM_Y1731_SESSION_ID,
-    
+
     /**
-     * @brief timestamp edit offset in packet (for transmit-only)
-     * 
-     * Used for OAM DM or PTP packet 
-     * When used for OAM DM, it indicate the offset of timestamp which is need to edit
-     * When used for PTP, it indicate the offset of PTP header in packet
+     * @brief Timestamp edit offset in packet (for transmit-only)
      *
-     * when SAI_HOSTIF_PACKET_ATTR_CUSTOM_OAM_TX_TYPE == SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM
-     * or SAI_HOSTIF_PACKET_ATTR_HOSTIF_TX_TYPE == SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
+     * Used for OAM Delay Measurement or PTP packet
+     * When used for OAM Delay Measurement, it indicate the offset of timestamp which is need to edit
+     * When used for PTP, it indicate the offset of PTP header in packet
      *
      * @type sai_uint32_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @condition SAI_HOSTIF_PACKET_ATTR_CUSTOM_OAM_TX_TYPE == SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM or SAI_HOSTIF_PACKET_ATTR_HOSTIF_TX_TYPE == SAI_HOSTIF_TX_TYPE_PTP_PACKET_TX
      */
     SAI_HOSTIF_PACKET_ATTR_CUSTOM_TIMESTAMP_OFFSET,
 
     /**
-     * @brief PTP tx packet opration type (for transmit-only)
-     * 
-     * ptp packet tx use 1-step or 2-step, packet need update TS in ASIC(Sync/Delay_req/Pdelay_req/Pdelay_resp) 
-     * or not(FollowUp)
+     * @brief PTP tx packet operation type (for transmit-only)
+     *
+     * PTP packet tx use 1-step or 2-step, packet need update timestamp in ASIC(Sync/Delay Request/Peer Delay Request/Peer Delay Response)
+     * or not(Follow Up)
      *
      * @type sai_hostif_packet_ptp_tx_packet_op_type_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
@@ -1365,11 +1395,11 @@ typedef enum _sai_hostif_packet_attr_t
     /**
      * @brief Timestamp
      *
-     * The timestamp set in PTP pdelay-resp T2.
+     * The timestamp set in PTP peer delay-response T2.
+     * Valid when SAI_HOSTIF_PACKET_ATTR_CUSTOM_PTP_TX_PACKET_OP_TYPE == SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_3
      *
      * @type sai_timespec_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
-     * @condition SAI_HOSTIF_PACKET_ATTR_CUSTOM_PTP_TX_PACKET_OP_TYPE == SAI_HOSTIF_PACKET_PTP_TX_PACKET_OP_TYPE_3
      */
     SAI_HOSTIF_PACKET_ATTR_TX_TIMESTAMP,
 
@@ -1440,20 +1470,24 @@ typedef void (*sai_packet_event_notification_fn)(
         _In_ uint32_t attr_count,
         _In_ const sai_attribute_t *attr_list);
 
-typedef struct _sai_packet_event_ptp_tx_notification_t
+typedef struct _sai_packet_event_ptp_tx_notification_data_t
 {
-    /** Tx port */
+    /**
+     * @brief Tx port
+     *
+     * @objects SAI_OBJECT_TYPE_PORT
+     */
     sai_object_id_t tx_port;
 
-    /** PTP msg type */
+    /** PTP message type */
     uint8_t msg_type;
 
     /** Attributes count */
     uint16_t ptp_seq_id;
 
     sai_timespec_t tx_timestamp;
-    
-} sai_packet_event_ptp_tx_notification_t;
+
+} sai_packet_event_ptp_tx_notification_data_t;
 
 /**
  * @brief PTP Packet tx notification callback
@@ -1461,12 +1495,11 @@ typedef struct _sai_packet_event_ptp_tx_notification_t
  * @count data[count]
  *
  * @param[in] count Number of notifications
- * @param[in] data Pointer to packet event notification for ptp tx data array
+ * @param[in] data Pointer to packet event notification for PTP tx data array
  */
 typedef void (*sai_packet_event_ptp_tx_notification_fn)(
         _In_ uint32_t count,
-        _In_ const sai_packet_event_ptp_tx_notification_t *data);
-
+        _In_ const sai_packet_event_ptp_tx_notification_data_t *data);
 
 /**
  * @brief Hostif methods table retrieved with sai_api_query()

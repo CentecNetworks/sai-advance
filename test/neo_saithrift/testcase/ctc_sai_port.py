@@ -2743,8 +2743,7 @@ class func_06_set_and_get_port_attribute_fn_57_PKT_TX_ENABLE(sai_base_test.Thrif
 #class func_06_set_and_get_port_attribute_fn_60_Y1731_ENABLE(sai_base_test.ThriftInterfaceDataPlane):
 #...
 
-'''
-#uml can not get mac stats
+
 class func_07_get_port_stats(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
             
@@ -2764,10 +2763,17 @@ class func_07_get_port_stats(sai_base_test.ThriftInterfaceDataPlane):
             port_oid1 = sai_thrift_create_port(self.client, front1, speed, lane_list1);
             sys_logging("### port_oid1 = %d ###"  %port_oid1)
             assert (port_oid1 != SAI_NULL_OBJECT_ID)
+            
+            attr_value = sai_thrift_attribute_value_t(booldata=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_ADMIN_STATE, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port_oid1, attr)
 
             port_oid2 = sai_thrift_create_port(self.client, front2, speed, lane_list2);
             sys_logging("### port_oid2 = %d ###"  %port_oid2)
             assert (port_oid2 != SAI_NULL_OBJECT_ID)
+            attr_value = sai_thrift_attribute_value_t(booldata=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_ADMIN_STATE, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port_oid2, attr)
             
             vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id1)
             
@@ -2793,7 +2799,7 @@ class func_07_get_port_stats(sai_base_test.ThriftInterfaceDataPlane):
                        
             counters_results = self.client.sai_thrift_get_port_stats(port_oid1, port_cnt_ids, len(port_cnt_ids))
             sys_logging("###counters_results[0]= %d###" %counters_results[0])  
-            #assert (counters_results[0] == 100)
+            assert (counters_results[0] == 104)
                                 
         finally:
             self.client.sai_thrift_clear_port_all_stats(port_oid1)
@@ -2806,7 +2812,6 @@ class func_07_get_port_stats(sai_base_test.ThriftInterfaceDataPlane):
 
 
 
-#uml can not get mac stats
 class func_08_get_port_stats_ext(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
             
@@ -2826,10 +2831,16 @@ class func_08_get_port_stats_ext(sai_base_test.ThriftInterfaceDataPlane):
             port_oid1 = sai_thrift_create_port(self.client, front1, speed, lane_list1);
             sys_logging("### port_oid1 = %d ###"  %port_oid1)
             assert (port_oid1 != SAI_NULL_OBJECT_ID)
+            attr_value = sai_thrift_attribute_value_t(booldata=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_ADMIN_STATE, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port_oid1, attr)
 
             port_oid2 = sai_thrift_create_port(self.client, front2, speed, lane_list2);
             sys_logging("### port_oid2 = %d ###"  %port_oid2)
             assert (port_oid2 != SAI_NULL_OBJECT_ID)
+            attr_value = sai_thrift_attribute_value_t(booldata=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_ADMIN_STATE, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port_oid2, attr)
             
             vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id1)
             
@@ -2856,7 +2867,7 @@ class func_08_get_port_stats_ext(sai_base_test.ThriftInterfaceDataPlane):
                        
             counters_results = self.client.sai_thrift_get_port_stats_ext(port_oid2, port_cnt_ids, mode, len(port_cnt_ids))
             sys_logging("###counters_results[0]= %d###" %counters_results[0])  
-            #assert (counters_results[0] == 100)
+            assert (counters_results[0] == 104)
                                 
         finally:
             self.client.sai_thrift_clear_port_all_stats(port_oid1)
@@ -2869,7 +2880,6 @@ class func_08_get_port_stats_ext(sai_base_test.ThriftInterfaceDataPlane):
 
 
 
-#uml can not get mac stats
 class func_09_clear_port_stats(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
             
@@ -2889,10 +2899,16 @@ class func_09_clear_port_stats(sai_base_test.ThriftInterfaceDataPlane):
             port_oid1 = sai_thrift_create_port(self.client, front1, speed, lane_list1);
             sys_logging("### port_oid1 = %d ###"  %port_oid1)
             assert (port_oid1 != SAI_NULL_OBJECT_ID)
+            attr_value = sai_thrift_attribute_value_t(booldata=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_ADMIN_STATE, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port_oid1, attr)
 
             port_oid2 = sai_thrift_create_port(self.client, front2, speed, lane_list2);
             sys_logging("### port_oid2 = %d ###"  %port_oid2)
             assert (port_oid2 != SAI_NULL_OBJECT_ID)
+            attr_value = sai_thrift_attribute_value_t(booldata=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_ADMIN_STATE, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port_oid2, attr)
             
             vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id1)
             
@@ -2933,8 +2949,8 @@ class func_09_clear_port_stats(sai_base_test.ThriftInterfaceDataPlane):
             counters_results = self.client.sai_thrift_get_port_stats_ext(port_oid1, port_cnt_ids, mode, len(port_cnt_ids))
             sys_logging("###counters_results[0]= %d###" %counters_results[0]) 
             sys_logging("###counters_results[1]= %d###" %counters_results[1])             
-            #assert (counters_results[0] == 100)
-            #assert (counters_results[1] == 100)
+            assert (counters_results[0] == 104)
+            assert (counters_results[1] == 104)
 
             port_cnt_ids1 = [SAI_PORT_STAT_IF_IN_OCTETS]            
             self.client.sai_thrift_clear_port_stats(port_oid1, len(port_cnt_ids1), port_cnt_ids1)
@@ -2942,8 +2958,8 @@ class func_09_clear_port_stats(sai_base_test.ThriftInterfaceDataPlane):
             counters_results = self.client.sai_thrift_get_port_stats_ext(port_oid1, port_cnt_ids, mode, len(port_cnt_ids))
             sys_logging("###counters_results[0]= %d###" %counters_results[0]) 
             sys_logging("###counters_results[1]= %d###" %counters_results[1])             
-            #assert (counters_results[0] == 0)
-            #assert (counters_results[1] == 100)
+            assert (counters_results[0] == 0)
+            assert (counters_results[1] == 104)
             
         finally:
             self.client.sai_thrift_clear_port_all_stats(port_oid1)
@@ -2953,7 +2969,7 @@ class func_09_clear_port_stats(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_vlan(vlan_oid1)         
             self.client.sai_thrift_remove_port(port_oid1) 
             self.client.sai_thrift_remove_port(port_oid2)
-'''
+
 
 
 class func_10_debug_counter_get_port_stats(sai_base_test.ThriftInterfaceDataPlane):

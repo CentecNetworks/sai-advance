@@ -181,6 +181,7 @@ _ctc_sai_db_entry_mapping_key(ctc_sai_db_entry_type_t type, void* key, ctc_sai_e
         entry_property->key.nat.proto = nat_entry->data.key.proto;
         entry_property->key.nat.l4_src_port = nat_entry->data.key.l4_src_port;
         entry_property->key.nat.l4_dst_port = nat_entry->data.key.l4_dst_port;
+        entry_property->key.nat.nat_type = nat_entry->nat_type;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -330,6 +331,7 @@ ctc_sai_db_entry_unmapping_key(uint8 lchip, ctc_sai_db_entry_type_t type, ctc_sa
 static sai_status_t
 _ctc_sai_db_init_id(uint8 lchip)
 {
+    uint8  chip_type = 0;
     uint32 lchip_num = 0;
     uint8 id_type;
     ctc_opf_t opf;
@@ -343,6 +345,8 @@ _ctc_sai_db_init_id(uint8 lchip)
     {
         ctc_opf_init(id_type, lchip_num);
     }
+
+    chip_type = ctcs_get_chip_type(lchip);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_COMMON;
     ctc_opf_init_offset(&opf, 1, 0xFFFFFFFE);
@@ -363,10 +367,14 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 1, capability[CTC_GLOBAL_CAPABILITY_MAX_VRFID]);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_L3IF;
-    ctc_opf_init_offset(&opf, MIN_CTC_L3IF_ID, capability[CTC_GLOBAL_CAPABILITY_L3IF_NUM] - 2);
+    ctc_opf_init_offset(&opf, MIN_CTC_L3IF_ID, capability[CTC_GLOBAL_CAPABILITY_L3IF_NUM] - 1);
 
+    /* SDK no max_num limit check,
+    when arp_id bind tunnel will write hw table,
+    when arp_id bind route only write software table,
+    so create arp_id no limit,temporarily limited to 65535 */
     opf.pool_type = CTC_SAI_DB_ID_TYPE_ARP;
-    ctc_opf_init_offset(&opf, 1, capability[CTC_GLOBAL_CAPABILITY_ARP_ID_NUM] - 1);
+    ctc_opf_init_offset(&opf, 1, 0xFFFF);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_NEXTHOP;
     ctc_opf_init_offset(&opf, 3, capability[CTC_GLOBAL_CAPABILITY_EXTERNAL_NEXTHOP_NUM] - 3);
@@ -408,7 +416,7 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 1, 64 * 1024);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_GROUP_MEMBER_INDEX;
-    ctc_opf_init_offset(&opf, 1, 1024);
+    ctc_opf_init_offset(&opf, 1, ((CTC_CHIP_TSINGMA_MX == chip_type) ? 2048 : 1024));
 
     /* CTC SDK totally only support 12 tiem for port or packet length */
     opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_PORT_RANGE_INDEX;
@@ -418,7 +426,13 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 32, 63);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_ACL_COUNTER_INDEX;
-    ctc_opf_init_offset(&opf, 1, 5632);
+    /* tm: ingress parellel acl0/1/2 511*3, sequential acl3 511 and global2 513, switch global3 512, total 3069
+           egree parellel global0/1 512*2 and acl0 511, total 1535
+           ingress + egress total 4604
+       tm2: ingress acl2/3/4/5/6/7/8/9/10/11/12/13/14/15 14*2048, total 28672
+            egress acl0/1/2/3 4*1024, total 4096
+            ingress + egress total 32768 */
+    ctc_opf_init_offset(&opf, 1, (CTC_CHIP_TSINGMA_MX == chip_type) ? 32768: 4604);
 
     /* SDK ACL Resource */
     opf.pool_type = CTC_SAI_DB_ID_TYPE_SDK_SCL_GROUP_ID;
@@ -482,13 +496,13 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 1, 2);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_MATCH;
-    ctc_opf_init_offset(&opf, 0, 16);
+    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 256 : 16);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_ENTRY;
-    ctc_opf_init_offset(&opf, 0, 16);
+    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 256 : 16);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_GROUP;
-    ctc_opf_init_offset(&opf, 0, 16);
+    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 256 : 16);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_WRED;
     ctc_opf_init_offset(&opf, 1, 31);

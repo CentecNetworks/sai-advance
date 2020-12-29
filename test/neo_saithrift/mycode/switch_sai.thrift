@@ -297,6 +297,7 @@ struct sai_thrift_nat_entry_t {
     9: i16 proto_mask;
     10: sai_thrift_l4port_t l4_src_port_mask; 
     11: sai_thrift_l4port_t l4_dst_port_mask;
+    12: i32 nat_type;
 }
 
 struct sai_thrift_attribute_list_t {
@@ -321,7 +322,7 @@ struct sai_thrift_results_t {
     2: sai_thrift_status_list_t statuslist;
 }
 
-struct sai_thrift_bulk_attributes_t {
+struct sai_thrift_bulk_attribute_list_t {
     1: list<sai_thrift_attribute_t> attr_list;
 }
 
@@ -344,9 +345,13 @@ service switch_sai_rpc {
     //fdb API
     sai_thrift_status_t sai_thrift_create_fdb_entry(1: sai_thrift_fdb_entry_t thrift_fdb_entry, 2: list<sai_thrift_attribute_t> thrift_attr_list);
     sai_thrift_status_t sai_thrift_delete_fdb_entry(1: sai_thrift_fdb_entry_t thrift_fdb_entry);
-    sai_thrift_status_t sai_thrift_flush_fdb_entries(1: list <sai_thrift_attribute_t> thrift_attr_list);
     sai_thrift_status_t sai_thrift_set_fdb_entry_attribute(1: sai_thrift_fdb_entry_t thrift_fdb_entry, 2: sai_thrift_attribute_t thrift_attr);
     sai_thrift_attribute_list_t sai_thrift_get_fdb_entry_attribute(1: sai_thrift_fdb_entry_t thrift_fdb_entry);
+    sai_thrift_status_t sai_thrift_flush_fdb_entries(1: list <sai_thrift_attribute_t> thrift_attr_list);
+    sai_thrift_status_t sai_thrift_create_fdb_entries(1: list<sai_thrift_fdb_entry_t> thrift_fdb_entry_list, 2: list<sai_thrift_attribute_list_t> thrift_attribute_list, 3: i8 mode);
+    sai_thrift_status_t sai_thrift_remove_fdb_entries(1: list<sai_thrift_fdb_entry_t> thrift_fdb_entry_list, 2: i8 mode);
+    sai_thrift_status_t sai_thrift_set_fdb_entries_attribute(1: list<sai_thrift_fdb_entry_t> thrift_fdb_entry_list, 2: list<sai_thrift_attribute_t> thrift_attr_list, 3: i8 mode);
+    list<sai_thrift_attribute_list_t> sai_thrift_get_fdb_entries_attribute(1: list<sai_thrift_fdb_entry_t> thrift_fdb_entry_list, 2: i8 mode);
 
     //vlan API
     sai_thrift_object_id_t sai_thrift_create_vlan(1: list<sai_thrift_attribute_t> thrift_attr_list);
@@ -482,8 +487,7 @@ service switch_sai_rpc {
     sai_thrift_status_t sai_thrift_remove_bridge(1: sai_thrift_object_id_t bridge_id);
     sai_thrift_attribute_list_t sai_thrift_get_bridge_attribute(1: sai_thrift_object_id_t bridge_id);
     sai_thrift_status_t sai_thrift_set_bridge_attribute(1: sai_thrift_object_id_t bridge_id,
-                                                             2: sai_thrift_attribute_t thrift_attr);
-                                                             
+                                                        2: sai_thrift_attribute_t thrift_attr);
     list<i64> sai_thrift_get_bridge_port_stats(
                              1: sai_thrift_object_id_t bridge_port_id,
                              2: list<sai_thrift_bridge_port_stat_counter_t> counter_ids,

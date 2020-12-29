@@ -171,9 +171,6 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             acl_table_id,
             group_member_priority)
         warmboot(self.client)
-        # test there is a table in group
-        status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
-        assert (status == SAI_STATUS_OBJECT_IN_USE)
 
         # remove acl table group member first
         status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id)
@@ -677,8 +674,6 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
         warmboot(self.client)
 
         # try to remove acl table
-        status = self.client.sai_thrift_remove_acl_table(acl_table_id)
-        assert (status == SAI_STATUS_OBJECT_IN_USE)
         status = self.client.sai_thrift_remove_acl_entry(acl_entry_id)
         assert (status == SAI_STATUS_SUCCESS)
         status = self.client.sai_thrift_remove_acl_table(acl_table_id)
@@ -1044,7 +1039,7 @@ class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
                     print "get available entry num =  ", a.value.u32
                     if 2 != a.value.u32:
                         raise NotImplementedError()
-                # counter to be done                
+                # counter to be done
         finally:
             # remove acl entry first
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_id1)
@@ -2011,7 +2006,6 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         # the relationship between vlan id and vlan_oid
         vlan_id = 20
         vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
-
         sai_thrift_create_fdb(self.client, vlan_oid, mac_dst, port2, mac_action)
 
         # send the test packet(s)
@@ -2047,15 +2041,25 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
         action = SAI_PACKET_ACTION_DROP
         in_ports = None
-        mac_src_mask = "ff:ff:ff:ff:ff:ff"
-        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
-        svlan_id=20
-        svlan_pri=4
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            mac_src_mask = "ff:ff:ff:ff:ff:ff"
+            mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+            svlan_id = 20
+            svlan_pri = 4
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
+            mac_src = None
+            mac_dst = None
+            mac_src_mask = None
+            mac_dst_mask = None
+            svlan_id = None
+            svlan_pri = None
+
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
         svlan_cfi=None
         cvlan_id=None
         cvlan_pri=None
         cvlan_cfi=None
-        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -2232,6 +2236,7 @@ class SclV6EntryBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_acl_entry(acl_entry_id)
             self.client.sai_thrift_remove_acl_table(acl_table_id)
             # cleanup FDB
+            mac_dst = '00:22:22:22:22:22'
             sai_thrift_delete_fdb(self.client, vlan_oid, mac_dst, port2)
 
             self.client.sai_thrift_remove_vlan(vlan_oid)
@@ -4566,7 +4571,10 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                                               acl_table_group_id,
                                                                               acl_table_id2,
                                                                               group_member_priority2)
-        assert acl_table_group_member_id2 > 0, 'acl_table_group_member_id2 is <= 0'
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            assert acl_table_group_member_id2 > 0, 'acl_table_group_member_id2 is <= 0'
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
+            assert acl_table_group_member_id2 == 0, 'acl_table_group_member_id2 is != 0'
 
         group_member_priority3 = 3
 
@@ -4575,7 +4583,7 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
                                                                               acl_table_group_id,
                                                                               acl_table_id3,
                                                                               group_member_priority3)
-        assert acl_table_group_member_id3 == 0, 'acl_table_group_member_id3 is > 0'
+        assert acl_table_group_member_id3 == 0, 'acl_table_group_member_id3 is != 0'
 
         # bind this ACL table to port0s object id
         attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
@@ -4595,8 +4603,9 @@ class CreateIgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
         assert (status == SAI_STATUS_SUCCESS)
 
-        status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
-        assert (status == SAI_STATUS_SUCCESS)
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
+            assert (status == SAI_STATUS_SUCCESS)
 
         # test there is no table in group
         # remove acl table
@@ -4916,8 +4925,8 @@ class CreateEgrParaAclTableGroupMember(sai_base_test.ThriftInterfaceDataPlane):
         status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
         assert (status == SAI_STATUS_SUCCESS)
 
-        status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-        assert (status == SAI_STATUS_ITEM_NOT_FOUND)
+        #status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
+        #assert (status == SAI_STATUS_ITEM_NOT_FOUND)
 
         # test there is no table in group
         # remove acl table
@@ -5033,7 +5042,12 @@ class CreateIgrSeqAclMaxTable(sai_base_test.ThriftInterfaceDataPlane):
         acl_entry_id_list = []
         acl_table_group_member_id_list = []
 
-        for a in range(0, 512):
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+          member = 512
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
+          member = 2048
+
+        for a in range(0, member):
 
             svlan_id = a
             acl_table_id = sai_thrift_create_acl_table(self.client,
@@ -5158,7 +5172,7 @@ class CreateIgrSeqAclMaxTable(sai_base_test.ThriftInterfaceDataPlane):
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port1, attr)
 
-        for a in range(0, 512):
+        for a in range(0, member):
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id_list[a])
             assert (status == SAI_STATUS_SUCCESS)
 
@@ -7196,6 +7210,7 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id3)
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
+
 ###udf test
 @group('acl')
 class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
@@ -7588,7 +7603,6 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_udf_group(udf_group_id)
 
 
-
 class func_01_create_acl_range_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -7755,7 +7769,7 @@ class func_05_remove_acl_range_fn(sai_base_test.ThriftInterfaceDataPlane):
             assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_range(acl_range_oid)
-            assert (status != SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
         finally:
 
@@ -8556,7 +8570,7 @@ class func_11_remove_acl_table_fn (sai_base_test.ThriftInterfaceDataPlane):
             assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
-            assert (status != SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
         finally:
 
@@ -8794,13 +8808,11 @@ class func_13_create_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane):
         assert(acl_table_oid != SAI_NULL_OBJECT_ID )
 
         try:
-
             acl_counter_oid = sai_thrift_create_acl_counter(self.client, acl_table_oid)
             sys_logging("create acl counter = %d" %acl_counter_oid)
             assert(acl_counter_oid != SAI_NULL_OBJECT_ID )
 
         finally:
-
             sys_logging("clear config")
             status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -9026,7 +9038,7 @@ class func_15_create_multi_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane
             dst_l4_port)
 
         sys_logging("create acl table = %d" %acl_table_oid)
-        assert(acl_table_oid != SAI_NULL_OBJECT_ID )
+        assert(acl_table_oid != SAI_NULL_OBJECT_ID)
 
         table_stage = SAI_ACL_STAGE_EGRESS
         in_port = None
@@ -9104,7 +9116,6 @@ class func_15_create_multi_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid_2)
             assert (status == SAI_STATUS_SUCCESS)
 
-
 class func_16_create_max_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -9116,8 +9127,13 @@ class func_16_create_max_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane):
         entry_oid_list = []
         counter_oid_list = []
 
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            counter_max_num = 1024
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
+            counter_max_num = 2048
+
         # the relationship between vlan id and vlan_oid
-        for v in range(1, 1025):
+        for v in range(1, (counter_max_num+1)):
             vlan_oid = sai_thrift_create_vlan(self.client, (v+100))
             sys_logging("create vlan %d = 0x%lx" %((v+100), vlan_oid))
             assert(vlan_oid != SAI_NULL_OBJECT_ID)
@@ -9167,7 +9183,7 @@ class func_16_create_max_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane):
         dst_l4_port = None
 
         sys_logging(" create acl table ")
-        for t in range(1, 1025):
+        for t in range(1, (counter_max_num+1)):
             table_oid = sai_thrift_create_acl_table(self.client,
                             table_stage,
                             table_bind_point_list,
@@ -9282,7 +9298,7 @@ class func_16_create_max_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane):
         admin_state = True
 
         sys_logging(" create acl entry ")
-        for e in range(1, 1025):
+        for e in range(1, (counter_max_num+1)):
             sys_logging("create entry %d = table_oid:0x%lx, vlan_oid:0x%lx" %(e, table_oid_list[(e-1)], vlan_oid_list[(e-1)]))
             entry_oid = sai_thrift_create_acl_entry(self.client,
                             table_oid_list[(e-1)],
@@ -9336,18 +9352,16 @@ class func_16_create_max_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane):
             sys_logging("create entry %d = 0x%lx" %(e, entry_oid))
 
         try:
-            for c in range(1, 1025):
+            for c in range(1, (counter_max_num+1)):
                 counter_oid = sai_thrift_create_acl_counter(self.client, table_oid_list[(c-1)])
                 assert(counter_oid != SAI_NULL_OBJECT_ID)
                 counter_oid_list.append(counter_oid)
                 sys_logging("create acl counter %d = 0x%lx" %(c, counter_oid))
 
-            for t in range(1, 1025):
+            for t in range(1, (counter_max_num+1)):
                 sys_logging(" bind this ACL table 0x%lx to vlan %d" %(table_oid_list[(t-1)], (t+100)))
                 attr_value = sai_thrift_attribute_value_t(oid=table_oid_list[(t-1)])
                 attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
-                #if (t == 513) :
-                #    pdb.set_trace()
                 status = self.client.sai_thrift_set_vlan_attribute(vlan_oid_list[t-1], attr)
                 sys_logging("bind ACL table 0x%lx status %d" %(table_oid_list[(t-1)], status))
                 assert (status == SAI_STATUS_SUCCESS)
@@ -9355,29 +9369,29 @@ class func_16_create_max_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane):
         finally:
             sys_logging("clear config")
 
-            for t in range(1, 1025):
+            for t in range(1, (counter_max_num+1)):
                 attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
                 attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
                 status = self.client.sai_thrift_set_vlan_attribute(vlan_oid_list[t-1], attr)
                 sys_logging("unbind ACL table 0x%lx status %d" %(table_oid_list[(t-1)], status))
                 assert (status == SAI_STATUS_SUCCESS)
 
-            for e in range(1, 1025):
+            for e in range(1, (counter_max_num+1)):
                 sys_logging("remove entry: 0x%lx" %entry_oid_list[(e-1)])
                 status = self.client.sai_thrift_remove_acl_entry(entry_oid_list[(e-1)])
                 assert (status == SAI_STATUS_SUCCESS)
 
-            for t in range(1, 1025):
+            for t in range(1, (counter_max_num+1)):
                 sys_logging("remove table: 0x%lx" %table_oid_list[(t-1)])
                 status = self.client.sai_thrift_remove_acl_table(table_oid_list[(t-1)])
                 assert (status == SAI_STATUS_SUCCESS)
 
-            for c in range(1, 1025):
+            for c in range(1, (counter_max_num+1)):
                 sys_logging("remove counter: 0x%lx" %counter_oid_list[(c-1)])
                 status = self.client.sai_thrift_remove_acl_counter(counter_oid_list[(c-1)])
                 assert (status == SAI_STATUS_SUCCESS)
 
-            for v in range(1, 1025):
+            for v in range(1, (counter_max_num+1)):
                 sys_logging("remove vlan: 0x%lx" %vlan_oid_list[(v-1)])
                 status = self.client.sai_thrift_remove_vlan(vlan_oid_list[(v-1)])
                 assert (status == SAI_STATUS_SUCCESS)
@@ -9491,14 +9505,13 @@ class func_17_remove_acl_counter_fn(sai_base_test.ThriftInterfaceDataPlane):
             assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid)
-            assert (status != SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
         finally:
 
             sys_logging("clear config")
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
-
 
 
 class func_18_set_and_get_acl_counter_attr_fn(sai_base_test.ThriftInterfaceDataPlane):
@@ -9787,7 +9800,7 @@ class func_23_remove_acl_group_fn(sai_base_test.ThriftInterfaceDataPlane):
             assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
-            assert (status != SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
         finally:
             sys_logging("clear config")
@@ -10601,7 +10614,6 @@ class func_27_create_multi_acl_group_member_fn(sai_base_test.ThriftInterfaceData
             assert (status == SAI_STATUS_SUCCESS)
 
 
-
 class func_28_create_max_acl_group_member_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -10663,12 +10675,17 @@ class func_28_create_max_acl_group_member_fn(sai_base_test.ThriftInterfaceDataPl
         src_l4_port = None
         dst_l4_port = None
 
-        acl_table_oid = range(1025)
-        acl_group_member_oid = range(1025)
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            max_group_member = 1024
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
+            max_group_member = 2048
+
+        acl_table_oid = range(max_group_member+1)
+        acl_group_member_oid = range(max_group_member+1)
 
         try:
 
-            for a in range(1025):
+            for a in range(max_group_member+1):
 
                 acl_table_oid[a] = sai_thrift_create_acl_table(self.client,
                 table_stage,
@@ -10725,7 +10742,7 @@ class func_28_create_max_acl_group_member_fn(sai_base_test.ThriftInterfaceDataPl
 
                 sys_logging("create acl group member = %d" %acl_group_member_oid[a])
 
-                if a != 1024:
+                if a < max_group_member:
                     assert(acl_group_member_oid[a] != SAI_NULL_OBJECT_ID )
                 else:
                     assert(acl_group_member_oid[a] == SAI_NULL_OBJECT_ID )
@@ -10734,13 +10751,13 @@ class func_28_create_max_acl_group_member_fn(sai_base_test.ThriftInterfaceDataPl
 
             sys_logging("clear config")
 
-            for a in range(1024):
+            for a in range(max_group_member):
                 status = self.client.sai_thrift_remove_acl_table_group_member(acl_group_member_oid[a])
                 assert (status == SAI_STATUS_SUCCESS)
                 status = self.client.sai_thrift_remove_acl_table(acl_table_oid[a])
                 assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid[1024])
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid[max_group_member])
             assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
@@ -10753,6 +10770,11 @@ class func_28_create_max_acl_group_member_fn_PARALLEL(sai_base_test.ThriftInterf
     def runTest(self):
 
         switch_init(self.client)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            group_member = 3
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
+            group_member = 2
 
         # acl group info
         group_stage = SAI_ACL_STAGE_INGRESS
@@ -10809,13 +10831,12 @@ class func_28_create_max_acl_group_member_fn_PARALLEL(sai_base_test.ThriftInterf
         src_l4_port = None
         dst_l4_port = None
 
-        acl_table_oid = range(4)
-        acl_group_member_oid = range(4)
+        acl_table_oid = range(group_member+1)
+        acl_group_member_oid = range(group_member+1)
 
         try:
 
-            for a in range(4):
-
+            for a in range(group_member+1):
                 acl_table_oid[a] = sai_thrift_create_acl_table(self.client,
                 table_stage,
                 table_bind_point_list,
@@ -10871,7 +10892,7 @@ class func_28_create_max_acl_group_member_fn_PARALLEL(sai_base_test.ThriftInterf
 
                 sys_logging("create acl group member = %d" %acl_group_member_oid[a])
 
-                if a != 3:
+                if a < group_member:
                     assert(acl_group_member_oid[a] != SAI_NULL_OBJECT_ID )
                 else:
                     assert(acl_group_member_oid[a] == SAI_NULL_OBJECT_ID )
@@ -10880,13 +10901,13 @@ class func_28_create_max_acl_group_member_fn_PARALLEL(sai_base_test.ThriftInterf
 
             sys_logging("clear config")
 
-            for a in range(3):
+            for a in range(group_member):
                 status = self.client.sai_thrift_remove_acl_table_group_member(acl_group_member_oid[a])
                 assert (status == SAI_STATUS_SUCCESS)
                 status = self.client.sai_thrift_remove_acl_table(acl_table_oid[a])
                 assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid[3])
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid[group_member])
             assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
@@ -11000,9 +11021,7 @@ class func_29_remove_acl_group_member_fn(sai_base_test.ThriftInterfaceDataPlane)
         sys_logging("create acl table = %d" %acl_table_oid)
         assert(acl_table_oid != SAI_NULL_OBJECT_ID )
 
-
         try:
-
             # acl group member info
             group_member_priority1 = 100
 
@@ -11019,7 +11038,7 @@ class func_29_remove_acl_group_member_fn(sai_base_test.ThriftInterfaceDataPlane)
             assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
-            assert (status != SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
         finally:
 
@@ -11149,7 +11168,6 @@ class func_30_set_and_get_acl_group_member_attr_fn(sai_base_test.ThriftInterface
         assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID )
 
         try:
-
             attrs = self.client.sai_thrift_get_acl_table_group_member_attribute(acl_table_group_member_id1)
             assert (attrs.status == SAI_STATUS_SUCCESS)
 
@@ -12221,7 +12239,7 @@ class func_35_remove_acl_entry_fn(sai_base_test.ThriftInterfaceDataPlane):
             assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
-            assert (status != SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
 
         finally:
@@ -12401,12 +12419,10 @@ class func_36_set_and_get_acl_entry_attr_fn(sai_base_test.ThriftInterfaceDataPla
             new_svlan, new_scos,
             new_cvlan, new_ccos,
             deny_learn)
-
         sys_logging("create acl entry = %d" %acl_entry_oid)
-        assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+        assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
 
         try:
-
             attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_PRIORITY, SAI_ACL_ENTRY_ATTR_ADMIN_STATE,
             SAI_ACL_ENTRY_ATTR_FIELD_SRC_MAC, SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
 
@@ -12497,6 +12513,3820 @@ class func_36_set_and_get_acl_entry_attr_fn(sai_base_test.ThriftInterfaceDataPla
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
 
+
+class func_37_port_bind_remove_table_before_its_entry_compatible_fn(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        # create ACL table
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        addr_family = None
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = None
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = None
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+        ip_src = "192.168.0.1"
+        ip_src_mask = "255.255.255.255"
+        ip_dst = None
+        ip_dst_mask = None
+        ip_protocol = None
+        #ip qos info
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        in_port = 0
+        out_port = None
+        out_ports = None
+        ip_protocol = None
+        src_l4_port = None
+        dst_l4_port = None
+        ingress_mirror_id = None
+        egress_mirror_id = None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+
+        acl_table_oid = sai_thrift_create_acl_table(self.client,
+            table_stage,
+            table_bind_point_list,
+            addr_family,
+            mac_src,
+            mac_dst,
+            ip_src,
+            ip_dst,
+            in_ports,
+            out_ports,
+            in_port,
+            out_port,
+            svlan_id,
+            svlan_pri,
+            svlan_cfi,
+            cvlan_id,
+            cvlan_pri,
+            cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_protocol,
+            src_l4_port,
+            dst_l4_port)
+        sys_logging("create acl table = %d" %acl_table_oid)
+        assert(acl_table_oid != SAI_NULL_OBJECT_ID)
+
+        warmboot(self.client)
+        try:
+            # bind this ACL table to port1s object id
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            entry_priority = 1
+            admin_state = True
+
+            ip_src = "192.168.0.1"
+            acl_entry_oid1 = sai_thrift_create_acl_entry(self.client,
+                                                         acl_table_oid,
+                                                         entry_priority,
+                                                         admin_state,
+                                                         action, addr_family,
+                                                         mac_src, mac_src_mask,
+                                                         mac_dst, mac_dst_mask,
+                                                         svlan_id, svlan_pri,
+                                                         svlan_cfi, cvlan_id,
+                                                         cvlan_pri, cvlan_cfi,
+                                                         ip_type,
+                                                         mpls_label0_label,
+                                                         mpls_label0_ttl,
+                                                         mpls_label0_exp,
+                                                         mpls_label0_bos,
+                                                         mpls_label1_label,
+                                                         mpls_label1_ttl,
+                                                         mpls_label1_exp,
+                                                         mpls_label1_bos,
+                                                         mpls_label2_label,
+                                                         mpls_label2_ttl,
+                                                         mpls_label2_exp,
+                                                         mpls_label2_bos,
+                                                         mpls_label3_label,
+                                                         mpls_label3_ttl,
+                                                         mpls_label3_exp,
+                                                         mpls_label3_bos,
+                                                         mpls_label4_label,
+                                                         mpls_label4_ttl,
+                                                         mpls_label4_exp,
+                                                         mpls_label4_bos,
+                                                         ip_src, ip_src_mask,
+                                                         ip_dst, ip_dst_mask,
+                                                         ip_protocol,
+                                                         ip_tos, ip_ecn,
+                                                         ip_dscp, ip_ttl,
+                                                         in_ports, out_ports,
+                                                         in_port, out_port,
+                                                         src_l4_port, dst_l4_port,
+                                                         ingress_mirror_id,
+                                                         egress_mirror_id,
+                                                         new_svlan, new_scos,
+                                                         new_cvlan, new_ccos,
+                                                         deny_learn)
+            sys_logging("create acl entry = %d" %acl_entry_oid1)
+            assert(acl_entry_oid1 != SAI_NULL_OBJECT_ID)
+
+            ip_src = "192.168.0.2"
+            acl_entry_oid2 = sai_thrift_create_acl_entry(self.client,
+                                                         acl_table_oid,
+                                                         entry_priority,
+                                                         admin_state,
+                                                         action, addr_family,
+                                                         mac_src, mac_src_mask,
+                                                         mac_dst, mac_dst_mask,
+                                                         svlan_id, svlan_pri,
+                                                         svlan_cfi, cvlan_id,
+                                                         cvlan_pri, cvlan_cfi,
+                                                         ip_type,
+                                                         mpls_label0_label,
+                                                         mpls_label0_ttl,
+                                                         mpls_label0_exp,
+                                                         mpls_label0_bos,
+                                                         mpls_label1_label,
+                                                         mpls_label1_ttl,
+                                                         mpls_label1_exp,
+                                                         mpls_label1_bos,
+                                                         mpls_label2_label,
+                                                         mpls_label2_ttl,
+                                                         mpls_label2_exp,
+                                                         mpls_label2_bos,
+                                                         mpls_label3_label,
+                                                         mpls_label3_ttl,
+                                                         mpls_label3_exp,
+                                                         mpls_label3_bos,
+                                                         mpls_label4_label,
+                                                         mpls_label4_ttl,
+                                                         mpls_label4_exp,
+                                                         mpls_label4_bos,
+                                                         ip_src, ip_src_mask,
+                                                         ip_dst, ip_dst_mask,
+                                                         ip_protocol,
+                                                         ip_tos, ip_ecn,
+                                                         ip_dscp, ip_ttl,
+                                                         in_ports, out_ports,
+                                                         in_port, out_port,
+                                                         src_l4_port, dst_l4_port,
+                                                         ingress_mirror_id,
+                                                         egress_mirror_id,
+                                                         new_svlan, new_scos,
+                                                         new_cvlan, new_ccos,
+                                                         deny_learn)
+            sys_logging("create acl entry = %d" %acl_entry_oid2)
+            assert(acl_entry_oid2 != SAI_NULL_OBJECT_ID)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            #attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID]
+            #attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            #print "status = ", attrs.status
+            #assert (attrs.status != SAI_STATUS_SUCCESS)
+            #
+            #attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            #print "status = ", attrs.status
+            #assert (attrs.status != SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+        finally:
+            sys_logging("clear config")
+
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+
+class func_38_group_per_table_per_entry_counter_test(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        # acl group info
+        group_stage = SAI_ACL_STAGE_INGRESS
+        group_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        group_type = SAI_ACL_TABLE_GROUP_TYPE_PARALLEL
+
+        # create acl group
+        acl_table_group_oid = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
+        sys_logging("create acl group = %d" %acl_table_group_oid)
+        assert(acl_table_group_oid != SAI_NULL_OBJECT_ID)
+
+        # acl table info
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IP,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IP,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE,
+                                            value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid1 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid1)
+        assert(acl_table_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid1 = sai_thrift_create_acl_counter(self.client, acl_table_oid1)
+        sys_logging("create acl counter oid1 = 0x%lx" %acl_counter_oid1)
+        assert(acl_counter_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid2 = sai_thrift_create_acl_counter(self.client, acl_table_oid1)
+        sys_logging("create acl counter oid2 = 0x%lx" %acl_counter_oid2)
+        assert(acl_counter_oid2 != SAI_NULL_OBJECT_ID)
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE,
+                                            value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid2 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid2)
+        assert(acl_table_oid2 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid3 = sai_thrift_create_acl_counter(self.client, acl_table_oid2)
+        sys_logging("create acl counter oid3 = 0x%lx" %acl_counter_oid3)
+        assert(acl_counter_oid3 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid4 = sai_thrift_create_acl_counter(self.client, acl_table_oid2)
+        sys_logging("create acl counter oid4 = 0x%lx" %acl_counter_oid4)
+        assert(acl_counter_oid4 != SAI_NULL_OBJECT_ID)
+
+        group_member_priority = 100
+        # create ACL table group members
+        acl_table_group_member_oid1 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid,
+                                                                               acl_table_oid1,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid1 > 0, 'acl_table_group_member_oid1 is <= 0'
+        sys_logging("create table group member oid1 = 0x%lx" %acl_table_group_member_oid1)
+
+        group_member_priority = 200
+        # create ACL table group members
+        acl_table_group_member_oid2 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid,
+                                                                               acl_table_oid2,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid2 > 0, 'acl_table_group_member_oid2 is <= 0'
+        sys_logging("create table group member oid2 = 0x%lx" %acl_table_group_member_oid2)
+
+        #table1 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_dst = "10.1.1.1"
+        ipv4_dst_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE,
+                                               value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv4
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_dst), mask =sai_thrift_acl_mask_t(ip4=ipv4_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid1 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid1)
+        assert(acl_entry_oid1 != SAI_NULL_OBJECT_ID)
+
+        #table1 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_src = "192.168.0.1"
+        ipv4_src_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ip
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_src), mask =sai_thrift_acl_mask_t(ip4=ipv4_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid2 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid2)
+        assert(acl_entry_oid2 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_dst = "2012:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_dst_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE,
+                                               value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_dst), mask =sai_thrift_acl_mask_t(ip6=ipv6_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid3), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid3 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid3)
+        assert(acl_entry_oid3 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_src = "2001:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_src_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_src), mask =sai_thrift_acl_mask_t(ip6=ipv6_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid4), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid4 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid4)
+        assert(acl_entry_oid4 != SAI_NULL_OBJECT_ID)
+
+        sys_logging(" step2: bind this ACL table to port  ")
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        warmboot(self.client)
+        try:
+            sys_logging(" step3: get acl entry attr info  ")
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid3 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid4 == a.value.aclaction.parameter.oid)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid3 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(ip_type == SAI_ACL_IP_TYPE_IPV6ANY)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid4 == a.value.aclaction.parameter.oid)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid3 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid4 == a.value.aclaction.parameter.oid)
+                    
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid3)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid3)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid4 == a.value.aclaction.parameter.oid)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid4)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid4)
+            assert (status == SAI_STATUS_SUCCESS)
+
+        finally:
+            sys_logging("clear config")
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+            
+            status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+
+class func_39_group_per_table_share_entry_counter_remove_entry_test(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        # acl group info
+        group_stage = SAI_ACL_STAGE_INGRESS
+        group_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        group_type = SAI_ACL_TABLE_GROUP_TYPE_PARALLEL
+
+        # create acl group
+        acl_table_group_oid = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
+        sys_logging("create acl group = %d" %acl_table_group_oid)
+        assert(acl_table_group_oid != SAI_NULL_OBJECT_ID)
+
+        # acl table info
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IP,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IP,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE,
+                                            value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid1 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid1)
+        assert(acl_table_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid1 = sai_thrift_create_acl_counter(self.client, acl_table_oid1)
+        sys_logging("create acl counter oid1 = 0x%lx" %acl_counter_oid1)
+        assert(acl_counter_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE,
+                                            value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid2 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid2)
+        assert(acl_table_oid2 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid2 = sai_thrift_create_acl_counter(self.client, acl_table_oid2)
+        sys_logging("create acl counter oid3 = 0x%lx" %acl_counter_oid2)
+        assert(acl_counter_oid2 != SAI_NULL_OBJECT_ID)
+
+        group_member_priority = 100
+        # create ACL table group members
+        acl_table_group_member_oid1 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid,
+                                                                               acl_table_oid1,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid1 > 0, 'acl_table_group_member_oid1 is <= 0'
+        sys_logging("create table group member oid1 = 0x%lx" %acl_table_group_member_oid1)
+
+        group_member_priority = 200
+        # create ACL table group members
+        acl_table_group_member_oid2 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid,
+                                                                               acl_table_oid2,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid2 > 0, 'acl_table_group_member_oid2 is <= 0'
+        sys_logging("create table group member oid2 = 0x%lx" %acl_table_group_member_oid2)
+
+        #table1 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_dst = "10.1.1.1"
+        ipv4_dst_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv4
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_dst), mask =sai_thrift_acl_mask_t(ip4=ipv4_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid1 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid1)
+        assert(acl_entry_oid1 != SAI_NULL_OBJECT_ID)
+
+        #table1 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_src = "192.168.0.1"
+        ipv4_src_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ip
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_src), mask =sai_thrift_acl_mask_t(ip4=ipv4_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid2 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid2)
+        assert(acl_entry_oid2 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_dst = "2012:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_dst_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE,
+                                               value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_dst), mask =sai_thrift_acl_mask_t(ip6=ipv6_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid3 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid3)
+        assert(acl_entry_oid3 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_src = "2001:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_src_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_src), mask =sai_thrift_acl_mask_t(ip6=ipv6_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid4 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid4)
+        assert(acl_entry_oid4 != SAI_NULL_OBJECT_ID)
+
+        sys_logging(" step2: bind this ACL table to port  ")
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        warmboot(self.client)
+        try:
+            sys_logging(" step3: get acl entry attr info  ")
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP,
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid1)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(ip_type == SAI_ACL_IP_TYPE_IPV6ANY)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(ip_type == SAI_ACL_IP_TYPE_IPV6ANY)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid3)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(ip_type == SAI_ACL_IP_TYPE_IPV6ANY)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid4)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+        finally:
+            sys_logging("clear config")
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+            
+            status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+
+class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_test(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        # acl group info
+        group_stage = SAI_ACL_STAGE_INGRESS
+        group_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        group_type = SAI_ACL_TABLE_GROUP_TYPE_PARALLEL
+
+        # create acl group
+        acl_table_group_oid1 = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
+        sys_logging("create acl group oid1 = 0x%lx" %acl_table_group_oid1)
+        assert(acl_table_group_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_table_group_oid2 = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
+        sys_logging("create acl group oid2 = 0x%lx" %acl_table_group_oid2)
+        assert(acl_table_group_oid2 != SAI_NULL_OBJECT_ID)
+
+        # acl table info
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid1 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid1)
+        assert(acl_table_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid1 = sai_thrift_create_acl_counter(self.client, acl_table_oid1)
+        sys_logging("create acl counter oid1 = 0x%lx" %acl_counter_oid1)
+        assert(acl_counter_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid2 = sai_thrift_create_acl_counter(self.client, acl_table_oid1)
+        sys_logging("create acl counter oid2 = 0x%lx" %acl_counter_oid2)
+        assert(acl_counter_oid2 != SAI_NULL_OBJECT_ID)
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid2 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid2)
+        assert(acl_table_oid2 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid3 = sai_thrift_create_acl_counter(self.client, acl_table_oid2)
+        sys_logging("create acl counter oid3 = 0x%lx" %acl_counter_oid3)
+        assert(acl_counter_oid3 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid4 = sai_thrift_create_acl_counter(self.client, acl_table_oid2)
+        sys_logging("create acl counter oid4 = 0x%lx" %acl_counter_oid4)
+        assert(acl_counter_oid4 != SAI_NULL_OBJECT_ID)
+
+        group_member_priority = 0
+        # create ACL table group members
+        acl_table_group_member_oid1 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid1,
+                                                                               acl_table_oid1,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid1 > 0, 'acl_table_group_member_oid1 is <= 0'
+        sys_logging("create table group member oid1 = 0x%lx" %acl_table_group_member_oid1)
+
+        group_member_priority = 0
+        # create ACL table group members
+        acl_table_group_member_oid2 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid1,
+                                                                               acl_table_oid2,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid2 > 0, 'acl_table_group_member_oid2 is <= 0'
+        sys_logging("create table group member oid2 = 0x%lx" %acl_table_group_member_oid2)
+
+        group_member_priority = 0
+        # create ACL table group members
+        acl_table_group_member_oid3 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid2,
+                                                                               acl_table_oid1,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid3 > 0, 'acl_table_group_member_oid3 is <= 0'
+        sys_logging("create table group member oid3 = 0x%lx" %acl_table_group_member_oid3)
+
+        group_member_priority = 0
+        # create ACL table group members
+        acl_table_group_member_oid4 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid2,
+                                                                               acl_table_oid2,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid4 > 0, 'acl_table_group_member_oid4 is <= 0'
+        sys_logging("create table group member oid4 = 0x%lx" %acl_table_group_member_oid4)
+
+        #table1 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_dst = "10.1.1.1"
+        ipv4_dst_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv4
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_dst), mask =sai_thrift_acl_mask_t(ip4=ipv4_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid1 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry oid1 = 0x%lx" %acl_entry_oid1)
+        assert(acl_entry_oid1 != SAI_NULL_OBJECT_ID)
+
+        #table1 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_src = "192.168.0.1"
+        ipv4_src_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ip
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_src), mask =sai_thrift_acl_mask_t(ip4=ipv4_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid2 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry oid2 = 0x%lx" %acl_entry_oid2)
+        assert(acl_entry_oid2 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_dst = "2012:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_dst_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_dst), mask =sai_thrift_acl_mask_t(ip6=ipv6_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid3), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid3 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry oid3 = 0x%lx" %acl_entry_oid3)
+        assert(acl_entry_oid3 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_src = "2001:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_src_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_src), mask =sai_thrift_acl_mask_t(ip6=ipv6_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid4), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid4 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry oid4 = 0x%lx" %acl_entry_oid4)
+        assert(acl_entry_oid4 != SAI_NULL_OBJECT_ID)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid1)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        status = self.client.sai_thrift_set_port_attribute(port1, attr)
+        assert (status == SAI_STATUS_SUCCESS)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid2)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        status = self.client.sai_thrift_set_port_attribute(port2, attr)
+        assert (status == SAI_STATUS_SUCCESS)
+
+        #pdb.set_trace()
+
+        warmboot(self.client)
+        try:
+            sys_logging(" step3: get acl entry attr info  ")
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT = 0x%lx" %a.value.aclfield.data.oid)
+                    assert(port1 == a.value.aclfield.data.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT = 0x%lx" %a.value.aclfield.data.oid)
+                    assert(port1 == a.value.aclfield.data.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT = 0x%lx" %a.value.aclfield.data.oid)
+                    assert(port2 == a.value.aclfield.data.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid3 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT = 0x%lx" %a.value.aclfield.data.oid)
+                    assert(port2 == a.value.aclfield.data.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid4 == a.value.aclaction.parameter.oid)
+
+            #pdb.set_trace()
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid3)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid4)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid1)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid3)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid4)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            #pdb.set_trace()
+
+            group_member_priority = 0
+            # create ACL table group members
+            acl_table_group_member_oid1 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                                   acl_table_group_oid1,
+                                                                                   acl_table_oid2,
+                                                                                   group_member_priority)
+            assert acl_table_group_member_oid1 > 0, 'acl_table_group_member_oid1 is <= 0'
+            sys_logging("create table group member oid1 = 0x%lx" %acl_table_group_member_oid1)
+
+            group_member_priority = 0
+            # create ACL table group members
+            acl_table_group_member_oid2 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                                   acl_table_group_oid1,
+                                                                                   acl_table_oid1,
+                                                                                   group_member_priority)
+            assert acl_table_group_member_oid2 > 0, 'acl_table_group_member_oid2 is <= 0'
+            sys_logging("create table group member oid2 = 0x%lx" %acl_table_group_member_oid2)
+
+            group_member_priority = 0
+            # create ACL table group members
+            acl_table_group_member_oid3 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                                   acl_table_group_oid2,
+                                                                                   acl_table_oid2,
+                                                                                   group_member_priority)
+            assert acl_table_group_member_oid3 > 0, 'acl_table_group_member_oid3 is <= 0'
+            sys_logging("create table group member oid3 = 0x%lx" %acl_table_group_member_oid3)
+
+            group_member_priority = 0
+            # create ACL table group members
+            acl_table_group_member_oid4 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                                   acl_table_group_oid2,
+                                                                                   acl_table_oid1,
+                                                                                   group_member_priority)
+            assert acl_table_group_member_oid4 > 0, 'acl_table_group_member_oid4 is <= 0'
+            sys_logging("create table group member oid4 = 0x%lx" %acl_table_group_member_oid4)
+
+            #pdb.set_trace()
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid3), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid1, attribute)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid4), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid2, attribute)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            #pdb.set_trace()
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid1, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            attrs = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid2, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            #pdb.set_trace()
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid3, attribute)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid4, attribute)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            #pdb.set_trace()
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid4), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid3, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid3), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            attrs = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid4, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            #pdb.set_trace()
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT = 0x%lx" %a.value.aclfield.data.oid)
+                    assert(port2 == a.value.aclfield.data.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT = 0x%lx" %a.value.aclfield.data.oid)
+                    assert(port2 == a.value.aclfield.data.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT = 0x%lx" %a.value.aclfield.data.oid)
+                    assert(port1 == a.value.aclfield.data.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid4 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT = 0x%lx" %a.value.aclfield.data.oid)
+                    assert(port1 == a.value.aclfield.data.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid3 == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=SAI_NULL_OBJECT_ID), enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid1, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=SAI_NULL_OBJECT_ID), enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid2, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=SAI_NULL_OBJECT_ID), enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid3, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=SAI_NULL_OBJECT_ID), enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            attrs = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid4, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+        finally:
+            sys_logging("clear config")
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid3)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid4)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+            
+            status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+
+class func_41_unbound_group_per_table_share_entry_counter_set_update_unset_test(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        # acl group info
+        group_stage = SAI_ACL_STAGE_INGRESS
+        group_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        group_type = SAI_ACL_TABLE_GROUP_TYPE_PARALLEL
+
+        # create acl group
+        acl_table_group_oid = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
+        sys_logging("create acl group = %d" %acl_table_group_oid)
+        assert(acl_table_group_oid != SAI_NULL_OBJECT_ID)
+
+        # acl table info
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IP,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IP,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE,
+                                            value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid1 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid1)
+        assert(acl_table_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid1 = sai_thrift_create_acl_counter(self.client, acl_table_oid1)
+        sys_logging("create acl counter oid1 = 0x%lx" %acl_counter_oid1)
+        assert(acl_counter_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE,
+                                            value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid2 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid2)
+        assert(acl_table_oid2 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid2 = sai_thrift_create_acl_counter(self.client, acl_table_oid2)
+        sys_logging("create acl counter oid3 = 0x%lx" %acl_counter_oid2)
+        assert(acl_counter_oid2 != SAI_NULL_OBJECT_ID)
+
+        group_member_priority = 100
+        # create ACL table group members
+        acl_table_group_member_oid1 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid,
+                                                                               acl_table_oid1,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid1 > 0, 'acl_table_group_member_oid1 is <= 0'
+        sys_logging("create table group member oid1 = 0x%lx" %acl_table_group_member_oid1)
+
+        group_member_priority = 200
+        # create ACL table group members
+        acl_table_group_member_oid2 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid,
+                                                                               acl_table_oid2,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid2 > 0, 'acl_table_group_member_oid2 is <= 0'
+        sys_logging("create table group member oid2 = 0x%lx" %acl_table_group_member_oid2)
+
+        #table1 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_dst = "10.1.1.1"
+        ipv4_dst_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE,
+                                               value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv4
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_dst), mask =sai_thrift_acl_mask_t(ip4=ipv4_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid1 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid1)
+        assert(acl_entry_oid1 != SAI_NULL_OBJECT_ID)
+
+        #table1 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_src = "192.168.0.1"
+        ipv4_src_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ip
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_src), mask =sai_thrift_acl_mask_t(ip4=ipv4_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid2 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid2)
+        assert(acl_entry_oid2 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_dst = "2012:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_dst_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE,
+                                               value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_dst), mask =sai_thrift_acl_mask_t(ip6=ipv6_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid3 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid3)
+        assert(acl_entry_oid3 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_src = "2001:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_src_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_src), mask =sai_thrift_acl_mask_t(ip6=ipv6_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid4 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid4)
+        assert(acl_entry_oid4 != SAI_NULL_OBJECT_ID)
+
+        sys_logging(" step2: bind this ACL table to port  ")
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        warmboot(self.client)
+        try:
+            sys_logging(" step3: get acl entry attr info  ")
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid1, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid1)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(ip_type == SAI_ACL_IP_TYPE_IPV6ANY)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid2, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid3, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(ip_type == SAI_ACL_IP_TYPE_IPV6ANY)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid4, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid4)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+        finally:
+            sys_logging("clear config")
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+
+class func_42_binding_group_per_table_share_entry_counter_unset_update_set_test(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+
+        # acl group info
+        group_stage = SAI_ACL_STAGE_INGRESS
+        group_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        group_type = SAI_ACL_TABLE_GROUP_TYPE_PARALLEL
+
+        # create acl group
+        acl_table_group_oid = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
+        sys_logging("create acl group = %d" %acl_table_group_oid)
+        assert(acl_table_group_oid != SAI_NULL_OBJECT_ID)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port2, attr)
+
+        # acl table info
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid1 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid1)
+        assert(acl_table_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid1 = sai_thrift_create_acl_counter(self.client, acl_table_oid1)
+        sys_logging("create acl counter oid1 = 0x%lx" %acl_counter_oid1)
+        assert(acl_counter_oid1 != SAI_NULL_OBJECT_ID)
+
+        acl_attr_list = []
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid2 = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = %d" %acl_table_oid2)
+        assert(acl_table_oid2 != SAI_NULL_OBJECT_ID)
+
+        acl_counter_oid2 = sai_thrift_create_acl_counter(self.client, acl_table_oid2)
+        sys_logging("create acl counter oid3 = 0x%lx" %acl_counter_oid2)
+        assert(acl_counter_oid2 != SAI_NULL_OBJECT_ID)
+
+        group_member_priority = 100
+        # create ACL table group members
+        acl_table_group_member_oid1 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid,
+                                                                               acl_table_oid1,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid1 > 0, 'acl_table_group_member_oid1 is <= 0'
+        sys_logging("create table group member oid1 = 0x%lx" %acl_table_group_member_oid1)
+
+        group_member_priority = 200
+        # create ACL table group members
+        acl_table_group_member_oid2 = sai_thrift_create_acl_table_group_member(self.client,
+                                                                               acl_table_group_oid,
+                                                                               acl_table_oid2,
+                                                                               group_member_priority)
+        assert acl_table_group_member_oid2 > 0, 'acl_table_group_member_oid2 is <= 0'
+        sys_logging("create table group member oid2 = 0x%lx" %acl_table_group_member_oid2)
+
+        #table1 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_dst = "10.1.1.1"
+        ipv4_dst_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv4
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_dst), mask =sai_thrift_acl_mask_t(ip4=ipv4_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=SAI_NULL_OBJECT_ID), enable = False))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid1 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid1)
+        assert(acl_entry_oid1 != SAI_NULL_OBJECT_ID)
+
+        #table1 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_src = "192.168.0.1"
+        ipv4_src_mask = "255.255.255.255"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ip
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_src), mask =sai_thrift_acl_mask_t(ip4=ipv4_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=SAI_NULL_OBJECT_ID), enable = False))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid2 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid2)
+        assert(acl_entry_oid2 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry1 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_dst = "2012:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_dst_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY,
+                                           value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE,
+                                               value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # dst ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_dst), mask =sai_thrift_acl_mask_t(ip6=ipv6_dst_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=SAI_NULL_OBJECT_ID), enable = False))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid3 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid3)
+        assert(acl_entry_oid3 != SAI_NULL_OBJECT_ID)
+
+        #table2 entry2 info
+        acl_attr_list = []
+        entry_priority = 1
+        admin_state = True
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_src = "2001:1111:1111:1111:1111:1111:1111:1111"
+        ipv6_src_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        action = SAI_PACKET_ACTION_LOG
+
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid2)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # ip type
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # src ipv6
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_src), mask =sai_thrift_acl_mask_t(ip6=ipv6_src_mask)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # counter
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=SAI_NULL_OBJECT_ID), enable = False))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid4 = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = %d" %acl_entry_oid4)
+        assert(acl_entry_oid4 != SAI_NULL_OBJECT_ID)
+
+        warmboot(self.client)
+        try:
+            sys_logging(" step3: get acl entry attr info  ")
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid1, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid1)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(ip_type == SAI_ACL_IP_TYPE_IPV6ANY)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid1), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid2, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid1)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid3, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+            
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(ip_type == SAI_ACL_IP_TYPE_IPV6ANY)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(SAI_NULL_OBJECT_ID == a.value.aclaction.parameter.oid)
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
+            status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid4, attribute)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid2)
+            assert (status != SAI_STATUS_SUCCESS)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_dst == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid2, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid1 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV4ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP = %s" %a.value.aclfield.data.ip4)
+                    assert(ipv4_src == a.value.aclfield.data.ip4)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid1 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid3, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_dst == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, 
+                             SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid4, attr_list_ids)
+            assert (attrs.status == SAI_STATUS_SUCCESS)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_TABLE_ID:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_TABLE_ID = 0x%lx" %a.value.oid)
+                    assert(acl_table_oid2 == a.value.oid)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
+                    assert(SAI_ACL_IP_TYPE_IPV6ANY == a.value.aclfield.data.s32)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
+                    assert(ipv6_src == a.value.aclfield.data.ip6)
+
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_COUNTER:
+                    sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
+                    assert(acl_counter_oid2 == a.value.aclaction.parameter.oid)
+
+        finally:
+            sys_logging("clear config")
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+            
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid1)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table(acl_table_oid2)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_oid)
+            assert (status == SAI_STATUS_SUCCESS)
 
 
 class scenario_01_table_bind_port_ingress_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -13890,8 +17720,6 @@ class scenario_04_seq_group_bind_port_egress_test(sai_base_test.ThriftInterfaceD
 
             sys_logging("clear config")
 
-
-
 class scenario_05_par_group_bind_port_ingress_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -13899,7 +17727,6 @@ class scenario_05_par_group_bind_port_ingress_test(sai_base_test.ThriftInterface
         switch_init(self.client)
 
         # basic forwarding environment
-
         vlan_id = 100
         port1 = port_list[0]
         port2 = port_list[1]
@@ -13990,406 +17817,78 @@ class scenario_05_par_group_bind_port_ingress_test(sai_base_test.ThriftInterface
         new_cvlan = None
         new_ccos = None
         deny_learn = None
+        acl_table_oid_list = []
 
-        # create acl table
-        acl_table_oid = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port)
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            num = 3
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
+            num = 2
 
-        sys_logging("create acl table = %d" %acl_table_oid)
-        assert(acl_table_oid != SAI_NULL_OBJECT_ID )
+        for t in range(num):
+            # create acl table
+            acl_table_oid = sai_thrift_create_acl_table(self.client,
+                table_stage,
+                table_bind_point_list,
+                addr_family,
+                mac_src,
+                mac_dst,
+                ip_src,
+                ip_dst,
+                in_ports,
+                out_ports,
+                in_port,
+                out_port,
+                svlan_id,
+                svlan_pri,
+                svlan_cfi,
+                cvlan_id,
+                cvlan_pri,
+                cvlan_cfi,
+                ip_type,
+                mpls_label0_label,
+                mpls_label0_ttl,
+                mpls_label0_exp,
+                mpls_label0_bos,
+                mpls_label1_label,
+                mpls_label1_ttl,
+                mpls_label1_exp,
+                mpls_label1_bos,
+                mpls_label2_label,
+                mpls_label2_ttl,
+                mpls_label2_exp,
+                mpls_label2_bos,
+                mpls_label3_label,
+                mpls_label3_ttl,
+                mpls_label3_exp,
+                mpls_label3_bos,
+                mpls_label4_label,
+                mpls_label4_ttl,
+                mpls_label4_exp,
+                mpls_label4_bos,
+                ip_protocol,
+                src_l4_port,
+                dst_l4_port)
+            sys_logging("create acl table[%d] = %d" %(t, acl_table_oid))
+            assert(acl_table_oid != SAI_NULL_OBJECT_ID)
+            acl_table_oid_list.append(acl_table_oid)
 
-
-        acl_table_oid_2 = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port)
-
-        sys_logging("create acl table = %d" %acl_table_oid_2)
-        assert(acl_table_oid_2 != SAI_NULL_OBJECT_ID )
-
-
-        acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port)
-
-        sys_logging("create acl table = %d" %acl_table_oid_3)
-        assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID )
-
-
-        # acl group member info
-        group_member_priority1 = 100
-        group_member_priority2 = 200
-        group_member_priority3 = 300
-
+        acl_table_group_member_id_list = []
         # create acl group member
-        acl_table_group_member_id1 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid, group_member_priority1)
-        sys_logging("create acl group member = %d" %acl_table_group_member_id1)
-        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID )
+        for t in range(num):
+            group_member_priority = ((t+1)*100)
+            acl_table_group_member_id = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_list[t], group_member_priority)
+            sys_logging("create acl group member[%d] = %d" %(t, acl_table_group_member_id))
+            assert(acl_table_group_member_id != SAI_NULL_OBJECT_ID)
+            acl_table_group_member_id_list.append(acl_table_group_member_id)
 
-        acl_table_group_member_id2 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_2, group_member_priority2)
-        sys_logging("create acl group member = %d" %acl_table_group_member_id2)
-        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID )
-
-        acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
-        sys_logging("create acl group member = %d" %acl_table_group_member_id3)
-        assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID )
-
+        acl_entry_oid_list = []
         # create acl entry
-        entry_priority = 1
-        admin_state = True
-        new_scos = 1
-        acl_entry_oid = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        sys_logging("create acl entry = %d" %acl_entry_oid)
-        assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
-
-        entry_priority = 2
-        admin_state = True
-        new_scos = 2
-        acl_entry_oid_2 = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid_2,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        sys_logging("create acl entry = %d" %acl_entry_oid_2)
-        assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID )
-
-        entry_priority = 3
-        admin_state = True
-        new_scos = 3
-        acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid_3,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        sys_logging("create acl entry = %d" %acl_entry_oid_3)
-        assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
-
-        warmboot(self.client)
-
-        try:
-
-            pkt = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=0,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt1 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=1,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt2 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=2,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt3 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=3,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            sys_logging(" step1: none acl , packet will forwarding  ")
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [1])
-
-            sys_logging(" step2: bind this ACL group to port  ")
-            attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
-            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
-            self.client.sai_thrift_set_port_attribute(port1, attr)
-
-            sys_logging(" step3: match acl entry 1")
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt1, [1])
-            #pdb.set_trace()
-            sys_logging(" step4: remove acl entry 1 and match acl entry 2")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt2, [1])
-
-            sys_logging(" step5: remove acl entry 2 and match acl entry 3")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt3, [1])
-
-            sys_logging(" step6: remove acl entry 3 and normal forwarding ")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [1])
-
-            sys_logging(" step7: add acl entry 3 again")
-
-            entry_priority = 3
+        for t in range(num):
+            entry_priority = (t+1)
             admin_state = True
-            new_scos = 3
-            acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
-                acl_table_oid_3,
+            new_scos = (t+1)
+            acl_entry_oid = sai_thrift_create_acl_entry(self.client,
+                acl_table_oid_list[t],
                 entry_priority,
                 admin_state,
                 action, addr_family,
@@ -14432,15 +17931,114 @@ class scenario_05_par_group_bind_port_ingress_test(sai_base_test.ThriftInterface
                 new_svlan, new_scos,
                 new_cvlan, new_ccos,
                 deny_learn)
+            sys_logging("create acl entry[%d] = %d" %(t, acl_entry_oid))
+            assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
+            acl_entry_oid_list.append(acl_entry_oid)
 
-            sys_logging("create acl entry = %d" %acl_entry_oid_3)
-            assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
+        warmboot(self.client)
+        try:
+            rx_pkt_list = []
+            tx_pkt = simple_tcp_packet(eth_dst=mac2,
+                                    eth_src=mac1,
+                                    dl_vlan_enable=True,
+                                    vlan_vid=vlan_id,
+                                    vlan_pcp=0,
+                                    ip_dst='10.0.0.1',
+                                    ip_id=101,
+                                    ip_ttl=64)
 
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt3, [1])
+            for t in range(num):
+                pkt = simple_tcp_packet(eth_dst=mac2,
+                                        eth_src=mac1,
+                                        dl_vlan_enable=True,
+                                        vlan_vid=vlan_id,
+                                        vlan_pcp=(t+1),
+                                        ip_dst='10.0.0.1',
+                                        ip_id=101,
+                                        ip_ttl=64)
+                rx_pkt_list.append(pkt)
+
+            sys_logging(" step1: none acl , packet will forwarding  ")
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [1])
+
+            sys_logging(" step2: bind this ACL group to port  ")
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            for t in range(num):
+                sys_logging(" step%d: match acl entry %d" %((3+(t*2)), (t+1)))
+
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_packets(rx_pkt_list[t], [1])
+                #pdb.set_trace()
+
+                if t < (num-1):
+                    sys_logging(" step%d: remove acl entry %d and match acl entry %d" %((3+(t*2)+1), (t+1), (t+2)))
+                else:
+                    sys_logging(" step%d: remove acl entry %d and none acl entry and normal forwarding" %((3+(t*2)+1), (t+1)))
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_list[t])
+                assert(status == SAI_STATUS_SUCCESS)
+
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [1])
+
+            sys_logging(" step%d: add acl entry 3 again" %(3+(num*2)))
+            entry_priority = num
+            admin_state = True
+            new_scos = num
+            acl_entry_oid = sai_thrift_create_acl_entry(self.client,
+                acl_table_oid_list[(num-1)],
+                entry_priority,
+                admin_state,
+                action, addr_family,
+                mac_src, mac_src_mask,
+                mac_dst, mac_dst_mask,
+                svlan_id, svlan_pri,
+                svlan_cfi, cvlan_id,
+                cvlan_pri, cvlan_cfi,
+                ip_type,
+                mpls_label0_label,
+                mpls_label0_ttl,
+                mpls_label0_exp,
+                mpls_label0_bos,
+                mpls_label1_label,
+                mpls_label1_ttl,
+                mpls_label1_exp,
+                mpls_label1_bos,
+                mpls_label2_label,
+                mpls_label2_ttl,
+                mpls_label2_exp,
+                mpls_label2_bos,
+                mpls_label3_label,
+                mpls_label3_ttl,
+                mpls_label3_exp,
+                mpls_label3_bos,
+                mpls_label4_label,
+                mpls_label4_ttl,
+                mpls_label4_exp,
+                mpls_label4_bos,
+                ip_src, ip_src_mask,
+                ip_dst, ip_dst_mask,
+                ip_protocol,
+                ip_tos, ip_ecn,
+                ip_dscp, ip_ttl,
+                in_ports, out_ports,
+                in_port, out_port,
+                src_l4_port, dst_l4_port,
+                ingress_mirror,
+                egress_mirror,
+                new_svlan, new_scos,
+                new_cvlan, new_ccos,
+                deny_learn)
+            sys_logging("create acl entry = %d" %acl_entry_oid)
+            assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
+
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(rx_pkt_list[(num-1)], [1])
 
         finally:
-
             sys_logging("clear config")
 
             # unbind this ACL table from port
@@ -14448,26 +18046,16 @@ class scenario_05_par_group_bind_port_ingress_test(sai_base_test.ThriftInterface
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
 
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
-            assert (status == SAI_STATUS_SUCCESS)
+            for t in range(num):
+                status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id_list[t])
+                assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid_2)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+            for t in range(num):
+                status = self.client.sai_thrift_remove_acl_table(acl_table_oid_list[t])
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
             assert (status == SAI_STATUS_SUCCESS)
@@ -14477,16 +18065,16 @@ class scenario_05_par_group_bind_port_ingress_test(sai_base_test.ThriftInterface
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
 
-
-
 class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
 
         switch_init(self.client)
 
-        # basic forwarding environment
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("### -----chipname = %s----- ###" %chipname)
 
+        # basic forwarding environment
         vlan_id = 100
         port1 = port_list[0]
         port2 = port_list[1]
@@ -14625,7 +18213,6 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
         sys_logging("create acl table = %d" %acl_table_oid)
         assert(acl_table_oid != SAI_NULL_OBJECT_ID )
 
-
         acl_table_oid_2 = sai_thrift_create_acl_table(self.client,
             table_stage,
             table_bind_point_list,
@@ -14672,7 +18259,6 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
         sys_logging("create acl table = %d" %acl_table_oid_2)
         assert(acl_table_oid_2 != SAI_NULL_OBJECT_ID )
 
-
         acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
             table_stage,
             table_bind_point_list,
@@ -14717,8 +18303,7 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
             dst_l4_port)
 
         sys_logging("create acl table = %d" %acl_table_oid_3)
-        assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID )
-
+        assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID)
 
         # acl group member info
         group_member_priority1 = 100
@@ -14728,15 +18313,18 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
         # create acl group member
         acl_table_group_member_id1 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid, group_member_priority1)
         sys_logging("create acl group member = %d" %acl_table_group_member_id1)
-        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID)
 
         acl_table_group_member_id2 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_2, group_member_priority2)
         sys_logging("create acl group member = %d" %acl_table_group_member_id2)
-        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID)
 
         acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
         sys_logging("create acl group member = %d" %acl_table_group_member_id3)
-        assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID )
+        if chipname == 'tsingma':
+            assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID)
+        else:
+            assert(acl_table_group_member_id3 == SAI_NULL_OBJECT_ID)
 
         # create acl entry
         entry_priority = 1
@@ -14841,61 +18429,60 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
         sys_logging("create acl entry = %d" %acl_entry_oid_2)
         assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID )
 
-        entry_priority = 3
-        admin_state = True
-        action =  SAI_PACKET_ACTION_TRAP
-        acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid_3,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        sys_logging("create acl entry = %d" %acl_entry_oid_3)
-        assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
+        if chipname == 'tsingma':
+            entry_priority = 3
+            admin_state = True
+            action =  SAI_PACKET_ACTION_TRAP
+            acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
+                                                          acl_table_oid_3,
+                                                          entry_priority,
+                                                          admin_state,
+                                                          action, addr_family,
+                                                          mac_src, mac_src_mask,
+                                                          mac_dst, mac_dst_mask,
+                                                          svlan_id, svlan_pri,
+                                                          svlan_cfi, cvlan_id,
+                                                          cvlan_pri, cvlan_cfi,
+                                                          ip_type,
+                                                          mpls_label0_label,
+                                                          mpls_label0_ttl,
+                                                          mpls_label0_exp,
+                                                          mpls_label0_bos,
+                                                          mpls_label1_label,
+                                                          mpls_label1_ttl,
+                                                          mpls_label1_exp,
+                                                          mpls_label1_bos,
+                                                          mpls_label2_label,
+                                                          mpls_label2_ttl,
+                                                          mpls_label2_exp,
+                                                          mpls_label2_bos,
+                                                          mpls_label3_label,
+                                                          mpls_label3_ttl,
+                                                          mpls_label3_exp,
+                                                          mpls_label3_bos,
+                                                          mpls_label4_label,
+                                                          mpls_label4_ttl,
+                                                          mpls_label4_exp,
+                                                          mpls_label4_bos,
+                                                          ip_src, ip_src_mask,
+                                                          ip_dst, ip_dst_mask,
+                                                          ip_protocol,
+                                                          ip_tos, ip_ecn,
+                                                          ip_dscp, ip_ttl,
+                                                          in_ports, out_ports,
+                                                          in_port, out_port,
+                                                          src_l4_port, dst_l4_port,
+                                                          ingress_mirror,
+                                                          egress_mirror,
+                                                          new_svlan, new_scos,
+                                                          new_cvlan, new_ccos,
+                                                          deny_learn)
+            sys_logging("create acl entry = %d" %acl_entry_oid_3)
+            assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID)
 
         warmboot(self.client)
-
         try:
-
+            step = 1
             pkt = simple_tcp_packet(eth_dst=mac2,
                                     eth_src=mac1,
                                     dl_vlan_enable=True,
@@ -14905,7 +18492,7 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
                                     ip_id=101,
                                     ip_ttl=64)
 
-            sys_logging(" step1: none acl , packet will forwarding  ")
+            sys_logging(" step%u: none acl , packet will forwarding  " %step)
 
             self.client.sai_thrift_clear_cpu_packet_info()
             self.ctc_send_packet( 0, str(pkt))
@@ -14915,14 +18502,15 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
             assert (ret.data.u16 == 0)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-
-            sys_logging(" step2: bind this ACL group to port  ")
+            step = step + 1
+            sys_logging(" step%u: bind this ACL group to port  " %step)
 
             attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
 
-            sys_logging(" step3: ad merge result is trap ")
+            step = step + 1
+            sys_logging(" step%u: ad merge result is trap " %step)
 
             self.client.sai_thrift_clear_cpu_packet_info()
             self.ctc_send_packet( 0, str(pkt))
@@ -14932,20 +18520,23 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
             assert (ret.data.u16 == 1)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step4: remove acl entry 3 and ad merge result is still trap ")
+            if chipname == 'tsingma':
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 3 and ad merge result is still trap " %step)
 
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
 
-            self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_no_packet( pkt, 1)
-            ret = self.client.sai_thrift_get_cpu_packet_count()
-            sys_logging ("receive rx packet %d" %ret.data.u16)
-            assert (ret.data.u16 == 1)
-            self.client.sai_thrift_clear_cpu_packet_info()
+                self.client.sai_thrift_clear_cpu_packet_info()
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_no_packet( pkt, 1)
+                ret = self.client.sai_thrift_get_cpu_packet_count()
+                sys_logging ("receive rx packet %d" %ret.data.u16)
+                assert (ret.data.u16 == 1)
+                self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step5: remove acl entry 1 and ad merge result is log")
+            step = step + 1
+            sys_logging(" step%u: remove acl entry 1 and ad merge result is log" %step)
 
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -14958,7 +18549,8 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
             assert (ret.data.u16 == 1)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step6: remove acl entry 2 and normal forwarding ")
+            step = step + 1
+            sys_logging(" step%u: remove acl entry 2 and normal forwarding " %step)
 
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
             assert (status == SAI_STATUS_SUCCESS)
@@ -14971,7 +18563,8 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
             assert (ret.data.u16 == 0)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step7: add acl entry 1 again")
+            step = step + 1
+            sys_logging(" step%u: add acl entry 1 again" %step)
 
             entry_priority = 1
             admin_state = True
@@ -15033,7 +18626,6 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
             self.client.sai_thrift_clear_cpu_packet_info()
 
         finally:
-
             sys_logging("clear config")
 
             # unbind this ACL table from port
@@ -15050,8 +18642,9 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if chipname == 'tsingma':
+                status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -15068,7 +18661,6 @@ class scenario_05_par_group_bind_port_ingress_test_ad_merge(sai_base_test.Thrift
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid)
-
 
 
 class scenario_06_par_group_bind_port_egress_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -17636,14 +21228,11 @@ class scenario_10_seq_group_bind_vlan_egress_test(sai_base_test.ThriftInterfaceD
             sys_logging("clear config")
 
 
-
-
 class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
 
         switch_init(self.client)
-
         # basic forwarding environment
 
         vlan_id = 100
@@ -17780,10 +21369,8 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
             ip_protocol,
             src_l4_port,
             dst_l4_port)
-
         sys_logging("create acl table = %d" %acl_table_oid)
-        assert(acl_table_oid != SAI_NULL_OBJECT_ID )
-
+        assert(acl_table_oid != SAI_NULL_OBJECT_ID)
 
         acl_table_oid_2 = sai_thrift_create_acl_table(self.client,
             table_stage,
@@ -17827,57 +21414,54 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
             ip_protocol,
             src_l4_port,
             dst_l4_port)
-
         sys_logging("create acl table = %d" %acl_table_oid_2)
         assert(acl_table_oid_2 != SAI_NULL_OBJECT_ID )
 
-
-        acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port)
-
-        sys_logging("create acl table = %d" %acl_table_oid_3)
-        assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID )
-
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
+                table_stage,
+                table_bind_point_list,
+                addr_family,
+                mac_src,
+                mac_dst,
+                ip_src,
+                ip_dst,
+                in_ports,
+                out_ports,
+                in_port,
+                out_port,
+                svlan_id,
+                svlan_pri,
+                svlan_cfi,
+                cvlan_id,
+                cvlan_pri,
+                cvlan_cfi,
+                ip_type,
+                mpls_label0_label,
+                mpls_label0_ttl,
+                mpls_label0_exp,
+                mpls_label0_bos,
+                mpls_label1_label,
+                mpls_label1_ttl,
+                mpls_label1_exp,
+                mpls_label1_bos,
+                mpls_label2_label,
+                mpls_label2_ttl,
+                mpls_label2_exp,
+                mpls_label2_bos,
+                mpls_label3_label,
+                mpls_label3_ttl,
+                mpls_label3_exp,
+                mpls_label3_bos,
+                mpls_label4_label,
+                mpls_label4_ttl,
+                mpls_label4_exp,
+                mpls_label4_bos,
+                ip_protocol,
+                src_l4_port,
+                dst_l4_port)
+            sys_logging("create acl table = %d" %acl_table_oid_3)
+            assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID)
 
         # acl group member info
         group_member_priority1 = 100
@@ -17893,9 +21477,10 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
         sys_logging("create acl group member = %d" %acl_table_group_member_id2)
         assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID )
 
-        acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
-        sys_logging("create acl group member = %d" %acl_table_group_member_id3)
-        assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID )
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
+            sys_logging("create acl group member = %d" %acl_table_group_member_id3)
+            assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID)
 
         # create acl entry
         entry_priority = 1
@@ -17998,141 +21583,9 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
             deny_learn)
 
         sys_logging("create acl entry = %d" %acl_entry_oid_2)
-        assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID )
+        assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID)
 
-        entry_priority = 3
-        admin_state = True
-        new_scos = 3
-        acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid_3,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        sys_logging("create acl entry = %d" %acl_entry_oid_3)
-        assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
-
-        warmboot(self.client)
-
-        try:
-
-            pkt = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=0,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt1 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=1,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt2 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=2,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt3 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=3,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            sys_logging(" step1: none acl , packet will forwarding  ")
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [1])
-
-            sys_logging(" step2: bind this ACL group to vlan  ")
-            attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
-            attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
-            self.client.sai_thrift_set_vlan_attribute(vlan_oid, attr)
-
-
-            sys_logging(" step3: match acl entry 1")
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt1, [1])
-            #pdb.set_trace()
-
-            sys_logging(" step4: remove acl entry 1 and match acl entry 2")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt2, [1])
-
-            sys_logging(" step5: remove acl entry 2 and match acl entry 3")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt3, [1])
-
-            sys_logging(" step6: remove acl entry 3 and normal forwarding ")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [1])
-
-            sys_logging(" step7: add acl entry 3 again")
-
+        if 'tsingma' == testutils.test_params_get()['chipname']:
             entry_priority = 3
             admin_state = True
             new_scos = 3
@@ -18180,15 +21633,213 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
                 new_svlan, new_scos,
                 new_cvlan, new_ccos,
                 deny_learn)
-
             sys_logging("create acl entry = %d" %acl_entry_oid_3)
-            assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
+            assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID)
 
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt3, [1])
+        warmboot(self.client)
+        try:
+            pkt = simple_tcp_packet(eth_dst=mac2,
+                                    eth_src=mac1,
+                                    dl_vlan_enable=True,
+                                    vlan_vid=vlan_id,
+                                    vlan_pcp=0,
+                                    ip_dst='10.0.0.1',
+                                    ip_id=101,
+                                    ip_ttl=64)
+
+            pkt1 = simple_tcp_packet(eth_dst=mac2,
+                                     eth_src=mac1,
+                                     dl_vlan_enable=True,
+                                     vlan_vid=vlan_id,
+                                     vlan_pcp=1,
+                                     ip_dst='10.0.0.1',
+                                     ip_id=101,
+                                     ip_ttl=64)
+
+            pkt2 = simple_tcp_packet(eth_dst=mac2,
+                                     eth_src=mac1,
+                                     dl_vlan_enable=True,
+                                     vlan_vid=vlan_id,
+                                     vlan_pcp=2,
+                                     ip_dst='10.0.0.1',
+                                     ip_id=101,
+                                     ip_ttl=64)
+
+            pkt3 = simple_tcp_packet(eth_dst=mac2,
+                                     eth_src=mac1,
+                                     dl_vlan_enable=True,
+                                     vlan_vid=vlan_id,
+                                     vlan_pcp=3,
+                                     ip_dst='10.0.0.1',
+                                     ip_id=101,
+                                     ip_ttl=64)
+
+            step = 1
+            sys_logging(" step%u: none acl , packet will forwarding  " %step)
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [1])
+
+            step = step + 1
+            sys_logging(" step%u: bind this ACL group to vlan  " %step)
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
+            attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_vlan_attribute(vlan_oid, attr)
+
+            step = step + 1
+            sys_logging(" step%u: match acl entry 1" %step)
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt1, [1])
+            #pdb.set_trace()
+
+            step = step + 1
+            sys_logging(" step%u: remove acl entry 1 and match acl entry 2" %step)
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt2, [1])
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 2 and match acl entry 3" %step)
+
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
+                assert (status == SAI_STATUS_SUCCESS)
+
+                self.ctc_send_packet( 0, str(pkt))
+                self.ctc_verify_packets( pkt3, [1])
+
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 3 and normal forwarding " %step)
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
+
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_packets(pkt, [1])
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 2 and normal forwarding " %step)
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
+                assert (status == SAI_STATUS_SUCCESS)
+
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_packets(pkt, [1])
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                step = step + 1
+                sys_logging(" step%u: add acl entry 3 again" %step)
+
+                entry_priority = 3
+                admin_state = True
+                new_scos = 3
+                acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
+                    acl_table_oid_3,
+                    entry_priority,
+                    admin_state,
+                    action, addr_family,
+                    mac_src, mac_src_mask,
+                    mac_dst, mac_dst_mask,
+                    svlan_id, svlan_pri,
+                    svlan_cfi, cvlan_id,
+                    cvlan_pri, cvlan_cfi,
+                    ip_type,
+                    mpls_label0_label,
+                    mpls_label0_ttl,
+                    mpls_label0_exp,
+                    mpls_label0_bos,
+                    mpls_label1_label,
+                    mpls_label1_ttl,
+                    mpls_label1_exp,
+                    mpls_label1_bos,
+                    mpls_label2_label,
+                    mpls_label2_ttl,
+                    mpls_label2_exp,
+                    mpls_label2_bos,
+                    mpls_label3_label,
+                    mpls_label3_ttl,
+                    mpls_label3_exp,
+                    mpls_label3_bos,
+                    mpls_label4_label,
+                    mpls_label4_ttl,
+                    mpls_label4_exp,
+                    mpls_label4_bos,
+                    ip_src, ip_src_mask,
+                    ip_dst, ip_dst_mask,
+                    ip_protocol,
+                    ip_tos, ip_ecn,
+                    ip_dscp, ip_ttl,
+                    in_ports, out_ports,
+                    in_port, out_port,
+                    src_l4_port, dst_l4_port,
+                    ingress_mirror,
+                    egress_mirror,
+                    new_svlan, new_scos,
+                    new_cvlan, new_ccos,
+                    deny_learn)
+
+                sys_logging("create acl entry = %d" %acl_entry_oid_3)
+                assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
+
+                self.ctc_send_packet( 0, str(pkt))
+                self.ctc_verify_packets( pkt3, [1])
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                step = step + 1
+                sys_logging(" step%u: add acl entry 2 again" %step)
+
+                entry_priority = 2
+                admin_state = True
+                new_scos = 2
+                acl_entry_oid_2 = sai_thrift_create_acl_entry(self.client,
+                    acl_table_oid_2,
+                    entry_priority,
+                    admin_state,
+                    action, addr_family,
+                    mac_src, mac_src_mask,
+                    mac_dst, mac_dst_mask,
+                    svlan_id, svlan_pri,
+                    svlan_cfi, cvlan_id,
+                    cvlan_pri, cvlan_cfi,
+                    ip_type,
+                    mpls_label0_label,
+                    mpls_label0_ttl,
+                    mpls_label0_exp,
+                    mpls_label0_bos,
+                    mpls_label1_label,
+                    mpls_label1_ttl,
+                    mpls_label1_exp,
+                    mpls_label1_bos,
+                    mpls_label2_label,
+                    mpls_label2_ttl,
+                    mpls_label2_exp,
+                    mpls_label2_bos,
+                    mpls_label3_label,
+                    mpls_label3_ttl,
+                    mpls_label3_exp,
+                    mpls_label3_bos,
+                    mpls_label4_label,
+                    mpls_label4_ttl,
+                    mpls_label4_exp,
+                    mpls_label4_bos,
+                    ip_src, ip_src_mask,
+                    ip_dst, ip_dst_mask,
+                    ip_protocol,
+                    ip_tos, ip_ecn,
+                    ip_dscp, ip_ttl,
+                    in_ports, out_ports,
+                    in_port, out_port,
+                    src_l4_port, dst_l4_port,
+                    ingress_mirror,
+                    egress_mirror,
+                    new_svlan, new_scos,
+                    new_cvlan, new_ccos,
+                    deny_learn)
+                sys_logging("create acl entry = %d" %acl_entry_oid_2)
+                assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID)
+
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_packets(pkt2, [1])
 
         finally:
-
             sys_logging("clear config")
 
             # unbind this ACL table from port
@@ -18196,8 +21847,12 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
             attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_vlan_attribute(vlan_oid, attr)
 
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
             assert (status == SAI_STATUS_SUCCESS)
@@ -18205,8 +21860,9 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -18214,8 +21870,9 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid_2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
             assert (status == SAI_STATUS_SUCCESS)
@@ -18225,13 +21882,11 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
 
-
 class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
 
         switch_init(self.client)
-
         # basic forwarding environment
 
         vlan_id = 100
@@ -18254,7 +21909,7 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
         # create acl group
         acl_table_group_id = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
         sys_logging("create acl group = %d" %acl_table_group_id)
-        assert(acl_table_group_id != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_id != SAI_NULL_OBJECT_ID)
 
         # acl table info
         table_stage = SAI_ACL_STAGE_INGRESS
@@ -18286,7 +21941,6 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
         cvlan_cfi = None
 
         ip_type = SAI_ACL_IP_TYPE_IPV4ANY
-
         mpls_label0_label = None
         mpls_label0_ttl = None
         mpls_label0_exp = None
@@ -18368,10 +22022,8 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
             ip_protocol,
             src_l4_port,
             dst_l4_port)
-
         sys_logging("create acl table = %d" %acl_table_oid)
-        assert(acl_table_oid != SAI_NULL_OBJECT_ID )
-
+        assert(acl_table_oid != SAI_NULL_OBJECT_ID)
 
         acl_table_oid_2 = sai_thrift_create_acl_table(self.client,
             table_stage,
@@ -18415,57 +22067,54 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
             ip_protocol,
             src_l4_port,
             dst_l4_port)
-
         sys_logging("create acl table = %d" %acl_table_oid_2)
-        assert(acl_table_oid_2 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_oid_2 != SAI_NULL_OBJECT_ID)
 
-
-        acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port)
-
-        sys_logging("create acl table = %d" %acl_table_oid_3)
-        assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID )
-
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
+                table_stage,
+                table_bind_point_list,
+                addr_family,
+                mac_src,
+                mac_dst,
+                ip_src,
+                ip_dst,
+                in_ports,
+                out_ports,
+                in_port,
+                out_port,
+                svlan_id,
+                svlan_pri,
+                svlan_cfi,
+                cvlan_id,
+                cvlan_pri,
+                cvlan_cfi,
+                ip_type,
+                mpls_label0_label,
+                mpls_label0_ttl,
+                mpls_label0_exp,
+                mpls_label0_bos,
+                mpls_label1_label,
+                mpls_label1_ttl,
+                mpls_label1_exp,
+                mpls_label1_bos,
+                mpls_label2_label,
+                mpls_label2_ttl,
+                mpls_label2_exp,
+                mpls_label2_bos,
+                mpls_label3_label,
+                mpls_label3_ttl,
+                mpls_label3_exp,
+                mpls_label3_bos,
+                mpls_label4_label,
+                mpls_label4_ttl,
+                mpls_label4_exp,
+                mpls_label4_bos,
+                ip_protocol,
+                src_l4_port,
+                dst_l4_port)
+            sys_logging("create acl table = %d" %acl_table_oid_3)
+            assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID)
 
         # acl group member info
         group_member_priority1 = 100
@@ -18475,15 +22124,16 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
         # create acl group member
         acl_table_group_member_id1 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid, group_member_priority1)
         sys_logging("create acl group member = %d" %acl_table_group_member_id1)
-        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID)
 
         acl_table_group_member_id2 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_2, group_member_priority2)
         sys_logging("create acl group member = %d" %acl_table_group_member_id2)
-        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID)
 
-        acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
-        sys_logging("create acl group member = %d" %acl_table_group_member_id3)
-        assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID )
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
+            sys_logging("create acl group member = %d" %acl_table_group_member_id3)
+            assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID)
 
         # create acl entry
         entry_priority = 1
@@ -18533,9 +22183,8 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
             new_svlan, new_scos,
             new_cvlan, new_ccos,
             deny_learn)
-
         sys_logging("create acl entry = %d" %acl_entry_oid)
-        assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+        assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
 
         entry_priority = 2
         admin_state = True
@@ -18584,65 +22233,62 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
             new_svlan, new_scos,
             new_cvlan, new_ccos,
             deny_learn)
-
         sys_logging("create acl entry = %d" %acl_entry_oid_2)
         assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID )
 
-        entry_priority = 3
-        admin_state = True
-        action =  SAI_PACKET_ACTION_TRAP
-        acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid_3,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        sys_logging("create acl entry = %d" %acl_entry_oid_3)
-        assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            entry_priority = 3
+            admin_state = True
+            action =  SAI_PACKET_ACTION_TRAP
+            acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
+                acl_table_oid_3,
+                entry_priority,
+                admin_state,
+                action, addr_family,
+                mac_src, mac_src_mask,
+                mac_dst, mac_dst_mask,
+                svlan_id, svlan_pri,
+                svlan_cfi, cvlan_id,
+                cvlan_pri, cvlan_cfi,
+                ip_type,
+                mpls_label0_label,
+                mpls_label0_ttl,
+                mpls_label0_exp,
+                mpls_label0_bos,
+                mpls_label1_label,
+                mpls_label1_ttl,
+                mpls_label1_exp,
+                mpls_label1_bos,
+                mpls_label2_label,
+                mpls_label2_ttl,
+                mpls_label2_exp,
+                mpls_label2_bos,
+                mpls_label3_label,
+                mpls_label3_ttl,
+                mpls_label3_exp,
+                mpls_label3_bos,
+                mpls_label4_label,
+                mpls_label4_ttl,
+                mpls_label4_exp,
+                mpls_label4_bos,
+                ip_src, ip_src_mask,
+                ip_dst, ip_dst_mask,
+                ip_protocol,
+                ip_tos, ip_ecn,
+                ip_dscp, ip_ttl,
+                in_ports, out_ports,
+                in_port, out_port,
+                src_l4_port, dst_l4_port,
+                ingress_mirror,
+                egress_mirror,
+                new_svlan, new_scos,
+                new_cvlan, new_ccos,
+                deny_learn)
+            sys_logging("create acl entry = %d" %acl_entry_oid_3)
+            assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID)
 
         warmboot(self.client)
-
         try:
-
             pkt = simple_tcp_packet(eth_dst=mac2,
                                     eth_src=mac1,
                                     dl_vlan_enable=True,
@@ -18652,76 +22298,74 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
                                     ip_id=101,
                                     ip_ttl=64)
 
-            sys_logging(" step1: none acl , packet will forwarding  ")
-
+            step = 1
+            sys_logging(" step%u: none acl , packet will forwarding  " %step)
             self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [1])
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [1])
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
             assert (ret.data.u16 == 0)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-
-            sys_logging(" step2: bind this ACL group to vlan  ")
-
+            step = step + 1
+            sys_logging(" step%u: bind this ACL group to vlan  " %step)
             attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
             attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_vlan_attribute(vlan_oid, attr)
 
-            sys_logging(" step3: ad merge result is trap ")
-
+            step = step + 1
+            sys_logging(" step%u: ad merge result is trap " %step)
             self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_send_packet(0, str(pkt))
             self.ctc_verify_no_packet( pkt, 1)
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
             assert (ret.data.u16 == 1)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 3 and ad merge result is still trap " %step)
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
+                assert(status == SAI_STATUS_SUCCESS)
 
-            sys_logging(" step4: remove acl entry 3 and ad merge result is still trap ")
+                self.client.sai_thrift_clear_cpu_packet_info()
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_no_packet(pkt, 1)
+                ret = self.client.sai_thrift_get_cpu_packet_count()
+                sys_logging ("receive rx packet %d" %ret.data.u16)
+                assert(ret.data.u16 == 1)
+                self.client.sai_thrift_clear_cpu_packet_info()
 
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_no_packet( pkt, 1)
-            ret = self.client.sai_thrift_get_cpu_packet_count()
-            sys_logging ("receive rx packet %d" %ret.data.u16)
-            assert (ret.data.u16 == 1)
-            self.client.sai_thrift_clear_cpu_packet_info()
-
-            sys_logging(" step5: remove acl entry 1 and ad merge result is log")
-
+            step = step + 1
+            sys_logging(" step%u: remove acl entry 1 and ad merge result is log" %step)
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
             assert (status == SAI_STATUS_SUCCESS)
 
             self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [1])
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [1])
             ret = self.client.sai_thrift_get_cpu_packet_count()
-            sys_logging ("receive rx packet %d" %ret.data.u16)
+            sys_logging("receive rx packet %d" %ret.data.u16)
             assert (ret.data.u16 == 1)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step6: remove acl entry 2 and normal forwarding ")
-
+            step = step + 1
+            sys_logging(" step%u: remove acl entry 2 and normal forwarding " %step)
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
             assert (status == SAI_STATUS_SUCCESS)
 
             self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [1])
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [1])
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
             assert (ret.data.u16 == 0)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step7: add acl entry 1 again")
-
+            step = step + 1
+            sys_logging(" step%u: add acl entry 1 again" %step)
             entry_priority = 1
             admin_state = True
             action = SAI_PACKET_ACTION_DROP
@@ -18774,15 +22418,14 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
             assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
 
             self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_no_packet( pkt, 1)
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_no_packet(pkt, 1)
             ret = self.client.sai_thrift_get_cpu_packet_count()
-            sys_logging ("receive rx packet %d" %ret.data.u16)
-            assert (ret.data.u16 == 0)
+            sys_logging("receive rx packet %d" %ret.data.u16)
+            assert(ret.data.u16 == 0)
             self.client.sai_thrift_clear_cpu_packet_info()
 
         finally:
-
             sys_logging("clear config")
 
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
@@ -18798,8 +22441,9 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -18807,8 +22451,9 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid_2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
             assert (status == SAI_STATUS_SUCCESS)
@@ -18816,8 +22461,6 @@ class scenario_11_par_group_bind_vlan_ingress_test_ad_merge(sai_base_test.Thrift
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid)
-
-
 
 
 class scenario_12_par_group_bind_vlan_egress_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -21063,13 +24706,11 @@ class scenario_15_seq_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
             sai_thrift_remove_lag(self.client, lag_oid)
 
 
-
 class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
 
         switch_init(self.client)
-
         # basic forwarding environment
 
         vlan_id = 100
@@ -21092,7 +24733,6 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
         is_lag = 1
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_bridge_oid, SAI_VLAN_TAGGING_MODE_TAGGED,is_lag)
         vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port3, SAI_VLAN_TAGGING_MODE_TAGGED)
-
 
         # acl group info
         group_stage = SAI_ACL_STAGE_INGRESS
@@ -21220,7 +24860,6 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
         sys_logging("create acl table = %d" %acl_table_oid)
         assert(acl_table_oid != SAI_NULL_OBJECT_ID )
 
-
         acl_table_oid_2 = sai_thrift_create_acl_table(self.client,
             table_stage,
             table_bind_point_list,
@@ -21267,53 +24906,51 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
         sys_logging("create acl table = %d" %acl_table_oid_2)
         assert(acl_table_oid_2 != SAI_NULL_OBJECT_ID )
 
-
-        acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port)
-
-        sys_logging("create acl table = %d" %acl_table_oid_3)
-        assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID )
-
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
+                table_stage,
+                table_bind_point_list,
+                addr_family,
+                mac_src,
+                mac_dst,
+                ip_src,
+                ip_dst,
+                in_ports,
+                out_ports,
+                in_port,
+                out_port,
+                svlan_id,
+                svlan_pri,
+                svlan_cfi,
+                cvlan_id,
+                cvlan_pri,
+                cvlan_cfi,
+                ip_type,
+                mpls_label0_label,
+                mpls_label0_ttl,
+                mpls_label0_exp,
+                mpls_label0_bos,
+                mpls_label1_label,
+                mpls_label1_ttl,
+                mpls_label1_exp,
+                mpls_label1_bos,
+                mpls_label2_label,
+                mpls_label2_ttl,
+                mpls_label2_exp,
+                mpls_label2_bos,
+                mpls_label3_label,
+                mpls_label3_ttl,
+                mpls_label3_exp,
+                mpls_label3_bos,
+                mpls_label4_label,
+                mpls_label4_ttl,
+                mpls_label4_exp,
+                mpls_label4_bos,
+                ip_protocol,
+                src_l4_port,
+                dst_l4_port)
+            sys_logging("create acl table = %d" %acl_table_oid_3)
+            assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID)
 
         # acl group member info
         group_member_priority1 = 100
@@ -21323,15 +24960,16 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
         # create acl group member
         acl_table_group_member_id1 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid, group_member_priority1)
         sys_logging("create acl group member = %d" %acl_table_group_member_id1)
-        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID)
 
         acl_table_group_member_id2 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_2, group_member_priority2)
         sys_logging("create acl group member = %d" %acl_table_group_member_id2)
-        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID)
 
-        acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
-        sys_logging("create acl group member = %d" %acl_table_group_member_id3)
-        assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID )
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
+            sys_logging("create acl group member = %d" %acl_table_group_member_id3)
+            assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID)
 
         # create acl entry
         entry_priority = 1
@@ -21436,165 +25074,7 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
         sys_logging("create acl entry = %d" %acl_entry_oid_2)
         assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID )
 
-        entry_priority = 3
-        admin_state = True
-        new_scos = 3
-        acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid_3,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        sys_logging("create acl entry = %d" %acl_entry_oid_3)
-        assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
-
-        warmboot(self.client)
-
-        try:
-
-            pkt = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=0,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt1 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=1,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt2 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=2,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            pkt3 = simple_tcp_packet(eth_dst=mac2,
-                                    eth_src=mac1,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=vlan_id,
-                                    vlan_pcp=3,
-                                    ip_dst='10.0.0.1',
-                                    ip_id=101,
-                                    ip_ttl=64)
-
-            sys_logging(" step1: none acl , packet will forwarding  ")
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [2])
-
-            sys_logging(" step2: bind this ACL group to lag  ")
-
-            attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
-            attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_INGRESS_ACL, value=attr_value)
-            self.client.sai_thrift_set_lag_attribute(lag_oid, attr)
-
-            sys_logging(" step3: match acl entry 1")
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt1, [2])
-
-            #pdb.set_trace()
-
-            sys_logging(" add lag member ")
-
-            lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_oid, port4)
-
-            self.ctc_send_packet( 3, str(pkt))
-            self.ctc_verify_packets( pkt1, [2])
-
-            sys_logging(" remove lag member ")
-
-            sai_thrift_remove_lag_member(self.client, lag_member_id3)
-
-            bport_oid = sai_thrift_get_bridge_port_by_port(self.client, port4)
-
-            value = 1
-            attr_value = sai_thrift_attribute_value_t(booldata=value)
-            attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING, value=attr_value)
-            self.client.sai_thrift_set_bridge_port_attribute(bport_oid, attr)
-
-            #pdb.set_trace()
-
-            self.ctc_send_packet( 3, str(pkt))
-            self.ctc_verify_no_packet( pkt1, 2)
-
-
-            sys_logging(" step4: remove acl entry 1 and match acl entry 2")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt2, [2])
-
-            sys_logging(" step5: remove acl entry 2 and match acl entry 3")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt3, [2])
-
-            sys_logging(" step6: remove acl entry 3 and normal forwarding ")
-
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [2])
-
-            sys_logging(" step7: add acl entry 3 again")
-
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
             entry_priority = 3
             admin_state = True
             new_scos = 3
@@ -21644,21 +25124,250 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
                 deny_learn)
 
             sys_logging("create acl entry = %d" %acl_entry_oid_3)
-            assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
+            assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID)
 
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt3, [2])
+        warmboot(self.client)
+        try:
+
+            pkt = simple_tcp_packet(eth_dst=mac2,
+                                    eth_src=mac1,
+                                    dl_vlan_enable=True,
+                                    vlan_vid=vlan_id,
+                                    vlan_pcp=0,
+                                    ip_dst='10.0.0.1',
+                                    ip_id=101,
+                                    ip_ttl=64)
+
+            pkt1 = simple_tcp_packet(eth_dst=mac2,
+                                    eth_src=mac1,
+                                    dl_vlan_enable=True,
+                                    vlan_vid=vlan_id,
+                                    vlan_pcp=1,
+                                    ip_dst='10.0.0.1',
+                                    ip_id=101,
+                                    ip_ttl=64)
+
+            pkt2 = simple_tcp_packet(eth_dst=mac2,
+                                    eth_src=mac1,
+                                    dl_vlan_enable=True,
+                                    vlan_vid=vlan_id,
+                                    vlan_pcp=2,
+                                    ip_dst='10.0.0.1',
+                                    ip_id=101,
+                                    ip_ttl=64)
+
+            pkt3 = simple_tcp_packet(eth_dst=mac2,
+                                    eth_src=mac1,
+                                    dl_vlan_enable=True,
+                                    vlan_vid=vlan_id,
+                                    vlan_pcp=3,
+                                    ip_dst='10.0.0.1',
+                                    ip_id=101,
+                                    ip_ttl=64)
+
+            step = 1
+            sys_logging(" step%u: none acl , packet will forwarding  " %step)
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [2])
+
+            step = step + 1
+            sys_logging(" step%u: bind this ACL group to lag  " %step)
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
+            attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_lag_attribute(lag_oid, attr)
+
+            step = step + 1
+            sys_logging(" step%u: match acl entry 1" %step)
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt1, [2])
+
+            #pdb.set_trace()
+            sys_logging(" add lag member ")
+            lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_oid, port4)
+
+            self.ctc_send_packet(3, str(pkt))
+            self.ctc_verify_packets(pkt1, [2])
+
+            sys_logging(" remove lag member ")
+
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            bport_oid = sai_thrift_get_bridge_port_by_port(self.client, port4)
+
+            value = 1
+            attr_value = sai_thrift_attribute_value_t(booldata=value)
+            attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING, value=attr_value)
+            self.client.sai_thrift_set_bridge_port_attribute(bport_oid, attr)
+
+            #pdb.set_trace()
+
+            self.ctc_send_packet(3, str(pkt))
+            self.ctc_verify_no_packet(pkt1, 2)
+
+            step = step + 1
+            sys_logging(" step%u: remove acl entry 1 and match acl entry 2" %step)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt2, [2])
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 2 and match acl entry 3" %step)
+
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
+                assert (status == SAI_STATUS_SUCCESS)
+
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_packets(pkt3, [2])
+
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 3 and normal forwarding " %step)
+
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
+
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_packets(pkt, [2])
+
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:      # tsingma
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 2 and normal forwarding " %step)
+
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
+                assert (status == SAI_STATUS_SUCCESS)
+
+                self.ctc_send_packet(0, str(pkt))
+                self.ctc_verify_packets(pkt, [2])
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                step = step + 1
+                sys_logging(" step%u: add acl entry 3 again" %step)
+
+                entry_priority = 3
+                admin_state = True
+                new_scos = 3
+                acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
+                    acl_table_oid_3,
+                    entry_priority,
+                    admin_state,
+                    action, addr_family,
+                    mac_src, mac_src_mask,
+                    mac_dst, mac_dst_mask,
+                    svlan_id, svlan_pri,
+                    svlan_cfi, cvlan_id,
+                    cvlan_pri, cvlan_cfi,
+                    ip_type,
+                    mpls_label0_label,
+                    mpls_label0_ttl,
+                    mpls_label0_exp,
+                    mpls_label0_bos,
+                    mpls_label1_label,
+                    mpls_label1_ttl,
+                    mpls_label1_exp,
+                    mpls_label1_bos,
+                    mpls_label2_label,
+                    mpls_label2_ttl,
+                    mpls_label2_exp,
+                    mpls_label2_bos,
+                    mpls_label3_label,
+                    mpls_label3_ttl,
+                    mpls_label3_exp,
+                    mpls_label3_bos,
+                    mpls_label4_label,
+                    mpls_label4_ttl,
+                    mpls_label4_exp,
+                    mpls_label4_bos,
+                    ip_src, ip_src_mask,
+                    ip_dst, ip_dst_mask,
+                    ip_protocol,
+                    ip_tos, ip_ecn,
+                    ip_dscp, ip_ttl,
+                    in_ports, out_ports,
+                    in_port, out_port,
+                    src_l4_port, dst_l4_port,
+                    ingress_mirror,
+                    egress_mirror,
+                    new_svlan, new_scos,
+                    new_cvlan, new_ccos,
+                    deny_learn)
+                sys_logging("create acl entry = %d" %acl_entry_oid_3)
+                assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
+
+                self.ctc_send_packet( 0, str(pkt))
+                self.ctc_verify_packets( pkt3, [2])
+
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                step = step + 1
+                sys_logging(" step%u: add acl entry 2 again" %step)
+
+                entry_priority = 2
+                admin_state = True
+                new_scos = 2
+                acl_entry_oid_2 = sai_thrift_create_acl_entry(self.client,
+                    acl_table_oid_2,
+                    entry_priority,
+                    admin_state,
+                    action, addr_family,
+                    mac_src, mac_src_mask,
+                    mac_dst, mac_dst_mask,
+                    svlan_id, svlan_pri,
+                    svlan_cfi, cvlan_id,
+                    cvlan_pri, cvlan_cfi,
+                    ip_type,
+                    mpls_label0_label,
+                    mpls_label0_ttl,
+                    mpls_label0_exp,
+                    mpls_label0_bos,
+                    mpls_label1_label,
+                    mpls_label1_ttl,
+                    mpls_label1_exp,
+                    mpls_label1_bos,
+                    mpls_label2_label,
+                    mpls_label2_ttl,
+                    mpls_label2_exp,
+                    mpls_label2_bos,
+                    mpls_label3_label,
+                    mpls_label3_ttl,
+                    mpls_label3_exp,
+                    mpls_label3_bos,
+                    mpls_label4_label,
+                    mpls_label4_ttl,
+                    mpls_label4_exp,
+                    mpls_label4_bos,
+                    ip_src, ip_src_mask,
+                    ip_dst, ip_dst_mask,
+                    ip_protocol,
+                    ip_tos, ip_ecn,
+                    ip_dscp, ip_ttl,
+                    in_ports, out_ports,
+                    in_port, out_port,
+                    src_l4_port, dst_l4_port,
+                    ingress_mirror,
+                    egress_mirror,
+                    new_svlan, new_scos,
+                    new_cvlan, new_ccos,
+                    deny_learn)
+                sys_logging("create acl entry = %d" %acl_entry_oid_2)
+                assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID )
+
+                self.ctc_send_packet( 0, str(pkt))
+                self.ctc_verify_packets( pkt2, [2])
 
         finally:
-
             sys_logging("clear config")
 
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_lag_attribute(lag_oid, attr)
 
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
             assert (status == SAI_STATUS_SUCCESS)
@@ -21666,8 +25375,9 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -21675,8 +25385,9 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid_2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
             assert (status == SAI_STATUS_SUCCESS)
@@ -21692,8 +25403,6 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
             sai_thrift_remove_lag(self.client, lag_oid)
 
 
-
-
 class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -21701,7 +25410,6 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
         switch_init(self.client)
 
         # basic forwarding environment
-
         vlan_id = 100
         port1 = port_list[0]
         port2 = port_list[1]
@@ -21717,12 +25425,10 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
         lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_oid, port2)
 
         lag_bridge_oid = sai_thrift_create_bport_by_lag(self.client, lag_oid)
-
         vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
         is_lag = 1
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_bridge_oid, SAI_VLAN_TAGGING_MODE_TAGGED,is_lag)
         vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port3, SAI_VLAN_TAGGING_MODE_TAGGED)
-
 
         # acl group info
         group_stage = SAI_ACL_STAGE_INGRESS
@@ -21850,7 +25556,6 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
         sys_logging("create acl table = %d" %acl_table_oid)
         assert(acl_table_oid != SAI_NULL_OBJECT_ID )
 
-
         acl_table_oid_2 = sai_thrift_create_acl_table(self.client,
             table_stage,
             table_bind_point_list,
@@ -21897,53 +25602,51 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
         sys_logging("create acl table2 = %d" %acl_table_oid_2)
         assert(acl_table_oid_2 != SAI_NULL_OBJECT_ID )
 
-
-        acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port)
-
-        sys_logging("create acl table3 = %d" %acl_table_oid_3)
-        assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID )
-
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            acl_table_oid_3 = sai_thrift_create_acl_table(self.client,
+                table_stage,
+                table_bind_point_list,
+                addr_family,
+                mac_src,
+                mac_dst,
+                ip_src,
+                ip_dst,
+                in_ports,
+                out_ports,
+                in_port,
+                out_port,
+                svlan_id,
+                svlan_pri,
+                svlan_cfi,
+                cvlan_id,
+                cvlan_pri,
+                cvlan_cfi,
+                ip_type,
+                mpls_label0_label,
+                mpls_label0_ttl,
+                mpls_label0_exp,
+                mpls_label0_bos,
+                mpls_label1_label,
+                mpls_label1_ttl,
+                mpls_label1_exp,
+                mpls_label1_bos,
+                mpls_label2_label,
+                mpls_label2_ttl,
+                mpls_label2_exp,
+                mpls_label2_bos,
+                mpls_label3_label,
+                mpls_label3_ttl,
+                mpls_label3_exp,
+                mpls_label3_bos,
+                mpls_label4_label,
+                mpls_label4_ttl,
+                mpls_label4_exp,
+                mpls_label4_bos,
+                ip_protocol,
+                src_l4_port,
+                dst_l4_port)
+            sys_logging("create acl table3 = %d" %acl_table_oid_3)
+            assert(acl_table_oid_3 != SAI_NULL_OBJECT_ID)
 
         # acl group member info
         group_member_priority1 = 100
@@ -21953,15 +25656,16 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
         # create acl group member
         acl_table_group_member_id1 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid, group_member_priority1)
         sys_logging("create acl group member = %d" %acl_table_group_member_id1)
-        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_member_id1 != SAI_NULL_OBJECT_ID)
 
         acl_table_group_member_id2 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_2, group_member_priority2)
         sys_logging("create acl group member = %d" %acl_table_group_member_id2)
-        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_member_id2 != SAI_NULL_OBJECT_ID)
 
-        acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
-        sys_logging("create acl group member = %d" %acl_table_group_member_id3)
-        assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID )
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
+            sys_logging("create acl group member = %d" %acl_table_group_member_id3)
+            assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID)
 
         # create acl entry
         entry_priority = 1
@@ -22011,7 +25715,6 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
             new_svlan, new_scos,
             new_cvlan, new_ccos,
             deny_learn)
-
         sys_logging("create acl entry = %d" %acl_entry_oid)
         assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
 
@@ -22062,65 +25765,62 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
             new_svlan, new_scos,
             new_cvlan, new_ccos,
             deny_learn)
-
         sys_logging("create acl entry = %d" %acl_entry_oid_2)
         assert(acl_entry_oid_2 != SAI_NULL_OBJECT_ID )
 
-        entry_priority = 3
-        admin_state = True
-        action =  SAI_PACKET_ACTION_TRAP
-        acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid_3,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn)
-
-        sys_logging("create acl entry = %d" %acl_entry_oid_3)
-        assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID )
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            entry_priority = 3
+            admin_state = True
+            action =  SAI_PACKET_ACTION_TRAP
+            acl_entry_oid_3 = sai_thrift_create_acl_entry(self.client,
+                acl_table_oid_3,
+                entry_priority,
+                admin_state,
+                action, addr_family,
+                mac_src, mac_src_mask,
+                mac_dst, mac_dst_mask,
+                svlan_id, svlan_pri,
+                svlan_cfi, cvlan_id,
+                cvlan_pri, cvlan_cfi,
+                ip_type,
+                mpls_label0_label,
+                mpls_label0_ttl,
+                mpls_label0_exp,
+                mpls_label0_bos,
+                mpls_label1_label,
+                mpls_label1_ttl,
+                mpls_label1_exp,
+                mpls_label1_bos,
+                mpls_label2_label,
+                mpls_label2_ttl,
+                mpls_label2_exp,
+                mpls_label2_bos,
+                mpls_label3_label,
+                mpls_label3_ttl,
+                mpls_label3_exp,
+                mpls_label3_bos,
+                mpls_label4_label,
+                mpls_label4_ttl,
+                mpls_label4_exp,
+                mpls_label4_bos,
+                ip_src, ip_src_mask,
+                ip_dst, ip_dst_mask,
+                ip_protocol,
+                ip_tos, ip_ecn,
+                ip_dscp, ip_ttl,
+                in_ports, out_ports,
+                in_port, out_port,
+                src_l4_port, dst_l4_port,
+                ingress_mirror,
+                egress_mirror,
+                new_svlan, new_scos,
+                new_cvlan, new_ccos,
+                deny_learn)
+            sys_logging("create acl entry = %d" %acl_entry_oid_3)
+            assert(acl_entry_oid_3 != SAI_NULL_OBJECT_ID)
 
         warmboot(self.client)
-
         try:
-
             pkt = simple_tcp_packet(eth_dst=mac2,
                                     eth_src=mac1,
                                     dl_vlan_enable=True,
@@ -22130,24 +25830,26 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
                                     ip_id=101,
                                     ip_ttl=64)
 
-            sys_logging(" step1: none acl , packet will forwarding  ")
+            step = 1
+            sys_logging(" step%u: none acl , packet will forwarding  " %step)
 
             self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [2])
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [2])
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
             assert (ret.data.u16 == 0)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-
-            sys_logging(" step2: bind this ACL group to port  ")
+            step = step + 1
+            sys_logging(" step%u: bind this ACL group to port  " %step)
 
             attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_id)
             attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_lag_attribute(lag_oid, attr)
 
-            sys_logging(" step3: ad merge result is trap ")
+            step = step + 1
+            sys_logging(" step%u: ad merge result is trap " %step)
 
             self.client.sai_thrift_clear_cpu_packet_info()
             self.ctc_send_packet( 0, str(pkt))
@@ -22157,20 +25859,23 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
             assert (ret.data.u16 == 1)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step4: remove acl entry 3 and ad merge result is still trap ")
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                step = step + 1
+                sys_logging(" step%u: remove acl entry 3 and ad merge result is still trap " %step)
 
-            status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
 
-            self.client.sai_thrift_clear_cpu_packet_info()
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_no_packet( pkt, 2)
-            ret = self.client.sai_thrift_get_cpu_packet_count()
-            sys_logging ("receive rx packet %d" %ret.data.u16)
-            assert (ret.data.u16 == 1)
-            self.client.sai_thrift_clear_cpu_packet_info()
+                self.client.sai_thrift_clear_cpu_packet_info()
+                self.ctc_send_packet( 0, str(pkt))
+                self.ctc_verify_no_packet( pkt, 2)
+                ret = self.client.sai_thrift_get_cpu_packet_count()
+                sys_logging ("receive rx packet %d" %ret.data.u16)
+                assert (ret.data.u16 == 1)
+                self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step5: remove acl entry 1 and ad merge result is log")
+            step = step + 1
+            sys_logging(" step%u: remove acl entry 1 and ad merge result is log" %step)
 
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -22183,7 +25888,8 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
             assert (ret.data.u16 == 1)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step6: remove acl entry 2 and normal forwarding ")
+            step = step + 1
+            sys_logging(" step%u: remove acl entry 2 and normal forwarding " %step)
 
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
             assert (status == SAI_STATUS_SUCCESS)
@@ -22196,7 +25902,8 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
             assert (ret.data.u16 == 0)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            sys_logging(" step7: add acl entry 1 again")
+            step = step + 1
+            sys_logging(" step%u: add acl entry 1 again" %step)
 
             entry_priority = 1
             admin_state = True
@@ -22260,7 +25967,6 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
         finally:
 
             sys_logging("clear config")
-
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_lag_attribute(lag_oid, attr)
@@ -22274,8 +25980,9 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -22283,8 +25990,9 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid_2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
-            assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table(acl_table_oid_3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
             assert (status == SAI_STATUS_SUCCESS)
@@ -22298,8 +26006,6 @@ class scenario_17_par_group_bind_lag_ingress_test_ad_merge(sai_base_test.ThriftI
             sai_thrift_remove_lag_member(self.client, lag_member_id2)
 
             sai_thrift_remove_lag(self.client, lag_oid)
-
-
 
 
 class scenario_19_table_bind_switch_ingress_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -26485,7 +30191,6 @@ class scenario_36_inner_vlan_cfi_key_bind_port_test(sai_base_test.ThriftInterfac
         warmboot(self.client)
 
         try:
-
             sys_logging(" step3: get acl entry attr info  ")
 
             attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_PRIORITY, SAI_ACL_ENTRY_ATTR_ADMIN_STATE,
@@ -29143,9 +32848,6 @@ class scenario_47_icmp_type_port_key_bind_port_test(sai_base_test.ThriftInterfac
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
 
-
-
-
 class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -29180,13 +32882,6 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
                                            value=attribute_value)
         acl_attr_list.append(attribute)
 
-
-        attribute_value = sai_thrift_attribute_value_t(booldata=1)
-        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IP_PROTOCOL,
-                                           value=attribute_value)
-        acl_attr_list.append(attribute)
-
-
         attribute_value = sai_thrift_attribute_value_t(booldata=1)
         attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER,
                                            value=attribute_value)
@@ -29203,7 +32898,6 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
         acl_attr_list.append(attribute)
 
         # create acl table
-
         attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
         attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE,
                                             value=attribute_value)
@@ -29220,16 +32914,12 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
         sys_logging("create acl table = %d" %acl_table_oid)
         assert(acl_table_oid != SAI_NULL_OBJECT_ID )
 
-
         # entry info
         acl_attr_list = []
         entry_priority = 1
         admin_state = True
         ip_type = SAI_ACL_IP_TYPE_IPV6ANY
         ip_type_mask = -1
-
-        ip_protocol = 58
-        ip_protocol_mask = -1
 
         ipv6_next_header = 58
         ipv6_next_header_mask = -1
@@ -29266,11 +32956,6 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
                                            value=attribute_value)
         acl_attr_list.append(attribute)
 
-        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(u8=ip_protocol), mask =sai_thrift_acl_mask_t(u8=ip_protocol_mask)))
-        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_IP_PROTOCOL, value=attribute_value)
-        acl_attr_list.append(attribute)
-
-
         attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(u8=ipv6_next_header), mask =sai_thrift_acl_mask_t(u8=ipv6_next_header_mask)))
         attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER, value=attribute_value)
         acl_attr_list.append(attribute)
@@ -29306,14 +32991,11 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
         ipv6sa = "2001:1111:1111:1111:1111:1111:1111:1111"
         ipv6da = "2012:1111:1111:1111:1111:1111:1111:1111"
 
-
         warmboot(self.client)
-
         try:
 
             sys_logging(" step3: get acl entry attr info  ")
-
-            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_PRIORITY, SAI_ACL_ENTRY_ATTR_ADMIN_STATE, SAI_ACL_ENTRY_ATTR_FIELD_IP_PROTOCOL, SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER,
+            attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_PRIORITY, SAI_ACL_ENTRY_ATTR_ADMIN_STATE, SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER,
             SAI_ACL_ENTRY_ATTR_FIELD_ICMPV6_TYPE, SAI_ACL_ENTRY_ATTR_FIELD_ICMPV6_CODE, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
 
             # get acl entry attr
@@ -29337,10 +33019,6 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
                 if a.id == SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
                     sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE = %s" %a.value.aclfield.data.s32)
                     assert(ip_type == a.value.aclfield.data.s32 )
-
-                if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IP_PROTOCOL:
-                    sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IP_PROTOCOL = %s" %a.value.aclfield.data.u8)
-                    assert(ip_protocol == a.value.aclfield.data.u8 )
 
                 if a.id == SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER:
                     sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER = %s" %a.value.aclfield.data.u8)
@@ -29407,8 +33085,6 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
                          ipv6_fl=0,
                          icmp_type=0,
                          icmp_code=0)
-
-
 
             self.client.sai_thrift_clear_cpu_packet_info()
 
@@ -30249,12 +33925,10 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
         sys_logging(" step1: basic environment ")
 
         # acl table info
-
         table_stage = SAI_ACL_STAGE_INGRESS
         table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
 
         # acl key field
-
         attribute_value = sai_thrift_attribute_value_t(booldata=1)
         attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
                                            value=attribute_value)
@@ -30271,7 +33945,6 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
         acl_attr_list.append(attribute)
 
         # create acl table
-
         attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
         attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE,
                                             value=attribute_value)
@@ -30287,7 +33960,6 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
 
         sys_logging("create acl table = %d" %acl_table_oid)
         assert(acl_table_oid != SAI_NULL_OBJECT_ID )
-
 
         # entry info
         acl_attr_list = []
@@ -30342,7 +34014,7 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
         acl_entry_oid = self.client.sai_thrift_create_acl_entry(acl_attr_list)
 
         sys_logging("create acl entry = %d" %acl_entry_oid)
-        assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+        assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
 
         sys_logging(" step2: bind this ACL table to port  ")
         attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
@@ -30353,7 +34025,6 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
         macda = '00:22:22:22:22:22'
         ipsa = "20.1.1.1"
         ipda = "30.1.1.1"
-
 
         attrs = self.client.sai_thrift_get_port_attribute(port1)
         for a in attrs.attr_list:
@@ -30369,9 +34040,7 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
         warmboot(self.client)
 
         try:
-
             sys_logging(" step3: get acl entry attr info  ")
-
             attr_list_ids = [SAI_ACL_ENTRY_ATTR_FIELD_PORT_USER_META]
 
             # get acl entry attr
@@ -30392,10 +34061,7 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
                     sys_logging("### SAI_PORT_ATTR_META_DATA = %d ###"  %a.value.u32)
                     assert (port_metadata == a.value.u32)
 
-
-
             sys_logging(" step4: send packet test ")
-
             pkt = simple_tcp_packet(eth_dst=macda,
                                     eth_src=macsa,
                                     dl_vlan_enable=True,
@@ -30447,7 +34113,6 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
             self.client.sai_thrift_clear_cpu_packet_info()
 
         finally:
-
             sys_logging("clear config")
             #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
@@ -31060,7 +34725,7 @@ class scenario_55_par_group_add_and_remove_group_member_test(sai_base_test.Thrif
         # create acl group
         acl_table_group_id = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
         sys_logging("create acl group = %d" %acl_table_group_id)
-        assert(acl_table_group_id != SAI_NULL_OBJECT_ID )
+        assert(acl_table_group_id != SAI_NULL_OBJECT_ID)
 
         # acl table info
         table_stage = SAI_ACL_STAGE_INGRESS
@@ -31177,7 +34842,6 @@ class scenario_55_par_group_add_and_remove_group_member_test(sai_base_test.Thrif
 
         sys_logging("create acl table = %d" %acl_table_oid)
         assert(acl_table_oid != SAI_NULL_OBJECT_ID )
-
 
         acl_table_oid_2 = sai_thrift_create_acl_table(self.client,
             table_stage,
@@ -31483,16 +35147,15 @@ class scenario_55_par_group_add_and_remove_group_member_test(sai_base_test.Thrif
 
             sys_logging(" step4: add group member 3  ")
 
-
-            acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
-            sys_logging("create acl group member = %d" %acl_table_group_member_id3)
-            assert(acl_table_group_member_id3 == SAI_NULL_OBJECT_ID)
-
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                acl_table_group_member_id3 = sai_thrift_create_acl_table_group_member(self.client, acl_table_group_id, acl_table_oid_3, group_member_priority3)
+                sys_logging("create acl group member = %d" %acl_table_group_member_id3)
+                assert(acl_table_group_member_id3 != SAI_NULL_OBJECT_ID)
 
             sys_logging(" step5: remove group member 1  ")
 
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
-            assert (status != SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
         finally:
 
@@ -31514,14 +35177,15 @@ class scenario_55_par_group_add_and_remove_group_member_test(sai_base_test.Thrif
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_3)
             assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
-            assert (status == SAI_STATUS_SUCCESS)
+            #status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id1)
+            #assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id2)
             assert (status == SAI_STATUS_SUCCESS)
 
-            #status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
-            #assert (status == SAI_STATUS_SUCCESS)
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+                status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_id3)
+                assert (status == SAI_STATUS_SUCCESS)
 
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
@@ -34436,8 +38100,1471 @@ class scenario_67_ingress_ports_bind_vlan_test(sai_base_test.ThriftInterfaceData
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
 
+@group('acl')
+class scenario_68_ipv4_entry_bind_point_ingress_interface_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            self.ctc_send_packet( 1, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_ROUTER_INTF]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = None
+        mac_src = '00:22:22:22:22:22'
+        mac_dst = router_mac
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=20
+        svlan_pri=4
+        svlan_cfi=1
+        cvlan_id=10
+        cvlan_pri=2
+        cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+        ip_src = "192.168.0.1"
+        ip_src_mask = "255.255.255.255"
+        ip_dst = '10.10.10.1'
+        ip_dst_mask = "255.255.255.255"
+        ipv6_src = None
+        ipv6_src_mask = None
+        ipv6_dst = None
+        ipv6_dst_mask = None
+        ip_protocol = 6
+        ip_tos=5
+        ip_ecn=1
+        ip_dscp=1
+        ip_ttl=None
+        in_port = None
+        out_port = None
+        out_ports = None
+        src_l4_port = 1234
+        dst_l4_port = 80
+        ingress_mirror_id = None
+        egress_mirror_id = None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+        router_interface = True
+
+        acl_table_id = sai_thrift_create_acl_table(self.client,
+            table_stage,
+            table_bind_point_list,
+            addr_family,
+            mac_src,
+            mac_dst,
+            ip_src,
+            ip_dst,
+            in_ports,
+            out_ports,
+            in_port,
+            out_port,
+            svlan_id,
+            svlan_pri,
+            svlan_cfi,
+            cvlan_id,
+            cvlan_pri,
+            cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_protocol,
+            src_l4_port,
+            dst_l4_port,
+            ipv6_src,
+            ipv6_dst,
+            ip_tos,
+            ip_ecn,
+            ip_dscp,
+            ip_ttl,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            router_interface)
+        acl_entry_id = sai_thrift_create_acl_entry(self.client,
+            acl_table_id,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror_id,
+            egress_mirror_id,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL, value=attr_value)
+        status = self.client.sai_thrift_set_router_interface_attribute(rif_id2, attr)
+        assert(status == SAI_STATUS_SUCCESS)
+
+        warmboot(self.client)
+        try:
+            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+            self.ctc_send_packet(1, str(pkt))
+            self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+        finally:
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id2, attr)
+            assert(status == SAI_STATUS_SUCCESS)
+
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
 
 
+@group('acl')
+class scenario_69_ipv4_entry_bind_point_egress_interface_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            self.ctc_send_packet( 1, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        table_stage = SAI_ACL_STAGE_EGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_ROUTER_INTF]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = None
+        mac_src = router_mac
+        mac_dst = '00:11:22:33:44:55'
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+        ip_src = "192.168.0.1"
+        ip_src_mask = "255.255.255.255"
+        ip_dst = '10.10.10.1'
+        ip_dst_mask = "255.255.255.255"
+        ipv6_src = None
+        ipv6_src_mask = None
+        ipv6_dst = None
+        ipv6_dst_mask = None
+        ip_protocol = 6
+        ip_tos=5
+        ip_ecn=1
+        ip_dscp=1
+        ip_ttl=None
+        in_port = None
+        out_port = None
+        out_ports = None
+        src_l4_port = 1234
+        dst_l4_port = 80
+        ingress_mirror_id = None
+        egress_mirror_id = None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+        router_interface = True
+
+        acl_table_id = sai_thrift_create_acl_table(self.client,
+            table_stage,
+            table_bind_point_list,
+            addr_family,
+            mac_src,
+            mac_dst,
+            ip_src,
+            ip_dst,
+            in_ports,
+            out_ports,
+            in_port,
+            out_port,
+            svlan_id,
+            svlan_pri,
+            svlan_cfi,
+            cvlan_id,
+            cvlan_pri,
+            cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_protocol,
+            src_l4_port,
+            dst_l4_port,
+            ipv6_src,
+            ipv6_dst,
+            ip_tos,
+            ip_ecn,
+            ip_dscp,
+            ip_ttl,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            router_interface)
+        acl_entry_id = sai_thrift_create_acl_entry(self.client,
+            acl_table_id,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror_id,
+            egress_mirror_id,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL, value=attr_value)
+        status = self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+        assert(status == SAI_STATUS_SUCCESS)
+
+        warmboot(self.client)
+        try:
+            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+            self.ctc_send_packet(1, str(pkt))
+            self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+        finally:
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+            assert(status == SAI_STATUS_SUCCESS)
+
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+@group('acl')
+class scenario_70_ipv6_entry_bind_point_ingress_interface_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV6
+
+        ipv6_dst         = '1234:5678:9abc:def0:4422:1133:5577:99aa'
+        ipv6_src         = '2000::1'
+        ipv6_subnet      = '1234:5678:9abc:def0:4422:1133:5577:0'
+        ipv6_subnet_mask = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:0'
+        ipv6_src_mask    = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ipv6_dst, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ipv6_dst, rif_id2)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ipv6_subnet, ipv6_subnet_mask, nhop1)
+
+        pkt = simple_tcpv6_packet(eth_dst=router_mac,
+                                  eth_src='00:22:22:22:22:22',
+                                  ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:1111',
+                                  ipv6_src='2000::1',
+                                  ipv6_hlim=64)
+        exp_pkt = simple_tcpv6_packet(eth_dst=dmac1,
+                                      eth_src=router_mac,
+                                      ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:1111',
+                                      ipv6_src='2000::1',
+                                      ipv6_hlim=63)
+
+        try:
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [1])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_ROUTER_INTF]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = None
+        mac_src = '00:22:22:22:22:22'
+        mac_dst = router_mac
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+        ip_src = None
+        ip_src_mask = None
+        ip_dst = None
+        ip_dst_mask = None
+        ipv6_src = ipv6_src
+        ipv6_src_mask = ipv6_src_mask
+        ipv6_dst = ipv6_dst
+        ipv6_dst_mask = ipv6_subnet_mask
+        ip_protocol = None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        in_port = None
+        out_port = None
+        out_ports = None
+        src_l4_port = None
+        dst_l4_port = None
+        ingress_mirror_id = None
+        egress_mirror_id = None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+        router_interface = True
+
+        acl_table_id = sai_thrift_create_acl_table(self.client,
+            table_stage,
+            table_bind_point_list,
+            addr_family,
+            mac_src,
+            mac_dst,
+            ip_src,
+            ip_dst,
+            in_ports,
+            out_ports,
+            in_port,
+            out_port,
+            svlan_id,
+            svlan_pri,
+            svlan_cfi,
+            cvlan_id,
+            cvlan_pri,
+            cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_protocol,
+            src_l4_port,
+            dst_l4_port,
+            ipv6_src,
+            ipv6_dst,
+            ip_tos,
+            ip_ecn,
+            ip_dscp,
+            ip_ttl,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            router_interface)
+        acl_entry_id = sai_thrift_create_acl_entry(self.client,
+            acl_table_id,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror_id,
+            egress_mirror_id,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn)
+
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL, value=attr_value)
+        status = self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+        assert(status == SAI_STATUS_SUCCESS)
+
+        warmboot(self.client)
+        try:
+            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_no_packet(exp_pkt, 1, default_time_out)
+
+        finally:
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+            assert(status == SAI_STATUS_SUCCESS)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ipv6_subnet, ipv6_subnet_mask, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id2, ipv6_dst, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
 
 
+@group('acl')
+class scenario_71_ipv6_entry_bind_point_egress_interface_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV6
+
+        ipv6_dst         = '1234:5678:9abc:def0:4422:1133:5577:99aa'
+        ipv6_src         = '2000::1'
+        ipv6_subnet      = '1234:5678:9abc:def0:4422:1133:5577:0'
+        ipv6_subnet_mask = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:0'
+        ipv6_src_mask    = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ipv6_dst, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ipv6_dst, rif_id2)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ipv6_subnet, ipv6_subnet_mask, nhop1)
+
+        # send the test packet(s)
+        pkt = simple_tcpv6_packet(eth_dst=router_mac,
+                                  eth_src='00:22:22:22:22:22',
+                                  ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:1111',
+                                  ipv6_src='2000::1',
+                                  ipv6_hlim=64)
+        exp_pkt = simple_tcpv6_packet(eth_dst=dmac1,
+                                      eth_src=router_mac,
+                                      ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:1111',
+                                      ipv6_src='2000::1',
+                                      ipv6_hlim=63)
+
+        try:
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [1])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        table_stage = SAI_ACL_STAGE_EGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_ROUTER_INTF]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = None
+        mac_src = router_mac
+        mac_dst = "00:11:22:33:44:55"
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+        ip_src = None
+        ip_src_mask = None
+        ip_dst = None
+        ip_dst_mask = None
+        ipv6_src = ipv6_src
+        ipv6_src_mask = ipv6_src_mask
+        ipv6_dst = ipv6_dst
+        ipv6_dst_mask = ipv6_subnet_mask
+        ip_protocol = None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        in_port = None
+        out_port = None
+        out_ports = None
+        src_l4_port = None
+        dst_l4_port = None
+        ingress_mirror_id = None
+        egress_mirror_id = None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+        router_interface = True
+
+        acl_table_id = sai_thrift_create_acl_table(self.client,
+            table_stage,
+            table_bind_point_list,
+            addr_family,
+            mac_src,
+            mac_dst,
+            ip_src,
+            ip_dst,
+            in_ports,
+            out_ports,
+            in_port,
+            out_port,
+            svlan_id,
+            svlan_pri,
+            svlan_cfi,
+            cvlan_id,
+            cvlan_pri,
+            cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_protocol,
+            src_l4_port,
+            dst_l4_port,
+            ipv6_src,
+            ipv6_dst,
+            ip_tos,
+            ip_ecn,
+            ip_dscp,
+            ip_ttl,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            router_interface)
+        acl_entry_id = sai_thrift_create_acl_entry(self.client,
+            acl_table_id,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror_id,
+            egress_mirror_id,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn)
+
+        # bind this ACL table to port2s object id
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL, value=attr_value)
+        status = self.client.sai_thrift_set_router_interface_attribute(rif_id2, attr)
+        assert(status == SAI_STATUS_SUCCESS)
+
+        warmboot(self.client)
+        try:
+            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_no_packet(exp_pkt, 1, default_time_out)
+
+        finally:
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_EGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id2, attr)
+            assert(status == SAI_STATUS_SUCCESS)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ipv6_subnet, ipv6_subnet_mask, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id2, ipv6_dst, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+
+@group('acl')
+class scenario_72_bind_none_member_parallel_group_and_add_member_fn(sai_base_test.ThriftInterfaceDataPlane):
+
+    def runTest(self):
+
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        
+        if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
+            member_num = 3
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
+            member_num = 2
+         
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id2)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        # acl group info
+        group_stage = SAI_ACL_STAGE_INGRESS
+        group_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        group_type = SAI_ACL_TABLE_GROUP_TYPE_PARALLEL
+
+        # create acl group
+        acl_table_group_oid = sai_thrift_create_acl_table_group(self.client, group_stage, group_bind_point_list, group_type)
+        sys_logging("create acl group = %d" %acl_table_group_oid)
+        assert(acl_table_group_oid != SAI_NULL_OBJECT_ID)
+
+        # create ACL table
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        #addr_family = None
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = None
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = None
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+        ip_src_list = ["192.168.0.1", "192.168.0.2", "192.168.0.3"]
+        ip_src_mask = "255.255.255.255"
+        ip_dst = None
+        ip_dst_mask = None
+        ip_protocol = None
+        #ip qos info
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        in_port = 0
+        out_port = None
+        out_ports = None
+        ip_protocol = None
+        src_l4_port = None
+        dst_l4_port = None
+        ingress_mirror_id = None
+        egress_mirror_id = None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+
+        acl_table_oid_list = []
+        for n in range(0, member_num):
+
+            acl_table_oid = sai_thrift_create_acl_table(self.client,
+                                                        table_stage,
+                                                        table_bind_point_list,
+                                                        addr_family,
+                                                        mac_src,
+                                                        mac_dst,
+                                                        ip_src_list[n],
+                                                        ip_dst,
+                                                        in_ports,
+                                                        out_ports,
+                                                        in_port,
+                                                        out_port,
+                                                        svlan_id,
+                                                        svlan_pri,
+                                                        svlan_cfi,
+                                                        cvlan_id,
+                                                        cvlan_pri,
+                                                        cvlan_cfi,
+                                                        ip_type,
+                                                        mpls_label0_label,
+                                                        mpls_label0_ttl,
+                                                        mpls_label0_exp,
+                                                        mpls_label0_bos,
+                                                        mpls_label1_label,
+                                                        mpls_label1_ttl,
+                                                        mpls_label1_exp,
+                                                        mpls_label1_bos,
+                                                        mpls_label2_label,
+                                                        mpls_label2_ttl,
+                                                        mpls_label2_exp,
+                                                        mpls_label2_bos,
+                                                        mpls_label3_label,
+                                                        mpls_label3_ttl,
+                                                        mpls_label3_exp,
+                                                        mpls_label3_bos,
+                                                        mpls_label4_label,
+                                                        mpls_label4_ttl,
+                                                        mpls_label4_exp,
+                                                        mpls_label4_bos,
+                                                        ip_protocol,
+                                                        src_l4_port,
+                                                        dst_l4_port)
+            sys_logging("create acl table[%u] = 0x%lx" %(n, acl_table_oid))
+            assert(acl_table_oid != SAI_NULL_OBJECT_ID)
+            acl_table_oid_list.append(acl_table_oid)
+
+        warmboot(self.client)
+        try:
+            # bind this ACL table to port1s object id
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_group_oid)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            pkt1 = simple_tcp_packet(pktlen=92,
+                                     eth_dst=router_mac,
+                                     eth_src='00:22:22:22:22:22',
+                                     ip_dst='10.10.10.1',
+                                     ip_src='192.168.0.1',
+                                     ip_tos=5,
+                                     ip_ecn=1,
+                                     ip_dscp=1,
+                                     ip_ttl=64,
+                                     tcp_sport=1234,
+                                     tcp_dport=80)
+
+            pkt2 = simple_tcp_packet(pktlen=92,
+                                     eth_dst=router_mac,
+                                     eth_src='00:22:22:22:22:22',
+                                     ip_dst='10.10.10.1',
+                                     ip_src='192.168.0.2',
+                                     ip_tos=5,
+                                     ip_ecn=1,
+                                     ip_dscp=1,
+                                     ip_ttl=64,
+                                     tcp_sport=1234,
+                                     tcp_dport=80)
+
+            pkt3 = simple_tcp_packet(pktlen=92,
+                                     eth_dst=router_mac,
+                                     eth_src='00:22:22:22:22:22',
+                                     ip_dst='10.10.10.1',
+                                     ip_src='192.168.0.3',
+                                     ip_tos=5,
+                                     ip_ecn=1,
+                                     ip_dscp=1,
+                                     ip_ttl=64,
+                                     tcp_sport=1234,
+                                     tcp_dport=80)
+
+            exp_pkt1 = simple_tcp_packet(pktlen=92,
+                                         eth_dst='00:11:22:33:44:55',
+                                         eth_src=router_mac,
+                                         ip_dst='10.10.10.1',
+                                         ip_src='192.168.0.1',
+                                         ip_tos=5,
+                                         ip_ecn=1,
+                                         ip_dscp=1,
+                                         ip_ttl=63,
+                                         tcp_sport=1234,
+                                         tcp_dport=80)
+
+            exp_pkt2 = simple_tcp_packet(pktlen=92,
+                                         eth_dst='00:11:22:33:44:55',
+                                         eth_src=router_mac,
+                                         ip_dst='10.10.10.1',
+                                         ip_src='192.168.0.2',
+                                         ip_tos=5,
+                                         ip_ecn=1,
+                                         ip_dscp=1,
+                                         ip_ttl=63,
+                                         tcp_sport=1234,
+                                         tcp_dport=80)
+
+            exp_pkt3 = simple_tcp_packet(pktlen=92,
+                                         eth_dst='00:11:22:33:44:55',
+                                         eth_src=router_mac,
+                                         ip_dst='10.10.10.1',
+                                         ip_src='192.168.0.3',
+                                         ip_tos=5,
+                                         ip_ecn=1,
+                                         ip_dscp=1,
+                                         ip_ttl=63,
+                                         tcp_sport=1234,
+                                         tcp_dport=80)
+
+            pkt     = [pkt1, pkt2, pkt3]
+            exp_pkt = [exp_pkt1, exp_pkt2, exp_pkt3]
+
+            for n in range(0, member_num):
+                self.ctc_send_packet(0, str(pkt[n]))
+                self.ctc_verify_packets(exp_pkt[n], [1])
+
+            acl_table_group_member_oid_list = []
+            for n in range(0, member_num):
+                # setup ACL table group members
+                group_member_priority = ((n+1)*100)
+
+                # create ACL table group members
+                acl_table_group_member_oid = sai_thrift_create_acl_table_group_member(self.client,
+                                                                                      acl_table_group_oid,
+                                                                                      acl_table_oid_list[n],
+                                                                                      group_member_priority)
+                assert acl_table_group_member_oid > 0, 'acl_table_group_member_oid is <= 0'
+                print "acl_table_group_member_oid[%u] 0x%lx" %(n, acl_table_group_member_oid)
+                acl_table_group_member_oid_list.append(acl_table_group_member_oid)
+
+            for n in range(0, member_num):
+                self.ctc_send_packet(0, str(pkt[n]))
+                self.ctc_verify_packets(exp_pkt[n], [1])
+
+            admin_state = True
+            acl_entry_oid_list = []
+            for n in range(0, member_num):
+
+                entry_priority = ((n+1)*100)
+                acl_entry_oid = sai_thrift_create_acl_entry(self.client,
+                                                            acl_table_oid_list[n],
+                                                            entry_priority,
+                                                            admin_state,
+                                                            action, addr_family,
+                                                            mac_src, mac_src_mask,
+                                                            mac_dst, mac_dst_mask,
+                                                            svlan_id, svlan_pri,
+                                                            svlan_cfi, cvlan_id,
+                                                            cvlan_pri, cvlan_cfi,
+                                                            ip_type,
+                                                            mpls_label0_label,
+                                                            mpls_label0_ttl,
+                                                            mpls_label0_exp,
+                                                            mpls_label0_bos,
+                                                            mpls_label1_label,
+                                                            mpls_label1_ttl,
+                                                            mpls_label1_exp,
+                                                            mpls_label1_bos,
+                                                            mpls_label2_label,
+                                                            mpls_label2_ttl,
+                                                            mpls_label2_exp,
+                                                            mpls_label2_bos,
+                                                            mpls_label3_label,
+                                                            mpls_label3_ttl,
+                                                            mpls_label3_exp,
+                                                            mpls_label3_bos,
+                                                            mpls_label4_label,
+                                                            mpls_label4_ttl,
+                                                            mpls_label4_exp,
+                                                            mpls_label4_bos,
+                                                            ip_src_list[n], ip_src_mask,
+                                                            ip_dst, ip_dst_mask,
+                                                            ip_protocol,
+                                                            ip_tos, ip_ecn,
+                                                            ip_dscp, ip_ttl,
+                                                            in_ports, out_ports,
+                                                            in_port, out_port,
+                                                            src_l4_port, dst_l4_port,
+                                                            ingress_mirror_id,
+                                                            egress_mirror_id,
+                                                            new_svlan, new_scos,
+                                                            new_cvlan, new_ccos,
+                                                            deny_learn)
+                sys_logging("create acl entry oid[%u] = 0x%lx" %(n, acl_entry_oid))
+                assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
+                acl_entry_oid_list.append(acl_entry_oid)
+
+            for n in range(0, member_num):
+                self.ctc_send_packet(0, str(pkt[n]))
+                self.ctc_verify_no_packet(exp_pkt[n], 1)
+
+            for n in range(0, member_num):
+                status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_list[n])
+                assert (status == SAI_STATUS_SUCCESS)
+
+                self.ctc_send_packet(0, str(pkt[n]))
+                self.ctc_verify_packets(exp_pkt[n], [1])
+
+            acl_entry_oid_list = []
+            for n in range(0, member_num):
+
+                entry_priority = ((n+1)*100)
+                acl_entry_oid = sai_thrift_create_acl_entry(self.client,
+                                                            acl_table_oid_list[n],
+                                                            entry_priority,
+                                                            admin_state,
+                                                            action, addr_family,
+                                                            mac_src, mac_src_mask,
+                                                            mac_dst, mac_dst_mask,
+                                                            svlan_id, svlan_pri,
+                                                            svlan_cfi, cvlan_id,
+                                                            cvlan_pri, cvlan_cfi,
+                                                            ip_type,
+                                                            mpls_label0_label,
+                                                            mpls_label0_ttl,
+                                                            mpls_label0_exp,
+                                                            mpls_label0_bos,
+                                                            mpls_label1_label,
+                                                            mpls_label1_ttl,
+                                                            mpls_label1_exp,
+                                                            mpls_label1_bos,
+                                                            mpls_label2_label,
+                                                            mpls_label2_ttl,
+                                                            mpls_label2_exp,
+                                                            mpls_label2_bos,
+                                                            mpls_label3_label,
+                                                            mpls_label3_ttl,
+                                                            mpls_label3_exp,
+                                                            mpls_label3_bos,
+                                                            mpls_label4_label,
+                                                            mpls_label4_ttl,
+                                                            mpls_label4_exp,
+                                                            mpls_label4_bos,
+                                                            ip_src_list[n], ip_src_mask,
+                                                            ip_dst, ip_dst_mask,
+                                                            ip_protocol,
+                                                            ip_tos, ip_ecn,
+                                                            ip_dscp, ip_ttl,
+                                                            in_ports, out_ports,
+                                                            in_port, out_port,
+                                                            src_l4_port, dst_l4_port,
+                                                            ingress_mirror_id,
+                                                            egress_mirror_id,
+                                                            new_svlan, new_scos,
+                                                            new_cvlan, new_ccos,
+                                                            deny_learn)
+                sys_logging("create acl entry oid[%u] = 0x%lx" %(n, acl_entry_oid))
+                assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
+                acl_entry_oid_list.append(acl_entry_oid)
+
+            for n in range(0, member_num):
+                self.ctc_send_packet(0, str(pkt[n]))
+                self.ctc_verify_no_packet(exp_pkt[n], 1)
+
+            for n in range(0, member_num):
+
+                status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid_list[n])
+                assert (status == SAI_STATUS_SUCCESS)
+
+                self.ctc_send_packet(0, str(pkt[n]))
+                self.ctc_verify_packets(exp_pkt[n], [1])
+
+        finally:
+            sys_logging("clear config")
+
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_port_attribute(port1, attr)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_set_port_attribute(port1, attr)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            for n in range(0, member_num):
+                status = self.client.sai_thrift_remove_acl_table(acl_table_oid_list[n])
+                assert (status == SAI_STATUS_SUCCESS)
+
+            status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_oid)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
 

@@ -33,6 +33,8 @@ extern "C" {
 #define CTC_SAI_DUMP_LINE_LEN 120
 #define IN_LINE_CNT 20
 
+#define LINK_STATUS_MODE 0
+
 //#ifdef CONFIG_SYSLOG
 #define CTC_SAI_LOG(level, sai_api_id, fmt, arg...) \
   do {                                          \

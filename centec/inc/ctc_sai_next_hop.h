@@ -16,36 +16,36 @@ This module defines SAI Next Hop.
  The Next Hop Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                       |       SUPPORT CHIPS LIST       |
-\t  |  create_next_hop                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_next_hop                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_next_hop_attribute                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_next_hop_attribute                     |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                       |           SUPPORT CHIPS LIST           |
+\t  |  create_next_hop                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_next_hop                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_next_hop_attribute                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_next_hop_attribute                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Next Hop attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                        |       SUPPORT CHIPS LIST       |
-\t  |  SAI_NEXT_HOP_ATTR_TYPE                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_ATTR_IP                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_ATTR_ROUTER_INTERFACE_ID             |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_ATTR_TUNNEL_ID                       |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_TUNNEL_VNI                      |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_TUNNEL_MAC                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_ATTR_SEGMENTROUTE_SIDLIST_ID         |              -                 |
-\t  |  SAI_NEXT_HOP_ATTR_SEGMENTROUTE_ENDPOINT_TYPE      |              -                 |
-\t  |  SAI_NEXT_HOP_ATTR_SEGMENTROUTE_ENDPOINT_POP_TYPE  |              -                 |
-\t  |  SAI_NEXT_HOP_ATTR_LABELSTACK                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEXT_HOP_ATTR_COUNTER_ID                      |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TYPE                     |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE                 |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TTL_VALUE                |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_EXP_MODE                 |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_EXP_VALUE                |            CTC7132             |
-\t  |  SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP|            CTC7132             |
-\e  |  SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID            |            CTC7132             |
-\e  |  SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID          |            CTC7132             |
+\t  |   ATTRIBUTE                                        |           SUPPORT CHIPS LIST           |
+\t  |  SAI_NEXT_HOP_ATTR_TYPE                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_ATTR_IP                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_ATTR_ROUTER_INTERFACE_ID             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_ATTR_TUNNEL_ID                       |            CTC7132,CTC8180             |
+\t  |  SAI_NEXT_HOP_ATTR_TUNNEL_VNI                      |            CTC7132,CTC8180             |
+\t  |  SAI_NEXT_HOP_ATTR_TUNNEL_MAC                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_ATTR_SEGMENTROUTE_SIDLIST_ID         |                  -                     |
+\t  |  SAI_NEXT_HOP_ATTR_SEGMENTROUTE_ENDPOINT_TYPE      |                  -                     |
+\t  |  SAI_NEXT_HOP_ATTR_SEGMENTROUTE_ENDPOINT_POP_TYPE  |                  -                     |
+\t  |  SAI_NEXT_HOP_ATTR_LABELSTACK                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEXT_HOP_ATTR_COUNTER_ID                      |            CTC7132,CTC8180             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TYPE                     |            CTC7132,CTC8180             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TTL_MODE                 |            CTC7132,CTC8180             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_TTL_VALUE                |            CTC7132,CTC8180             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_EXP_MODE                 |            CTC7132,CTC8180             |
+\t  |  SAI_NEXT_HOP_ATTR_OUTSEG_EXP_VALUE                |            CTC7132,CTC8180             |
+\t  |  SAI_NEXT_HOP_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP|            CTC7132,CTC8180             |
+\e  |  SAI_NEXT_HOP_ATTR_MPLS_ENCAP_TUNNEL_ID            |            CTC7132,CTC8180             |
+\e  |  SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID          |            CTC7132,CTC8180             |
 \b
 
 */

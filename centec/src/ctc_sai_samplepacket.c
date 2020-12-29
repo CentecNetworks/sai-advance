@@ -720,7 +720,7 @@ ctc_sai_samplepacket_set_port_samplepacket(uint8 lchip, uint32 gport, const sai_
         {
             value = (p_samplepacket->sample_rate >= CTC_SAI_RANDOM_LOG_MAX_RATE)? CTC_SAI_RANDOM_LOG_MAX_RATE: (CTC_SAI_RANDOM_LOG_MAX_RATE/p_samplepacket->sample_rate);
         }
-        
+
         CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_direction_property(lchip, gport, CTC_PORT_DIR_PROP_RANDOM_LOG_RATE, dir, value));
 
         /*enable port log */
@@ -766,14 +766,15 @@ roll_back_0:
 }
 
 sai_status_t
-ctc_sai_samplepacket_set_acl_samplepacket(uint8 lchip, uint8 ctc_dir, uint8 acl_priority, sai_object_id_t acl_entry_id, sai_attribute_t *attr, uint32* p_acl_log_id, uint32* p_log_rate)
+ctc_sai_samplepacket_set_acl_samplepacket(uint8 lchip, uint8 ctc_dir, uint8 acl_priority, sai_object_id_t acl_entry_id, sai_attribute_t *attr, uint32* ctc_log_id, uint32* ctc_session_id, uint32* ctc_log_rate)
 {
     sai_status_t status = SAI_STATUS_SUCCESS;
     uint32 cpu_gport = 0;
     uint32 log_value = 0;
     uint32 log_rate = 0;
-    uint8 acl_log_id = 0;
-    uint8 gchip_id = 0;
+    uint8  session_id = 0;
+    uint8  gchip_id = 0;
+    uint8  log_id = 0;
     ctc_sai_samplepacket_t* p_samplepacket = NULL;
     ctc_sai_samplepacket_bind_node_t* p_bind_node = NULL;
     ctc_sai_samplepacket_bind_node_t* p_temp_bind_node = NULL;
@@ -855,13 +856,13 @@ ctc_sai_samplepacket_set_acl_samplepacket(uint8 lchip, uint8 ctc_dir, uint8 acl_
         log_value = false;
     }
 
+    CTC_SAI_ERROR_RETURN(ctc_sai_mirror_alloc_sess_res_index(lchip, ctc_dir, acl_priority, &log_id, &session_id));
     if (log_value)
     {
-        CTC_SAI_ERROR_RETURN(ctc_sai_mirror_alloc_sess_res_index(lchip, ctc_dir, acl_priority, &acl_log_id));
-        ctc_mirror.session_id = acl_log_id;
+        ctc_mirror.session_id = session_id;
         ctc_mirror.dir = ctc_dir;
         ctc_mirror.type = CTC_MIRROR_ACLLOG_SESSION;
-        ctc_mirror.acl_priority = acl_priority;
+        ctc_mirror.acl_priority = log_id;
         ctc_mirror.dest_gport = cpu_gport;
         CTC_SAI_CTC_ERROR_GOTO(ctcs_mirror_add_session(lchip, &ctc_mirror), status, roll_back_0);
 
@@ -872,7 +873,7 @@ ctc_sai_samplepacket_set_acl_samplepacket(uint8 lchip, uint8 ctc_dir, uint8 acl_
             goto roll_back_1;
         }
         p_bind_node->is_acl = true;
-        p_bind_node->acl_log_id = acl_log_id;
+        p_bind_node->acl_log_id = session_id;
         p_bind_node->acl_entry_id = acl_entry_id;
         ctc_slist_add_tail(p_samplepacket->port_list, &(p_bind_node->head));
     }
@@ -883,25 +884,25 @@ ctc_sai_samplepacket_set_acl_samplepacket(uint8 lchip, uint8 ctc_dir, uint8 acl_
         ctc_mirror.session_id = p_bind_node->acl_log_id;
         ctc_mirror.dir = ctc_dir;
         ctc_mirror.type = CTC_MIRROR_ACLLOG_SESSION;
-        ctc_mirror.acl_priority = acl_priority;
+        ctc_mirror.acl_priority = log_id;
         ctc_mirror.dest_gport = cpu_gport;
         ctcs_mirror_remove_session(lchip, &ctc_mirror);
 
         ctc_sai_mirror_free_sess_res_index(lchip, ctc_dir, acl_priority, p_bind_node->acl_log_id);
         mem_free(p_bind_node);
     }
-    if ((NULL != p_acl_log_id) && (NULL != p_log_rate))
+    if ((NULL != ctc_log_id) && (NULL != ctc_log_rate) && (NULL != ctc_session_id))
     {
-        *p_acl_log_id = acl_log_id;
-        *p_log_rate = log_rate;
+        *ctc_log_id = log_id;
+        *ctc_log_rate = log_rate;
+        *ctc_session_id = session_id;
     }
-
     return SAI_STATUS_SUCCESS;
 
 roll_back_1:
     ctcs_mirror_remove_session(lchip, &ctc_mirror);
 roll_back_0:
-    ctc_sai_mirror_free_sess_res_index(lchip, ctc_dir, acl_priority, acl_log_id);
+    ctc_sai_mirror_free_sess_res_index(lchip, ctc_dir, acl_priority, session_id);
 
     return status;
 }

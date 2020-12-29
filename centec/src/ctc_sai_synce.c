@@ -65,6 +65,7 @@ ctc_sai_synce_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     ctc_sync_ether_cfg_t synce_cfg;
     ctc_sai_synce_db_t* p_synce_db = NULL;
     sai_object_id_t synce_oid= 0;
+    ctc_object_id_t ctc_object_id;
     sal_memset(&synce_cfg, 0, sizeof(synce_cfg));
     
     synce_oid = key->key.object_id;
@@ -82,8 +83,9 @@ ctc_sai_synce_set_info(sai_object_key_t *key, const sai_attribute_t* attr)
     {
 
     case SAI_SYNCE_ATTR_RECOVERED_PORT:
-        synce_cfg.recovered_clock_lport= attr->value.u16;
-        p_synce_db->recovered_clock_lport = attr->value.u16;
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr->value.oid, &ctc_object_id);
+        synce_cfg.recovered_clock_lport = ctc_object_id.value;
+        p_synce_db->recovered_clock_lport = ctc_object_id.value;
         break;
 
     case SAI_SYNCE_ATTR_CLOCK_DIVIDER:
@@ -127,7 +129,7 @@ ctc_sai_synce_get_info(sai_object_key_t * key, sai_attribute_t * attr, uint32 at
     {
 
     case SAI_SYNCE_ATTR_RECOVERED_PORT:
-        attr->value.u16 = synce_cfg.recovered_clock_lport;
+        attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, (uint32)synce_cfg.recovered_clock_lport);
         break;
 
     case SAI_SYNCE_ATTR_CLOCK_DIVIDER:
@@ -154,6 +156,17 @@ static  ctc_sai_attr_fn_entry_t synce_attr_fn_entries[] =
 
  };
 
+static sai_status_t
+_ctc_sai_synce_wb_reload_cb(uint8 lchip, void* key, void* data)
+{
+    ctc_object_id_t ctc_object_id;
+    sai_object_id_t synce_id = *(sai_object_id_t*)key;
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, synce_id, &ctc_object_id);
+    CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_SYNCE, ctc_object_id.value));
+    return SAI_STATUS_SUCCESS;
+}
+
+
 #define ________SAI_API________
 
 static sai_status_t ctc_sai_synce_create_synce( sai_object_id_t *synce_id,
@@ -172,6 +185,7 @@ static sai_status_t ctc_sai_synce_create_synce( sai_object_id_t *synce_id,
     uint32  sai_synce_id = 0;
     uint8 clock_id = 0;
     ctc_sai_synce_db_t* p_synce_info = NULL;
+    ctc_object_id_t ctc_object_id;
     
     sal_memset(&synce_cfg, 0, sizeof(synce_cfg));
     synce_cfg.link_status_detect_en = 1;
@@ -200,8 +214,9 @@ static sai_status_t ctc_sai_synce_create_synce( sai_object_id_t *synce_id,
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_SYNCE_ATTR_RECOVERED_PORT, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        synce_cfg.recovered_clock_lport = attr_value->u16;
-        p_synce_info->recovered_clock_lport = attr_value->u16;
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_value->oid, &ctc_object_id);
+        synce_cfg.recovered_clock_lport = ctc_object_id.value;
+        p_synce_info->recovered_clock_lport = ctc_object_id.value;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_SYNCE_ATTR_CLOCK_DIVIDER, &attr_value, &attr_index);
@@ -210,7 +225,7 @@ static sai_status_t ctc_sai_synce_create_synce( sai_object_id_t *synce_id,
         synce_cfg.divider = attr_value->u16;
     }
 
-    CTC_SAI_ERROR_GOTO (ctcs_sync_ether_set_cfg(lchip, clock_id, &synce_cfg), status, error2);
+    CTC_SAI_CTC_ERROR_GOTO (ctcs_sync_ether_set_cfg(lchip, clock_id, &synce_cfg), status, error2);
     *synce_id = synce_oid;
     status = SAI_STATUS_SUCCESS;
     goto out;
@@ -258,7 +273,7 @@ ctc_sai_synce_remove_synce( _In_ sai_object_id_t synce_id)
         goto out;
     }
 
-    CTC_SAI_CTC_ERROR_GOTO (ctcs_sync_ether_set_cfg(lchip, clock_id, &synce_cfg), status, out);
+    ctcs_sync_ether_set_cfg(lchip, clock_id, &synce_cfg);
     ctc_sai_oid_get_value(synce_id, &synceid);
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_SYNCE, synceid);    
     _ctc_sai_synce_remove_db(lchip, synce_id);
@@ -338,6 +353,19 @@ ctc_sai_synce_api_init()
 {
     ctc_sai_register_module_api(SAI_API_SYNCE, (void*)&g_ctc_sai_synce_api);
 
+    return SAI_STATUS_SUCCESS;
+}
+
+sai_status_t
+ctc_sai_synce_db_init(uint8 lchip)
+{
+    ctc_sai_db_wb_t wb_info;
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_SYNCE;
+    wb_info.data_len = sizeof(ctc_sai_synce_db_t);
+    wb_info.wb_sync_cb = NULL;
+    wb_info.wb_reload_cb = _ctc_sai_synce_wb_reload_cb;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_SYNCE, (void*)(&wb_info));
     return SAI_STATUS_SUCCESS;
 }
 

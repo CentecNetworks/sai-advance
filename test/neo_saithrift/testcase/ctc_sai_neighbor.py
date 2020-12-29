@@ -165,7 +165,8 @@ class fun_05_neighbor_v4_max_fn(sai_base_test.ThriftInterfaceDataPlane):
         dest_mac = []
         ip_addr = []
         mac = ''
-        neighbor_num = 1023
+
+        neighbor_num = 65535
 
         vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
 
@@ -173,13 +174,18 @@ class fun_05_neighbor_v4_max_fn(sai_base_test.ThriftInterfaceDataPlane):
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
 
         addr_family = SAI_IP_ADDR_FAMILY_IPV4
-        src_mac_start = ['01:22:33:44:55:', '11:22:33:44:55:', '21:22:33:44:55:', '31:22:33:44:55:', '41:22:33:44:55:', '51:22:33:44:55:', '61:22:33:44:55:', '71:22:33:44:55:', '81:22:33:44:55:', '91:22:33:44:55:', 'a1:22:33:44:55:']
+        src_mac_start = '00:22:22:{0}:{0}:{0}'
 
-        sys_logging("======create 1023(max) v4 neighbor first======")
+        for i in range(0, 7):
+            for j in range(0, 100):
+                for m in range(0, 100):
+                    src_mac = src_mac_start.format(str(i).zfill(4)[2:],str(j).zfill(4)[2:],str(m).zfill(4)[2:])
+                    dest_mac.append(src_mac)
+
+        sys_logging("======create %d(max) v4 neighbor first======" %neighbor_num)
         for i in range(neighbor_num):
-            dest_mac.append(src_mac_start[i/99] + str(i%99).zfill(2))
             ip_addr.append(integer_to_ip4(1+i))
-            sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr[i], dest_mac[i])
+            sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr[i], dest_mac[i], no_host_route = True)
 
         addr_family=SAI_IP_ADDR_FAMILY_IPV4
         ip_addr1 = '10.10.10.1'
@@ -187,7 +193,7 @@ class fun_05_neighbor_v4_max_fn(sai_base_test.ThriftInterfaceDataPlane):
         warmboot(self.client)
         try:
             sys_logging("======create another v4 neighbor======")
-            status = sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            status = sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1, no_host_route = True)
             sys_logging("status = %d" %status)
             assert (status == SAI_STATUS_INSUFFICIENT_RESOURCES)
         finally:
@@ -208,7 +214,8 @@ class fun_06_neighbor_v6_max_fn(sai_base_test.ThriftInterfaceDataPlane):
         dest_mac = []
         ip_addr = []
         mac = ''
-        neighbor_num = 1023
+
+        neighbor_num = 65535
 
         vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
 
@@ -216,20 +223,25 @@ class fun_06_neighbor_v6_max_fn(sai_base_test.ThriftInterfaceDataPlane):
         rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
 
         addr_family = SAI_IP_ADDR_FAMILY_IPV6
-        src_mac_start = ['01:22:33:44:55:', '11:22:33:44:55:', '21:22:33:44:55:', '31:22:33:44:55:', '41:22:33:44:55:', '51:22:33:44:55:', '61:22:33:44:55:', '71:22:33:44:55:', '81:22:33:44:55:', '91:22:33:44:55:', 'a1:22:33:44:55:']
+        src_mac_start = '00:22:22:{0}:{0}:{0}'
 
-        sys_logging("======create 1023(max) v6 neighbor first======")
+        for i in range(0, 7):
+            for j in range(0, 100):
+                for m in range(0, 100):
+                    src_mac = src_mac_start.format(str(i).zfill(4)[2:],str(j).zfill(4)[2:],str(m).zfill(4)[2:])
+                    dest_mac.append(src_mac)
+
+        sys_logging("======create %d(max) v6 neighbor first======" %neighbor_num)
         for i in range(neighbor_num):
-            dest_mac.append(src_mac_start[i/99] + str(i%99).zfill(2))
             ip_addr.append(integer_to_ip6(1+i))
-            sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr[i], dest_mac[i])
+            sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr[i], dest_mac[i], no_host_route = True)
         addr_family=SAI_IP_ADDR_FAMILY_IPV6
         ip_addr1 = '1234:5678:9abc:def0:4422:1133:5577:99aa'
         dmac1 = '00:11:22:33:44:55'
         warmboot(self.client)
         try:
             sys_logging("======create another v6 neighbor======")
-            status = sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            status = sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1, no_host_route = True)
             sys_logging("status = %d" %status)
             assert (status == SAI_STATUS_INSUFFICIENT_RESOURCES)
         finally:

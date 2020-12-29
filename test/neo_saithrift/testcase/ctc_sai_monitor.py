@@ -136,13 +136,13 @@ class func_05_create_monitor_buffer_and_set_switch_buffer_attr_fn(sai_base_test.
         #Set switch buffer monitor microburst min threshold 
         microburst_min_threshold = 150000
         attr_value = sai_thrift_attribute_value_t(u32=microburst_min_threshold)
-        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD, value=attr_value)
         self.client.sai_thrift_set_switch_attribute(attr)
         
         #Set switch buffer monitor microburst max threshold 
         microburst_max_threshold = 300000
         attr_value = sai_thrift_attribute_value_t(u32=microburst_max_threshold)
-        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD, value=attr_value)
         self.client.sai_thrift_set_switch_attribute(attr)
         
         # send the packet to cpu when the usage of buffer over the threshold 
@@ -163,11 +163,11 @@ class func_05_create_monitor_buffer_and_set_switch_buffer_attr_fn(sai_base_test.
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_monitor_buffer(buffer_oid)
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD, value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD, value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(booldata=False)
@@ -187,13 +187,13 @@ class func_06_create_monitor_latency_and_set_switch_buffer_attr_fn(sai_base_test
         #Set switch latency monitor  min threshold (ns)
         latency_min_threshold = 100
         attr_value = sai_thrift_attribute_value_t(u32=latency_min_threshold)
-        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD, value=attr_value)
         self.client.sai_thrift_set_switch_attribute(attr)
         
         #Set switch latency monitor  max threshold (ns)
         latency_max_threshold = 900
         attr_value = sai_thrift_attribute_value_t(u32=latency_max_threshold)
-        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD, value=attr_value)
         self.client.sai_thrift_set_switch_attribute(attr)
         
         
@@ -212,11 +212,11 @@ class func_06_create_monitor_latency_and_set_switch_buffer_attr_fn(sai_base_test
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_monitor_latency(latency_oid)
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD, value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD, value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
 @group('monitor_new_add')
@@ -325,7 +325,7 @@ class func_05_remove_non_exist_monitor_buffer(sai_base_test.ThriftInterfaceDataP
 
         switch_init(self.client)
 
-        buffer_oid = 8589934687
+        buffer_oid = 8589934694
 
         sys_logging("======remove monitor buffer======")
         status = self.client.sai_thrift_remove_monitor_buffer(buffer_oid)
@@ -360,9 +360,9 @@ class func_06_set_monitor_buffer_attribute_port(sai_base_test.ThriftInterfaceDat
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -403,9 +403,9 @@ class func_07_set_monitor_buffer_attribute_threshold_min(sai_base_test.ThriftInt
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -413,7 +413,7 @@ class func_07_set_monitor_buffer_attribute_threshold_min(sai_base_test.ThriftInt
                 assert(False == a.value.booldata)
 
         attr_value = sai_thrift_attribute_value_t(u32=160000)
-        attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD, value=attr_value)
         sys_logging("======set monitor buffer attr======")
         status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid, attr)
         sys_logging( "set monitor buffer status = %d" %status)
@@ -427,7 +427,7 @@ class func_07_set_monitor_buffer_attribute_threshold_min(sai_base_test.ThriftInt
         warmboot(self.client)
         try:
             for a in attrs.attr_list:
-                if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+                if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                     assert(160000 == a.value.u32)
 
         finally:
@@ -454,9 +454,9 @@ class func_08_set_monitor_buffer_attribute_threshold_max(sai_base_test.ThriftInt
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -464,7 +464,7 @@ class func_08_set_monitor_buffer_attribute_threshold_max(sai_base_test.ThriftInt
                 assert(False == a.value.booldata)
 
         attr_value = sai_thrift_attribute_value_t(u32=320000)
-        attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD, value=attr_value)
         sys_logging("======set monitor buffer attr======")
         status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid, attr)
         sys_logging( "set monitor buffer status = %d" %status)
@@ -478,7 +478,7 @@ class func_08_set_monitor_buffer_attribute_threshold_max(sai_base_test.ThriftInt
         warmboot(self.client)
         try:
             for a in attrs.attr_list:
-                if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+                if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                     assert(320000 == a.value.u32)
 
         finally:
@@ -505,9 +505,9 @@ class func_09_set_monitor_buffer_attribute_ingress_enable(sai_base_test.ThriftIn
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -556,9 +556,9 @@ class func_10_set_monitor_buffer_attribute_egress_enable(sai_base_test.ThriftInt
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -607,9 +607,9 @@ class func_11_set_monitor_buffer_attribute_egress_total_watermark_zero(sai_base_
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -658,9 +658,9 @@ class func_12_set_monitor_buffer_attribute_egress_total_watermark_non_zero(sai_b
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -701,9 +701,9 @@ class func_13_set_monitor_buffer_attribute_egress_unicast_watermark_zero(sai_bas
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -752,9 +752,9 @@ class func_14_set_monitor_buffer_attribute_egress_unicast_watermark_non_zero(sai
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -795,9 +795,9 @@ class func_15_set_monitor_buffer_attribute_egress_multicast_watermark_zero(sai_b
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -846,9 +846,9 @@ class func_16_set_monitor_buffer_attribute_egress_multicast_watermark_non_zero(s
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -889,9 +889,9 @@ class func_17_set_monitor_buffer_attribute_ingress_total_watermark_zero(sai_base
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -940,9 +940,9 @@ class func_18_set_monitor_buffer_attribute_ingress_total_watermark_non_zero(sai_
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -983,9 +983,9 @@ class func_19_get_monitor_buffer_attribute(sai_base_test.ThriftInterfaceDataPlan
         for a in attrs.attr_list:
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_PORT:
                 assert(port == a.value.oid)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                 assert(150000 == a.value.u32)
-            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+            if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                 assert(300000 == a.value.u32)
             if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -993,13 +993,13 @@ class func_19_get_monitor_buffer_attribute(sai_base_test.ThriftInterfaceDataPlan
                 assert(False == a.value.booldata)
 
         attr_value = sai_thrift_attribute_value_t(u32=160000)
-        attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD, value=attr_value)
         sys_logging("======set monitor buffer attr======")
         status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid, attr)
         sys_logging( "set monitor buffer status = %d" %status)
 
         attr_value = sai_thrift_attribute_value_t(u32=320000)
-        attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD, value=attr_value)
         sys_logging("======set monitor buffer attr======")
         status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid, attr)
         sys_logging( "set monitor buffer status = %d" %status)
@@ -1049,9 +1049,9 @@ class func_19_get_monitor_buffer_attribute(sai_base_test.ThriftInterfaceDataPlan
         warmboot(self.client)
         try:
             for a in attrs.attr_list:
-                if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN:
+                if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD:
                     assert(160000 == a.value.u32)
-                if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX:
+                if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD:
                     assert(320000 == a.value.u32)
                 if a.id == SAI_MONITOR_BUFFER_MONITOR_ATTR_INGRESS_PORT_PERIODIC_MONITOR_ENABLE:
                     assert(True == a.value.booldata)
@@ -1182,7 +1182,7 @@ class func_24_remove_non_exist_monitor_latency(sai_base_test.ThriftInterfaceData
 
         switch_init(self.client)
 
-        latency_oid = 8589934688
+        latency_oid = 8589934695
 
         sys_logging("======remove monitor latency======")
         status = self.client.sai_thrift_remove_monitor_latency(latency_oid)
@@ -1226,7 +1226,7 @@ class func_25_set_monitor_latency_attribute_port(sai_base_test.ThriftInterfaceDa
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD:
                 for i in range(0, len(monitor_discard)):
                     assert(False == a.value.boollist.boollist[i])
-            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 assert(False == a.value.booldata)
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -1274,13 +1274,13 @@ class func_26_set_monitor_latency_attribute_enable(sai_base_test.ThriftInterface
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD:
                 for i in range(0, len(monitor_discard)):
                     assert(False == a.value.boollist.boollist[i])
-            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 assert(False == a.value.booldata)
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
 
         attr_value = sai_thrift_attribute_value_t(booldata=True)
-        attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE, value=attr_value)
         sys_logging("======set monitor latency attr======")
         status = self.client.sai_thrift_set_monitor_latency_attribute(latency_oid, attr)
         sys_logging( "set monitor latency status = %d" %status)
@@ -1294,7 +1294,7 @@ class func_26_set_monitor_latency_attribute_enable(sai_base_test.ThriftInterface
         warmboot(self.client)
         try:
             for a in attrs.attr_list:
-                if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+                if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                     assert(True == a.value.booldata)
                 if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                     assert(False == a.value.booldata)
@@ -1332,7 +1332,7 @@ class func_27_set_monitor_latency_attribute_level_overthrd_event(sai_base_test.T
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD:
                 for i in range(0, len(monitor_discard)):
                     assert(False == a.value.boollist.boollist[i])
-            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 assert(False == a.value.booldata)
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -1394,7 +1394,7 @@ class func_28_set_monitor_latency_attribute_periodic_enable(sai_base_test.Thrift
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD:
                 for i in range(0, len(monitor_discard)):
                     assert(False == a.value.boollist.boollist[i])
-            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 assert(False == a.value.booldata)
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -1430,7 +1430,7 @@ class func_28_set_monitor_latency_attribute_periodic_enable(sai_base_test.Thrift
                         assert(False == a.value.boollist.boollist[i])
                 if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                     assert(True == a.value.booldata)
-                if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+                if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                     assert(False == a.value.booldata)
 
         finally:
@@ -1466,7 +1466,7 @@ class func_29_set_monitor_latency_attribute_level_discard(sai_base_test.ThriftIn
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD:
                 for i in range(0, len(monitor_discard)):
                     assert(False == a.value.boollist.boollist[i])
-            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 assert(False == a.value.booldata)
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -1502,7 +1502,7 @@ class func_29_set_monitor_latency_attribute_level_discard(sai_base_test.ThriftIn
                         assert(True == a.value.boollist.boollist[i])
                 if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                     assert(True == a.value.booldata)
-                if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+                if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                     assert(False == a.value.booldata)
 
         finally:
@@ -1538,7 +1538,7 @@ class func_30_set_monitor_latency_attribute_watermark_zero(sai_base_test.ThriftI
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD:
                 for i in range(0, len(monitor_discard)):
                     assert(False == a.value.boollist.boollist[i])
-            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 assert(False == a.value.booldata)
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -1594,7 +1594,7 @@ class func_31_set_monitor_latency_attribute_watermark_non_zero(sai_base_test.Thr
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD:
                 for i in range(0, len(monitor_discard)):
                     assert(False == a.value.boollist.boollist[i])
-            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 assert(False == a.value.booldata)
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -1644,7 +1644,7 @@ class func_32_get_monitor_latency_attribute(sai_base_test.ThriftInterfaceDataPla
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_LEVEL_DISCARD:
                 for i in range(0, len(monitor_discard)):
                     assert(False == a.value.boollist.boollist[i])
-            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+            if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                 assert(False == a.value.booldata)
             if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                 assert(False == a.value.booldata)
@@ -1666,7 +1666,7 @@ class func_32_get_monitor_latency_attribute(sai_base_test.ThriftInterfaceDataPla
         sys_logging( "set monitor latency status = %d" %status)
 
         attr_value = sai_thrift_attribute_value_t(booldata=True)
-        attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE, value=attr_value)
         sys_logging("======set monitor latency attr======")
         status = self.client.sai_thrift_set_monitor_latency_attribute(latency_oid, attr)
         sys_logging( "set monitor latency status = %d" %status)
@@ -1700,7 +1700,7 @@ class func_32_get_monitor_latency_attribute(sai_base_test.ThriftInterfaceDataPla
                         assert(True == a.value.boollist.boollist[i])
                 if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PERIODIC_MONITOR_ENABLE:
                     assert(True == a.value.booldata)
-                if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE:
+                if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE:
                     assert(True == a.value.booldata)
                 if a.id == SAI_MONITOR_LATENCY_MONITOR_ATTR_PORT_WATERMARK:
                     assert(0 == a.value.u32)
@@ -1758,34 +1758,34 @@ class func_34_set_switch_buffer_monitor_property_mb_total_thrd_min(sai_base_test
         warmboot(self.client)
         try:
             sys_logging("======get switch monitor buffer attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             print attr_list
 
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD = %d======"  %attribute.value.u32)
                     assert ( 0 == attribute.value.u32 )
 
             sys_logging("======set switch monitor buffer attr======")
             attr_value = sai_thrift_attribute_value_t(u32=150000)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             sys_logging("======get switch monitor buffer attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD = %d======"  %attribute.value.u32)
                     assert ( 150000 == attribute.value.u32 )
 
         finally:
             sys_logging("======clean up======")
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
 class func_35_set_switch_buffer_monitor_property_mb_total_thrd_max(sai_base_test.ThriftInterfaceDataPlane):
@@ -1797,34 +1797,34 @@ class func_35_set_switch_buffer_monitor_property_mb_total_thrd_max(sai_base_test
         warmboot(self.client)
         try:
             sys_logging("======get switch monitor buffer attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             print attr_list
 
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD = %d======"  %attribute.value.u32)
                     assert ( 0 == attribute.value.u32 )
 
             sys_logging("======set switch monitor buffer attr======")
             attr_value = sai_thrift_attribute_value_t(u32=300000)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             sys_logging("======get switch monitor buffer attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD = %d======"  %attribute.value.u32)
                     assert ( 300000 == attribute.value.u32 )
 
         finally:
             sys_logging("======clean up======")
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
 class func_36_set_switch_buffer_monitor_property_mb_level_threshold(sai_base_test.ThriftInterfaceDataPlane):
@@ -2184,34 +2184,34 @@ class func_45_set_switch_latency_monitor_property_threshold_min(sai_base_test.Th
         warmboot(self.client)
         try:
             sys_logging("======get switch monitor latency attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             print attr_list
 
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD = %d======"  %attribute.value.u32)
                     assert ( 0 == attribute.value.u32 )
 
             sys_logging("======set switch monitor latency attr======")
             attr_value = sai_thrift_attribute_value_t(u32=50)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             sys_logging("======get switch monitor latency attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD = %d======"  %attribute.value.u32)
                     assert ( 50 == attribute.value.u32 )
 
         finally:
             sys_logging("======clean up======")
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
 class func_46_set_switch_latency_monitor_property_threshold_max(sai_base_test.ThriftInterfaceDataPlane):
@@ -2223,34 +2223,34 @@ class func_46_set_switch_latency_monitor_property_threshold_max(sai_base_test.Th
         warmboot(self.client)
         try:
             sys_logging("======get switch monitor latency attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             print attr_list
 
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD = %d======"  %attribute.value.u32)
                     assert ( 0 == attribute.value.u32 )
 
             sys_logging("======set switch monitor latency attr======")
             attr_value = sai_thrift_attribute_value_t(u32=100)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             sys_logging("======get switch monitor latency attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD = %d======"  %attribute.value.u32)
                     assert ( 100 == attribute.value.u32 )
 
         finally:
             sys_logging("======clean up======")
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
 class func_47_set_switch_latency_monitor_property_time_interval(sai_base_test.ThriftInterfaceDataPlane):
@@ -2351,8 +2351,8 @@ class func_49_get_switch_buffer_monitor_property(sai_base_test.ThriftInterfaceDa
         warmboot(self.client)
         try:
             sys_logging("======get switch monitor buffer attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE, SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN,
-                        SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX, SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_OVERTHRD_EVENT,
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE, SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD,
+                        SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD, SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_OVERTHRD_EVENT,
                         SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD, SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_PERIODIC_MONITOR_ENABLE,
                         SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_PERIODIC_MONITOR_ENABLE, SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL,
                         SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK, SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK]
@@ -2365,11 +2365,11 @@ class func_49_get_switch_buffer_monitor_property(sai_base_test.ThriftInterfaceDa
                 if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE:
                     sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE = %d======"  %attribute.value.booldata)
                     assert ( 0 == attribute.value.booldata )
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD = %d======"  %attribute.value.u32)
                     assert ( 0 == attribute.value.u32 )
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD = %d======"  %attribute.value.u32)
                     assert ( 0 == attribute.value.u32 )
                 if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD:
                     for i in range(0, 8):
@@ -2401,11 +2401,11 @@ class func_49_get_switch_buffer_monitor_property(sai_base_test.ThriftInterfaceDa
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=150000)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=300000)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             mb_level_threshold = [100, 200, 300, 400, 500, 600, 700, 800]
@@ -2447,11 +2447,11 @@ class func_49_get_switch_buffer_monitor_property(sai_base_test.ThriftInterfaceDa
                 if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE:
                     sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_ENABLE = %d======"  %attribute.value.booldata)
                     assert ( True == attribute.value.booldata )
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD = %d======"  %attribute.value.u32)
                     assert ( 150000 == attribute.value.u32 )
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD = %d======"  %attribute.value.u32)
                     assert ( 300000 == attribute.value.u32 )
                 if attribute.id == SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_LEVEL_THRESHOLD:
                     for i in range(0, 8):
@@ -2484,11 +2484,11 @@ class func_49_get_switch_buffer_monitor_property(sai_base_test.ThriftInterfaceDa
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             mb_level_threshold = [0, 2000, 5000, 20000, 400000, 1000000, 5000000, 10000000]
@@ -2531,18 +2531,18 @@ class func_50_get_switch_latency_monitor_property(sai_base_test.ThriftInterfaceD
         warmboot(self.client)
         try:
             sys_logging("======get switch monitor latency attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN, SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX, SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL, SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD, SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD, SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL, SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_LEVEL_THRESHOLD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             print attr_list
 
             value = [0, 512, 768, 1024, 1280, 1536, 1792, 2048]
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD = %d======"  %attribute.value.u32)
                     assert ( 0 == attribute.value.u32 )
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD = %d======"  %attribute.value.u32)
                     assert ( 0 == attribute.value.u32 )
                 if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
                     sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL = %d======"  %attribute.value.u32)
@@ -2555,11 +2555,11 @@ class func_50_get_switch_latency_monitor_property(sai_base_test.ThriftInterfaceD
 
             sys_logging("======set switch monitor latency attr======")
             attr_value = sai_thrift_attribute_value_t(u32=50)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=100)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=100)
@@ -2575,15 +2575,15 @@ class func_50_get_switch_latency_monitor_property(sai_base_test.ThriftInterfaceD
 
             latency_level_threshold_value = [128, 96, 192, 224, 288, 320, 384, 448]
             sys_logging("======get switch monitor latency attr======")
-            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN]
+            ids_list = [SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD]
             switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
             attr_list = switch_attr_list.attr_list
             for attribute in attr_list:
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD = %d======"  %attribute.value.u32)
                     assert ( 50 == attribute.value.u32 )
-                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX:
-                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX = %d======"  %attribute.value.u32)
+                if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD:
+                    sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD = %d======"  %attribute.value.u32)
                     assert ( 100 == attribute.value.u32 )
                 if attribute.id == SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
                     sys_logging("======SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL = %d======"  %attribute.value.u32)
@@ -2597,11 +2597,11 @@ class func_50_get_switch_latency_monitor_property(sai_base_test.ThriftInterfaceD
         finally:
             sys_logging("======clean up======")
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=1)
@@ -2836,27 +2836,27 @@ class scenario_02_monitor_buffer_mb_monitor_test(sai_base_test.ThriftInterfaceDa
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=1000)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD, value=attr_value)
             status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid1, attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=2000)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD, value=attr_value)
             status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid1, attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=1000)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD, value=attr_value)
             status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid2, attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=2000)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD, value=attr_value)
             status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid2, attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=1000)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=2000)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=5000)
@@ -2885,27 +2885,27 @@ class scenario_02_monitor_buffer_mb_monitor_test(sai_base_test.ThriftInterfaceDa
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD, value=attr_value)
             status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid1, attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD, value=attr_value)
             status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid1, attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MIN, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD, value=attr_value)
             status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid2, attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_THRESHOLD_MAX, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD, value=attr_value)
             status = self.client.sai_thrift_set_monitor_buffer_attribute(buffer_oid2, attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=0)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_THRD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
             attr_value = sai_thrift_attribute_value_t(u32=1)
@@ -3003,7 +3003,7 @@ class scenario_03_monitor_latency_stats_and_watermark_test(sai_base_test.ThriftI
         self.client.sai_thrift_set_monitor_latency_attribute(latency_oid2, attr)
 
         attr_value = sai_thrift_attribute_value_t(booldata=True)
-        attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE, value=attr_value)
+        attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE, value=attr_value)
         self.client.sai_thrift_set_monitor_latency_attribute(latency_oid2, attr)
 
         attr_value = sai_thrift_attribute_value_t(u32=5000)
@@ -3102,15 +3102,15 @@ class scenario_04_monitor_latency_mb_monitor_test(sai_base_test.ThriftInterfaceD
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(booldata=True)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE, value=attr_value)
             self.client.sai_thrift_set_monitor_latency_attribute(latency_oid2, attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=512)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=768)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=5000)
@@ -3198,15 +3198,15 @@ class scenario_05_monitor_latency_discard_test(sai_base_test.ThriftInterfaceData
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(booldata=True)
-            attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_ENABLE, value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_MONITOR_LATENCY_MONITOR_ATTR_OVER_MAX_THRESHOLD_INFORM_ENABLE, value=attr_value)
             self.client.sai_thrift_set_monitor_latency_attribute(latency_oid2, attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=512)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MIN , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=768)
-            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_THRESHOLD_MAX , value=attr_value)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD , value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
             
             attr_value = sai_thrift_attribute_value_t(u32=5000)

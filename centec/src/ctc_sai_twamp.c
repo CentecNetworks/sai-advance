@@ -675,7 +675,7 @@ _ctc_sai_twamp_create_oam_mep_index(ctc_sai_twamp_t *p_twamp_attr, sai_object_id
     p_y1731_lmep->flag |= CTC_OAM_Y1731_LMEP_FLAG_MEP_EN;       
     p_y1731_lmep->flag |= CTC_OAM_Y1731_LMEP_FLAG_TWAMP_EN;    
 
-    if (SAI_TWAMP_SESSION_REFLECTOR == p_twamp_attr->role)
+    if (SAI_TWAMP_SESSION_ROLE_REFLECTOR == p_twamp_attr->role)
     {
         if (p_twamp_attr->user_nh_id)
         {
@@ -751,7 +751,7 @@ _ctc_sai_twamp_remove_oam_mep_index(ctc_sai_twamp_t *p_twamp_attr, sai_object_id
         status = ctc_sai_mapping_error_ctc(ret);
     }
 
-    if (SAI_TWAMP_SESSION_REFLECTOR == p_twamp_attr->role)
+    if (SAI_TWAMP_SESSION_ROLE_REFLECTOR == p_twamp_attr->role)
     {
         if (p_twamp_attr->user_nh_id)
         {
@@ -1471,7 +1471,7 @@ _ctc_sai_twamp_create_e2iloop_nexthop_for_hw_lookup(ctc_sai_twamp_t *p_twamp_att
     ret = ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, &nhid);
 
 
-    if ((p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI || p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_NNI ) && p_twamp_attr->role == SAI_TWAMP_SESSION_REFLECTOR)
+    if ((p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI || p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_NNI ) && p_twamp_attr->role == SAI_TWAMP_SESSION_ROLE_REFLECTOR)
     {
         nh_param.type = CTC_MISC_NH_TYPE_OVER_L2;
         nh_param.gport = port_assign.inter_port;  
@@ -1737,7 +1737,7 @@ ctc_sai_twamp_global_acl_add(sai_object_id_t twamp_session_id, ctc_sai_twamp_t *
     {
         twamp_acl_oam.packet_offset = 42;
         /*
-        if ((p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI || p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_NNI ) && p_twamp_attr->role == SAI_TWAMP_SESSION_REFLECTOR)
+        if ((p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_UNI || p_twamp_attr->encap_type == SAI_TWAMP_ENCAPSULATION_TYPE_L3_MPLS_VPN_NNI ) && p_twamp_attr->role == SAI_TWAMP_SESSION_ROLE_REFLECTOR)
         {
             twamp_acl_oam.packet_offset = 42 - 14;
         }
@@ -2091,7 +2091,7 @@ _ctc_sai_twamp_mapping_npm_session(ctc_sai_twamp_t *p_twamp_attr, ctc_npm_cfg_t 
 
     p_npm_cfg->rate = p_twamp_attr->tx_rate;
 
-    if (SAI_TWAMP_TX_MODE_CONTINUOUS == p_twamp_attr->pkt_tx_mode)
+    if (SAI_TWAMP_PKT_TX_MODE_CONTINUOUS == p_twamp_attr->pkt_tx_mode)
     {
         p_npm_cfg->tx_mode = CTC_NPM_TX_MODE_CONTINUOUS;
         if (p_twamp_attr->pkt_duration)
@@ -2103,12 +2103,12 @@ _ctc_sai_twamp_mapping_npm_session(ctc_sai_twamp_t *p_twamp_attr, ctc_npm_cfg_t 
             p_npm_cfg->timeout = 0;
         }        
     }
-    else if (SAI_TWAMP_TX_MODE_PACKET_NUM == p_twamp_attr->pkt_tx_mode)
+    else if (SAI_TWAMP_PKT_TX_MODE_PACKET_NUM == p_twamp_attr->pkt_tx_mode)
     {
         p_npm_cfg->tx_mode = CTC_NPM_TX_MODE_PACKET_NUM;
         p_npm_cfg->packet_num = p_twamp_attr->pkt_cnt;
     }
-    else if (SAI_TWAMP_TX_MODE_PERIOD == p_twamp_attr->pkt_tx_mode)
+    else if (SAI_TWAMP_PKT_TX_MODE_PERIOD == p_twamp_attr->pkt_tx_mode)
     {
         p_npm_cfg->tx_mode = CTC_NPM_TX_MODE_PERIOD;
         p_npm_cfg->tx_period = p_twamp_attr->period;
@@ -2133,7 +2133,7 @@ _ctc_sai_twamp_mapping_npm_session(ctc_sai_twamp_t *p_twamp_attr, ctc_npm_cfg_t 
     p_npm_cfg->dm_stats_mode = 0; // default is two way delay stats
 
     // support the ntp timestamp format by default
-    if (p_twamp_attr->timestamp_format == SAI_TWAMP_MODE_TIMESTAMP_FORMAT_NTP)
+    if (p_twamp_attr->timestamp_format == SAI_TWAMP_TIMESTAMP_FORMAT_NTP)
     {
         p_npm_cfg->flag |= CTC_NPM_CFG_FLAG_NTP_TS; 
     }
@@ -2295,7 +2295,7 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
         p_twamp_attr->hw_lookup = true;
     }
 
-    if (SAI_TWAMP_SESSION_SENDER == p_twamp_attr->role)
+    if (SAI_TWAMP_SESSION_ROLE_SENDER == p_twamp_attr->role)
     {
         status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_TTL, &attr_value, &index);
         if(SAI_STATUS_SUCCESS == status)
@@ -2341,7 +2341,7 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
             return  SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
         }     
         
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE, &attr_value, &index);
+        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_TWAMP_PKT_TX_MODE, &attr_value, &index);
         if(SAI_STATUS_SUCCESS == status)
         {
             p_twamp_attr->pkt_tx_mode = attr_value->s32;
@@ -2352,7 +2352,7 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
             return  SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
         } 
 
-        if(p_twamp_attr->pkt_tx_mode == SAI_TWAMP_TX_MODE_CONTINUOUS)
+        if(p_twamp_attr->pkt_tx_mode == SAI_TWAMP_PKT_TX_MODE_CONTINUOUS)
         {
             status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_TX_PKT_DURATION, &attr_value, &index);
             if(SAI_STATUS_SUCCESS == status)
@@ -2365,7 +2365,7 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
                 return  SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
             }         
         }
-        else if(p_twamp_attr->pkt_tx_mode == SAI_TWAMP_TX_MODE_PACKET_NUM)
+        else if(p_twamp_attr->pkt_tx_mode == SAI_TWAMP_PKT_TX_MODE_PACKET_NUM)
         {   
             status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_TX_PKT_CNT, &attr_value, &index);
             if(SAI_STATUS_SUCCESS == status)
@@ -2378,7 +2378,7 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
                 return  SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
             }                 
         }    
-        else if(p_twamp_attr->pkt_tx_mode == SAI_TWAMP_TX_MODE_PERIOD)
+        else if(p_twamp_attr->pkt_tx_mode == SAI_TWAMP_PKT_TX_MODE_PERIOD)
         {
             status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_TX_PKT_PERIOD, &attr_value, &index);
             if(SAI_STATUS_SUCCESS == status)
@@ -2414,7 +2414,7 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
         p_twamp_attr->user_nh_id = attr_value->oid;
     }
 
-    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_MODE, &attr_value, &index);
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_TWAMP_SESSION_ATTR_TWAMP_MODE, &attr_value, &index);
     if(SAI_STATUS_SUCCESS == status)
     {
         p_twamp_attr->session_mode = attr_value->s32;
@@ -2432,7 +2432,7 @@ ctc_sai_twamp_parser_session_attr(uint32_t attr_count, const sai_attribute_t *at
     }
     else
     {
-        p_twamp_attr->timestamp_format = SAI_TWAMP_MODE_TIMESTAMP_FORMAT_NTP;
+        p_twamp_attr->timestamp_format = SAI_TWAMP_TIMESTAMP_FORMAT_NTP;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -2516,7 +2516,7 @@ _ctc_sai_twamp_wb_reload_cb(uint8 lchip, void* key, void* data)
     ctc_object_id_t twamp_ctc_oid;
     
     sal_memset(&twamp_ctc_oid, 0, sizeof(ctc_object_id_t));
-    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TWAMP, twamp_sai_oid, &twamp_ctc_oid));
+    CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TWAMP_SESSION, twamp_sai_oid, &twamp_ctc_oid));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_TWAMP, twamp_ctc_oid.value));
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_L3IF, p_db_twamp->l3if_id));
@@ -2524,7 +2524,7 @@ _ctc_sai_twamp_wb_reload_cb(uint8 lchip, void* key, void* data)
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, p_db_twamp->eloop_nexthop));    
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_ACL_ENTRY_INDEX, p_db_twamp->oam_acl_entry_id));
 
-    if (SAI_TWAMP_SESSION_REFLECTOR == p_db_twamp->role)
+    if (SAI_TWAMP_SESSION_ROLE_REFLECTOR == p_db_twamp->role)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_L3IF, p_db_twamp->oam_l3if_id));
         CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_NEXTHOP, p_db_twamp->oam_iloop_nh_id));
@@ -2551,7 +2551,7 @@ _ctc_sai_twamp_unsupport_attr_check(ctc_sai_twamp_t *p_twamp_attr, uint8 lchip)
             return status;
         }
 
-        if (SAI_TWAMP_MODE_TWAMP_FULL != p_twamp_attr->session_mode)
+        if (SAI_TWAMP_MODE_FULL != p_twamp_attr->session_mode)
         {
             status = SAI_STATUS_NOT_SUPPORTED;
             return status;
@@ -2563,13 +2563,13 @@ _ctc_sai_twamp_unsupport_attr_check(ctc_sai_twamp_t *p_twamp_attr, uint8 lchip)
             return status;
         }
 
-        if (SAI_TWAMP_SESSION_MODE_UNAUTHENTICATED != p_twamp_attr->auth_mode)
+        if (SAI_TWAMP_SESSION_AUTH_MODE_UNAUTHENTICATED != p_twamp_attr->auth_mode)
         {
             status = SAI_STATUS_NOT_SUPPORTED;
             return status;
         }    
 
-        if ( SAI_TWAMP_MODE_TIMESTAMP_FORMAT_NTP != p_twamp_attr->timestamp_format)
+        if ( SAI_TWAMP_TIMESTAMP_FORMAT_NTP != p_twamp_attr->timestamp_format)
         {
             status = SAI_STATUS_NOT_SUPPORTED;
             return status;
@@ -2609,7 +2609,7 @@ ctc_sai_twamp_create_twamp_session(sai_object_id_t *twamp_session_id,  sai_objec
     ctcs_get_gchip_id(lchip, &gchip);
     
     CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_TWAMP, &twamp_id));
-    twamp_tmp_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_TWAMP, lchip, 0, 0, twamp_id);
+    twamp_tmp_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_TWAMP_SESSION, lchip, 0, 0, twamp_id);
 
     sal_memset(&twamp_attr, 0, sizeof(ctc_sai_twamp_t));
     status = ctc_sai_twamp_parser_session_attr(attr_count, attr_list, &twamp_attr);
@@ -2639,7 +2639,7 @@ ctc_sai_twamp_create_twamp_session(sai_object_id_t *twamp_session_id,  sai_objec
         CTC_SAI_ERROR_GOTO(_ctc_sai_twamp_create_e2iloop_nexthop_for_hw_lookup(&twamp_attr, switch_id),status, error3);
     }
 
-    if (SAI_TWAMP_SESSION_SENDER == twamp_attr.role)
+    if (SAI_TWAMP_SESSION_ROLE_SENDER == twamp_attr.role)
     {
 
         // for sender receive port enable acl match to oam engine
@@ -2709,7 +2709,7 @@ ctc_sai_twamp_create_twamp_session(sai_object_id_t *twamp_session_id,  sai_objec
             }
         }
     }
-    else if (SAI_TWAMP_SESSION_REFLECTOR == twamp_attr.role)
+    else if (SAI_TWAMP_SESSION_ROLE_REFLECTOR == twamp_attr.role)
     {
         sal_memset(&acl_prop, 0, sizeof(acl_prop));
         acl_prop.acl_en = 1;
@@ -2768,7 +2768,7 @@ ctc_sai_twamp_create_twamp_session(sai_object_id_t *twamp_session_id,  sai_objec
     return status;
 
 error7:
-    if (SAI_TWAMP_SESSION_REFLECTOR == p_twamp_info->role)
+    if (SAI_TWAMP_SESSION_ROLE_REFLECTOR == p_twamp_info->role)
     {
         ctc_sai_twamp_acl_del(p_twamp_info->loop_acl_entry_id, lchip);
     }
@@ -2799,7 +2799,7 @@ error2:
         _ctc_sai_twamp_remove_oam_maid(lchip);
     }    
 error1:
-    ctc_sai_db_free_id(lchip, SAI_OBJECT_TYPE_TWAMP, twamp_id);
+    ctc_sai_db_free_id(lchip, SAI_OBJECT_TYPE_TWAMP_SESSION, twamp_id);
     
     if (SAI_STATUS_SUCCESS != status)
     {
@@ -2842,7 +2842,7 @@ ctc_sai_twamp_remove_twamp_session(sai_object_id_t twamp_session_oid)
     status = ctc_sai_oid_get_twamp_session_id(twamp_session_oid, &session_id);
     session_id_tmp = session_id & 0xFF;
     
-    if (SAI_TWAMP_SESSION_SENDER == p_twamp_info->role)
+    if (SAI_TWAMP_SESSION_ROLE_SENDER == p_twamp_info->role)
     {
         CTC_SAI_CTC_ERROR_GOTO(ctcs_npm_set_transmit_en(lchip, session_id_tmp, 0), status, error1);
 
@@ -2871,7 +2871,7 @@ ctc_sai_twamp_remove_twamp_session(sai_object_id_t twamp_session_oid)
             goto error1; 
         }
     }
-    else if (SAI_TWAMP_SESSION_REFLECTOR == p_twamp_info->role)
+    else if (SAI_TWAMP_SESSION_ROLE_REFLECTOR == p_twamp_info->role)
     {        
         sal_memset(&acl_prop, 0, sizeof(acl_prop));
         acl_prop.acl_en = 0;
@@ -3053,7 +3053,7 @@ ctc_sai_twamp_get_twamp_session_attr(sai_object_key_t *key, sai_attribute_t* att
             attr->value.oid = p_twamp_info->user_nh_id;
             break;
 
-        case SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE:
+        case SAI_TWAMP_SESSION_ATTR_TWAMP_PKT_TX_MODE:
             attr->value.s32 = p_twamp_info->pkt_tx_mode;
             break;
 
@@ -3073,7 +3073,7 @@ ctc_sai_twamp_get_twamp_session_attr(sai_object_key_t *key, sai_attribute_t* att
             attr->value.u32 = p_twamp_info->pkt_duration;
             break;
 
-        case SAI_TWAMP_SESSION_ATTR_MODE:
+        case SAI_TWAMP_SESSION_ATTR_TWAMP_MODE:
             attr->value.s32 = p_twamp_info->session_mode;
             break;
 
@@ -3108,7 +3108,7 @@ ctc_sai_twamp_set_twamp_session_attr(sai_object_key_t *key, const sai_attribute_
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    if (SAI_TWAMP_SESSION_SENDER != p_twamp_info->role)
+    if (SAI_TWAMP_SESSION_ROLE_SENDER != p_twamp_info->role)
     {
         return  SAI_STATUS_INVALID_PARAMETER;
     }
@@ -3197,7 +3197,7 @@ static ctc_sai_attr_fn_entry_t  twamp_attr_fn_entries[] =
       ctc_sai_twamp_get_twamp_session_attr,
       ctc_sai_twamp_set_twamp_session_attr
     },
-    { SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE,
+    { SAI_TWAMP_SESSION_ATTR_TWAMP_PKT_TX_MODE,
       ctc_sai_twamp_get_twamp_session_attr,
       ctc_sai_twamp_set_twamp_session_attr
     },
@@ -3217,7 +3217,7 @@ static ctc_sai_attr_fn_entry_t  twamp_attr_fn_entries[] =
       ctc_sai_twamp_get_twamp_session_attr,
       ctc_sai_twamp_set_twamp_session_attr
     },
-    { SAI_TWAMP_SESSION_ATTR_MODE,
+    { SAI_TWAMP_SESSION_ATTR_TWAMP_MODE,
       ctc_sai_twamp_get_twamp_session_attr,
       ctc_sai_twamp_set_twamp_session_attr
     },
@@ -3238,7 +3238,7 @@ ctc_sai_twamp_set_twamp_attr(sai_object_id_t twamp_session_id, const sai_attribu
     CTC_SAI_LOG_ENTER(SAI_API_TWAMP);
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(twamp_session_id, &lchip));
-    status = ctc_sai_set_attribute(&key, key_str, SAI_OBJECT_TYPE_TWAMP, twamp_attr_fn_entries, attr);
+    status = ctc_sai_set_attribute(&key, key_str, SAI_OBJECT_TYPE_TWAMP_SESSION, twamp_attr_fn_entries, attr);
     if (SAI_STATUS_SUCCESS != status)
     {
         CTC_SAI_LOG_ERROR(SAI_API_TWAMP, "Failed to set stp attr:%d, status:%d\n", attr->id,status);
@@ -3262,7 +3262,7 @@ ctc_sai_twamp_get_twamp_attr(sai_object_id_t twamp_session_id, uint32_t attr_cou
 
     while (loop_index < attr_count)
     {
-        CTC_SAI_ERROR_GOTO(ctc_sai_get_attribute(&key, key_str, SAI_OBJECT_TYPE_TWAMP,
+        CTC_SAI_ERROR_GOTO(ctc_sai_get_attribute(&key, key_str, SAI_OBJECT_TYPE_TWAMP_SESSION,
                                     loop_index, twamp_attr_fn_entries, &attr_list[loop_index]), status, out);
         loop_index ++;
     }
@@ -3317,7 +3317,7 @@ ctc_sai_twamp_get_twamp_session_stats(sai_object_id_t twamp_session_id,
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    if(p_twamp_info->role != SAI_TWAMP_SESSION_SENDER)
+    if(p_twamp_info->role != SAI_TWAMP_SESSION_ROLE_SENDER)
     {
         return SAI_STATUS_INVALID_PARAMETER;        
     }
@@ -3425,7 +3425,7 @@ ctc_sai_twamp_clear_twamp_session_stats( sai_object_id_t twamp_session_oid, uint
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
-    if(p_twamp_info->role != SAI_TWAMP_SESSION_SENDER)
+    if(p_twamp_info->role != SAI_TWAMP_SESSION_ROLE_SENDER)
     {
         return SAI_STATUS_INVALID_PARAMETER;        
     }
@@ -3451,6 +3451,7 @@ const sai_twamp_api_t ctc_sai_twamp_api = {
     ctc_sai_twamp_set_twamp_attr,
     ctc_sai_twamp_get_twamp_attr,
     ctc_sai_twamp_get_twamp_session_stats,
+    NULL,
     ctc_sai_twamp_clear_twamp_session_stats,
 };
 
@@ -3476,7 +3477,7 @@ ctc_sai_twamp_db_init(uint8 lchip)
     wb_info.wb_reload_cb1 = _ctc_sai_twamp_wb_reload_cb1;
     
 
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_TWAMP, (void*)(&wb_info));
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_TWAMP_SESSION, (void*)(&wb_info));
 
     if(NULL != p_ctc_sai_twamp[lchip])
     {

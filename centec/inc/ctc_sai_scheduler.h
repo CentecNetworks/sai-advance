@@ -55,10 +55,10 @@ typedef struct  ctc_sai_scheduler_db_s
 {
         uint8 sch_type;                 //refer to sai_scheduling_type_t
         uint8 weight;
-        uint32 min_rate;                //cir
-        uint32 min_burst_rate;          //cbs
-        uint32 max_rate;                //pir
-        uint32 max_burst_rate;          //pbs
+        uint64 min_rate;                //cir
+        uint64 min_burst_rate;          //cbs
+        uint64 max_rate;                //pir
+        uint64 max_burst_rate;          //pbs
         uint16 ref_cnt;
 }ctc_sai_scheduler_db_t;
 

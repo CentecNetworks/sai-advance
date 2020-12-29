@@ -14,36 +14,36 @@ This module defines SAI MPLS.
  The MPLS Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_inseg_entry                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_inseg_entry                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_inseg_entry_attribute                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_inseg_entry_attribute                            |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_inseg_entry                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_inseg_entry                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_inseg_entry_attribute                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_inseg_entry_attribute                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 
 \p
  The MPLS attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_INSEG_ENTRY_ATTR_NUM_OF_POP                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_INSEG_ENTRY_ATTR_PACKET_ACTION                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_INSEG_ENTRY_ATTR_TRAP_PRIORITY                   |              -                 |
-\t  |  SAI_INSEG_ENTRY_ATTR_NEXT_HOP_ID                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_INSEG_ENTRY_ATTR_PSC_TYPE                        |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_QOS_TC                          |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP              |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP           |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE                    |            CTC7132             |
-\t  |  SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE                    |            CTC7132             |
-\e  |  SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID                 |    CTC8096,CTC7148,CTC7132     |
-\e  |  SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP                     |            CTC7132             |
-\e  |  SAI_INSEG_ENTRY_ATTR_FRR_CONFIGURED_ROLE             |            CTC7132             |
-\e  |  SAI_INSEG_ENTRY_ATTR_FRR_OBSERVED_ROLE               |            CTC7132             |
-\e  |  SAI_INSEG_ENTRY_ATTR_FRR_INACTIVE_RX_DISCARD         |            CTC7132             |
-\e  |  SAI_INSEG_ENTRY_ATTR_COUNTER_ID                      |            CTC7132             |
-\e  |  SAI_INSEG_ENTRY_ATTR_POLICER_ID                      |            CTC7132             |
-\e  |  SAI_INSEG_ENTRY_ATTR_SERVICE_ID                      |            CTC7132             |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_INSEG_ENTRY_ATTR_NUM_OF_POP                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_INSEG_ENTRY_ATTR_PACKET_ACTION                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_INSEG_ENTRY_ATTR_TRAP_PRIORITY                   |                  -                     |
+\t  |  SAI_INSEG_ENTRY_ATTR_NEXT_HOP_ID                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_INSEG_ENTRY_ATTR_PSC_TYPE                        |            CTC7132,CTC8180             |
+\t  |  SAI_INSEG_ENTRY_ATTR_QOS_TC                          |            CTC7132,CTC8180             |
+\t  |  SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_TC_MAP              |            CTC7132,CTC8180             |
+\t  |  SAI_INSEG_ENTRY_ATTR_MPLS_EXP_TO_COLOR_MAP           |            CTC7132,CTC8180             |
+\t  |  SAI_INSEG_ENTRY_ATTR_POP_TTL_MODE                    |            CTC7132,CTC8180             |
+\t  |  SAI_INSEG_ENTRY_ATTR_POP_QOS_MODE                    |            CTC7132,CTC8180             |
+\e  |  SAI_INSEG_ENTRY_ATTR_DECAP_TUNNEL_ID                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\e  |  SAI_INSEG_ENTRY_ATTR_FRR_NHP_GRP                     |            CTC7132,CTC8180             |
+\e  |  SAI_INSEG_ENTRY_ATTR_FRR_CONFIGURED_ROLE             |            CTC7132,CTC8180             |
+\e  |  SAI_INSEG_ENTRY_ATTR_FRR_OBSERVED_ROLE               |            CTC7132,CTC8180             |
+\e  |  SAI_INSEG_ENTRY_ATTR_FRR_INACTIVE_RX_DISCARD         |            CTC7132,CTC8180             |
+\e  |  SAI_INSEG_ENTRY_ATTR_COUNTER_ID                      |            CTC7132,CTC8180             |
+\e  |  SAI_INSEG_ENTRY_ATTR_POLICER_ID                      |            CTC7132,CTC8180             |
+\e  |  SAI_INSEG_ENTRY_ATTR_SERVICE_ID                      |            CTC7132,CTC8180             |
 \b
 
 */

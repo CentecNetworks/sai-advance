@@ -14,66 +14,67 @@
  The Bridge Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                        |       SUPPORT CHIPS LIST       |
-\t  |  create_bridge                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_bridge                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_bridge_attribute                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_bridge_attribute                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_bridge_stats                            |              -                 |
-\t  |  get_bridge_stats_ext                        |              -                 |
-\t  |  clear_bridge_stats                          |              -                 |
-\t  |  create_bridge_port                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_bridge_port                          |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_bridge_port_attribute                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_bridge_port_attribute                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_bridge_port_stats                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_bridge_port_stats_ext                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  clear_bridge_port_stats                     |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                        |           SUPPORT CHIPS LIST           |
+\t  |  create_bridge                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_bridge                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_bridge_attribute                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_bridge_attribute                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_bridge_stats                            |                   -                    |
+\t  |  get_bridge_stats_ext                        |                   -                    |
+\t  |  clear_bridge_stats                          |                   -                    |
+\t  |  create_bridge_port                          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_bridge_port                          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_bridge_port_attribute                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_bridge_port_attribute                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_bridge_port_stats                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_bridge_port_stats_ext                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  clear_bridge_port_stats                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Bridge attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_BRIDGE_ATTR_TYPE                                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_ATTR_PORT_LIST                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_ATTR_MAX_LEARNED_ADDRESSES                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_ATTR_LEARN_DISABLE                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_GROUP          |              -                 |
-\t  |  SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_GROUP        |              -                 |
-\t  |  SAI_BRIDGE_ATTR_BROADCAST_FLOOD_CONTROL_TYPE         |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_ATTR_BROADCAST_FLOOD_GROUP                |              -                 |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_BRIDGE_ATTR_TYPE                                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_ATTR_PORT_LIST                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_ATTR_MAX_LEARNED_ADDRESSES                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_ATTR_LEARN_DISABLE                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_CONTROL_TYPE   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_ATTR_UNKNOWN_UNICAST_FLOOD_GROUP          |                   -                    |
+\t  |  SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_ATTR_UNKNOWN_MULTICAST_FLOOD_GROUP        |                   -                    |
+\t  |  SAI_BRIDGE_ATTR_BROADCAST_FLOOD_CONTROL_TYPE         |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_ATTR_BROADCAST_FLOOD_GROUP                |                   -                    |
 \b
 \p
  The Bridge port attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                                       |       SUPPORT CHIPS LIST       |
-\t  |  SAI_BRIDGE_PORT_ATTR_TYPE                                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_PORT_ID                                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_TAGGING_MODE                                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_VLAN_ID                                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_RIF_ID                                      |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_TUNNEL_ID                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_BRIDGE_ID                                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE                           |              -                 |
-\t  |  SAI_BRIDGE_PORT_ATTR_MAX_LEARNED_ADDRESSES                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_LIMIT_VIOLATION_PACKET_ACTION  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_ADMIN_STATE                                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP                             |    CTC8096,CTC7148,CTC7132     |
-\e  |  SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT                   |            CTC7132             |
-\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE                  |            CTC7132             |
-\e  |  SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP                                 |            CTC7132             |
-\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID                  |            CTC7132             |
-\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID                  |            CTC7132             |
-\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID                    |            CTC7132             |
-\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE              |            CTC7132             |
-\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS                   |            CTC7132             |
-\e  |  SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID                            |            CTC7132             |
+\t  |   ATTRIBUTE                                                       |           SUPPORT CHIPS LIST           |
+\t  |  SAI_BRIDGE_PORT_ATTR_TYPE                                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_PORT_ID                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_TAGGING_MODE                                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_VLAN_ID                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_RIF_ID                                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_TUNNEL_ID                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_BRIDGE_ID                                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE                           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_MAX_LEARNED_ADDRESSES                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_LIMIT_VIOLATION_PACKET_ACTION  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_ADMIN_STATE                                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING                           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\e  |  SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT                   |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE                  |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP                                 |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID                  |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID                  |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID                    |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE              |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS                   |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID                            |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_NEED_FLOOD                                  |            CTC7132,CTC8180             |
 \b
 */
 
@@ -132,6 +133,7 @@ typedef struct ctc_sai_bridge_port_s
     uint16 outgoing_svid;
     uint8 outgoing_scos;
     int32 outgoing_scos_mode;
+    bool need_flood;
 }
 ctc_sai_bridge_port_t;
 

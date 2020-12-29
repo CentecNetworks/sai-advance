@@ -57,6 +57,8 @@ typedef enum _sai_nat_type_t
 
 /**
  * @brief NAT Entry Attributes for Match
+ *
+ * @flags Contains flags
  */
 typedef enum _sai_nat_entry_attr_t
 {
@@ -216,7 +218,7 @@ typedef enum _sai_nat_entry_attr_t
 
     /** Custom range base value */
     SAI_NAT_ENTRY_ATTR_CUSTOM_RANGE_START = 0x10000000,
-    
+
     /**
      * @brief DNAT reroute flag
      *
@@ -225,8 +227,7 @@ typedef enum _sai_nat_entry_attr_t
      * @default false
      * @validonly SAI_NAT_ENTRY_ATTR_NAT_TYPE == SAI_NAT_TYPE_DESTINATION_NAT
      */
-    SAI_NAT_ENTRY_ATTR_CUSTOM_DNAT_REROUTE = SAI_NAT_ENTRY_ATTR_CUSTOM_RANGE_START,
-    
+    SAI_NAT_ENTRY_ATTR_CUSTOM_DNAT_REROUTE,
 
     /** End of custom range base */
     SAI_NAT_ENTRY_ATTR_CUSTOM_RANGE_END
@@ -332,6 +333,11 @@ typedef struct _sai_nat_entry_t
      * @objects SAI_OBJECT_TYPE_VIRTUAL_ROUTER
      */
     sai_object_id_t vr_id;
+
+    /**
+     * @brief NAT entry type
+     */
+    sai_nat_type_t nat_type;
 
     /**
      * @brief NAT entry data

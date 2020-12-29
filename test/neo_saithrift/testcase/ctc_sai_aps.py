@@ -55,9 +55,9 @@ class fun_01_create_aps_nexthop_group_fn(sai_base_test.ThriftInterfaceDataPlane)
             nhop_group1 = sai_thrift_create_next_hop_protection_group(self.client)
             nhop_group2 = sai_thrift_create_next_hop_protection_group(self.client)
             sys_logging("aps nexthop group id = 0x%x" %nhop_group1)
-            assert (nhop_group1%0x100000000 == 0x12005)
+            assert (nhop_group1%0x100000000 == (1<< 16 | SAI_NEXT_HOP_GROUP_TYPE_PROTECTION << 13 | SAI_OBJECT_TYPE_NEXT_HOP_GROUP))
             sys_logging("aps nexthop group id = 0x%x" %nhop_group2)
-            assert (nhop_group2%0x100000000 == 0x22005)
+            assert (nhop_group2%0x100000000 == (2<< 16 | SAI_NEXT_HOP_GROUP_TYPE_PROTECTION << 13 | SAI_OBJECT_TYPE_NEXT_HOP_GROUP))
         finally:
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_next_hop_group(nhop_group1)
@@ -67,7 +67,12 @@ class fun_02_create_max_aps_nexthop_group_fn(sai_base_test.ThriftInterfaceDataPl
     def runTest(self):
         print
         switch_init(self.client)
-        num = 1023
+        a = testutils.test_params_get()['chipname']
+        if a == 'tsingma':
+            num = 1023
+        elif a == 'tsingma_mx':
+            num = 4096
+        
         nhop_grp_list = []
         sys_logging("======create 1024 aps nexthop group======")
         for i in range(num):
@@ -1434,6 +1439,7 @@ class scenario_05_vpls_pw_aps_group_test(sai_base_test.ThriftInterfaceDataPlane)
 
         bport = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id)
         frr_bport = sai_thrift_create_bridge_frr_port(self.client, frr_nhp_grp_id=nhop_group1, bridge_id=bridge_id)
+        #pdb.set_trace()
         
 
         mac_action = SAI_PACKET_ACTION_FORWARD
@@ -4200,7 +4206,7 @@ class scenario_16_vpls_2_level_aps_group_update_member_test(sai_base_test.Thrift
 
 
 
-class scenario_18_vpls_2_level_aps_group_update_member_test(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_17_vpls_2_level_aps_group_update_1_level_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
 
         print ""
@@ -4571,7 +4577,7 @@ class scenario_18_vpls_2_level_aps_group_update_member_test(sai_base_test.Thrift
 
 
 
-class scenario_17_create_l2_aps_nexthop_group_test(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_18_create_l2_aps_nexthop_group_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
                        
         switch_init(self.client)

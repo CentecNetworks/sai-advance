@@ -1683,7 +1683,7 @@ sai_status_t ctc_sai_y1731_create_y1731_session( sai_object_id_t *sai_y1731_sess
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_DIR, &attr_value, &index);
     if (!CTC_SAI_ERROR(status))
     {
-        if(SAI_Y1731_SESSION_DIR_UPMEP == attr_value->s32)
+        if(SAI_Y1731_SESSION_DIRECTION_UPMEP == attr_value->s32)
         {
             oam_key.flag |= CTC_OAM_KEY_FLAG_UP_MEP;
         }
@@ -2387,7 +2387,7 @@ out:
     return status;
 }    
 
-static sai_status_t ctc_sai_y1731_get_y1731_session_lm_stats( sai_object_id_t sai_y1731_session_id,
+static sai_status_t ctc_sai_y1731_get_y1731_session_stats( sai_object_id_t sai_y1731_session_id,
                                                 uint32_t               number_of_stats,
                                                 const sai_stat_id_t *lm_stats_ids,
                                                 uint64_t             *stats)
@@ -2424,19 +2424,19 @@ static sai_status_t ctc_sai_y1731_get_y1731_session_lm_stats( sai_object_id_t sa
 
     for(loop_i = 0;loop_i < number_of_stats;loop_i++)
     {
-        if(SAI_Y1731_SESSION_LM_STAT_TX_FCF == lm_stats_ids[loop_i])
+        if(SAI_Y1731_SESSION_STAT_TX_FCF == lm_stats_ids[loop_i])
         {
             stats[loop_i] = stat_info.lm_info[0].tx_fcf;
         }
-        else if(SAI_Y1731_SESSION_LM_STAT_RX_FCB == lm_stats_ids[loop_i])
+        else if(SAI_Y1731_SESSION_STAT_RX_FCB == lm_stats_ids[loop_i])
         {
             stats[loop_i] = stat_info.lm_info[0].rx_fcb;
         }
-        else if(SAI_Y1731_SESSION_LM_STAT_TX_FCB == lm_stats_ids[loop_i])
+        else if(SAI_Y1731_SESSION_STAT_TX_FCB == lm_stats_ids[loop_i])
         {
             stats[loop_i] = stat_info.lm_info[0].tx_fcb;
         }
-        else /* SAI_Y1731_SESSION_LM_STAT_RX_FCL */
+        else /* SAI_Y1731_SESSION_STAT_RX_FCL */
         {
             stats[loop_i] = stat_info.lm_info[0].rx_fcl;
         }
@@ -2465,7 +2465,9 @@ const sai_y1731_api_t ctc_sai_y1731_api = {
     ctc_sai_y1731_set_y1731_remote_mep_attribute,
     ctc_sai_y1731_get_y1731_remote_mep_attribute,
 
-    ctc_sai_y1731_get_y1731_session_lm_stats,
+    ctc_sai_y1731_get_y1731_session_stats,
+    NULL,
+    NULL,
 };
 
 sai_status_t

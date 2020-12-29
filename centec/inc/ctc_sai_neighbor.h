@@ -14,24 +14,27 @@
  The Neighbor Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                             |       SUPPORT CHIPS LIST       |
-\t  |  create_neighbor_entry                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_neighbor_entry                            |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_neighbor_entry_attribute                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_neighbor_entry_attribute                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_all_neighbor_entries                      |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                             |           SUPPORT CHIPS LIST           |
+\t  |  create_neighbor_entry                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_neighbor_entry                            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_neighbor_entry_attribute                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_neighbor_entry_attribute                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_all_neighbor_entries                      |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Neighbor attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                       |       SUPPORT CHIPS LIST       |
-\t  |  SAI_NEIGHBOR_ENTRY_ATTR_DST_MAC_ADDRESS          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEIGHBOR_ENTRY_ATTR_PACKET_ACTION            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEIGHBOR_ENTRY_ATTR_USER_TRAP_ID             |              -                 |
-\t  |  SAI_NEIGHBOR_ENTRY_ATTR_NO_HOST_ROUTE            |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_NEIGHBOR_ENTRY_ATTR_META_DATA                |              -                 |
-\t  |  SAI_NEIGHBOR_ENTRY_ATTR_COUNTER_ID               |              -                 |
+\t  |   ATTRIBUTE                                       |           SUPPORT CHIPS LIST           |
+\t  |  SAI_NEIGHBOR_ENTRY_ATTR_DST_MAC_ADDRESS          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEIGHBOR_ENTRY_ATTR_PACKET_ACTION            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEIGHBOR_ENTRY_ATTR_USER_TRAP_ID             |                  -                     |
+\t  |  SAI_NEIGHBOR_ENTRY_ATTR_NO_HOST_ROUTE            |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_NEIGHBOR_ENTRY_ATTR_META_DATA                |                  -                     |
+\t  |  SAI_NEIGHBOR_ENTRY_ATTR_COUNTER_ID               |                  -                     |
+\e  |  SAI_NEIGHBOR_ENTRY_ATTR_ENCAP_INDEX              |                  -                     |
+\e  |  SAI_NEIGHBOR_ENTRY_ATTR_ENCAP_IMPOSE_INDEX       |                  -                     |
+\e  |  SAI_NEIGHBOR_ENTRY_ATTR_IS_LOCAL                 |                  -                     |
 \b
 
 */

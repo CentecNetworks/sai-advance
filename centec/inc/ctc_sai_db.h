@@ -237,6 +237,7 @@ typedef struct  ctc_sai_nat_key_s
     uint8 proto;
     uint16 l4_src_port;
     uint16 l4_dst_port;
+    uint32 nat_type;
 }ctc_sai_nat_key_t;
 
 

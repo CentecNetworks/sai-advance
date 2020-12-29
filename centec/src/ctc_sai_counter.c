@@ -421,69 +421,75 @@ ctc_sai_counter_id_remove(sai_object_id_t counter_id, ctc_sai_counter_type_t ctc
 sai_status_t
 ctc_sai_counter_init_resource(uint8 lchip)
 {
+    uint8 chip_type = 0;
     ctc_stats_property_param_t stats_param;
     ctc_stats_property_t stats_prop;
 
     sal_memset(&stats_param, 0, sizeof(ctc_stats_property_param_t));
     sal_memset(&stats_prop, 0, sizeof(ctc_stats_property_t));
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VLAN][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VLAN][CTC_EGRESS],             CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON3);
+    chip_type = ctcs_get_chip_type(lchip);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_L3IF][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_L3IF][CTC_EGRESS],             CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON3);
+    if (CTC_CHIP_TSINGMA == chip_type)
+    {
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VLAN][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VLAN][CTC_EGRESS],             CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON3);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VRF][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_L3IF][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_L3IF][CTC_EGRESS],             CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON3);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_SCL][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_SCL][CTC_EGRESS],              CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_VRF][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_TUNNEL][CTC_INGRESS],          CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_TUNNEL][CTC_EGRESS],           CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_SCL][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_SCL][CTC_EGRESS],              CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MPLS][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MPLS_LSP][CTC_EGRESS], CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_TUNNEL][CTC_INGRESS],          CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_TUNNEL][CTC_EGRESS],           CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MPLS_PW][CTC_INGRESS],         CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MPLS_PW][CTC_EGRESS],  CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON2);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MPLS][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MPLS_LSP][CTC_EGRESS], CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MCAST][CTC_INGRESS],   CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP][CTC_EGRESS],          CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON2);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MPLS_PW][CTC_INGRESS],         CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MPLS_PW][CTC_EGRESS],  CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON2);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_IP][CTC_INGRESS],              CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP_MCAST][CTC_INGRESS],   CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_NEXTHOP][CTC_EGRESS],          CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON2);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_FLOW_HASH][CTC_INGRESS],       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_IP][CTC_INGRESS],              CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MAC][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_FLOW_HASH][CTC_INGRESS],       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER0][CTC_INGRESS],        CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON0);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER0][CTC_EGRESS],         CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON0);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_MAC][CTC_INGRESS],             CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER1][CTC_INGRESS],        CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER1][CTC_EGRESS],         CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER0][CTC_INGRESS],        CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON0);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER0][CTC_EGRESS],         CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON0);
 
-    CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_ECMP][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER1][CTC_INGRESS],        CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_POLICER1][CTC_EGRESS],         CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[2][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL0);
+        CTC_BIT_SET(stats_param.flow_ram_bmp[CTC_STATS_STATSID_TYPE_ECMP][CTC_INGRESS],            CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[3][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL1);
+        CTC_BIT_SET(stats_param.acl_ram_bmp[2][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL0);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[4][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL2);
+        CTC_BIT_SET(stats_param.acl_ram_bmp[3][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL1);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[5][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL3);
+        CTC_BIT_SET(stats_param.acl_ram_bmp[4][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL2);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[6][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
+        CTC_BIT_SET(stats_param.acl_ram_bmp[5][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_ACL3);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[7][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
+        CTC_BIT_SET(stats_param.acl_ram_bmp[6][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON2);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[0][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_ACL0);
+        CTC_BIT_SET(stats_param.acl_ram_bmp[7][CTC_INGRESS],                                       CTC_SAI_COUNTER_RESOURCE_INGRESS_COMMON3);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[1][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON0);
+        CTC_BIT_SET(stats_param.acl_ram_bmp[0][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_ACL0);
 
-    CTC_BIT_SET(stats_param.acl_ram_bmp[2][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+        CTC_BIT_SET(stats_param.acl_ram_bmp[1][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON0);
 
-    stats_param.prop_type = CTC_STATS_PROPERTY_CLASSIFY_FLOW_STATS_RAM;
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_set_global_cfg(lchip, stats_param, stats_prop));
+        CTC_BIT_SET(stats_param.acl_ram_bmp[2][CTC_EGRESS],                                        CTC_SAI_COUNTER_RESOURCE_EGRESS_COMMON1);
+
+        stats_param.prop_type = CTC_STATS_PROPERTY_CLASSIFY_FLOW_STATS_RAM;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_set_global_cfg(lchip, stats_param, stats_prop));
+    }
 
     return CTC_E_NONE;
 }

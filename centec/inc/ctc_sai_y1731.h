@@ -27,7 +27,7 @@
 \e  |  remove_y1731_remote_mep                                  |        CTC7132         |
 \e  |  set_y1731_remote_mep_attribute                           |        CTC7132         |
 \e  |  get_y1731_remote_mep_attribute                           |        CTC7132         |
-\e  |  get_y1731_session_lm_stats                               |        CTC7132         |
+\e  |  get_y1731_session_stats                                  |        CTC7132         |
 \b
 \p
  The Y1731 MEG attributes supported by centec devices:
@@ -117,8 +117,8 @@ typedef struct ctc_sai_y1731_session_s
     //uint8 is_p2p_mode;
     uint8 is_link_oam;
 
-    sai_y1731_session_performance_monitor_offload_type_t lm_offload_type;
-    sai_y1731_session_performance_monitor_offload_type_t dm_offload_type;
+    sai_y1731_session_perf_monitor_offload_type_t lm_offload_type;
+    sai_y1731_session_perf_monitor_offload_type_t dm_offload_type;
 
     uint8 lm_en;
     uint8 lm_type;

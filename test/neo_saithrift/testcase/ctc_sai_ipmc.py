@@ -1268,13 +1268,23 @@ class fun_27_create_max_v4_ipmc_entry_fn(sai_base_test.ThriftInterfaceDataPlane)
         dmac1 = '01:00:5E:7F:01:01'
         smac1 = '00:00:00:00:00:01'
         type = SAI_IPMC_ENTRY_TYPE_XG
-        num = 1024
+        num = 0
         grp_id_list = []
         ipmc_entry_list = []
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
 
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
-        sys_logging("======create 1024 XG v4 ipmc entry======")
+        if chipname == "tsingma":
+            num = 1024
+            sys_logging("======create 1024 XG v4 ipmc entry======")
+        elif chipname == "tsingma_mx":
+            num = 2048
+            sys_logging("======create 2048 XG v4 ipmc entry======")
+        else:
+            num = 0
+            sys_logging("======chipname is error======")
         for i in range(num):
             
             temp = ip4_to_integer(dip_addr2)
@@ -1330,13 +1340,22 @@ class fun_28_create_max_v6_ipmc_entry_fn(sai_base_test.ThriftInterfaceDataPlane)
         dmac1 = '33:33:00:01:00:01'
         smac1 = '00:00:00:00:00:01'
         type = SAI_IPMC_ENTRY_TYPE_XG
-        num = 1024
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+        if chipname == "tsingma":
+            num = 512
+            sys_logging("======create 512 XG v6 ipmc entry======")
+        elif chipname == "tsingma_mx":
+            num = 1024
+            sys_logging("======create 1024 XG v6 ipmc entry======")
+        else:
+            num = 0
+            sys_logging("======chipname is error======")
         grp_id_list = []
         ipmc_entry_list = []
 
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
-        sys_logging("======create 1024 XG v6 ipmc entry======")
         for i in range(num):
             
             temp = ip6_to_integer(dip_addr2)
@@ -1669,7 +1688,7 @@ class fun_33_set_ipmc_entry_attribute_action_fn(sai_base_test.ThriftInterfaceDat
             for a in attrs.attr_list:
                 if a.id == SAI_IPMC_ENTRY_ATTR_PACKET_ACTION:
                     sys_logging("get packet action = %d" %a.value.s32)
-                    if SAI_PACKET_ACTION_FORWARD != a.value.s32:
+                    if SAI_PACKET_ACTION_TRANSIT != a.value.s32:
                         raise NotImplementedError()
             sys_logging("======set the v4 ipmc entry attribute action======") 
             #pdb.set_trace()
@@ -1683,7 +1702,7 @@ class fun_33_set_ipmc_entry_attribute_action_fn(sai_base_test.ThriftInterfaceDat
             for a in attrs.attr_list:
                 if a.id == SAI_IPMC_ENTRY_ATTR_PACKET_ACTION:
                     sys_logging("get packet action = %d" %a.value.s32)
-                    if SAI_PACKET_ACTION_COPY != a.value.s32:
+                    if SAI_PACKET_ACTION_LOG != a.value.s32:
                         raise NotImplementedError()
             #pdb.set_trace()
             sys_logging("======set the v4 ipmc entry attribute action again======") 
@@ -1698,7 +1717,7 @@ class fun_33_set_ipmc_entry_attribute_action_fn(sai_base_test.ThriftInterfaceDat
             for a in attrs.attr_list:
                 if a.id == SAI_IPMC_ENTRY_ATTR_PACKET_ACTION:
                     sys_logging("get packet action = %d" %a.value.s32)
-                    if SAI_PACKET_ACTION_FORWARD != a.value.s32:
+                    if SAI_PACKET_ACTION_LOG != a.value.s32:
                         raise NotImplementedError()
 
         finally:
@@ -1893,7 +1912,7 @@ class fun_36_get_ipmc_entry_default_attribute_fn(sai_base_test.ThriftInterfaceDa
             for a in attrs.attr_list:
                 if a.id == SAI_IPMC_ENTRY_ATTR_PACKET_ACTION:
                     sys_logging("get packet action = %d" %a.value.s32)
-                    if SAI_PACKET_ACTION_FORWARD != a.value.s32:
+                    if SAI_PACKET_ACTION_TRANSIT != a.value.s32:
                         raise NotImplementedError()
                 if a.id == SAI_IPMC_ENTRY_ATTR_OUTPUT_GROUP_ID:
                     sys_logging("get ipmc group id = 0x%x" %a.value.oid)
@@ -1957,6 +1976,7 @@ class scenario_01_v4_XG_test(sai_base_test.ThriftInterfaceDataPlane):
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
         member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id4)
+        member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, default_addr, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id)
         #pdb.set_trace()
@@ -1986,6 +2006,7 @@ class scenario_01_v4_XG_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
             self.client.sai_thrift_remove_ipmc_group_member(member_id3)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id4)
             self.client.sai_thrift_remove_ipmc_group(grp_id)
             
             self.client.sai_thrift_remove_router_interface(rif_id1)
@@ -2040,6 +2061,7 @@ class scenario_02_v4_SG_test(sai_base_test.ThriftInterfaceDataPlane):
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
         member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id4)
+        member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id)
  
@@ -2068,6 +2090,7 @@ class scenario_02_v4_SG_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
             self.client.sai_thrift_remove_ipmc_group_member(member_id3)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id4)
             self.client.sai_thrift_remove_ipmc_group(grp_id)
             
             self.client.sai_thrift_remove_router_interface(rif_id1)
@@ -2076,163 +2099,6 @@ class scenario_02_v4_SG_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id4)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
-'''
-class test(sai_base_test.ThriftInterfaceDataPlane):
-    def runTest(self):
-        switch_init(self.client)
-        port1 = port_list[0]
-        port2 = port_list[1]
-        port3 = port_list[2]
-        v4_enabled = 1
-        v6_enabled = 1
-        mac = ''
-        grp_attr_list = []
-
-        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
-
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
-        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
-        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
-
-        addr_family = SAI_IP_ADDR_FAMILY_IPV4
-        dip_addr1 = '230.255.1.1'
-        sip_addr1 = '10.10.10.1'
-        dmac1 = '01:00:5E:7F:01:01'
-        smac1 = '00:00:00:00:00:01'
-        type = SAI_IPMC_ENTRY_TYPE_SG
-        grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
-        member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
-        member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
-        rpf_grp_id = self.client.sai_thrift_create_rpf_group(grp_attr_list)
-        rpf_member_id1 = sai_thrift_create_rpf_group_member(self.client, rpf_grp_id, rif_id2)
-        ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
-        sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id, SAI_PACKET_ACTION_FORWARD, rpf_grp_id)
-
-
-        pkt = simple_tcp_packet(eth_dst=dmac1,
-                                eth_src=smac1,
-                                ip_dst=dip_addr1,
-                                ip_src=sip_addr1,
-                                ip_id=105,
-                                ip_ttl=64)
-        exp_pkt = simple_tcp_packet(
-                                eth_dst=dmac1,
-                                eth_src=router_mac,
-                                ip_dst=dip_addr1,
-                                ip_src=sip_addr1,
-                                ip_id=105,
-                                ip_ttl=63)
-        warmboot(self.client)
-        try:
-            
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_no_packet_any( exp_pkt, [1,2])
-            #attr_value = sai_thrift_attribute_value_t(s32=SAI_PACKET_ACTION_DROP)
-            #attr = sai_thrift_attribute_t(id=SAI_IPMC_ENTRY_ATTR_PACKET_ACTION, value=attr_value)
-            #self.client.sai_thrift_set_ipmc_entry_attribute(ipmc_entry, attr)
-            #pdb.set_trace()
-            attr_value = sai_thrift_attribute_value_t(s32=SAI_PACKET_ACTION_FORWARD)
-            attr = sai_thrift_attribute_t(id=SAI_IPMC_ENTRY_ATTR_PACKET_ACTION, value=attr_value)
-            self.client.sai_thrift_set_ipmc_entry_attribute(ipmc_entry, attr)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_no_packet_any( exp_pkt, [1,2])
-        finally:
-            sys_logging("======clean up======")
-            self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
-            self.client.sai_thrift_remove_ipmc_group_member(member_id1)
-            self.client.sai_thrift_remove_ipmc_group_member(member_id2)
-            self.client.sai_thrift_remove_rpf_group_member(rpf_member_id1)
-            #self.client.sai_thrift_remove_rpf_group_member(rpf_member_id2)
-            #self.client.sai_thrift_remove_rpf_group_member(rpf_member_id3)
-            self.client.sai_thrift_remove_rpf_group(rpf_grp_id)
-            self.client.sai_thrift_remove_ipmc_group(grp_id)
-            
-            self.client.sai_thrift_remove_router_interface(rif_id1)
-            self.client.sai_thrift_remove_router_interface(rif_id2)
-            self.client.sai_thrift_remove_router_interface(rif_id3)
-            
-            self.client.sai_thrift_remove_virtual_router(vr_id)
-
-class test1(sai_base_test.ThriftInterfaceDataPlane):
-    def runTest(self):
-        switch_init(self.client)
-        port1 = port_list[0]
-        port2 = port_list[1]
-        port3 = port_list[2]
-        v4_enabled = 1
-        v6_enabled = 1
-        mac = ''
-        grp_attr_list = []
-
-        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
-
-        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
-        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
-        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
-
-        addr_family = SAI_IP_ADDR_FAMILY_IPV4
-        dip_addr1 = '230.255.1.1'
-        sip_addr1 = '10.10.10.1'
-        dmac1 = '01:00:5E:7F:01:01'
-        smac1 = '00:00:00:00:00:01'
-        type = SAI_IPMC_ENTRY_TYPE_SG
-        grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
-        member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
-        member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
-
-        grp_id1 = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
-        member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id2)
-        member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id3)
-        rpf_grp_id = self.client.sai_thrift_create_rpf_group(grp_attr_list)
-        rpf_member_id1 = sai_thrift_create_rpf_group_member(self.client, rpf_grp_id, rif_id2)
-        ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
-        sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id, SAI_PACKET_ACTION_FORWARD, rpf_grp_id)
-
-
-        pkt = simple_tcp_packet(eth_dst=dmac1,
-                                eth_src=smac1,
-                                ip_dst=dip_addr1,
-                                ip_src=sip_addr1,
-                                ip_id=105,
-                                ip_ttl=64)
-        exp_pkt = simple_tcp_packet(
-                                eth_dst=dmac1,
-                                eth_src=router_mac,
-                                ip_dst=dip_addr1,
-                                ip_src=sip_addr1,
-                                ip_id=105,
-                                ip_ttl=63)
-        warmboot(self.client)
-        try:
-            
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_no_packet_any( exp_pkt, [1,2])
-            attr_value = sai_thrift_attribute_value_t(oid=grp_id1)
-            attr = sai_thrift_attribute_t(id=SAI_IPMC_ENTRY_ATTR_OUTPUT_GROUP_ID, value=attr_value)
-            self.client.sai_thrift_set_ipmc_entry_attribute(ipmc_entry, attr)
-
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( exp_pkt, [1,2])
-        finally:
-            sys_logging("======clean up======")
-            self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
-            self.client.sai_thrift_remove_ipmc_group_member(member_id1)
-            self.client.sai_thrift_remove_ipmc_group_member(member_id2)
-            self.client.sai_thrift_remove_rpf_group_member(rpf_member_id1)
-            #self.client.sai_thrift_remove_rpf_group_member(rpf_member_id2)
-            #self.client.sai_thrift_remove_rpf_group_member(rpf_member_id3)
-            self.client.sai_thrift_remove_rpf_group(rpf_grp_id)
-            self.client.sai_thrift_remove_ipmc_group(grp_id)
-            
-            self.client.sai_thrift_remove_router_interface(rif_id1)
-            self.client.sai_thrift_remove_router_interface(rif_id2)
-            self.client.sai_thrift_remove_router_interface(rif_id3)
-            
-            self.client.sai_thrift_remove_virtual_router(vr_id)
-'''
 
 class scenario_03_v4_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -2271,6 +2137,7 @@ class scenario_03_v4_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         rpf_grp_id = self.client.sai_thrift_create_rpf_group(grp_attr_list)
         rpf_member_id1 = sai_thrift_create_rpf_group_member(self.client, rpf_grp_id, rif_id2)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
@@ -2318,6 +2185,7 @@ class scenario_03_v4_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id3)
             self.client.sai_thrift_remove_rpf_group_member(rpf_member_id1)
             self.client.sai_thrift_remove_rpf_group_member(rpf_member_id2)
             self.client.sai_thrift_remove_rpf_group_member(rpf_member_id3)
@@ -2329,7 +2197,7 @@ class scenario_03_v4_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id3)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
-'''
+
 class scenario_04_v4_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -2368,6 +2236,7 @@ class scenario_04_v4_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, default_addr, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id)
 
@@ -2406,10 +2275,10 @@ class scenario_04_v4_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.ctc_verify_packets( exp_pkt, [1,2])
         finally:
             sys_logging("======clean up======")
-            pdb.set_trace()
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id3)
             self.client.sai_thrift_remove_ipmc_group(grp_id)
             
             self.client.sai_thrift_remove_router_interface(rif_id1)
@@ -2417,7 +2286,6 @@ class scenario_04_v4_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_router_interface(rif_id3)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
-
 
 class scenario_05_v4_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -2456,6 +2324,7 @@ class scenario_05_v4_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id)
 
@@ -2513,6 +2382,7 @@ class scenario_05_v4_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id3)
             self.client.sai_thrift_remove_ipmc_group(grp_id)
             
             self.client.sai_thrift_remove_router_interface(rif_id1)
@@ -2520,7 +2390,7 @@ class scenario_05_v4_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_router_interface(rif_id3)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
-'''
+
 class scenario_06_v4_XG_update_group_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -2566,11 +2436,13 @@ class scenario_06_v4_XG_update_group_test(sai_base_test.ThriftInterfaceDataPlane
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id6 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, default_addr, type)
 
         grp_id1 = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id3)
         member_id5 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id4)
+        member_id7 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id1)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry)
 
         # send the test packet(s)
@@ -2632,7 +2504,6 @@ class scenario_06_v4_XG_update_group_test(sai_base_test.ThriftInterfaceDataPlane
             self.client.sai_thrift_remove_router_interface(rif_id3)
             self.client.sai_thrift_remove_router_interface(rif_id4)
 
-            
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
 
@@ -2680,10 +2551,12 @@ class scenario_07_v4_SG_update_group_test(sai_base_test.ThriftInterfaceDataPlane
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id6 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
 
         grp_id1 = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id3)
         member_id5 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id4)
+        member_id7 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry)
 
@@ -2795,10 +2668,9 @@ class scenario_08_v6_XG_test(sai_base_test.ThriftInterfaceDataPlane):
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
         member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id4)
+        member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, default_addr, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id)
- 
-
 
         pkt = simple_tcpv6_packet(eth_dst=dmac1,
                                 eth_src=smac1,
@@ -2821,6 +2693,7 @@ class scenario_08_v6_XG_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
             self.client.sai_thrift_remove_ipmc_group_member(member_id3)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id4)
             self.client.sai_thrift_remove_ipmc_group(grp_id)
             
             self.client.sai_thrift_remove_router_interface(rif_id1)
@@ -2875,6 +2748,7 @@ class scenario_09_v6_SG_test(sai_base_test.ThriftInterfaceDataPlane):
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
         member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id4)
+        member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id)
  
@@ -2901,6 +2775,7 @@ class scenario_09_v6_SG_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
             self.client.sai_thrift_remove_ipmc_group_member(member_id3)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id4)
             self.client.sai_thrift_remove_ipmc_group(grp_id)
             
             self.client.sai_thrift_remove_router_interface(rif_id1)
@@ -2948,6 +2823,7 @@ class scenario_10_v6_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         rpf_grp_id = self.client.sai_thrift_create_rpf_group(grp_attr_list)
         rpf_member_id1 = sai_thrift_create_rpf_group_member(self.client, rpf_grp_id, rif_id2)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
@@ -2992,6 +2868,7 @@ class scenario_10_v6_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id3)
             self.client.sai_thrift_remove_rpf_group_member(rpf_member_id1)
             self.client.sai_thrift_remove_rpf_group_member(rpf_member_id2)
             self.client.sai_thrift_remove_rpf_group_member(rpf_member_id3)
@@ -3004,7 +2881,6 @@ class scenario_10_v6_SG_update_rpf_test(sai_base_test.ThriftInterfaceDataPlane):
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
-'''
 class scenario_11_v6_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -3043,9 +2919,9 @@ class scenario_11_v6_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, default_addr, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id)
-
 
         pkt = simple_tcpv6_packet(eth_dst=dmac1,
                                 eth_src=smac1,
@@ -3083,6 +2959,7 @@ class scenario_11_v6_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id3)
             self.client.sai_thrift_remove_ipmc_group(grp_id)
             
             self.client.sai_thrift_remove_router_interface(rif_id1)
@@ -3090,7 +2967,6 @@ class scenario_11_v6_XG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_router_interface(rif_id3)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
-
 
 class scenario_12_v6_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -3130,6 +3006,7 @@ class scenario_12_v6_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id)
 
@@ -3170,6 +3047,7 @@ class scenario_12_v6_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
             self.client.sai_thrift_remove_ipmc_group_member(member_id1)
             self.client.sai_thrift_remove_ipmc_group_member(member_id2)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id3)
             self.client.sai_thrift_remove_ipmc_group(grp_id)
             
             self.client.sai_thrift_remove_router_interface(rif_id1)
@@ -3177,7 +3055,6 @@ class scenario_12_v6_SG_update_action_test(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_router_interface(rif_id3)
             
             self.client.sai_thrift_remove_virtual_router(vr_id)
-'''
 
 class scenario_13_v6_XG_update_group_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -3224,11 +3101,13 @@ class scenario_13_v6_XG_update_group_test(sai_base_test.ThriftInterfaceDataPlane
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id6 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, default_addr, type)
 
         grp_id1 = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id3)
         member_id5 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id4)
+        member_id7 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id1)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry)
 
         pkt = simple_tcpv6_packet(eth_dst=dmac1,
@@ -3337,10 +3216,12 @@ class scenario_14_v6_SG_update_group_test(sai_base_test.ThriftInterfaceDataPlane
         grp_id = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
         member_id2 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id3)
+        member_id6 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
 
         grp_id1 = self.client.sai_thrift_create_ipmc_group(grp_attr_list)
         member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id3)
         member_id5 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id4)
+        member_id7 = sai_thrift_create_ipmc_group_member(self.client, grp_id1, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry)
 
@@ -3471,6 +3352,7 @@ class scenario_15_fdb_to_l2mc_update_ipmc_test(sai_base_test.ThriftInterfaceData
         member_id4 = sai_thrift_create_ipmc_group_member(self.client, grp_id2, rif_id3)
         member_id5 = sai_thrift_create_ipmc_group_member(self.client, grp_id2, rif_id4)
         member_id6 = sai_thrift_create_ipmc_group_member(self.client, grp_id2, rif_id5)
+        member_id7 = sai_thrift_create_ipmc_group_member(self.client, grp_id2, rif_id1)
         ipmc_entry = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry, grp_id2)
 
@@ -3528,6 +3410,7 @@ class scenario_15_fdb_to_l2mc_update_ipmc_test(sai_base_test.ThriftInterfaceData
             self.client.sai_thrift_remove_ipmc_group_member(member_id4)
             self.client.sai_thrift_remove_ipmc_group_member(member_id5)
             self.client.sai_thrift_remove_ipmc_group_member(member_id6)
+            self.client.sai_thrift_remove_ipmc_group_member(member_id7)
             self.client.sai_thrift_remove_ipmc_entry(ipmc_entry)
             self.client.sai_thrift_remove_ipmc_group(grp_id2)
 
@@ -3611,7 +3494,7 @@ class scenario_16_v4_SG_test_multi(sai_base_test.ThriftInterfaceDataPlane):
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
    
         member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id4)
-        
+        member_id5 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         
         ipmc_entry1 = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry1, grp_id)
@@ -3818,7 +3701,7 @@ class scenario_17_v6_SG_test_multi(sai_base_test.ThriftInterfaceDataPlane):
         member_id1 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id2)
    
         member_id3 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id4)
-        
+        member_id5 = sai_thrift_create_ipmc_group_member(self.client, grp_id, rif_id1)
         
         ipmc_entry1 = sai_thrift_fill_ipmc_entry(addr_family, vr_id, dip_addr1, sip_addr1, type)
         sai_thrift_create_ipmc_entry(self.client, ipmc_entry1, grp_id)
@@ -3952,6 +3835,4 @@ class scenario_17_v6_SG_test_multi(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_virtual_router(vr_id)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
             self.client.sai_thrift_remove_vlan(vlan_oid2)
-
-
 

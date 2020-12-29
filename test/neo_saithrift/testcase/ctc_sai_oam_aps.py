@@ -5641,7 +5641,7 @@ class scenario_09_mpls_tp_lsp_y1731_test(sai_base_test.ThriftInterfaceDataPlane)
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -5910,7 +5910,7 @@ class scenario_09_mpls_tp_lsp_y1731_ttl1_test(sai_base_test.ThriftInterfaceDataP
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -6179,7 +6179,7 @@ class scenario_10_mpls_tp_pw_y1731_test(sai_base_test.ThriftInterfaceDataPlane):
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -6554,7 +6554,7 @@ class scenario_10_mpls_tp_pw_y1731_ttl1_test(sai_base_test.ThriftInterfaceDataPl
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -6927,7 +6927,7 @@ class scenario_11_mpls_tp_pw_y1731_without_gal_test(sai_base_test.ThriftInterfac
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -7301,7 +7301,7 @@ class scenario_11_mpls_tp_pw_y1731_without_gal_ttl1_test(sai_base_test.ThriftInt
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -10054,7 +10054,7 @@ class scenario_17_y1731_updateApsEn(sai_base_test.ThriftInterfaceDataPlane):
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -10355,7 +10355,7 @@ class scenario_18_y1731_Repair(sai_base_test.ThriftInterfaceDataPlane):
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1
@@ -10663,7 +10663,7 @@ class scenario_19_y1731_apsgroup_set_and_get(sai_base_test.ThriftInterfaceDataPl
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
-        dir = SAI_Y1731_SESSION_DIR_DOWNMEP
+        dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 1

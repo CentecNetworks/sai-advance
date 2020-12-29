@@ -50,12 +50,12 @@ class func_01_create_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -152,12 +152,12 @@ class func_02_create_same_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlan
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -259,12 +259,12 @@ class func_03_create_multi_twamp_session_fn(sai_base_test.ThriftInterfaceDataPla
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -368,12 +368,12 @@ class func_04_create_max_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -502,12 +502,12 @@ class func_05_remove_twamp_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -606,12 +606,12 @@ class func_06_remove_not_exist_twamp_session_fn (sai_base_test.ThriftInterfaceDa
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -715,12 +715,12 @@ class func_07_set_and_get_twamp_session_attr_fn(sai_base_test.ThriftInterfaceDat
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -796,7 +796,7 @@ class func_07_set_and_get_twamp_session_attr_fn(sai_base_test.ThriftInterfaceDat
                     
                 if a.id == SAI_TWAMP_SESSION_ATTR_SESSION_ROLE:
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_SESSION_ROLE = %d" %a.value.s32)
-                    assert (a.value.s32 == SAI_TWAMP_SESSION_SENDER)
+                    assert (a.value.s32 == SAI_TWAMP_SESSION_ROLE_SENDER)
 
                 if a.id == SAI_TWAMP_SESSION_ATTR_UDP_SRC_PORT:
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_UDP_SRC_PORT = %d" %a.value.u32)
@@ -844,7 +844,7 @@ class func_07_set_and_get_twamp_session_attr_fn(sai_base_test.ThriftInterfaceDat
 
                 if a.id == SAI_TWAMP_SESSION_ATTR_AUTH_MODE:
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_AUTH_MODE = %d" %a.value.s32)
-                    assert (a.value.s32 == SAI_TWAMP_SESSION_MODE_UNAUTHENTICATED)
+                    assert (a.value.s32 == SAI_TWAMP_SESSION_AUTH_MODE_UNAUTHENTICATED)
 
                 if a.id == SAI_TWAMP_SESSION_ATTR_NEXT_HOP_ID:
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_NEXT_HOP_ID = %d" %a.value.oid)
@@ -854,8 +854,8 @@ class func_07_set_and_get_twamp_session_attr_fn(sai_base_test.ThriftInterfaceDat
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_TX_RATE = %d" %a.value.u32)
                     assert (a.value.u32 == tx_rate)
 
-                if a.id == SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE:
-                    sys_logging("get SAI_TWAMP_SESSION_ATTR_PKT_TX_MODE = %d" %a.value.s32)
+                if a.id == SAI_TWAMP_SESSION_ATTR_TWAMP_PKT_TX_MODE:
+                    sys_logging("get SAI_TWAMP_SESSION_ATTR_TWAMP_PKT_TX_MODE = %d" %a.value.s32)
                     assert (a.value.s32 == tx_mode)
 
                 if a.id == SAI_TWAMP_SESSION_ATTR_TX_PKT_DURATION:
@@ -870,13 +870,13 @@ class func_07_set_and_get_twamp_session_attr_fn(sai_base_test.ThriftInterfaceDat
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_TX_PKT_PERIOD = %d" %a.value.u32)
                     assert (a.value.u32 == tx_period) 
 
-                if a.id == SAI_TWAMP_SESSION_ATTR_MODE:
-                    sys_logging("get SAI_TWAMP_SESSION_ATTR_MODE = %d" %a.value.s32)
-                    assert (a.value.s32 == SAI_TWAMP_MODE_TWAMP_FULL)
+                if a.id == SAI_TWAMP_SESSION_ATTR_TWAMP_MODE:
+                    sys_logging("get SAI_TWAMP_SESSION_ATTR_TWAMP_MODE = %d" %a.value.s32)
+                    assert (a.value.s32 == SAI_TWAMP_MODE_FULL)
             
                 if a.id == SAI_TWAMP_SESSION_ATTR_TIMESTAMP_FORMAT:
                     sys_logging("get SAI_TWAMP_SESSION_ATTR_TIMESTAMP_FORMAT = %d" %a.value.s32)
-                    assert (a.value.s32 == SAI_TWAMP_MODE_TIMESTAMP_FORMAT_NTP)
+                    assert (a.value.s32 == SAI_TWAMP_TIMESTAMP_FORMAT_NTP)
                 
 
             attr_value = sai_thrift_attribute_value_t(u8=6)
@@ -939,12 +939,12 @@ class func_08_get_and_clear_twamp_session_stats_fn(sai_base_test.ThriftInterface
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -1200,12 +1200,12 @@ class scenario_01_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPlane):
         enable_transmit = 0
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -1466,7 +1466,7 @@ class scenario_02_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDataPlan
         encap_type = SAI_TWAMP_ENCAPSULATION_TYPE_IP
         hw_lookup = 1
         pkt_len = 256
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -1646,12 +1646,12 @@ class scenario_03_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -1916,7 +1916,7 @@ class scenario_04_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -2148,12 +2148,12 @@ class scenario_05_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPla
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -2422,7 +2422,7 @@ class scenario_06_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceData
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -2655,12 +2655,12 @@ class scenario_08_ipv6_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDataPl
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -2878,7 +2878,7 @@ class scenario_09_ipv6_reflector_rx_and_tx_test(sai_base_test.ThriftInterfaceDat
         encap_type = SAI_TWAMP_ENCAPSULATION_TYPE_IP
         hw_lookup = 1
         pkt_len = 256
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -3051,12 +3051,12 @@ class scenario_10_ipv6_UNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -3318,7 +3318,7 @@ class scenario_11_ipv6_UNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -3544,12 +3544,12 @@ class scenario_12_ipv6_NNI_sender_tx_and_rx_test(sai_base_test.ThriftInterfaceDa
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        tx_mode = SAI_TWAMP_TX_MODE_PACKET_NUM
+        tx_mode = SAI_TWAMP_PKT_TX_MODE_PACKET_NUM
         tx_period = 0
         tx_rate = 100
         tx_pkt_cnt = 1
         tx_pkt_duration = 0
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -3812,7 +3812,7 @@ class scenario_13_ipv6_NNI_reflector_rx_and_tx_test(sai_base_test.ThriftInterfac
         enable_transmit = 1
         hw_lookup = 1
         pkt_len = 256
-        mode = SAI_TWAMP_MODE_TWAMP_FULL
+        mode = SAI_TWAMP_MODE_FULL
         v4_enabled = 1
         v6_enabled = 1
         mac = ''

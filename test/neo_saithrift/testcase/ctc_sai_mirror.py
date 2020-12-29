@@ -905,6 +905,132 @@ class fun_09_set_erspan_mirror_session_attribute(sai_base_test.ThriftInterfaceDa
             sys_logging("======clean up======")
             self.client.sai_thrift_remove_mirror_session(ingress_enhanced_remotemirror_id)
 
+class fun_10_create_max_mirror_session(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        switch_init(self.client)
+
+        port0 = port_list[0]
+        port1 = port_list[1]
+        port2 = port_list[2]
+        port3 = port_list[3]
+        port4 = port_list[4]
+
+        mirror_type1 = SAI_MIRROR_SESSION_TYPE_LOCAL
+        mirror_type2 = SAI_MIRROR_SESSION_TYPE_REMOTE
+        mirror_type3 = SAI_MIRROR_SESSION_TYPE_ENHANCED_REMOTE
+
+        port_list_valid = 0
+        port_list_valid1 = 1
+        monitor_port1=port1
+        monitor_port2=port2
+        monitor_port3=port3
+        monitor_port_list = [port0, port1]
+
+        src_mac='00:00:00:00:11:22'
+        dst_mac='00:00:00:00:11:33'
+        encap_type=SAI_ERSPAN_ENCAPSULATION_TYPE_MIRROR_L3_GRE_TUNNEL
+        ip_version=0x4
+        tos=0x3c
+        ttl=0x22
+        gre_type=0x22eb
+        src_ip='17.18.19.0'
+        dst_ip='33.19.20.0'
+        vlan_id_remote = 20
+
+        sys_logging("======Create 4 mirror session======")
+        localmirror1 = sai_thrift_create_mirror_session(self.client,
+            mirror_type1,
+            monitor_port1,
+            monitor_port_list,
+            port_list_valid,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None)
+        localmirror2 = sai_thrift_create_mirror_session(self.client,
+            mirror_type1,
+            monitor_port1,
+            monitor_port_list,
+            port_list_valid1,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None)
+        remotemirror = sai_thrift_create_mirror_session(self.client,
+            mirror_type2,
+            monitor_port2,
+            monitor_port_list,
+            port_list_valid,
+            vlan_id_remote, None, None,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None)    
+        erspanid = sai_thrift_create_mirror_session(self.client,
+            mirror_type3,
+            monitor_port3,
+            monitor_port_list,
+            port_list_valid,
+            None, None, None, None, 
+            src_mac=src_mac,dst_mac=dst_mac,src_ip=src_ip,dst_ip=dst_ip,encap_type=encap_type,iphdr_version=ip_version,ttl=ttl,tos=tos,gre_type=gre_type)
+
+        attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=1,object_id_list=[localmirror1]))
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+        status = self.client.sai_thrift_set_port_attribute(port0, attr)
+        sys_logging( "status = %d" %status)
+        assert (status == SAI_STATUS_SUCCESS)
+
+        attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=1,object_id_list=[localmirror2]))
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+        status = self.client.sai_thrift_set_port_attribute(port1, attr)
+        sys_logging( "status = %d" %status)
+        assert (status == SAI_STATUS_SUCCESS)
+
+        attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=1,object_id_list=[remotemirror]))
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+        status = self.client.sai_thrift_set_port_attribute(port2, attr)
+        sys_logging( "status = %d" %status)
+        assert (status == SAI_STATUS_SUCCESS)
+
+        attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=1,object_id_list=[erspanid]))
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+        status = self.client.sai_thrift_set_port_attribute(port3, attr)
+        sys_logging( "status = %d" %status)
+        assert (status == SAI_STATUS_SUCCESS)
+
+        warmboot(self.client)
+        try:
+            attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=2,object_id_list=[localmirror1,localmirror2]))
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+            status = self.client.sai_thrift_set_port_attribute(port4, attr)
+            sys_logging( "status = %d" %status)
+            assert (status == SAI_STATUS_INSUFFICIENT_RESOURCES)
+        finally:
+            sys_logging("======clean up======")
+            attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=0,object_id_list=[]))
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+            self.client.sai_thrift_set_port_attribute(port3, attr)
+
+            attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=0,object_id_list=[]))
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+            self.client.sai_thrift_set_port_attribute(port2, attr)
+
+            attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=0,object_id_list=[]))
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+
+            attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=0,object_id_list=[]))
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+            self.client.sai_thrift_set_port_attribute(port0, attr)
+
+            self.client.sai_thrift_remove_mirror_session(localmirror1)
+            self.client.sai_thrift_remove_mirror_session(localmirror2)
+            self.client.sai_thrift_remove_mirror_session(remotemirror)
+            self.client.sai_thrift_remove_mirror_session(erspanid)
+
 class scenario_01_ingress_local_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         print ''
@@ -1167,8 +1293,6 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
             None, None, None,
             None)
 
-        
-            
         pkt = simple_qinq_tcp_packet(pktlen=100,
             eth_dst=mac_dst,
             eth_src=mac_src,
@@ -1186,7 +1310,6 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
             ip_ttl=64,
             tcp_sport=1234,
             tcp_dport=80)
-            
 
         table_stage = SAI_ACL_STAGE_INGRESS
         table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_VLAN]
@@ -1290,34 +1413,34 @@ class scenario_03_flow_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
         attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(enable = True, parameter = sai_thrift_acl_parameter_t(objlist=sai_thrift_object_list_t(count=1,object_id_list=[ingress_localmirror_id]))))
         attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_INGRESS, value=attribute_value)
         self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
-        
+
         warmboot(self.client)
 
         try:
 
             sys_logging("======send packet from port1 to port2,mirror to port3======")
-            
+
             self.ctc_send_packet( 0, str(pkt))
 
             self.ctc_verify_each_packet_on_each_port( [pkt, pkt], [1, 2])
-            
+
         finally:
             sys_logging("======clean up======")
 
             attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(enable = True, parameter = sai_thrift_acl_parameter_t(objlist=sai_thrift_object_list_t(count=0,object_id_list=[]))))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_MIRROR_INGRESS, value=attribute_value)
             self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
-            
+
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_vlan_attribute(vlan_oid, attr)
-            
+
             self.client.sai_thrift_remove_acl_entry(acl_entry_id)
             self.client.sai_thrift_remove_acl_table(acl_table_id)
             # remove ingress_localmirror_id
             self.client.sai_thrift_remove_mirror_session(ingress_localmirror_id)
             sai_thrift_delete_fdb(self.client, vlan_oid, mac_dst, port2)
-            
+
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
 class scenario_04_portlist_local_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -1446,7 +1569,7 @@ class scenario_05_rspan_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
         switch_init(self.client)
         vlan_id = 10
         vlan_id1 = 20
-        vlan_pri = 3
+        vlan_pri = 5
         port0 = port_list[0]
         port1 = port_list[1]
         port2 = port_list[2]
@@ -1515,7 +1638,7 @@ class scenario_05_rspan_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
                 ip_dst='10.0.0.1',
                 ip_src='192.168.0.1',
                 vlan_vid=20,
-                vlan_pcp=3,
+                vlan_pcp=5,
                 dl_vlan_enable=True,
                 ip_id=102,
                 ip_ttl=64)
@@ -1545,7 +1668,7 @@ class scenario_05_rspan_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
                 eth_dst=mac1,
                 eth_src=mac2,
                 dl_vlan_outer=20,
-                dl_vlan_pcp_outer=3,
+                dl_vlan_pcp_outer=5,
                 vlan_vid=10,
                 ip_dst='10.0.0.1',
                 ip_src='192.168.0.1', 
@@ -1598,7 +1721,7 @@ class scenario_06_erspan_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
         ip_version=0x4
         tos=0x3c
         ttl=0x22
-        gre_type=0x22be
+        gre_type=0x22eb
         src_ip='17.18.19.0'
         dst_ip='33.19.20.0'
         addr_family=0
@@ -1684,12 +1807,10 @@ class scenario_06_erspan_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
                                     )
                                    
         m1=Mask(exp_pkt1)
-        m1.set_do_not_care_scapy(ptf.packet.IP,'tos')
         m1.set_do_not_care_scapy(ptf.packet.IP,'frag')
         m1.set_do_not_care_scapy(ptf.packet.IP,'flags')
         m1.set_do_not_care_scapy(ptf.packet.IP,'chksum')
         m1.set_do_not_care_scapy(ptf.packet.IP,'id')
-        m1.set_do_not_care_scapy(ptf.packet.GRE,'proto')
         m1.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'platf_id')
         m1.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'info1')
         m1.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'info2')
@@ -1705,12 +1826,10 @@ class scenario_06_erspan_mirror_test(sai_base_test.ThriftInterfaceDataPlane):
         m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'unknown2')
         
         m2=Mask(exp_pkt2)
-        m2.set_do_not_care_scapy(ptf.packet.IP,'tos')
         m2.set_do_not_care_scapy(ptf.packet.IP,'frag')
         m2.set_do_not_care_scapy(ptf.packet.IP,'flags')
         m2.set_do_not_care_scapy(ptf.packet.IP,'chksum')
         m2.set_do_not_care_scapy(ptf.packet.IP,'id')
-        m2.set_do_not_care_scapy(ptf.packet.GRE,'proto')
         m2.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'platf_id')
         m2.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'info1')
         m2.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'info2')
@@ -2025,7 +2144,7 @@ class scenario_09_erspan_mirror_set_attribute_test(sai_base_test.ThriftInterface
         ip_version=0x4
         tos=0x3c
         ttl=0x22
-        gre_type=0x22be
+        gre_type=0x22eb
         src_ip='17.18.19.0'
         dst_ip='33.19.20.0'
         addr_family=0
@@ -2267,7 +2386,7 @@ class scenario_10_one_port_to_multi_mirror_set_attribute_test(sai_base_test.Thri
         ip_version=0x4
         tos=0x3c
         ttl=0x22
-        gre_type=0x22be
+        gre_type=0x22eb
         src_ip='17.18.19.0'
         dst_ip='33.19.20.0'
         addr_family=0
@@ -2280,7 +2399,7 @@ class scenario_10_one_port_to_multi_mirror_set_attribute_test(sai_base_test.Thri
         ttl_set=0x2d
         gre_type_set=0x2222
         src_ip_set='11.12.13.14'
-        dst_ip_set='21.22.23.24'  
+        dst_ip_set='21.22.23.24'
 
         vlan_header_valid = True
         vlan_id_set = 10
@@ -2418,5 +2537,191 @@ class scenario_10_one_port_to_multi_mirror_set_attribute_test(sai_base_test.Thri
  
             self.client.sai_thrift_remove_vlan(vlan_remote_oid)
  
+class scenario_11_one_port_to_multi_mirror_broadcast_set_attribute_test(sai_base_test.ThriftInterfaceDataPlane):
+    
+    def runTest(self):
+        print       
+        switch_init(self.client)
 
+        port0 = port_list[0]
+        port1 = port_list[1]
+        port2 = port_list[2]
+        port3 = port_list[3]
+        port4 = port_list[4]
+        port5 = port_list[5]
+        port6 = port_list[6]
+        port7 = port_list[7]
 
+        mirror_type1 = SAI_MIRROR_SESSION_TYPE_LOCAL
+        mirror_type2 = SAI_MIRROR_SESSION_TYPE_REMOTE
+        mirror_type3 = SAI_MIRROR_SESSION_TYPE_ENHANCED_REMOTE
+        
+        mac1='00:00:00:00:00:33'
+        mac2='00:00:00:00:00:22'
+        
+        port_list_valid = 0
+        port_list_valid1 = 1
+        monitor_port1=port2
+        monitor_port_list = [port4, port5]
+        monitor_port2=port6
+        monitor_port3=port7
+        
+        src_mac='00:00:00:00:11:22'
+        dst_mac='00:00:00:00:11:33'
+        encap_type=SAI_ERSPAN_ENCAPSULATION_TYPE_MIRROR_L3_GRE_TUNNEL
+        ip_version=0x4
+        tos=0x3c
+        ttl=0x22
+        gre_type=0x22eb
+        src_ip='17.18.19.0'
+        dst_ip='33.19.20.0'
+        addr_family=0
+        vlan_remote_id = 3
+        mac_action = SAI_PACKET_ACTION_FORWARD  
+        
+        src_mac_set='00:00:00:00:34:56'
+        dst_mac_set='00:00:00:00:67:89'
+        tos_set=0x3d
+        ttl_set=0x2d
+        gre_type_set=0x2222
+        src_ip_set='11.12.13.14'
+        dst_ip_set='21.22.23.24'  
+
+        vlan_header_valid = True
+        vlan_id_set = 10
+        vlan_id_remote = 20
+
+        vlan_remote_oid = sai_thrift_create_vlan(self.client, vlan_remote_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_remote_oid, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_remote_oid, port0, SAI_VLAN_TAGGING_MODE_TAGGED)
+        vlan_member3 = sai_thrift_create_vlan_member(self.client, vlan_remote_oid, port3, SAI_VLAN_TAGGING_MODE_TAGGED)
+
+        #sai_thrift_create_fdb(self.client, vlan_remote_oid, mac1, port1, mac_action)
+        #sai_thrift_create_fdb(self.client, vlan_remote_oid, mac2, port0, mac_action)
+
+        sys_logging("======Create 4 mirror session======")
+        localmirror1 = sai_thrift_create_mirror_session(self.client,
+            mirror_type1,
+            monitor_port1,
+            monitor_port_list,
+            port_list_valid,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None)
+        localmirror2 = sai_thrift_create_mirror_session(self.client,
+            mirror_type1,
+            monitor_port1,
+            monitor_port_list,
+            port_list_valid1,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None)
+        remotemirror = sai_thrift_create_mirror_session(self.client,
+            mirror_type2,
+            monitor_port2,
+            monitor_port_list,
+            port_list_valid,
+            vlan_id_remote, None, None,
+            None, None, None,
+            None, None, None,
+            None, None, None,
+            None)    
+        erspanid = sai_thrift_create_mirror_session(self.client,
+            mirror_type3,
+            monitor_port3,
+            monitor_port_list,
+            port_list_valid,
+            None, None, None, None, 
+            src_mac=src_mac,dst_mac=dst_mac,src_ip=src_ip,dst_ip=dst_ip,encap_type=encap_type,iphdr_version=ip_version,ttl=ttl,tos=tos,gre_type=gre_type)
+
+        sys_logging("======bind 4 mirror session to port1 ingress======")
+        attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=4,object_id_list=[localmirror1, localmirror2, remotemirror, erspanid]))
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+        self.client.sai_thrift_set_port_attribute(port1, attr)
+
+        pkt = simple_tcp_packet(eth_dst='00:00:00:00:00:22',
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.0.0.1',
+                                ip_src='192.168.0.1',
+                                dl_vlan_enable=True,
+                                vlan_vid=3,
+                                ip_id=1,
+                                ip_ttl=64)
+
+        exp_pkt1 = pkt
+        
+        exp_pkt2 =  simple_qinq_tcp_packet(pktlen=104,
+                eth_dst='00:00:00:00:00:22',
+                eth_src='00:22:22:22:22:22',
+                dl_vlan_outer=20,
+                vlan_vid=3,
+                ip_dst='10.0.0.1',
+                ip_src='192.168.0.1', 
+                ip_ttl=64)
+
+        exp_pkt3= ipv4_erspan_platform_pkt(pktlen=158,
+                                    eth_dst='00:00:00:00:11:33',
+                                    eth_src='00:00:00:00:11:22',
+                                    ip_id=0,
+                                    ip_ttl=0x22,
+                                    ip_tos=0xF0,
+                                    ip_ihl=5,
+                                    ip_src='17.18.19.0',
+                                    ip_dst='33.19.20.0',
+                                    version=2,
+                                    mirror_id=(erspanid & 0x3FFFFFFF),
+                                    inner_frame=pkt
+                                    )
+        #print exp_pkt3.show()
+        m1=Mask(exp_pkt3)
+        m1.set_do_not_care_scapy(ptf.packet.IP,'tos')
+        m1.set_do_not_care_scapy(ptf.packet.IP,'frag')
+        m1.set_do_not_care_scapy(ptf.packet.IP,'flags')
+        m1.set_do_not_care_scapy(ptf.packet.IP,'chksum')
+        m1.set_do_not_care_scapy(ptf.packet.IP,'id')
+        m1.set_do_not_care_scapy(ptf.packet.GRE,'proto')
+        m1.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'platf_id')
+        m1.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'info1')
+        m1.set_do_not_care_scapy(ptf.packet.PlatformSpecific, 'info2')
+            
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'span_id')
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'timestamp')
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'sgt_other')
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'direction')
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'version')
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'vlan')
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'priority')
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'truncated')
+        m1.set_do_not_care_scapy(ptf.packet.ERSPAN_III, 'unknown2')
+        
+        
+        warmboot(self.client)
+        try:
+            sys_logging("======send packet from port1 to port0,mirror to port2,port3,port4,port5,port6,port7======")
+            self.ctc_send_packet( 1, pkt)
+            self.ctc_verify_packet( exp_pkt2, 6)
+            #self.ctc_verify_each_packet_on_each_port( [exp_pkt1,exp_pkt1,exp_pkt1,exp_pkt1,exp_pkt1,exp_pkt2,m1], ports=[0,2,3,4,5,6,7])
+            
+        finally:
+            sys_logging("======clean up======")
+            #sai_thrift_delete_fdb(self.client, vlan_remote_oid, mac2, port0)
+            #sai_thrift_delete_fdb(self.client, vlan_remote_oid, mac1, port1)
+            
+            attrb_value = sai_thrift_attribute_value_t(objlist=sai_thrift_object_list_t(count=0,object_id_list=[]))
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_MIRROR_SESSION, value=attrb_value)
+            self.client.sai_thrift_set_port_attribute(port1, attr)
+ 
+            self.client.sai_thrift_remove_mirror_session(localmirror1)
+            self.client.sai_thrift_remove_mirror_session(localmirror2)
+            self.client.sai_thrift_remove_mirror_session(remotemirror)
+            self.client.sai_thrift_remove_mirror_session(erspanid)
+ 
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan_member(vlan_member3)
+ 
+            self.client.sai_thrift_remove_vlan(vlan_remote_oid)
