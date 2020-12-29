@@ -1,0 +1,17 @@
+#ifndef _CTC_SAI_DATA_UTILS_H
+#define _CTC_SAI_DATA_UTILS_H
+
+#include "ctc_sai_meta_db.h"
+
+extern ctc_sai_attr_metadata_t* ctc_sai_data_utils_get_attr_metadata(sai_object_type_t, sai_attr_id_t);
+extern bool ctc_sai_data_utils_is_object_type_oid(sai_object_type_t);
+extern ctc_sai_object_type_info_t* ctc_sai_data_utils_get_object_type_info(sai_object_type_t);
+extern ctc_sai_attr_metadata_t* ctc_sai_data_utils_object_get_attr_by_name(sai_object_type_t, char*);
+extern ctc_sai_attr_metadata_t* ctc_sai_data_utils_object_get_attr_by_id(sai_object_type_t, sai_attr_id_t);
+extern sai_status_t ctc_sai_data_utils_object_set_attr(const ctc_sai_object_meta_key_t*, const sai_attribute_t*);
+extern sai_status_t ctc_sai_data_utils_object_get_attr(const ctc_sai_object_meta_key_t*, sai_attribute_t*);
+extern sai_status_t ctc_sai_data_utils_attr_alloc_mem(ctc_sai_attr_value_type_t, sai_attribute_t*);
+extern sai_status_t ctc_sai_data_utils_attr_free_mem(ctc_sai_attr_value_type_t, sai_attribute_t*);
+
+#endif
+
