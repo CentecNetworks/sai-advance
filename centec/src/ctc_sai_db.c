@@ -506,6 +506,9 @@ _ctc_sai_db_init_id(uint8 lchip)
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_WRED;
     ctc_opf_init_offset(&opf, 1, 31);
+    
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_SCHEDULER_GROUP;
+    ctc_opf_init_offset(&opf, 0, 3072);
 
     return SAI_STATUS_SUCCESS;
 }

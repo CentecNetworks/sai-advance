@@ -901,8 +901,14 @@ _ctc_sai_mpls_create_inseg_entry(const sai_inseg_entry_t *inseg_entry,
         {
             CTC_SET_FLAG(ctc_mpls_ilm.flag, CTC_MPLS_ILM_FLAG_ACL_USE_OUTER_INFO);
         }
+
+        /* default set learn disable for Mpls
+         * updated use SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_MODE in SAI_BRIDGE_PORT_TYPE_TUNNEL bridge port
+         */
+        ctc_mpls_ilm.learn_disable = 1;
     }
     ctc_mpls_ilm.label = inseg_entry->label;
+
 
     if (NULL != p_sai_counter)
     {

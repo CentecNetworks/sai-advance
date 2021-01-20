@@ -126,6 +126,7 @@ typedef struct ctc_sai_bridge_port_s
     uint32 vlan_member_bind_count;
     uint8  vlan_member_tag_mode[4096];
     sai_object_id_t  frr_nhp_grp_id;
+    sai_object_id_t  lb_nhp_grp_id;
     uint16 service_vlan_id;
     uint8 service_vlan_cos;
     uint32 scl_entry_id;

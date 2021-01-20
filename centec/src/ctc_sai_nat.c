@@ -509,10 +509,12 @@ _ctc_sai_nat_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
         case SAI_NAT_ENTRY_ATTR_HIT_BIT:
             if(SAI_NAT_TYPE_SOURCE_NAT == p_nat_info->nat_type)
             {
+                sal_memset(&ip_tunnel_natsa_param, 0, sizeof(ctc_ipuc_nat_sa_param_t));
                 ip_tunnel_natsa_param.ip_ver = CTC_IP_VER_4;
                 CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_vrf_id(nat_entry->vr_id, &vrf_id));
                 ip_tunnel_natsa_param.vrf_id = vrf_id;
                 sal_memcpy(&(ip_tunnel_natsa_param.ipsa.ipv4), &(nat_entry->data.key.src_ip), sizeof(sai_ip4_t));
+                CTC_SAI_NTOH_V4(ip_tunnel_natsa_param.ipsa.ipv4);
                 ip_tunnel_natsa_param.l4_src_port = nat_entry->data.key.l4_src_port;
                 if(6 == nat_entry->data.key.proto)
                 {

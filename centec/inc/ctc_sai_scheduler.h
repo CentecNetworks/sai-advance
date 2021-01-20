@@ -55,6 +55,7 @@ typedef struct  ctc_sai_scheduler_db_s
 {
         uint8 sch_type;                 //refer to sai_scheduling_type_t
         uint8 weight;
+        uint8 meter_type;
         uint64 min_rate;                //cir
         uint64 min_burst_rate;          //cbs
         uint64 max_rate;                //pir
@@ -77,6 +78,10 @@ ctc_sai_scheduler_queue_set_scheduler(sai_object_id_t queue_id, const sai_attrib
 
 sai_status_t
 ctc_sai_scheduler_group_set_scheduler(sai_object_id_t sch_group_id, const sai_attribute_t *attr);
+
+sai_status_t
+ctc_sai_scheduler_group_set_scheduler_tmm(sai_object_id_t sch_group_id, const sai_attribute_t *attr);
+
 
 void
 ctc_sai_scheduler_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t* dump_grep_param);

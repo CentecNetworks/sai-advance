@@ -82,8 +82,9 @@ typedef enum ctc_ld_hash_usage_e ctc_ld_hash_usage_t;
 
 struct ctc_sai_ld_hash_s
 {
+    uint8  udf_sel;
     uint32 field_bmp;
-    ctc_slist_t* group_list;
+    ctc_slist_t* udf_group_list;
 };
 typedef struct ctc_sai_ld_hash_s ctc_sai_ld_hash_t;
 

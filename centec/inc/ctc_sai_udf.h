@@ -81,24 +81,25 @@ This module defines SAI UDF.
 #define CTC_SAI_UDF_GROUP_MAX_NUM(lchip) ((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) ? 16 : ((CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))? 256:0))
 #define CTC_SAI_UDF_HASH_MASK_LENGTH     16
 
+#if defined(TSINGMA)
+#define CTC_SAI_UDF_OFFSET_BYTE_LEN  4
+#define CTC_SAI_UDF_OFFSET_NUM       4
+#elif defined(TSINGMA_MX)
+#define CTC_SAI_UDF_OFFSET_BYTE_LEN  2
+#define CTC_SAI_UDF_OFFSET_NUM       8
+#endif
+
 struct ctc_sai_udf_group_member_s
 {
     ctc_slistnode_t head;
-    sai_object_id_t udf_id;
+    sai_object_id_t udf_oid;
 };
 typedef struct ctc_sai_udf_group_member_s ctc_sai_udf_group_member_t;
 
-struct ctc_sai_udf_group_hash_s
-{
-    ctc_slistnode_t head;
-    sai_object_id_t ld_hash_id;
-};
-typedef struct ctc_sai_udf_group_hash_s ctc_sai_udf_group_hash_t;
-
 struct ctc_sai_udf_entry_s
 {
-    sai_object_id_t match_id;
-    sai_object_id_t group_id;
+    sai_object_id_t match_oid;
+    sai_object_id_t group_oid;
     uint8   hash_mask[CTC_SAI_UDF_HASH_MASK_LENGTH];
     uint8   base;
     uint16  offset;
@@ -107,7 +108,7 @@ typedef struct ctc_sai_udf_entry_s ctc_sai_udf_entry_t;
 
 struct ctc_sai_udf_match_s
 {
-    uint8   ref_cnt;
+    uint32  ref_cnt;
     uint16  ethertype[2];
     uint8   ip_protocal[2];
     uint16  gre_protocal_type[2];
@@ -123,10 +124,10 @@ struct ctc_sai_udf_group_s
 {
     uint8  type;
     uint8  length;
-    uint16 hash_udf_bmp;
-    uint32 ref_cnt;
+    /* udf result entry offset's offset */
+    uint8  offset[CTC_SAI_UDF_OFFSET_NUM];
+    uint8  hash_ref_cnt;
 
-    ctc_slist_t* hash_list;
     ctc_slist_t* member_list;
 };
 typedef struct ctc_sai_udf_group_s ctc_sai_udf_group_t;
@@ -136,10 +137,6 @@ ctc_sai_udf_api_init();
 
 extern sai_status_t
 ctc_sai_udf_db_init(uint8 lchip);
-
-/* called when set hash attribute: SAI_HASH_ATTR_UDF_GROUP_LIST */
-extern sai_status_t
-ctc_sai_udf_get_hash_mask(uint8 lchip, sai_object_id_t udf_group_id, uint16* hash_udf_bmp);
 
 extern void
 ctc_sai_udf_dump(uint8 lchip, sal_file_t p_file, ctc_sai_dump_grep_param_t *dump_grep_param);

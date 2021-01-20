@@ -41,6 +41,7 @@ _ctc_sai_scheduler_map_attr_to_db(const sai_attribute_t* attr_list, uint32 attr_
             CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "Not supported meter type value:%d\n", attr_value->s32);
             return SAI_STATUS_INVALID_PARAMETER;
         }
+        p_scheduler->meter_type = attr_value->s32;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_RATE, &attr_value, &attr_index);
@@ -396,7 +397,7 @@ _ctc_sai_scheduler_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
             p_scheduler->weight = attr->value.u8;
             break;
         case SAI_SCHEDULER_ATTR_METER_TYPE:
-            if(SAI_METER_TYPE_BYTES != attr->value.u8)
+            if(SAI_METER_TYPE_BYTES != attr->value.s32)
             {
                 return SAI_STATUS_NOT_SUPPORTED;
             }
@@ -536,7 +537,7 @@ _ctc_sai_scheduler_get_attr(sai_object_key_t *key, sai_attribute_t* attr, uint32
             attr->value.u8 = p_scheduler_db->weight;
             break;
         case SAI_SCHEDULER_ATTR_METER_TYPE:
-            attr->value.s32 = SAI_METER_TYPE_BYTES;
+            attr->value.s32 = p_scheduler_db->meter_type;
             break;
         case SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_RATE:
             attr->value.u64 = p_scheduler_db->min_rate;
@@ -967,6 +968,142 @@ ctc_sai_scheduler_group_set_scheduler(sai_object_id_t sch_group_id, const sai_at
     return SAI_STATUS_SUCCESS;
 }
 
+sai_status_t
+ctc_sai_scheduler_group_set_scheduler_tmm(sai_object_id_t sch_group_id, const sai_attribute_t *attr)
+{
+    uint8 lchip = 0;
+    sai_object_id_t new_sched_id = 0;
+    sai_object_id_t old_sched_id = 0;
+    ctc_object_id_t ctc_oid;
+    ctc_object_id_t ctc_sch_group_id;
+    ctc_sai_sched_group_db_t* p_sched_group_db = NULL;
+    ctc_sai_scheduler_db_t* p_scheduler_db = NULL;
+    uint8  gchip = 0;
+    ctc_qos_sched_t sched_param;
+    ctc_qos_shape_t qos_shape;
+
+    sal_memset(&sched_param, 0, sizeof(ctc_qos_sched_t));
+    sal_memset(&qos_shape, 0, sizeof(qos_shape));
+ 
+    CTC_SAI_LOG_ENTER(SAI_API_SCHEDULER);
+    CTC_SAI_PTR_VALID_CHECK(attr);
+
+    CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(sch_group_id, &lchip));
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_SCHEDULER_GROUP, sch_group_id, &ctc_sch_group_id);
+    p_sched_group_db = ctc_sai_db_get_object_property(lchip, sch_group_id);
+    if (NULL == p_sched_group_db)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "Scheduler group DB get failed!\n");
+        return SAI_STATUS_FAILURE;
+    }
+
+    new_sched_id = attr->value.oid;
+    if (SAI_NULL_OBJECT_ID != attr->value.oid)
+    {
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_SCHEDULER, attr->value.oid, &ctc_oid);
+        if (lchip != ctc_oid.lchip)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "Scheduler group lchip[%d] not match to scheduler lchip[%d]!\n", lchip, ctc_oid.lchip);
+            return SAI_STATUS_INVALID_PARAMETER;
+        }
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_get_gchip_id(lchip, &gchip));
+    }
+    old_sched_id = p_sched_group_db->sched_id;
+    if (new_sched_id == old_sched_id)
+    {
+        return SAI_STATUS_SUCCESS;
+    }
+    if (new_sched_id)//set new weight and shape
+    {
+        p_scheduler_db = ctc_sai_db_get_object_property(lchip, attr->value.oid);
+        if (NULL == p_scheduler_db)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "DB not Found!\n");
+            return SAI_STATUS_ITEM_NOT_FOUND;
+        }
+
+        //set weight
+        sched_param.type = CTC_QOS_SCHED_GROUP;
+        sched_param.sched.group_sched.cfg_type = CTC_QOS_SCHED_CFG_CONFIRM_WEIGHT;
+        sched_param.sched.group_sched.group_id = p_sched_group_db->ctc_sche_group;
+        sched_param.sched.group_sched.weight = p_scheduler_db->weight;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_sched(lchip, &sched_param));
+
+        //set shape
+        qos_shape.type = CTC_QOS_SHAPE_GROUP;
+        qos_shape.shape.group_shape.group_id = p_sched_group_db->ctc_sche_group;
+        if(5 == ctc_sch_group_id.sub_type)
+        {
+            qos_shape.shape.group_shape.class_prio = ctc_sch_group_id.value2 % 8;
+        }
+        else
+        {
+            qos_shape.shape.group_shape.class_prio = ctc_sch_group_id.value2 % 4;
+        }
+        qos_shape.shape.group_shape.class_prio_valid = 1;
+        if(p_scheduler_db->max_rate)
+        {
+            qos_shape.shape.group_shape.enable = 1;
+            qos_shape.shape.group_shape.cir = p_scheduler_db->min_rate * 8 / 1000;
+            qos_shape.shape.group_shape.pir = p_scheduler_db->max_rate * 8 / 1000;
+            
+            qos_shape.shape.group_shape.pbs = p_scheduler_db->max_burst_rate * 8 / 1000;
+            qos_shape.shape.group_shape.cbs = p_scheduler_db->min_burst_rate * 8 / 1000;
+        }
+        else
+        {
+            qos_shape.shape.group_shape.enable = 0;
+        }
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_shape(lchip, &qos_shape));
+
+        p_sched_group_db->sched_id = new_sched_id;
+        p_scheduler_db->ref_cnt++;
+    }
+    else
+    {
+        //set to default weight
+        sched_param.type = CTC_QOS_SCHED_GROUP;
+        sched_param.sched.group_sched.cfg_type = CTC_QOS_SCHED_CFG_CONFIRM_WEIGHT;
+        sched_param.sched.group_sched.group_id = p_sched_group_db->ctc_sche_group;
+        sched_param.sched.group_sched.weight = 1;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_sched(lchip, &sched_param));
+
+        //set to default shape
+        qos_shape.type = CTC_QOS_SHAPE_GROUP;
+        qos_shape.shape.group_shape.group_id = p_sched_group_db->ctc_sche_group;
+        if(5 == ctc_sch_group_id.sub_type)
+        {
+            qos_shape.shape.group_shape.class_prio = ctc_sch_group_id.value2 % 8;
+        }
+        else
+        {
+            qos_shape.shape.group_shape.class_prio = ctc_sch_group_id.value2 % 4;
+        }
+        qos_shape.shape.group_shape.class_prio_valid = 1;
+        qos_shape.shape.group_shape.enable = 0;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_shape(lchip, &qos_shape));
+        
+        p_sched_group_db->sched_id = 0;
+    }    
+
+    if (old_sched_id)
+    {//update old db
+        p_scheduler_db = ctc_sai_db_get_object_property(lchip, old_sched_id);
+        if (NULL == p_scheduler_db)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "Not Found old Scheduler DB!\n");
+            return SAI_STATUS_ITEM_NOT_FOUND;
+        }
+        if (p_scheduler_db->ref_cnt)
+        {
+            p_scheduler_db->ref_cnt--;
+        }
+    }
+    
+    return SAI_STATUS_SUCCESS;
+}
+
+
 #define ________SAI_DUMP________
 
 static sai_status_t
@@ -1057,6 +1194,7 @@ ctc_sai_scheduler_create_scheduler_id(
     /*default value*/
     p_scheduler_db->sch_type = SAI_SCHEDULING_TYPE_DWRR;
     p_scheduler_db->weight = 1;
+    p_scheduler_db->meter_type = SAI_METER_TYPE_BYTES;
 
     CTC_SAI_ERROR_GOTO(_ctc_sai_scheduler_map_attr_to_db(attr_list, attr_count, p_scheduler_db), status, error_1);
 

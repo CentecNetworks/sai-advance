@@ -485,6 +485,11 @@ _ctc_sai_hostif_trap_type_to_ctc_reason_id(uint8 lchip, sai_hostif_trap_type_t t
                 *p_custom_cpu_reson = CTC_PKT_CPU_REASON_MONITOR_LATENCY_LOG;
                 break;
 
+            case SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_ISIS:
+                *p_ctc_cpu_reson = CTC_PKT_CPU_REASON_L2_PDU + CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX;
+                *p_custom_cpu_reson = CTC_PKT_CPU_REASON_L2_PDU + CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX;
+                break;
+
             default:
                 *p_ctc_cpu_reson = CTC_PKT_CPU_REASON_CUSTOM_BASE;
                 *p_custom_cpu_reson = CTC_PKT_CPU_REASON_CUSTOM_BASE;
@@ -630,6 +635,7 @@ void ctc_sai_hostif_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id, uint
     ctcs_l2pdu_set_port_action(lchip, mem_port, CTC_L2PDU_ACTION_INDEX_LLDP, value);
     ctcs_l2pdu_set_port_action(lchip, mem_port, CTC_HOSTIF_L2PDU_ACTION_PVRST_INDEX, value);
     ctcs_l2pdu_set_port_action(lchip, mem_port, CTC_HOSTIF_L2PDU_ACTION_UDLD_INDEX, value);
+    ctcs_l2pdu_set_port_action(lchip, mem_port, CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX, value);
 
 }
 
@@ -896,6 +902,7 @@ ctc_sai_hostif_create_hostif(
             CTC_SAI_CTC_ERROR_GOTO(ctcs_l2pdu_set_port_action(lchip, ctc_oid.value, CTC_L2PDU_ACTION_INDEX_LLDP, CTC_PDU_L2PDU_ACTION_TYPE_COPY_TO_CPU), status, roll_back_2);
             CTC_SAI_CTC_ERROR_GOTO(ctcs_l2pdu_set_port_action(lchip, ctc_oid.value, CTC_HOSTIF_L2PDU_ACTION_PVRST_INDEX, CTC_PDU_L2PDU_ACTION_TYPE_COPY_TO_CPU), status, roll_back_2);
             CTC_SAI_CTC_ERROR_GOTO(ctcs_l2pdu_set_port_action(lchip, ctc_oid.value, CTC_HOSTIF_L2PDU_ACTION_UDLD_INDEX, CTC_PDU_L2PDU_ACTION_TYPE_COPY_TO_CPU), status, roll_back_2);
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_l2pdu_set_port_action(lchip, ctc_oid.value, CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX, CTC_PDU_L2PDU_ACTION_TYPE_COPY_TO_CPU), status, roll_back_2);
         }
         else if (SAI_OBJECT_TYPE_LAG == ctc_oid.type)
         {
@@ -989,6 +996,7 @@ roll_back_2:
             ctcs_l2pdu_set_port_action(lchip, ctc_oid.value, CTC_L2PDU_ACTION_INDEX_LLDP, CTC_PDU_L2PDU_ACTION_TYPE_FWD);
             ctcs_l2pdu_set_port_action(lchip, ctc_oid.value, CTC_HOSTIF_L2PDU_ACTION_PVRST_INDEX, CTC_PDU_L2PDU_ACTION_TYPE_FWD);
             ctcs_l2pdu_set_port_action(lchip, ctc_oid.value, CTC_HOSTIF_L2PDU_ACTION_UDLD_INDEX, CTC_PDU_L2PDU_ACTION_TYPE_FWD);
+            ctcs_l2pdu_set_port_action(lchip, ctc_oid.value, CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX, CTC_PDU_L2PDU_ACTION_TYPE_FWD);
         }
         else if (SAI_OBJECT_TYPE_LAG == ctc_oid.type)
         {
@@ -2676,8 +2684,38 @@ _ctc_sai_hostif_add_acl_field(uint8 lchip, uint32 entry_id, uint32 custom_reason
             is_drop = true;
             break;
 
+        /**
+         * @brief ISIS pdu
+         * (default packet action is drop)
+         */
+        case CTC_PKT_CPU_REASON_L2_PDU + CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX: /*SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_ISIS*/
+            sal_memset(&key_field, 0, sizeof(ctc_field_key_t));
+            key_field.type = CTC_FIELD_KEY_CPU_REASON_ID;
+            key_field.data = CTC_PKT_CPU_REASON_L2_PDU + CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX;
+            key_field.mask = CTC_SAI_CTC_CPU_REASON_ID_MASK;
+            CTC_SAI_ERROR_RETURN(ctcs_acl_add_key_field(lchip, entry_id, &key_field));
+            is_drop = true;
+            break;
+
+        /**
+         * @brief PTP pdu
+         * (default packet action is drop)
+         */
+        case CTC_PKT_CPU_REASON_PTP: /*SAI_HOSTIF_TRAP_TYPE_PTP*/
+            sal_memset(&key_field, 0, sizeof(ctc_field_key_t));
+            key_field.type = CTC_FIELD_KEY_CPU_REASON_ID;
+            key_field.data = CTC_PKT_CPU_REASON_PTP;
+            key_field.mask = CTC_SAI_CTC_CPU_REASON_ID_MASK;
+            CTC_SAI_ERROR_RETURN(ctcs_acl_add_key_field(lchip, entry_id, &key_field));
+            is_drop = true;
+            break;
+
         default:
             /* custom_cpu_reason == CTC_PKT_CPU_REASON_CUSTOM_BASE*/
+            /* do not create all zero acl, will match all packet and send to cpu
+             * return error, to do ctcs_acl_remove_entry
+             */
+            return SAI_STATUS_FAILURE;
             break;
 
     }
@@ -2926,6 +2964,10 @@ _ctc_sai_hostif_set_port_trap_enable(uint8 lchip, uint32 custom_reason_id, sai_o
             case SAI_HOSTIF_TRAP_TYPE_DHCP:
             case SAI_HOSTIF_TRAP_TYPE_DHCPV6:
                 CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_L3PDU_DHCP_ACTION, enable?CTC_PORT_ARP_ACTION_TYPE_FW_EX:CTC_PORT_ARP_ACTION_TYPE_FW));
+                break;
+
+            case SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_ISIS:
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_l2pdu_set_port_action(lchip, gport, CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX, action));
                 break;
 
             case SAI_HOSTIF_TRAP_TYPE_OSPF:
@@ -4354,7 +4396,7 @@ ctc_sai_hostif_send_hostif_packet(
             status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_HOSTIF_PACKET_ATTR_EGRESS_PORT_OR_LAG, &attr_val, &attr_idx);
             if (CTC_SAI_ERROR(status))
             {
-                CTC_SAI_LOG_ERROR(SAI_API_HOSTIF, "Missing mandatory attribute egress port on send packet\n");
+                CTC_SAI_LOG_ERROR(SAI_API_HOSTIF, "Missing mandatory attribute egress port on send packet pipeline bypass\n");
                 return SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
             }
             ctc_sai_oid_get_gport(attr_val->oid, &dest_port);
@@ -4366,7 +4408,17 @@ ctc_sai_hostif_send_hostif_packet(
         }
         else if (SAI_HOSTIF_TX_TYPE_PIPELINE_LOOKUP == hostif_tx_type)
         {
+            p_tx_info->flags |= CTC_PKT_FLAG_INGRESS_MODE;
 
+            /* set ingress port to send packet loop to and do lookup */
+            status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT, &attr_val, &attr_idx);
+            if (CTC_SAI_ERROR(status))
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_HOSTIF, "Missing mandatory attribute ingress port on send packet to do pipeline lookup\n");
+                return SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
+            }
+            ctc_sai_oid_get_gport(attr_val->oid, &dest_port);
+            p_tx_info->dest_gport = dest_port;
         }
         else
         {
@@ -5001,6 +5053,51 @@ ctc_sai_hostif_db_init(uint8 lchip)
     l2pdu_entry.action_index = CTC_HOSTIF_L2PDU_ACTION_PAGP_INDEX;
     l2pdu_entry.entry_valid = 1;
     CTC_SAI_ERROR_RETURN(ctcs_l2pdu_set_global_action(lchip, CTC_PDU_L2PDU_TYPE_L2HDR_PROTO, CTC_HOSTIF_L2PDU_PAGP_INDEX, &l2pdu_entry));
+
+    /*isis broadcast macda 01-80-c2-00-00-14, mask ff-ff-ff-ff-ff-fe */
+    mac_da[0] = 0x01;
+    mac_da[1] = 0x80;
+    mac_da[2] = 0xc2;
+    mac_da[3] = 0x00;
+    mac_da[4] = 0x00;
+    mac_da[5] = 0x14;
+    mac_da_mask[0] = 0xff;
+    mac_da_mask[1] = 0xff;
+    mac_da_mask[2] = 0xff;
+    mac_da_mask[3] = 0xff;
+    mac_da_mask[4] = 0xff;
+    mac_da_mask[5] = 0xfe;
+    sal_memset(&pdu_l2pdu, 0, sizeof(ctc_pdu_l2pdu_key_t));
+    sal_memcpy(pdu_l2pdu.l2pdu_by_mac.mac, mac_da, sizeof(mac_addr_t));
+    sal_memcpy(pdu_l2pdu.l2pdu_by_mac.mac_mask, mac_da_mask, sizeof(mac_addr_t));
+    CTC_SAI_ERROR_RETURN(ctcs_l2pdu_classify_l2pdu(lchip, CTC_PDU_L2PDU_TYPE_MACDA, CTC_HOSTIF_L2PDU_ISIS_BROADCAST_INDEX, &pdu_l2pdu));
+    sal_memset(&l2pdu_entry, 0, sizeof(ctc_pdu_global_l2pdu_action_t));
+    l2pdu_entry.action_index = CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX;
+    l2pdu_entry.entry_valid = 1;
+    CTC_SAI_ERROR_RETURN(ctcs_l2pdu_set_global_action(lchip, CTC_PDU_L2PDU_TYPE_MACDA, CTC_HOSTIF_L2PDU_ISIS_BROADCAST_INDEX, &l2pdu_entry));
+    
+    /*isis p2p macda 09-00-2b-00-00-04, mask ff-ff-ff-ff-ff-fe , isis use same l2pdu cam index */
+    mac_da[0] = 0x09;
+    mac_da[1] = 0x00;
+    mac_da[2] = 0x2b;
+    mac_da[3] = 0x00;
+    mac_da[4] = 0x00;
+    mac_da[5] = 0x04;
+    mac_da_mask[0] = 0xff;
+    mac_da_mask[1] = 0xff;
+    mac_da_mask[2] = 0xff;
+    mac_da_mask[3] = 0xff;
+    mac_da_mask[4] = 0xff;
+    mac_da_mask[5] = 0xfe;
+    sal_memset(&pdu_l2pdu, 0, sizeof(ctc_pdu_l2pdu_key_t));
+    sal_memcpy(pdu_l2pdu.l2pdu_by_mac.mac, mac_da, sizeof(mac_addr_t));
+    sal_memcpy(pdu_l2pdu.l2pdu_by_mac.mac_mask, mac_da_mask, sizeof(mac_addr_t));
+    CTC_SAI_ERROR_RETURN(ctcs_l2pdu_classify_l2pdu(lchip, CTC_PDU_L2PDU_TYPE_MACDA, CTC_HOSTIF_L2PDU_ISIS_P2P_INDEX, &pdu_l2pdu));
+    sal_memset(&l2pdu_entry, 0, sizeof(ctc_pdu_global_l2pdu_action_t));
+    l2pdu_entry.action_index = CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX;
+    l2pdu_entry.entry_valid = 1;
+    CTC_SAI_ERROR_RETURN(ctcs_l2pdu_set_global_action(lchip, CTC_PDU_L2PDU_TYPE_MACDA, CTC_HOSTIF_L2PDU_ISIS_P2P_INDEX, &l2pdu_entry));
+    
 
     /*BGPV6*/
     sal_memset(&action, 0, sizeof(ctc_pdu_global_l3pdu_action_t));

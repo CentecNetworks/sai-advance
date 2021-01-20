@@ -1345,8 +1345,9 @@ ctc_sai_switch_set_global_property(sai_object_key_t* key, const sai_attribute_t*
     uint8 chip_type = 0;
     uint32 value = 0;
     mac_addr_t mac;
-    sai_object_id_t vr_obj_id = 0;
-    ctc_sai_virtual_router_t* p_vr_info = NULL;
+    mac_addr_t mac1;
+    //sai_object_id_t vr_obj_id = 0;
+    //ctc_sai_virtual_router_t* p_vr_info = NULL;
     ctc_sai_switch_master_t* p_switch_master = NULL;
     sai_status_t status = SAI_STATUS_SUCCESS;
     uint8 gchip = 0;
@@ -1390,13 +1391,30 @@ ctc_sai_switch_set_global_property(sai_object_key_t* key, const sai_attribute_t*
             return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
             break;
         case SAI_SWITCH_ATTR_SRC_MAC_ADDRESS:
+        {
+            ctc_sai_vrf_traverse_param_t traverse_param;
+            
+            sal_memset(&traverse_param, 0, sizeof(traverse_param));
+            traverse_param.lchip = lchip;
+            
+            sal_memset(mac1, 0, sizeof(mac_addr_t));
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_get_router_mac(lchip, mac1));
+            traverse_param.cmp_value =(void*)mac1; /*old sys routermac*/
+            
             sal_memset(mac, 0, sizeof(mac_addr_t));
             sal_memcpy(mac,attr->value.mac,sizeof(sai_mac_t));
             CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_router_mac(lchip, mac));
-            vr_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VIRTUAL_ROUTER, lchip, 0, 0, 0);
-            p_vr_info = ctc_sai_db_get_object_property(lchip, vr_obj_id);
-            sal_memcpy(p_vr_info->src_mac, attr->value.mac, sizeof(sai_mac_t));
+
+            //traverse_param.set_type = CTC_SAI_RIF_SET_TYPE_VRF;
+            //traverse_param.l3if_prop = CTC_L3IF_PROP_ROUTE_MAC_LOW_8BITS;
+            traverse_param.p_value = (void*)(attr->value.mac);
+            ctc_sai_virtual_router_traverse_set(&traverse_param);
+        
+            //vr_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VIRTUAL_ROUTER, lchip, 0, 0, 0);
+            //p_vr_info = ctc_sai_db_get_object_property(lchip, vr_obj_id);
+            //sal_memcpy(p_vr_info->src_mac, attr->value.mac, sizeof(sai_mac_t));
             break;
+        }
         case SAI_SWITCH_ATTR_MAX_LEARNED_ADDRESSES:
             {
                 ctc_security_learn_limit_t  limit;
@@ -1798,7 +1816,14 @@ ctc_sai_switch_get_qos_property(sai_object_key_t* key, sai_attribute_t* attr, ui
             attr->value.u8 = 8;
             break;
         case SAI_SWITCH_ATTR_QOS_MAX_NUMBER_OF_SCHEDULER_GROUP_HIERARCHY_LEVELS:
-            attr->value.u32 = CTC_SAI_MAX_SCHED_LEVELS;
+            if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+            {
+                attr->value.u32 = CTC_SAI_MAX_SCHED_LEVELS + 1;
+            }
+            else if(CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+            {
+                attr->value.u32 = CTC_SAI_MAX_SCHED_LEVELS_TMM + 1;
+            }
             break;
         case SAI_SWITCH_ATTR_QOS_MAX_NUMBER_OF_SCHEDULER_GROUPS_PER_HIERARCHY_LEVEL:
         case SAI_SWITCH_ATTR_QOS_MAX_NUMBER_OF_CHILDS_PER_SCHEDULER_GROUP:

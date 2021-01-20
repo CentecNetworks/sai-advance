@@ -1839,5 +1839,360 @@ class scenario_09_create_multi_sub_if_then_del_one_test(sai_base_test.ThriftInte
             sai_thrift_remove_lag_member(self.client, lag_member_id1)
             sai_thrift_remove_lag(self.client, lag_id1)
 
-         
+
+class scenario_10_set_system_vrf_routermac_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+ 
+        print ""
+        switch_init(self.client)
+        port1 = port_list[1]
+        port2 = port_list[2]
+        port3 = port_list[3]
+        port4 = port_list[4]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac_valid = 0
+        mac1 = "00:01:00:01:00:01"
+        mac2 = "00:01:00:01:00:02"
+        mac3 = "00:01:00:01:00:03"
+        mac4 = "00:01:00:01:00:04"
+        mac5 = "00:01:00:01:00:05"
+        new_sys_mac = "00:10:00:01:00:01"
+        dmac1 = '00:11:22:33:44:55'
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_addr2 = '10.10.10.2'
+        vr_id = sai_thrift_get_default_router_id(self.client)
+
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac1)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac1)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+
+        vr_id2 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        attr_value = sai_thrift_attribute_value_t(mac=mac2)
+        attr = sai_thrift_attribute_t(id=SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+        #pdb.set_trace()
+        self.client.sai_thrift_set_virtual_router_attribute(vr_id2, attr)
+        
+        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id2, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac3)
+        rif_id4 = sai_thrift_create_router_interface(self.client, vr_id2, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac3)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id3, ip_addr2, dmac1)
+        
+
+        pkt1 = simple_tcp_packet(eth_dst=mac1,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt2 = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt3 = simple_tcp_packet(eth_dst=mac4,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt7 = simple_tcp_packet(eth_dst=mac2,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        exp_pkt1 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=mac1,
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)                                
+                                
+        pkt4 = simple_tcp_packet(eth_dst=mac2,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt5 = simple_tcp_packet(
+                                eth_dst=mac3,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt6 = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt8 = simple_tcp_packet(eth_dst=mac5,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        exp_pkt2 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=mac3,
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)
+        warmboot(self.client)
+        try:
+            sys_logging("======receive packet with routermac mac1======")
+            
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packet( exp_pkt1, 1)
+            self.ctc_send_packet( 2, str(pkt2))
+            self.ctc_verify_packet( exp_pkt1, 1)
+            self.ctc_send_packet( 2, str(pkt3))
+            self.ctc_verify_no_packet( exp_pkt1, 1)
+
+            self.ctc_send_packet( 4, str(pkt4))
+            self.ctc_verify_packet( exp_pkt2, 3)
+            self.ctc_send_packet( 4, str(pkt5))
+            self.ctc_verify_packet( exp_pkt2, 3)
+            self.ctc_send_packet( 4, str(pkt6))
+            self.ctc_verify_no_packet( exp_pkt2, 3)
+            
+
+            sys_logging("======set switch routermac======")
+            attr_value = sai_thrift_attribute_value_t(mac=mac4)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+            #pdb.set_trace()
+            
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packet( exp_pkt1, 1)
+            self.ctc_send_packet( 2, str(pkt2))
+            self.ctc_verify_no_packet( exp_pkt1, 1)
+            self.ctc_send_packet( 2, str(pkt3))
+            self.ctc_verify_packet( exp_pkt1, 1)
+
+            self.ctc_send_packet( 4, str(pkt4))
+            self.ctc_verify_packet( exp_pkt2, 3)
+            self.ctc_send_packet( 4, str(pkt5))
+            self.ctc_verify_packet( exp_pkt2, 3)
+            self.ctc_send_packet( 4, str(pkt6))
+            self.ctc_verify_no_packet( exp_pkt2, 3)
+            
+            
+            sys_logging("======set vrf routermac======")
+            attr_value = sai_thrift_attribute_value_t(mac=mac2)
+            attr = sai_thrift_attribute_t(id=SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_virtual_router_attribute(vr_id, attr)
+            attr_value = sai_thrift_attribute_value_t(mac=mac5)
+            attr = sai_thrift_attribute_t(id=SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_virtual_router_attribute(vr_id2, attr)
+            #pdb.set_trace()
+
+            sys_logging("======receive packet with routermac mac2======")
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packet( exp_pkt1, 1)
+            self.ctc_send_packet( 2, str(pkt3))
+            self.ctc_verify_no_packet( exp_pkt1, 1)
+            self.ctc_send_packet( 2, str(pkt7))
+            self.ctc_verify_packet( exp_pkt1, 1)
+
+            self.ctc_send_packet( 4, str(pkt8))
+            self.ctc_verify_packet( exp_pkt2, 3)
+            self.ctc_send_packet( 4, str(pkt5))
+            self.ctc_verify_packet( exp_pkt2, 3)
+            self.ctc_send_packet( 4, str(pkt4))
+            self.ctc_verify_no_packet( exp_pkt2, 3)
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            #self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id3, ip_addr2, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id3)
+            self.client.sai_thrift_remove_router_interface(rif_id4)
+            self.client.sai_thrift_remove_virtual_router(vr_id2)
+
+            attr_value = sai_thrift_attribute_value_t(mac=router_mac)
+            attr = sai_thrift_attribute_t(id=SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_virtual_router_attribute(vr_id, attr)
+
+            attr_value = sai_thrift_attribute_value_t(mac=router_mac)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+class scenario_11_set_rif_routermac_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+ 
+        print ""
+        switch_init(self.client)
+        port1 = port_list[1]
+        port2 = port_list[2]
+        port3 = port_list[3]
+        port4 = port_list[4]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac_valid = 0
+        mac1 = "00:01:00:01:00:01"
+        mac2 = "00:01:00:01:00:02"
+        mac3 = "00:01:00:01:00:03"
+        mac4 = "00:01:00:01:00:04"
+        mac5 = "00:01:00:01:00:05"
+        new_sys_mac = "00:10:00:01:00:01"
+        dmac1 = '00:11:22:33:44:55'
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_addr2 = '10.10.10.2'
+        vr_id = sai_thrift_get_default_router_id(self.client)
+
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac1)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac1)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+
+        vr_id2 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        attr_value = sai_thrift_attribute_value_t(mac=mac2)
+        attr = sai_thrift_attribute_t(id=SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+        #pdb.set_trace()
+        self.client.sai_thrift_set_virtual_router_attribute(vr_id2, attr)
+        
+        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id2, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac3)
+        rif_id4 = sai_thrift_create_router_interface(self.client, vr_id2, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac3)
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id3, ip_addr2, dmac1)
+        
+
+        pkt1 = simple_tcp_packet(eth_dst=mac1,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt2 = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt3 = simple_tcp_packet(eth_dst=mac3,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        exp_pkt1 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=mac1,
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)                                
+        exp_pkt2 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=mac3,
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)                                 
+        pkt4 = simple_tcp_packet(eth_dst=mac2,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt5 = simple_tcp_packet(
+                                eth_dst=mac3,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        pkt6 = simple_tcp_packet(eth_dst=mac1,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64)
+        exp_pkt3 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=mac3,
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)
+        exp_pkt4 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=mac1,
+                                ip_dst='10.10.10.2',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63)
+        warmboot(self.client)
+        try:
+            sys_logging("======receive packet with routermac mac1======")
+            
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_packet( exp_pkt1, 1)
+            self.ctc_send_packet( 2, str(pkt2))
+            self.ctc_verify_packet( exp_pkt1, 1)
+            self.ctc_send_packet( 2, str(pkt3))
+            self.ctc_verify_no_packet( exp_pkt1, 1)
+
+            self.ctc_send_packet( 4, str(pkt4))
+            self.ctc_verify_packet( exp_pkt3, 3)
+            self.ctc_send_packet( 4, str(pkt5))
+            self.ctc_verify_packet( exp_pkt3, 3)
+            self.ctc_send_packet( 4, str(pkt6))
+            self.ctc_verify_no_packet( exp_pkt3, 3)
+            
+
+            sys_logging("======set rif routermac======")
+            attr_value = sai_thrift_attribute_value_t(mac=mac3)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+            self.client.sai_thrift_set_router_interface_attribute(rif_id2, attr)
+
+            attr_value = sai_thrift_attribute_value_t(mac=mac1)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_router_interface_attribute(rif_id3, attr)
+            self.client.sai_thrift_set_router_interface_attribute(rif_id4, attr)
+            #pdb.set_trace()
+            
+            self.ctc_send_packet( 2, str(pkt1))
+            self.ctc_verify_no_packet( exp_pkt2, 1)
+            self.ctc_send_packet( 2, str(pkt2))
+            self.ctc_verify_packet( exp_pkt2, 1)
+            self.ctc_send_packet( 2, str(pkt3))
+            self.ctc_verify_packet( exp_pkt2, 1)
+
+            self.ctc_send_packet( 4, str(pkt4))
+            self.ctc_verify_packet( exp_pkt4, 3)
+            self.ctc_send_packet( 4, str(pkt5))
+            self.ctc_verify_no_packet( exp_pkt4, 3)
+            self.ctc_send_packet( 4, str(pkt6))
+            self.ctc_verify_packet( exp_pkt4, 3)
+            
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            #self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id3, ip_addr2, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id3)
+            self.client.sai_thrift_remove_router_interface(rif_id4)
+            self.client.sai_thrift_remove_virtual_router(vr_id2)
+
+            attr_value = sai_thrift_attribute_value_t(mac=router_mac)
+            attr = sai_thrift_attribute_t(id=SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_virtual_router_attribute(vr_id, attr)
+
+            attr_value = sai_thrift_attribute_value_t(mac=router_mac)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_SRC_MAC_ADDRESS, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
 

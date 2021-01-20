@@ -88,6 +88,9 @@ typedef enum _sai_bridge_port_type_t
     /** Bridge Fast Reroute port */
     SAI_BRIDGE_PORT_TYPE_FRR,
 
+    /** Bridge Load Balance port */
+    SAI_BRIDGE_PORT_TYPE_LB,
+
     /** Bridge Double Vlan port */
     SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT,
 
@@ -325,6 +328,18 @@ typedef enum _sai_bridge_port_attr_t
      * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_FRR
      */
     SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP,
+
+      /**
+     * @brief Load Balance nexthop group object ID
+     *
+     * for Virtual Private LAN Service Load Balance Decapsulation
+     *
+     * @type sai_object_id_t
+     * @flags MANDATORY_ON_CREATE | CREATE_ONLY
+     * @objects SAI_OBJECT_TYPE_NEXT_HOP_GROUP
+     * @condition SAI_BRIDGE_PORT_ATTR_TYPE == SAI_BRIDGE_PORT_TYPE_LB
+     */
+    SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP,
 
     /**
      * @brief Policer id for sub port/tunnel port

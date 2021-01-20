@@ -192,7 +192,7 @@ _ctc_sai_router_interface_set_attr_hw(sai_object_id_t router_interface_id)
     ctc_stats_statsid_t stats_statsid_eg;
     ctc_l3if_router_mac_t router_mac;
     ctc_object_id_t ctc_object_id;
-    uint8 exist = 0;
+    uint8 exist = 0, need_update_egr_mac = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_ROUTER_INTERFACE);
     ctc_sai_oid_get_lchip(router_interface_id, &lchip);
@@ -321,15 +321,57 @@ _ctc_sai_router_interface_set_attr_hw(sai_object_id_t router_interface_id)
     }
     else if(p_rif_info->is_virtual)
     {
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_interface_router_mac(lchip, l3if_id, router_mac));
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_get_interface_router_mac(lchip, l3if_id, &router_mac));
         sal_memcpy(router_mac.mac[router_mac.num], p_rif_info->src_mac, sizeof(sai_mac_t));
         router_mac.num += 1;
     }
     else
     {
-        sal_memcpy(router_mac.mac[0], p_rif_info->src_mac, sizeof(sai_mac_t));
+        sai_object_id_t vr_obj_id;
+        ctc_sai_virtual_router_t* p_vr_info = NULL;
+        vr_obj_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VIRTUAL_ROUTER, lchip, 0, 0, p_rif_info->vrf_id);
+        p_vr_info = ctc_sai_db_get_object_property(lchip, vr_obj_id);
+        if (NULL == p_rif_info)
+        {
+            return SAI_STATUS_ITEM_NOT_FOUND;
+        }
+        //mac_addr_t mac;
+        //sal_memset(mac, 0, sizeof(mac_addr_t));
+        //CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_get_router_mac(lchip, mac));
+
+        if(sal_memcmp(p_vr_info->src_mac, p_rif_info->src_mac, sizeof(sai_mac_t))) 
+        {
+            //CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_get_interface_router_mac(lchip, l3if_id, &router_mac));
+
+            router_mac.dir = CTC_INGRESS;
+            router_mac.mode = CTC_L3IF_UPDATE_ROUTE_MAC;
+            sal_memcpy(router_mac.mac[0], p_vr_info->src_mac, sizeof(sai_mac_t));
+            sal_memcpy(router_mac.mac[1], p_rif_info->src_mac, sizeof(sai_mac_t));
+            router_mac.num = 2;
+            need_update_egr_mac = 1;
+        }
+        else
+        {
+            router_mac.dir = CTC_INGRESS;
+            router_mac.mode = CTC_L3IF_UPDATE_ROUTE_MAC;
+            sal_memcpy(router_mac.mac[0], p_rif_info->src_mac, sizeof(sai_mac_t));
+            router_mac.num = 1;
+            need_update_egr_mac = 1;
+        }
+
     }
     CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_interface_router_mac(lchip, l3if_id, router_mac));
+
+    /* update egress mac use interface mac */
+    if(need_update_egr_mac)
+    {
+        sal_memset(&router_mac, 0, sizeof(router_mac));
+        router_mac.num = 1;
+        router_mac.dir = CTC_EGRESS;
+        router_mac.mode = CTC_L3IF_UPDATE_ROUTE_MAC;
+        sal_memcpy(router_mac.mac[0], p_rif_info->src_mac, sizeof(sai_mac_t));
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_interface_router_mac(lchip, l3if_id, router_mac));
+    }
 
     return SAI_STATUS_SUCCESS;
     error4:
@@ -684,7 +726,6 @@ _ctc_sai_router_interface_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, c
             return SAI_STATUS_SUCCESS;
         }
     }
-
     else if (CTC_SAI_RIF_SET_TYPE_VRF == user_data->set_type)
     {
         if (p_rif_info->vrf_id != *(user_data->cmp_value))
@@ -701,10 +742,34 @@ _ctc_sai_router_interface_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, c
     if (CTC_L3IF_PROP_ROUTE_MAC_LOW_8BITS == user_data->l3if_prop)
     {
         ctc_l3if_router_mac_t router_mac;
-        router_mac.num = 1;
-        sal_memcpy(p_rif_info->src_mac, user_data->p_value, sizeof(sai_mac_t));
+        sal_memset(&router_mac, 0, sizeof(ctc_l3if_router_mac_t));
+
+        if(p_rif_info->is_virtual) /* virtual l3if do not update */
+        {
+            return SAI_STATUS_SUCCESS;
+        }
+        
+        /*switch src mac(default vrf mac) share with dedicate vrf mac, use router_mac.mac[0] to set */
+        
+        //router_mac.dir = CTC_INGRESS;
+        //CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_get_interface_router_mac(user_data->lchip, ctc_object_id.value, &router_mac));
+
+        router_mac.dir = CTC_INGRESS;
+        router_mac.mode = CTC_L3IF_UPDATE_ROUTE_MAC;
+        router_mac.num = 2;
         sal_memcpy(router_mac.mac[0], user_data->p_value, sizeof(sai_mac_t));
+        sal_memcpy(router_mac.mac[1], p_rif_info->src_mac, sizeof(sai_mac_t));
         CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_interface_router_mac(user_data->lchip, ctc_object_id.value, router_mac));
+
+        /*update egress mac with rif mac */
+        sal_memset(&router_mac, 0, sizeof(router_mac));
+        router_mac.num = 1;
+        router_mac.dir = CTC_EGRESS;
+        router_mac.mode = CTC_L3IF_UPDATE_ROUTE_MAC;
+        sal_memcpy(router_mac.mac[0], p_rif_info->src_mac, sizeof(sai_mac_t));
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_l3if_set_interface_router_mac(user_data->lchip, ctc_object_id.value, router_mac));
+            
+        
 
     }
     else if (CTC_L3IF_PROP_IPV4_UCAST == user_data->l3if_prop)
@@ -1701,6 +1766,8 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
         for (index = 0; index < agg_member_cnt; index++)
         {
             CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_phy_if_en(lchip, gports[index], 1), status, error5);
+            /* L3 pdu mcast route force bridge */
+            ctcs_port_set_property(lchip, gports[index], CTC_PORT_PROP_BRIDGE_EN, TRUE);
         }
 
     }

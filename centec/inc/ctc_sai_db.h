@@ -104,6 +104,7 @@ typedef enum ctc_sai_db_id_type_e
     CTC_SAI_DB_ID_TYPE_UDF_ENTRY,
     CTC_SAI_DB_ID_TYPE_UDF_MATCH,
     CTC_SAI_DB_ID_TYPE_WRED,
+    CTC_SAI_DB_ID_TYPE_SCHEDULER_GROUP,
 
     CTC_SAI_DB_ID_TYPE_MAX,
 }ctc_sai_db_id_type_t;

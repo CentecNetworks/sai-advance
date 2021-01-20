@@ -45,6 +45,9 @@ class CreateAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             group_bind_point_list,
             group_type)
         assert acl_table_group_id > 0, 'acl_table_group_id is <= 0'
+        print "acl_table_group_id:0x%lx" %acl_table_group_id
+        pdb.set_trace()
+
         warmboot(self.client)
         status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
         assert (status == SAI_STATUS_SUCCESS)
@@ -161,7 +164,8 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             src_l4_port,
             dst_l4_port)
         assert acl_table_id > 0, 'acl_table_id is <= 0'
-
+        print "acl_table_id:0x%lx" %acl_table_id
+    
         # setup ACL table group members
         group_member_priority = 1
 
@@ -170,6 +174,10 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             acl_table_group_id,
             acl_table_id,
             group_member_priority)
+        print "acl_table_group_member_ids:0x%lx" %acl_table_group_member_id
+            
+        pdb.set_trace()
+
         warmboot(self.client)
 
         # remove acl table group member first
@@ -670,7 +678,9 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
             new_cvlan, new_ccos,
             deny_learn)
         assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+        print "acl_entry_id: 0x%lx" %acl_entry_id
 
+        pdb.set_trace()
         warmboot(self.client)
 
         # try to remove acl table
@@ -678,7 +688,6 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
         assert (status == SAI_STATUS_SUCCESS)
         status = self.client.sai_thrift_remove_acl_table(acl_table_id)
         assert (status == SAI_STATUS_SUCCESS)
-
 
 @group('acl')
 class GetAclTable(sai_base_test.ThriftInterfaceDataPlane):
@@ -7396,8 +7405,8 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         udf14 = ctypes.c_int8(0)
         udf15 = ctypes.c_int8(0)
 
-        group0_udf_value = [udf0.value, udf1.value, udf2.value, udf3.value, udf4.value, udf5.value, udf6.value, udf7.value, udf8.value, udf9.value, udf10.value, udf11.value, udf12.value, udf13.value, udf14.value, udf15.value]
-        group0_udf_mask  = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
+        user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value, udf4.value, udf5.value, udf6.value, udf7.value, udf8.value, udf9.value, udf10.value, udf11.value, udf12.value, udf13.value, udf14.value, udf15.value]
+        user_define_filed_group_mask = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
 
         group_type = SAI_UDF_GROUP_TYPE_GENERIC
         group_length = 16
@@ -7442,7 +7451,7 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         base = SAI_UDF_BASE_L3
         offset = 4
         # default value
-        hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1]
 
         udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
         assert udf_entry_id > 0, 'udf_entry_id is <= 0'
@@ -7450,116 +7459,67 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
 
         user_define_filed_group0 = True
 
-        acl_table_id = sai_thrift_create_acl_table(self.client,
-                    table_stage,
-                    table_bind_point_list,
-                    addr_family,
-                    mac_src,
-                    mac_dst,
-                    ip_src,
-                    ip_dst,
-                    in_ports,
-                    out_ports,
-                    in_port,
-                    out_port,
-                    svlan_id,
-                    svlan_pri,
-                    svlan_cfi,
-                    cvlan_id,
-                    cvlan_pri,
-                    cvlan_cfi,
-                    ip_type,
-                    mpls_label0_label,
-                    mpls_label0_ttl,
-                    mpls_label0_exp,
-                    mpls_label0_bos,
-                    mpls_label1_label,
-                    mpls_label1_ttl,
-                    mpls_label1_exp,
-                    mpls_label1_bos,
-                    mpls_label2_label,
-                    mpls_label2_ttl,
-                    mpls_label2_exp,
-                    mpls_label2_bos,
-                    mpls_label3_label,
-                    mpls_label3_ttl,
-                    mpls_label3_exp,
-                    mpls_label3_bos,
-                    mpls_label4_label,
-                    mpls_label4_ttl,
-                    mpls_label4_exp,
-                    mpls_label4_bos,
-                    ip_protocol,
-                    src_l4_port,
-                    dst_l4_port,
-                    ipv6_src,
-                    ipv6_dst,
-                    ip_tos,
-                    ip_ecn,
-                    ip_dscp,
-                    ip_ttl,
-                    acl_range_type_list,
-                    user_define_filed_group0)
+        acl_attr_list = []
+        # acl key field
 
-        assert acl_table_id > 0, 'acl_table_id is <= 0'
-        print "acl_table_id = 0x%lx" %acl_table_id
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
 
-        acl_entry_id = sai_thrift_create_acl_entry(self.client,
-                                      acl_table_id,
-                                      entry_priority,
-                                      admin_state,
-                                      action, addr_family,
-                                      mac_src, mac_src_mask,
-                                      mac_dst, mac_dst_mask,
-                                      svlan_id, svlan_pri,
-                                      svlan_cfi, cvlan_id,
-                                      cvlan_pri, cvlan_cfi,
-                                      ip_type,
-                                      mpls_label0_label,
-                                      mpls_label0_ttl,
-                                      mpls_label0_exp,
-                                      mpls_label0_bos,
-                                      mpls_label1_label,
-                                      mpls_label1_ttl,
-                                      mpls_label1_exp,
-                                      mpls_label1_bos,
-                                      mpls_label2_label,
-                                      mpls_label2_ttl,
-                                      mpls_label2_exp,
-                                      mpls_label2_bos,
-                                      mpls_label3_label,
-                                      mpls_label3_ttl,
-                                      mpls_label3_exp,
-                                      mpls_label3_bos,
-                                      mpls_label4_label,
-                                      mpls_label4_ttl,
-                                      mpls_label4_exp,
-                                      mpls_label4_bos,
-                                      ip_src, ip_src_mask,
-                                      ip_dst, ip_dst_mask,
-                                      ip_protocol,
-                                      ip_tos, ip_ecn,
-                                      ip_dscp, ip_ttl,
-                                      in_ports, out_ports,
-                                      in_port, out_port,
-                                      src_l4_port, dst_l4_port,
-                                      ingress_mirror_id,
-                                      egress_mirror_id,
-                                      new_svlan, new_scos,
-                                      new_cvlan, new_ccos,
-                                      deny_learn,
-                                      ipv6_src,
-                                      ipv6_src_mask,
-                                      ipv6_dst,
-                                      ipv6_dst_mask,
-                                      ingress_samplepacket,
-                                      acl_range_id_list,
-                                      redirect,
-                                      group0_udf_value,
-                                      group0_udf_mask)
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
 
-        assert acl_entry_id > 0, 'acl_entry_id is <= 0'
-        print "acl_entry_id = 0x%lx" %acl_entry_id
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_id = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_id)
+        assert(acl_table_id != SAI_NULL_OBJECT_ID)
+
+        # acl entry info
+        action = SAI_PACKET_ACTION_DROP
+        entry_priority = 1
+        admin_state = True
+
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+        user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                            data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                            mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_id = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_id)
+        assert(acl_entry_id != SAI_NULL_OBJECT_ID)
 
         # bind this ACL table to port2s object id
         attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)

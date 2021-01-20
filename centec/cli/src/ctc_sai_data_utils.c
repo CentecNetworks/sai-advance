@@ -223,7 +223,7 @@ ctc_sai_data_utils_attr_alloc_mem(ctc_sai_attr_value_type_t attr_value_type, sai
         if (NULL == attr->value.aclfield.mask.u8list.list)
         {
             CTC_SAI_LOG_ERROR(SAI_API_UNSPECIFIED, "%s %d, out of memory\n", __FUNCTION__, __LINE__);
-            sal_free(attr->value.aclfield.data.u8list.list);
+            sal_free(attr->value.aclfield.mask.u8list.list);
         }
     }
     else if (CTC_SAI_ATTR_VALUE_TYPE_ACL_ACTION_DATA_OBJECT_LIST == attr_value_type)
@@ -286,6 +286,14 @@ ctc_sai_data_utils_attr_alloc_mem(ctc_sai_attr_value_type_t attr_value_type, sai
     {
         attr->value.aclresource.list = (sai_acl_resource_t*)sal_malloc(sizeof(sai_acl_resource_t)*4096);
         if (NULL == attr->value.aclresource.list)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_UNSPECIFIED, "%s %d, out of memory\n", __FUNCTION__, __LINE__);
+        }
+    }
+    else if (CTC_SAI_ATTR_VALUE_TYPE_ACL_CAPABILITY == attr_value_type)
+    {
+        attr->value.aclcapability.action_list.list = (int32*)sal_malloc(sizeof(int32)*4096);
+        if (NULL == attr->value.aclcapability.action_list.list)
         {
             CTC_SAI_LOG_ERROR(SAI_API_UNSPECIFIED, "%s %d, out of memory\n", __FUNCTION__, __LINE__);
         }
@@ -467,6 +475,14 @@ ctc_sai_data_utils_attr_free_mem(ctc_sai_attr_value_type_t attr_value_type, sai_
         {
             sal_free(attr->value.aclresource.list);
             attr->value.aclresource.list = NULL;
+        }
+    }
+    else if (CTC_SAI_ATTR_VALUE_TYPE_ACL_CAPABILITY == attr_value_type)
+    {
+        if (NULL != attr->value.aclcapability.action_list.list)
+        {
+            sal_free(attr->value.aclcapability.action_list.list);
+            attr->value.aclcapability.action_list.list = NULL;
         }
     }
     else if (CTC_SAI_ATTR_VALUE_TYPE_SEGMENT_LIST == attr_value_type)

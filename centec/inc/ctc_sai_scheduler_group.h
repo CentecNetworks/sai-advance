@@ -44,11 +44,21 @@ This module defines SAI Scheduler Group.
 #include "ctcs_api.h"
 
 
-#define CTC_SAI_MAX_SCHED_LEVELS 3
+#define CTC_SAI_MAX_SCHED_LEVELS 2
+#define CTC_SAI_MAX_SCHED_LEVELS_TMM 5
 #define CTC_SAI_SCHED_MAX_GRP_NUM 8
 #define CTC_SAI_SCHED_ETS_GRP_NUM 3
 #define CTC_SAI_SCHED_SERVICE_GRP_NUM 64
 #define CTC_SAI_SCHED_PORT_GRP_NUM 4
+
+//service L0,L1,L2,L3,L4 support 64(1 per port),128, 256, 384, 1216 sch group
+#define CTC_SAI_SCHED_PORT_GRP_NUM_TMM 12 //8 level5 basic group + 4 level1 service group
+#define CTC_SAI_SCHED_GRP_LEVEL1_MAX_CHILD_NUM_TMM 255  //uint8,sdk max child number is 512 128*4
+#define CTC_SAI_SCHED_GRP_LEVEL2_MAX_CHILD_NUM_TMM 255  //uint8,sdk max child number is 1024 256*4
+#define CTC_SAI_SCHED_GRP_LEVEL3_MAX_CHILD_NUM_TMM 255  //uint8,sdk max child number is 1536 384*4
+#define CTC_SAI_SCHED_GRP_LEVEL4_MAX_CHILD_NUM_TMM 255  //uint8,sdk max child number is 7525 944*8
+
+
 
 #define CTC_SAI_PORT_SCHED_GROUP_NUM 4
 
@@ -68,6 +78,7 @@ typedef struct  ctc_sai_sched_group_db_s
     sai_object_id_t sched_id;
     uint8 max_childs;
     uint16 service_id;
+    uint32  ctc_sche_group;
 }ctc_sai_sched_group_db_t;
 
 sai_status_t
@@ -84,6 +95,12 @@ ctc_sai_scheduler_group_port_get_sched_group_num(sai_object_id_t port_id, sai_at
 
 sai_status_t
 ctc_sai_scheduler_group_queue_set_scheduler(sai_object_id_t queue_id, const sai_attribute_t *attr);
+
+sai_status_t
+ctc_sai_scheduler_group_set_ctc_group_parent_and_class(uint8 lchip, uint32 ctc_sche_group, sai_object_id_t parent_oid);
+
+sai_status_t
+ctc_sai_scheduler_group_set_ctc_weight_and_shaping(uint8 lchip, uint8 level,uint16 group_index, uint32 ctc_sche_group, sai_object_id_t scheduler_oid, bool is_set);
 
 uint16
 ctc_sai_scheduler_group_get_group_index_base(uint8 lchip, uint16 service_id);

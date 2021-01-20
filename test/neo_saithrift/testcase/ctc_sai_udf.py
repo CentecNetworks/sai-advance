@@ -1394,7 +1394,7 @@ class fun_10_udf_set_test(sai_base_test.ThriftInterfaceDataPlane):
 
 ######################################################################
 
-class fun_12_udf_group_max_entry(sai_base_test.ThriftInterfaceDataPlane):
+class fun_12_udf_max_group(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
 
         switch_init(self.client)
@@ -1423,19 +1423,22 @@ class fun_12_udf_group_max_entry(sai_base_test.ThriftInterfaceDataPlane):
 
         max_entry_num = 0
         if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
-            max_entry_num = 16
+            max_offset_num = 4
+            max_match_num  = 16
+            max_group_num  = 64
         elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
-            max_entry_num = 256
+            max_offset_num = 8
+            max_match_num  = 511
+            max_group_num  = 4088
 
-        priority_list = []
-        for value in range(0, 128):
-            priority_list.append(value)
-        for value in range(-128, 0):
-            priority_list.append(value)
+        value_list = []
+        for value in range(0, 2048):
+            value_list.append(value)
+        for value in range(-2048, 0):
+            value_list.append(value)
 
         udf_match_oid_list = []
-        for n in range(0, max_entry_num):
-
+        for n in range(0, max_match_num):
             udf_match_oid = sai_thrift_create_udf_match(self.client,
                                                         ether_type,
                                                         ether_type_mask,
@@ -1448,89 +1451,64 @@ class fun_12_udf_group_max_entry(sai_base_test.ThriftInterfaceDataPlane):
                                                         (l4_dst_port+n),
                                                         l4_dst_port_mask,
                                                         mpls_label_num,
-                                                        priority_list[n])
+                                                        priority)
             assert udf_match_oid > 0, 'udf_match_oid is <= 0'
             print "udf_match_oid = 0x%lx" %udf_match_oid
             udf_match_oid_list.append(udf_match_oid)
 
-        l4_src_port = 0x1200
-        l4_src_port_mask = U16MASKFULL
-        l4_dst_port = 0x0012
-        l4_dst_port_mask = U16MASKFULL
-        priority = 0
-
-        udf_match_oid = sai_thrift_create_udf_match(self.client,
-                                                    ether_type,
-                                                    ether_type_mask,
-                                                    l3_header_protocol,
-                                                    l3_header_protocol_mask,
-                                                    gre_type,
-                                                    gre_type_mask,
-                                                    l4_src_port,
-                                                    l4_src_port_mask,
-                                                    l4_dst_port,
-                                                    l4_dst_port_mask,
-                                                    mpls_label_num,
-                                                    priority)
-        print "udf_match_oid = 0x%lx" %udf_match_oid
-        assert udf_match_oid == 0, 'udf_match_oid is != 0'
-
         group_type = SAI_UDF_GROUP_TYPE_GENERIC
-        group_length = 16
+        group_length = 2
 
-        udf_group_oid0 = sai_thrift_create_udf_group(self.client, group_type, group_length)
-        print "udf_group_oid0 = 0x%lx" %udf_group_oid0
-        assert udf_group_oid0 != 0, 'udf_group_oid0 is == 0'
-
-        udf_group_oid1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
-        print "udf_group_oid1 = 0x%lx" %udf_group_oid1
-        assert udf_group_oid1 != 0, 'udf_group_oid1 is == 0'
+        udf_group_oid_list = []
+        for n in range(0, max_group_num):
+            udf_group_oid = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_oid = 0x%lx" %udf_group_oid
+            assert udf_group_oid != 0, 'udf_group_oid is == 0'
+            udf_group_oid_list.append(udf_group_oid)
 
         warmboot(self.client)
         try:
             base = SAI_UDF_BASE_L3
             offset = 4
             # default value
-            hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+            hash_mask_list = [-1, -1]
 
             udf_entry_oid_list = []
-            for n in range(0, max_entry_num):
-                udf_entry_oid =  sai_thrift_create_udf(self.client, udf_match_oid_list[n], udf_group_oid0, base, offset, hash_mask_list)
-                assert udf_entry_oid > 0, 'udf_entry_oid is <= 0'
-                print "udf_entry_oid = 0x%lx" %udf_entry_oid
-                udf_entry_oid_list.append(udf_entry_oid)
-
-            udf_entry_oid = sai_thrift_create_udf(self.client, udf_match_oid_list[0], udf_group_oid1, base, offset, hash_mask_list)
-            assert udf_entry_oid == 0, 'udf_entry_oid is != 0'
-            print "udf_entry_oid = 0x%lx" %udf_entry_oid
+            for n in range(0, max_match_num):
+                for offset in range(0, max_offset_num):
+                    udf_entry_oid =  sai_thrift_create_udf(self.client, udf_match_oid_list[n], udf_group_oid_list[((n*max_offset_num)+offset)], base, (offset*2), hash_mask_list)
+                    assert udf_entry_oid > 0, 'udf_entry_oid is <= 0'
+                    print "udf_entry_oid = 0x%lx" %udf_entry_oid
+                    udf_entry_oid_list.append(udf_entry_oid)
 
         finally:
-            for n in range(0, max_entry_num):
-                status = self.client.sai_thrift_remove_udf(udf_entry_oid_list[n])
+            for udf_entry_oid in udf_entry_oid_list:
+                status = self.client.sai_thrift_remove_udf(udf_entry_oid)
                 assert (status == SAI_STATUS_SUCCESS)
 
-            for n in range(0, max_entry_num):
-                status = self.client.sai_thrift_remove_udf_match(udf_match_oid_list[n])
+            for udf_match_oid in udf_match_oid_list:
+                status = self.client.sai_thrift_remove_udf_match(udf_match_oid)
                 assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_udf_group(udf_group_oid0)
-            assert (status == SAI_STATUS_SUCCESS)
+            for udf_group_oid in udf_group_oid_list:
+                status = self.client.sai_thrift_remove_udf_group(udf_group_oid)
+                assert (status == SAI_STATUS_SUCCESS)
 
-            status = self.client.sai_thrift_remove_udf_group(udf_group_oid1)
-            assert (status == SAI_STATUS_SUCCESS)
-
-class fun_13_udf_match_exclude_entry(sai_base_test.ThriftInterfaceDataPlane):
+class fun_13_udf_group_exclude_different_udf_entry_offset(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
 
         switch_init(self.client)
 
         #setup udf group
         group_type = SAI_UDF_GROUP_TYPE_GENERIC
-        group_length = 16
+        group_length = 2
 
         print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
-        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
-        print "udf_group_id = 0x%lx" %udf_group_id
+        udf_group_id0 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id0 = 0x%lx" %udf_group_id0
+
+        udf_group_id1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id1 = 0x%lx" %udf_group_id1
 
         # setup udf match  zhuan buma
         print "Create udf match:"
@@ -1571,28 +1549,41 @@ class fun_13_udf_match_exclude_entry(sai_base_test.ThriftInterfaceDataPlane):
         print "udf_match_id = 0x%lx" %udf_match_id
 
         base = SAI_UDF_BASE_L3
-        offset = 4
+        offset = 0
         # default value
-        hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1]
 
-        udf_entry_id0 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+        udf_entry_id0 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id0, base, offset, hash_mask_list)
         assert udf_entry_id0 > 0, 'udf_entry_id is <= 0'
-        print "udf_entry_id = 0x%lx" %udf_entry_id0
-
-        udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
-        assert udf_entry_id1 == 0, 'udf_entry_id is != 0'
-        print "udf_entry_id = 0x%lx" %udf_entry_id1
+        print "udf_entry_id0 = 0x%lx" %udf_entry_id0
 
         warmboot(self.client)
         try:
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            offset = 2
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id0, base, offset, hash_mask_list)
+            assert udf_entry_id1 == 0, 'udf_entry_id1 is != 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 != 0, 'udf_entry_id1 is == 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            status = self.client.sai_thrift_remove_udf(udf_entry_id0)
+            assert (status == SAI_STATUS_SUCCESS)
+
+            offset = 4
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id0, base, offset, hash_mask_list)
+            assert udf_entry_id2 != 0, 'udf_entry_id2 is == 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
         finally:
-            self.client.sai_thrift_remove_udf(udf_entry_id0)
+            self.client.sai_thrift_remove_udf(udf_entry_id1)
+            self.client.sai_thrift_remove_udf(udf_entry_id2)
             self.client.sai_thrift_remove_udf_match(udf_match_id)
-            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id0)
+            self.client.sai_thrift_remove_udf_group(udf_group_id1)
 
-
-class fun_14_udf_max_generic_groups(sai_base_test.ThriftInterfaceDataPlane):
+class fun_14_udf_groups_max_udf_entry_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
 
         switch_init(self.client)
@@ -1610,31 +1601,43 @@ class fun_14_udf_max_generic_groups(sai_base_test.ThriftInterfaceDataPlane):
         gre_type = None
         gre_type_mask = None
         #l4 port
-        l4_src_port = 0x1200
+        l4_src_port = 0x0000
         l4_src_port_mask = U16MASKFULL
-        l4_dst_port = 0x0021
+        l4_dst_port = 0x0000
         l4_dst_port_mask = U16MASKFULL
         #mpls label num
         mpls_label_num = None
         #entry proirity
         priority = 0
 
-        max_group_num = 0
+        max_entry_num = 0
         if 'tsingma' == testutils.test_params_get()['chipname']:      # tsingma
-            max_group_num = 16
+            max_offset_num = 4
+            max_match_num  = 16
+            max_group_num  = 64
         elif 'tsingma_mx' == testutils.test_params_get()['chipname']: # tsingma_mx
-            max_group_num = 256
+            max_offset_num = 8
+            max_match_num  = 511
+            max_group_num  = 4088
 
-        priority_list = []
-        for value in range(0, 128):
-            priority_list.append(value)
-        for value in range(-128, 0):
-            priority_list.append(value)
+        value_list = []
+        for value in range(0, 2048):
+            value_list.append(value)
+        for value in range(-2048, 0):
+            value_list.append(value)
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+        group_length = 2
+
+        udf_group_oid_list = []
+        for n in range(0, max_offset_num):
+            udf_group_oid = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_oid = 0x%lx" %udf_group_oid
+            assert udf_group_oid != 0, 'udf_group_oid is == 0'
+            udf_group_oid_list.append(udf_group_oid)
 
         udf_match_oid_list = []
-
-        for n in range(0, max_group_num):
-
+        for n in range(0, max_match_num):
             udf_match_oid = sai_thrift_create_udf_match(self.client,
                                                         ether_type,
                                                         ether_type_mask,
@@ -1647,130 +1650,37 @@ class fun_14_udf_max_generic_groups(sai_base_test.ThriftInterfaceDataPlane):
                                                         (l4_dst_port+n),
                                                         l4_dst_port_mask,
                                                         mpls_label_num,
-                                                        priority_list[n])
+                                                        priority)
             assert udf_match_oid > 0, 'udf_match_oid is <= 0'
-            print "udf_match_oid[%u] = 0x%lx" %(priority_list[n], udf_match_oid)
+            print "udf_match_oid = 0x%lx" %udf_match_oid
             udf_match_oid_list.append(udf_match_oid)
-
-        group_type = SAI_UDF_GROUP_TYPE_GENERIC
-        group_length = 16
-
-        udf_group_oid_list = []
-        for n in range(0, max_group_num):
-            udf_group_oid = sai_thrift_create_udf_group(self.client, group_type, group_length)
-            assert udf_group_oid > 0, 'udf_group_oid is <= 0'
-            print "udf_group_oid = 0x%lx" %udf_group_oid
-            udf_group_oid_list.append(udf_group_oid)
-
-        base = SAI_UDF_BASE_L3
-        offset = 4
-        # default value
-        hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
-
-        udf_entry_oid_list = []
-        for n in range(0, max_group_num):
-
-            udf_entry_oid = sai_thrift_create_udf(self.client, udf_match_oid_list[n], udf_group_oid_list[n], base, offset, hash_mask_list)
-            assert udf_entry_oid > 0, 'udf_entry_oid is <= 0'
-            print "udf_entry_oid = 0x%lx" %udf_entry_oid
-            udf_entry_oid_list.append(udf_entry_oid)
 
         warmboot(self.client)
         try:
-            for n in range(0, max_group_num):
+            base = SAI_UDF_BASE_L3
+            # default value
+            hash_mask_list = [-1, -1]
 
-                print "Get udf attribute: "
-                attrs = self.client.sai_thrift_get_udf_attribute(udf_entry_oid_list[n])
-                print "udf_id = 0x%lx" %udf_entry_oid_list[n]
-                print "status = %d" %attrs.status
-                assert (attrs.status == SAI_STATUS_SUCCESS)
-
-                for a in attrs.attr_list:
-                    if a.id == SAI_UDF_ATTR_MATCH_ID:
-                        print "set udf_match_oid = 0x%lx" %udf_match_oid_list[n]
-                        print "get udf_match_oid = 0x%lx" %a.value.oid
-                        if udf_match_oid_list[n] != a.value.oid:
-                            raise NotImplementedError()
-                    if a.id == SAI_UDF_ATTR_GROUP_ID:
-                        print "set udf_group_oid = 0x%lx" %udf_group_oid_list[n]
-                        print "get udf_group_oid = 0x%lx" %a.value.oid
-                        if udf_group_oid_list[n] != a.value.oid:
-                            raise NotImplementedError()
-                    if a.id == SAI_UDF_ATTR_BASE:
-                        print "set base = %d" %base
-                        print "get base = %d" %a.value.s32
-                        if base != a.value.s32:
-                            raise NotImplementedError()
-                    if a.id == SAI_UDF_ATTR_OFFSET:
-                        print "set offset = %d" %offset
-                        print "get offset = %d" %a.value.u16
-                        if offset != a.value.u16:
-                            raise NotImplementedError()
-
-            for n in range(0, max_group_num):
-
-                print "Get udf match attribute:"
-                attrs = self.client.sai_thrift_get_udf_match_attribute(udf_match_oid_list[n])
-                print "status = %d" %attrs.status
-                assert (attrs.status == SAI_STATUS_SUCCESS)
-                for a in attrs.attr_list:
-                    if a.id == SAI_UDF_MATCH_ATTR_L2_TYPE:
-                        print "set l2_type = 0x%x" %ether_type
-                        print "get l2_type = 0x%x" %a.value.aclfield.data.u16
-                        if ether_type != a.value.aclfield.data.u16:
-                            raise NotImplementedError()
-                        print "set l2_type_mask = 0x%x" %ether_type_mask
-                        print "get l2_type_mask = 0x%x" %a.value.aclfield.mask.u16
-                        if ether_type_mask != a.value.aclfield.mask.u16:
-                            raise NotImplementedError()
-
-                    if a.id == SAI_UDF_MATCH_ATTR_L3_TYPE:
-                        print "set l3_type = %d" %l3_header_protocol
-                        print "get l3_type = %d" %a.value.aclfield.data.u8
-                        if l3_header_protocol != a.value.aclfield.data.u8:
-                            raise NotImplementedError()
-                        print "set l3_type_mask = 0x%x" %l3_header_protocol_mask
-                        print "get l3_type_mask = 0x%x" %a.value.aclfield.mask.u8
-                        if l3_header_protocol_mask != a.value.aclfield.mask.u8:
-                            raise NotImplementedError()
-
-                    if a.id == SAI_UDF_MATCH_ATTR_PRIORITY:
-                        print "set priority = %d" %priority_list[n]
-                        print "get priority = %d" %a.value.u8
-                        if priority_list[n] != a.value.u8:
-                            raise NotImplementedError()
-
-                    if a.id == SAI_UDF_MATCH_ATTR_CUSTOM_L4_SRC_PORT:
-                        print "set l4_src_port = 0x%x" %(l4_src_port+n)
-                        print "get l4_src_port = 0x%x" %a.value.aclfield.data.u16
-                        if (l4_src_port+n) != a.value.aclfield.data.u16:
-                            raise NotImplementedError()
-                        print "set l4_src_port_mask = 0x%x" %l4_src_port_mask
-                        print "get l4_src_port_mask = 0x%x" %a.value.aclfield.mask.u16
-                        if l4_src_port_mask != a.value.aclfield.mask.u16:
-                            raise NotImplementedError()
-
-                    if a.id == SAI_UDF_MATCH_ATTR_CUSTOM_L4_DST_PORT:
-                        print "set l4_dst_port = 0x%x" %(l4_dst_port+n)
-                        print "get l4_dst_port = 0x%x" %a.value.aclfield.data.u16
-                        if (l4_dst_port+n) != a.value.aclfield.data.u16:
-                            raise NotImplementedError()
-                        print "set l4_dst_port_mask = 0x%x" %l4_dst_port_mask
-                        print "get l4_dst_port_mask = 0x%x" %a.value.aclfield.mask.u16
-                        if l4_dst_port_mask != a.value.aclfield.mask.u16:
-                            raise NotImplementedError()
-
-            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            udf_entry_oid_list = []
+            for n in range(0, max_match_num):
+                for offset in range(0, max_offset_num):
+                    udf_entry_oid =  sai_thrift_create_udf(self.client, udf_match_oid_list[n], udf_group_oid_list[offset], base, (offset*2), hash_mask_list)
+                    assert udf_entry_oid > 0, 'udf_entry_oid is <= 0'
+                    print "udf_entry_oid = 0x%lx" %udf_entry_oid
+                    udf_entry_oid_list.append(udf_entry_oid)
 
         finally:
-            for n in range(0, max_group_num):
-                self.client.sai_thrift_remove_udf(udf_entry_oid_list[n])
+            for udf_entry_oid in udf_entry_oid_list:
+                status = self.client.sai_thrift_remove_udf(udf_entry_oid)
+                assert (status == SAI_STATUS_SUCCESS)
 
-            for n in range(0, max_group_num):
-                self.client.sai_thrift_remove_udf_match(udf_match_oid_list[n])
+            for udf_match_oid in udf_match_oid_list:
+                status = self.client.sai_thrift_remove_udf_match(udf_match_oid)
+                assert (status == SAI_STATUS_SUCCESS)
 
-            for n in range(0, max_group_num):
-                self.client.sai_thrift_remove_udf_group(udf_group_oid_list[n])
+            for udf_group_oid in udf_group_oid_list:
+                status = self.client.sai_thrift_remove_udf_group(udf_group_oid)
+                assert (status == SAI_STATUS_SUCCESS)
 
 class scenario_01_ingress_acl_bind_switch_with_udf_key_test(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -1854,207 +1764,78 @@ class scenario_01_ingress_acl_bind_switch_with_udf_key_test(sai_base_test.Thrift
         udf14 = ctypes.c_int8(0)
         udf15 = ctypes.c_int8(0)
 
-        group0_udf_value = [udf12.value, udf13.value, udf14.value, udf15.value, udf8.value, udf9.value, udf10.value, udf11.value, udf4.value, udf5.value, udf6.value, udf7.value, udf0.value, udf1.value, udf2.value, udf3.value]
-        group0_udf_mask  = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
+        user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value, udf8.value, udf9.value, udf10.value, udf11.value, udf4.value, udf5.value, udf6.value, udf7.value, udf0.value, udf1.value, udf2.value, udf3.value]
+        user_define_filed_group_mask = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
 
-        sys_logging(" step 3 acl config ")
+        sys_logging("step 3 acl config")
 
         # acl table info
         table_stage = SAI_ACL_STAGE_INGRESS
         table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
 
-        action = SAI_PACKET_ACTION_DROP
-        addr_family = None
-
-        mac_src = None
-        mac_src_mask = None
-        mac_dst = None
-        mac_dst_mask = None
-
-        ip_src = None
-        ip_src_mask = None
-        ip_dst = None
-        ip_dst_mask = None
-
-        in_ports = None
-        out_ports = None
-        in_port = None
-        out_port = None
-
-        svlan_id = None
-        svlan_pri = None
-        svlan_cfi = None
-        cvlan_id = None
-        cvlan_pri = None
-        cvlan_cfi = None
-
-        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
-
-        mpls_label0_label = None
-        mpls_label0_ttl = None
-        mpls_label0_exp = None
-        mpls_label0_bos = None
-        mpls_label1_label = None
-        mpls_label1_ttl = None
-        mpls_label1_exp = None
-        mpls_label1_bos = None
-        mpls_label2_label = None
-        mpls_label2_ttl = None
-        mpls_label2_exp = None
-        mpls_label2_bos = None
-        mpls_label3_label = None
-        mpls_label3_ttl = None
-        mpls_label3_exp = None
-        mpls_label3_bos = None
-        mpls_label4_label = None
-        mpls_label4_ttl = None
-        mpls_label4_exp = None
-        mpls_label4_bos = None
-
-        ip_protocol = None
-        ip_tos = None
-        ip_ecn = None
-        ip_dscp = None
-        ip_ttl = None
-
-        ipv6_src = None
-        ipv6_dst = None
-
-        ipv6_src_mask = None
-        ipv6_dst_mask = None
-        ingress_samplepacket = None
-        acl_range_id_list = None
-        redirect = None
-
-        src_l4_port = None
-        dst_l4_port = None
-
-        ingress_mirror = None
-        egress_mirror = None
-        new_svlan = None
-        new_scos = None
-        new_cvlan = None
-        new_ccos = None
-        deny_learn = None
-
-        acl_range_type_list = None
-
-        user_define_filed_group0 = True
+        acl_attr_list = []
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
 
         # create acl table
-        acl_table_oid = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port,
-            ipv6_src,
-            ipv6_dst,
-            ip_tos,
-            ip_ecn,
-            ip_dscp,
-            ip_ttl,
-            acl_range_type_list,
-            user_define_filed_group0)
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_oid)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
 
-        sys_logging("create acl table = %d" %acl_table_oid)
-        assert(acl_table_oid != SAI_NULL_OBJECT_ID )
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
 
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_oid = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_oid)
+        assert(acl_table_oid != SAI_NULL_OBJECT_ID)
+
+        #ACL table info
+        action = SAI_PACKET_ACTION_DROP
         entry_priority = 1
         admin_state = True
 
-        # create acl entry
-        acl_entry_oid = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn,
-            ipv6_src,
-            ipv6_src_mask,
-            ipv6_dst,
-            ipv6_dst_mask,
-            ingress_samplepacket,
-            acl_range_id_list,
-            redirect,
-            group0_udf_value,
-            group0_udf_mask)
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
 
-        sys_logging("create acl entry = %d" %acl_entry_oid)
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+        user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                            data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                            mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_oid)
         assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
 
         warmboot(self.client)
@@ -2069,10 +1850,10 @@ class scenario_01_ingress_acl_bind_switch_with_udf_key_test(sai_base_test.Thrift
             tc = 0
             pkt_len = 100
 
-            Sequence_Number = hexstr_to_ascii('11111111')
-            Timestamp = hexstr_to_ascii('2222222200445678')
+            sequence_number = hexstr_to_ascii('11111111')
+            timestamp = hexstr_to_ascii('2222222200445678')
 
-            npm_test_pkt = Sequence_Number + Timestamp
+            npm_test_pkt = sequence_number + timestamp
             pkt = simple_udp_packet(pktlen=pkt_len-4,
                                     eth_dst=dst_mac,
                                     eth_src=src_mac,
@@ -2097,7 +1878,8 @@ class scenario_01_ingress_acl_bind_switch_with_udf_key_test(sai_base_test.Thrift
             sys_logging(" step5: bind this ACL table to switch ")
             attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
             attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
-            self.client.sai_thrift_set_switch_attribute(attr)
+            status = self.client.sai_thrift_set_switch_attribute(attr)
+            assert (status == SAI_STATUS_SUCCESS)
 
             sys_logging(" step6: match drop acl entry ")
             self.ctc_send_packet(0, str(pkt))
@@ -2191,9 +1973,7 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
 
         base = SAI_UDF_BASE_L4
         offset = 8
-
         udf_oid =  sai_thrift_create_udf(self.client, udf_match_oid, udf_group_oid, base, offset, None)
-
 
         l2_type = 0x0800
         l2_type_mask = -1
@@ -2208,7 +1988,7 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
         l4_dst_port_mask = -1
         priority = 2
 
-        udf_match_oid_2 = sai_thrift_create_udf_match(self.client,
+        udf_match_oid2 = sai_thrift_create_udf_match(self.client,
                                                    l2_type,
                                                    l2_type_mask,
                                                    l3_type,
@@ -2224,10 +2004,7 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
 
         base = SAI_UDF_BASE_L4
         offset = 8
-
-        udf_oid_2 =  sai_thrift_create_udf(self.client, udf_match_oid_2, udf_group_oid, base, offset, None)
-
-
+        udf_oid2 =  sai_thrift_create_udf(self.client, udf_match_oid2, udf_group_oid, base, offset, None)
 
         l2_type = 0x0800
         l2_type_mask = -1
@@ -2242,7 +2019,7 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
         l4_dst_port_mask = -1
         priority = 3
 
-        udf_match_oid_3 = sai_thrift_create_udf_match(self.client,
+        udf_match_oid3 = sai_thrift_create_udf_match(self.client,
                                                    l2_type,
                                                    l2_type_mask,
                                                    l3_type,
@@ -2258,8 +2035,7 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
 
         base = SAI_UDF_BASE_L4
         offset = 8
-
-        udf_oid_3 =  sai_thrift_create_udf(self.client, udf_match_oid_3, udf_group_oid, base, offset, None)
+        udf_oid3 =  sai_thrift_create_udf(self.client, udf_match_oid3, udf_group_oid, base, offset, None)
 
         udf0 = ctypes.c_int8(17)
         udf1 = ctypes.c_int8(17)
@@ -2281,210 +2057,79 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
         udf14 = ctypes.c_int8(0)
         udf15 = ctypes.c_int8(0)
 
-        group0_udf_value = [udf12.value, udf13.value, udf14.value, udf15.value, udf8.value, udf9.value, udf10.value, udf11.value, udf4.value, udf5.value, udf6.value, udf7.value, udf0.value, udf1.value, udf2.value, udf3.value]
-        group0_udf_mask  = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
+        user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value, udf8.value, udf9.value, udf10.value, udf11.value, udf4.value, udf5.value, udf6.value, udf7.value, udf0.value, udf1.value, udf2.value, udf3.value]
+        user_define_filed_group_mask = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
 
-        sys_logging(" step 3 acl config ")
+        sys_logging("step 3 acl config")
 
         # acl table info
         table_stage = SAI_ACL_STAGE_INGRESS
         table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
 
-        action = SAI_PACKET_ACTION_DROP
-        addr_family = None
-
-        mac_src = None
-        mac_src_mask = None
-        mac_dst = None
-        mac_dst_mask = None
-
-        ip_src = None
-        ip_src_mask = None
-        ip_dst = None
-        ip_dst_mask = None
-
-        in_ports = None
-        out_ports = None
-        in_port = None
-        out_port = None
-
-        svlan_id = None
-        svlan_pri = None
-        svlan_cfi = None
-        cvlan_id = None
-        cvlan_pri = None
-        cvlan_cfi = None
-
-        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
-
-        mpls_label0_label = None
-        mpls_label0_ttl = None
-        mpls_label0_exp = None
-        mpls_label0_bos = None
-        mpls_label1_label = None
-        mpls_label1_ttl = None
-        mpls_label1_exp = None
-        mpls_label1_bos = None
-        mpls_label2_label = None
-        mpls_label2_ttl = None
-        mpls_label2_exp = None
-        mpls_label2_bos = None
-        mpls_label3_label = None
-        mpls_label3_ttl = None
-        mpls_label3_exp = None
-        mpls_label3_bos = None
-        mpls_label4_label = None
-        mpls_label4_ttl = None
-        mpls_label4_exp = None
-        mpls_label4_bos = None
-
-        ip_protocol = None
-        ip_tos = None
-        ip_ecn = None
-        ip_dscp = None
-        ip_ttl = None
-
-        ipv6_src = None
-        ipv6_dst = None
-
-        ipv6_src_mask = None
-        ipv6_dst_mask = None
-        ingress_samplepacket = None
-        acl_range_id_list = None
-        redirect = None
-
-
-        src_l4_port = None
-        dst_l4_port = None
-
-        ingress_mirror = None
-        egress_mirror = None
-        new_svlan = None
-        new_scos = None
-        new_cvlan = None
-        new_ccos = None
-        deny_learn = None
-
-        acl_range_type_list = None
-
-        user_define_filed_group0 = True
+        acl_attr_list = []
+        # acl key field
+        attribute_value = sai_thrift_attribute_value_t(booldata=1)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+        acl_attr_list.append(attribute)
 
         # create acl table
-        acl_table_oid = sai_thrift_create_acl_table(self.client,
-            table_stage,
-            table_bind_point_list,
-            addr_family,
-            mac_src,
-            mac_dst,
-            ip_src,
-            ip_dst,
-            in_ports,
-            out_ports,
-            in_port,
-            out_port,
-            svlan_id,
-            svlan_pri,
-            svlan_cfi,
-            cvlan_id,
-            cvlan_pri,
-            cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_protocol,
-            src_l4_port,
-            dst_l4_port,
-            ipv6_src,
-            ipv6_dst,
-            ip_tos,
-            ip_ecn,
-            ip_dscp,
-            ip_ttl,
-            acl_range_type_list,
-            user_define_filed_group0)
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_oid)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
 
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
 
-        sys_logging("create acl table = %d" %acl_table_oid)
-        assert(acl_table_oid != SAI_NULL_OBJECT_ID )
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
 
+        acl_table_oid = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_oid)
+        assert(acl_table_oid != SAI_NULL_OBJECT_ID)
+
+        # acl entry info
+        action = SAI_PACKET_ACTION_DROP
         entry_priority = 1
         admin_state = True
 
-        # create acl entry
-        acl_entry_oid = sai_thrift_create_acl_entry(self.client,
-            acl_table_oid,
-            entry_priority,
-            admin_state,
-            action, addr_family,
-            mac_src, mac_src_mask,
-            mac_dst, mac_dst_mask,
-            svlan_id, svlan_pri,
-            svlan_cfi, cvlan_id,
-            cvlan_pri, cvlan_cfi,
-            ip_type,
-            mpls_label0_label,
-            mpls_label0_ttl,
-            mpls_label0_exp,
-            mpls_label0_bos,
-            mpls_label1_label,
-            mpls_label1_ttl,
-            mpls_label1_exp,
-            mpls_label1_bos,
-            mpls_label2_label,
-            mpls_label2_ttl,
-            mpls_label2_exp,
-            mpls_label2_bos,
-            mpls_label3_label,
-            mpls_label3_ttl,
-            mpls_label3_exp,
-            mpls_label3_bos,
-            mpls_label4_label,
-            mpls_label4_ttl,
-            mpls_label4_exp,
-            mpls_label4_bos,
-            ip_src, ip_src_mask,
-            ip_dst, ip_dst_mask,
-            ip_protocol,
-            ip_tos, ip_ecn,
-            ip_dscp, ip_ttl,
-            in_ports, out_ports,
-            in_port, out_port,
-            src_l4_port, dst_l4_port,
-            ingress_mirror,
-            egress_mirror,
-            new_svlan, new_scos,
-            new_cvlan, new_ccos,
-            deny_learn,
-            ipv6_src,
-            ipv6_src_mask,
-            ipv6_dst,
-            ipv6_dst_mask,
-            ingress_samplepacket,
-            acl_range_id_list,
-            redirect,
-            group0_udf_value,
-            group0_udf_mask)
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
 
-        sys_logging("create acl entry = %d" %acl_entry_oid)
-        assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+        user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                            data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                            mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_oid = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_oid)
+        assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
 
         warmboot(self.client)
         try:
@@ -2498,10 +2143,10 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
             tc = 0
             pkt_len = 100
 
-            Sequence_Number = hexstr_to_ascii('11111111')
-            Timestamp = hexstr_to_ascii('2222222200445678')
+            sequence_number = hexstr_to_ascii('11111111')
+            timestamp = hexstr_to_ascii('2222222200445678')
 
-            npm_test_pkt = Sequence_Number + Timestamp
+            npm_test_pkt = sequence_number + timestamp
             pkt = simple_udp_packet(pktlen=pkt_len-4,
                                     eth_dst=dst_mac,
                                     eth_src=src_mac,
@@ -2520,71 +2165,68 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
                                     pattern_type=1)
 
             pkt1 = simple_udp_packet(pktlen=pkt_len-4,
-                                    eth_dst=dst_mac,
-                                    eth_src=src_mac,
-                                    dl_vlan_enable=False,
-                                    ip_src=src_ip,
-                                    ip_dst=dst_ip,
-                                    ip_tos=0,
-                                    ip_ttl=ttl,
-                                    udp_sport=1235,
-                                    udp_dport=udp_dst_port,
-                                    ip_ihl=None,
-                                    ip_id=0,
-                                    ip_options=False,
-                                    with_udp_chksum=True,
-                                    udp_payload=npm_test_pkt,
-                                    pattern_type=1)
-
+                                     eth_dst=dst_mac,
+                                     eth_src=src_mac,
+                                     dl_vlan_enable=False,
+                                     ip_src=src_ip,
+                                     ip_dst=dst_ip,
+                                     ip_tos=0,
+                                     ip_ttl=ttl,
+                                     udp_sport=1235,
+                                     udp_dport=udp_dst_port,
+                                     ip_ihl=None,
+                                     ip_id=0,
+                                     ip_options=False,
+                                     with_udp_chksum=True,
+                                     udp_payload=npm_test_pkt,
+                                     pattern_type=1)
 
             pkt2 = simple_udp_packet(pktlen=pkt_len-4,
-                                    eth_dst=dst_mac,
-                                    eth_src=src_mac,
-                                    dl_vlan_enable=False,
-                                    ip_src=src_ip,
-                                    ip_dst=dst_ip,
-                                    ip_tos=0,
-                                    ip_ttl=ttl,
-                                    udp_sport=udp_src_port,
-                                    udp_dport=5679,
-                                    ip_ihl=None,
-                                    ip_id=0,
-                                    ip_options=False,
-                                    with_udp_chksum=True,
-                                    udp_payload=npm_test_pkt,
-                                    pattern_type=1)
+                                     eth_dst=dst_mac,
+                                     eth_src=src_mac,
+                                     dl_vlan_enable=False,
+                                     ip_src=src_ip,
+                                     ip_dst=dst_ip,
+                                     ip_tos=0,
+                                     ip_ttl=ttl,
+                                     udp_sport=udp_src_port,
+                                     udp_dport=5679,
+                                     ip_ihl=None,
+                                     ip_id=0,
+                                     ip_options=False,
+                                     with_udp_chksum=True,
+                                     udp_payload=npm_test_pkt,
+                                     pattern_type=1)
 
             pkt3 = simple_udp_packet(pktlen=pkt_len-4,
-                                    eth_dst=dst_mac,
-                                    eth_src=src_mac,
-                                    dl_vlan_enable=False,
-                                    ip_src=src_ip,
-                                    ip_dst=dst_ip,
-                                    ip_tos=0,
-                                    ip_ttl=ttl,
-                                    udp_sport=1235,
-                                    udp_dport=5679,
-                                    ip_ihl=None,
-                                    ip_id=0,
-                                    ip_options=False,
-                                    with_udp_chksum=True,
-                                    udp_payload=npm_test_pkt,
-                                    pattern_type=1)
-
+                                     eth_dst=dst_mac,
+                                     eth_src=src_mac,
+                                     dl_vlan_enable=False,
+                                     ip_src=src_ip,
+                                     ip_dst=dst_ip,
+                                     ip_tos=0,
+                                     ip_ttl=ttl,
+                                     udp_sport=1235,
+                                     udp_dport=5679,
+                                     ip_ihl=None,
+                                     ip_id=0,
+                                     ip_options=False,
+                                     with_udp_chksum=True,
+                                     udp_payload=npm_test_pkt,
+                                     pattern_type=1)
 
             sys_logging(" step4: none acl , packet will forwarding  ")
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt, [1])
 
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_packets( pkt, [1])
+            self.ctc_send_packet(0, str(pkt1))
+            self.ctc_verify_packets(pkt1, [1])
 
-            self.ctc_send_packet( 0, str(pkt1))
-            self.ctc_verify_packets( pkt1, [1])
+            self.ctc_send_packet(0, str(pkt2))
+            self.ctc_verify_packets(pkt2, [1])
 
-            self.ctc_send_packet( 0, str(pkt2))
-            self.ctc_verify_packets( pkt2, [1])
-
-            self.ctc_send_packet( 0, str(pkt3))
-            self.ctc_verify_packets( pkt3, [1])
+            self.ctc_send_packet(0, str(pkt3))
+            self.ctc_verify_packets(pkt3, [1])
 
             sys_logging(" step5: bind this ACL table to switch ")
             attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
@@ -2592,18 +2234,17 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
             self.client.sai_thrift_set_switch_attribute(attr)
 
             sys_logging(" step6: match drop acl entry ")
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_no_packet(pkt, 1)
 
-            self.ctc_send_packet( 0, str(pkt))
-            self.ctc_verify_no_packet( pkt, 1)
+            self.ctc_send_packet(0, str(pkt1))
+            self.ctc_verify_no_packet(pkt1, 1)
 
-            self.ctc_send_packet( 0, str(pkt1))
-            self.ctc_verify_no_packet( pkt1, 1)
+            self.ctc_send_packet(0, str(pkt2))
+            self.ctc_verify_no_packet(pkt2, 1)
 
-            self.ctc_send_packet( 0, str(pkt2))
-            self.ctc_verify_no_packet( pkt2, 1)
-
-            self.ctc_send_packet( 0, str(pkt3))
-            self.ctc_verify_packets( pkt3, [1])
+            self.ctc_send_packet(0, str(pkt3))
+            self.ctc_verify_packets(pkt3, [1])
 
         finally:
             sys_logging("clear config")
@@ -2628,11 +2269,11 @@ class scenario_02_ingress_acl_bind_switch_with_multi_udf_key_test(sai_base_test.
             self.client.sai_thrift_remove_vlan(vlan_oid)
 
             self.client.sai_thrift_remove_udf(udf_oid)
-            self.client.sai_thrift_remove_udf(udf_oid_2)
-            self.client.sai_thrift_remove_udf(udf_oid_3)
+            self.client.sai_thrift_remove_udf(udf_oid2)
+            self.client.sai_thrift_remove_udf(udf_oid3)
             self.client.sai_thrift_remove_udf_match(udf_match_oid)
-            self.client.sai_thrift_remove_udf_match(udf_match_oid_2)
-            self.client.sai_thrift_remove_udf_match(udf_match_oid_3)
+            self.client.sai_thrift_remove_udf_match(udf_match_oid2)
+            self.client.sai_thrift_remove_udf_match(udf_match_oid3)
             self.client.sai_thrift_remove_udf_group(udf_group_oid)
 
 class scenario_03_ingress_acl_bind_switch_with_each_udf_group_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -2723,7 +2364,7 @@ class scenario_03_ingress_acl_bind_switch_with_each_udf_group_test(sai_base_test
             assert udf_entry_oid > 0, 'udf_entry_oid is <= 0'
             print "udf_entry_oid = 0x%lx" %udf_entry_oid
             udf_entry_oid_list.append(udf_entry_oid)
-
+     
         # acl table info
         action = SAI_PACKET_ACTION_DROP
         ip_type = SAI_ACL_IP_TYPE_IPV4ANY
@@ -2866,7 +2507,7 @@ class scenario_03_ingress_acl_bind_switch_with_each_udf_group_test(sai_base_test
                 status = self.client.sai_thrift_set_switch_attribute(attr)
                 assert(status == SAI_STATUS_SUCCESS)
 
-                #pdb.set_trace()
+                pdb.set_trace()
                 self.ctc_send_packet(0, str(pkt))
                 self.ctc_verify_no_packet(pkt, 1)
 

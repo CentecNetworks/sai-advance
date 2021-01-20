@@ -561,6 +561,42 @@ def sai_thrift_create_bridge_frr_port(client, frr_nhp_grp_id, bridge_id=None, ad
     ret = client.sai_thrift_create_bridge_port(bport_attr_list)
     return ret.data.oid
 
+def sai_thrift_create_bridge_lb_port(client, lb_nhp_grp_id, bridge_id=None, admin_state=True, need_flood = None):
+    bport_attr_list = []
+
+    bport_attr_type_value = sai_thrift_attribute_value_t(s32=SAI_BRIDGE_PORT_TYPE_LB)
+    bport_attr_type = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_TYPE,
+                                             value=bport_attr_type_value)
+    bport_attr_list.append(bport_attr_type)
+
+    bport_attr_frr_id_value = sai_thrift_attribute_value_t(oid=lb_nhp_grp_id)
+    bport_attr_frr_id = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP,
+                                           value=bport_attr_frr_id_value)
+    bport_attr_list.append(bport_attr_frr_id)
+
+    bport_attr_admin_state_value = sai_thrift_attribute_value_t(booldata=admin_state)
+    bport_attr_admin_state = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_ADMIN_STATE,
+                                                    value=bport_attr_admin_state_value)
+    bport_attr_list.append(bport_attr_admin_state)
+
+    if bridge_id is not None:
+        bport_attr_bridge_id_value = sai_thrift_attribute_value_t(oid=bridge_id)
+    else:
+        bport_attr_bridge_id_value = sai_thrift_attribute_value_t(oid=switch.default_1q_bridge)
+
+    bport_attr_bridge_id = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_BRIDGE_ID,
+                                                  value=bport_attr_bridge_id_value)
+    bport_attr_list.append(bport_attr_bridge_id)
+
+    if need_flood is not None:
+        bport_attr_value = sai_thrift_attribute_value_t(booldata=need_flood)
+        bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_NEED_FLOOD,
+                                                    value=bport_attr_value)
+        bport_attr_list.append(bport_attr)
+
+    ret = client.sai_thrift_create_bridge_port(bport_attr_list)
+    return ret.data.oid
+
 
 def sai_thrift_create_bridge_double_vlan_sub_port(client, port_id, bridge_id, vlan_id, customer_vlan_id,
                                                   admin_state=True, oamEn=None, policer_id=None,
@@ -5369,7 +5405,7 @@ def sai_thrift_create_y1731_rmep(client, session_id, rmep_id, mac=None, aps_grou
 
 
 
-def sai_thrift_send_hostif_packet(client, hostif_id, packet, oam_tx_type, host_if_tx_type, egress_port=None, oam_session=None, dm_offset=None, ptp_tx_op_type=None, sec=None, nsec=None):
+def sai_thrift_send_hostif_packet(client, hostif_id, packet, oam_tx_type, host_if_tx_type, egress_port=None, oam_session=None, dm_offset=None, ptp_tx_op_type=None, sec=None, nsec=None, ingress_port=None):
     attr_list = []
 
     attr_value0 = sai_thrift_attribute_value_t(s32=oam_tx_type)
@@ -5409,6 +5445,12 @@ def sai_thrift_send_hostif_packet(client, hostif_id, packet, oam_tx_type, host_i
         attr_value = sai_thrift_attribute_value_t(timespec=sai_thrift_timespec_t(tv_sec=sec,tv_nsec=nsec))
         attr = sai_thrift_attribute_t(id=SAI_HOSTIF_PACKET_ATTR_TX_TIMESTAMP, value=attr_value)
         attr_list.append(attr)
+        
+    if ingress_port!=None:
+        attr_value2 = sai_thrift_attribute_value_t(oid=ingress_port)
+        attr2 = sai_thrift_attribute_t(id=SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT,
+                                                value=attr_value2)
+        attr_list.append(attr2)
 
     return client.sai_thrift_send_hostif_packet(hostif_id, packet.encode('hex'), attr_list)
 

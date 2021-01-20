@@ -145,6 +145,39 @@ _ctc_sai_virtual_router_get_attr(sai_object_key_t* key, sai_attribute_t* attr, u
 }
 
 static sai_status_t
+_ctc_sai_virtual_router_traverse_set_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_vrf_traverse_param_t* user_data)
+{
+    ctc_sai_virtual_router_t* p_vr_info = bucket_data->data;
+    sai_object_key_t key;
+    sai_attribute_t attr;
+    
+    CTC_SAI_LOG_ENTER(SAI_API_VIRTUAL_ROUTER);
+    
+    key.key.object_id = bucket_data->oid;
+    if (sal_memcmp(p_vr_info->src_mac, (sai_mac_t*)(user_data->cmp_value), sizeof(sai_mac_t)))
+    {
+        return SAI_STATUS_SUCCESS;
+    }
+        
+    attr.id = SAI_VIRTUAL_ROUTER_ATTR_SRC_MAC_ADDRESS;
+    sal_memcpy(&attr.value.mac, (sai_mac_t*)(user_data->p_value), sizeof(sai_mac_t));
+    CTC_SAI_ERROR_RETURN(_ctc_sai_virtual_router_set_attr(&key, &attr));
+    return SAI_STATUS_SUCCESS;
+}
+
+sai_status_t
+ctc_sai_virtual_router_traverse_set(ctc_sai_vrf_traverse_param_t* traverse_param)
+{
+    CTC_SAI_LOG_ENTER(SAI_API_VIRTUAL_ROUTER);
+    CTC_SAI_PTR_VALID_CHECK(traverse_param);
+    CTC_SAI_PTR_VALID_CHECK(traverse_param->cmp_value);
+    CTC_SAI_PTR_VALID_CHECK(traverse_param->p_value);
+    ctc_sai_db_traverse_object_property(traverse_param->lchip, SAI_OBJECT_TYPE_VIRTUAL_ROUTER, (hash_traversal_fn)_ctc_sai_virtual_router_traverse_set_cb, traverse_param);
+    return SAI_STATUS_SUCCESS;
+}
+
+
+static sai_status_t
 _ctc_sai_virtual_router_dump_print_cb(ctc_sai_oid_property_t* bucket_data, ctc_sai_db_traverse_param_t *p_cb_data)
 {
     ctc_sai_virtual_router_t*    p_vr_info = (ctc_sai_virtual_router_t*)(bucket_data->data);

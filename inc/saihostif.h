@@ -479,6 +479,13 @@ typedef enum _sai_hostif_trap_type_t
     SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_LATENCY_OVERFLOW_LOG,
 
     /**
+     * @brief Traffic with destination MAC is 0180.c200.0014 or 0180.c200.0015 for broadcast,
+     * or 0900.2b00.0004 or 0900.2b00.0005 for p2p usage.
+     * (default packet action is drop)
+     */
+    SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_ISIS,
+
+    /**
      * @brief End of trap types
      */
     SAI_HOSTIF_TRAP_TYPE_END = 0x0000a000

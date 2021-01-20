@@ -43,6 +43,13 @@ This module defines SAI Virtual Router.
 #include "ctcs_api.h"
 /*don't need include other header files*/
 
+typedef struct  ctc_sai_vrf_traverse_param_s
+{
+   uint8 lchip;
+   void* cmp_value;
+   void* p_value;
+}ctc_sai_vrf_traverse_param_t;
+
 typedef struct  ctc_sai_virtual_router_s
 {
    sai_mac_t src_mac;
@@ -56,6 +63,10 @@ ctc_sai_virtual_router_api_init();
 
 extern sai_status_t
 ctc_sai_virtual_router_db_init(uint8 lchip);
+
+sai_status_t
+ctc_sai_virtual_router_traverse_set(ctc_sai_vrf_traverse_param_t* traverse_param);
+
 
 extern sai_status_t
 ctc_sai_virtual_router_get_vr_info(sai_object_id_t virtual_router_id, uint8* v4_state, uint8* v6_state,  sai_mac_t src_mac);

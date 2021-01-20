@@ -730,13 +730,13 @@ class func_12_set_and_get_mcast_fdb_entry_attribute_fn_0(sai_base_test.ThriftInt
             self.client.sai_thrift_remove_vlan_member(vlan_member4)
             self.client.sai_thrift_remove_vlan(vlan_id)
 
-
+'''
 @group('L2')
 class func_12_set_and_get_mcast_fdb_entry_attribute_fn_1(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
-        '''
+        """
         SAI Bug 112759
-        '''
+        """
         sys_logging("### -----func_12_set_and_get_mcast_fdb_entry_attribute_fn_1----- ###")
         switch_init(self.client)
         #self.client.sai_thrift_clear_cpu_packet_info()
@@ -822,7 +822,7 @@ class func_12_set_and_get_mcast_fdb_entry_attribute_fn_1(sai_base_test.ThriftInt
             self.client.sai_thrift_remove_vlan_member(vlan_member3)
             self.client.sai_thrift_remove_vlan_member(vlan_member4)
             self.client.sai_thrift_remove_vlan(vlan_id)
-
+'''
 
 @group('L2')
 class func_12_set_and_get_mcast_fdb_entry_attribute_fn_2(sai_base_test.ThriftInterfaceDataPlane):
@@ -1219,13 +1219,13 @@ class func_14_remove_l2mc_entry_fn_v6(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_vlan_member(vlan_member4)
             self.client.sai_thrift_remove_vlan(vlan_id)
 
-
+'''
 @group('L2')
 class func_15_set_and_get_l2mc_entry_attribute_fn_0(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
-        '''
+        """
         SAI Bug 112759
-        '''
+        """
         sys_logging("### -----func_15_set_and_get_l2mc_entry_attribute_fn_0----- ###")
         switch_init(self.client)
         #self.client.sai_thrift_clear_cpu_packet_info()
@@ -1328,7 +1328,7 @@ class func_15_set_and_get_l2mc_entry_attribute_fn_0(sai_base_test.ThriftInterfac
             self.client.sai_thrift_remove_vlan_member(vlan_member3)
             self.client.sai_thrift_remove_vlan_member(vlan_member4)
             self.client.sai_thrift_remove_vlan(vlan_id)
-
+'''
 
 @group('L2')
 class func_15_set_and_get_l2mc_entry_attribute_fn_1(sai_base_test.ThriftInterfaceDataPlane):

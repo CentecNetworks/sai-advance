@@ -1183,7 +1183,7 @@ _ctc_sai_acl_find_acl_action_field_in_list(ctc_acl_field_action_t *p_field_actio
 }
 
 static sai_status_t
-_ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_direction_t dir, uint8 group_priority, ctc_acl_key_type_t type, sai_attribute_t* attr_list, ctc_field_key_t* field_key, uint32* p_key_count, uint8* p_bmp_cnt, uint32* p_bmp_start)
+_ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_direction_t dir, sai_object_id_t entry_object_id, uint8 group_priority, ctc_acl_key_type_t type, sai_attribute_t* attr_list, ctc_field_key_t* field_key, uint32* p_key_count, uint8* p_bmp_cnt, uint32* p_bmp_start)
 {
     uint8  flag_valid = 0;/* make default equal to zeros */
     uint16 lport = 0;
@@ -1191,7 +1191,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
     uint16 cnt = 0;
     uint32* p_gports = NULL;
     uint32 i = 0;/* need use uint32 */
-    uint32 a = 0;
+    uint32 j = 0;
     uint32 n = 0;
     uint32 loop = 0;
     sai_status_t status = SAI_STATUS_SUCCESS;
@@ -1199,9 +1199,9 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
     ctc_field_port_t *p_field_port_mask = NULL;
     ctc_field_port_t *p_field_port_array = NULL;
     ctc_field_port_t *p_field_port_mask_array = NULL;
-    sai_object_id_t object_id;
     ctc_object_id_t ctc_object_id;
     ctc_object_id_t ctc_port_object_id;
+    sai_object_id_t sai_object_id = SAI_NULL_OBJECT_ID;
     ctc_ip_frag_t ctc_ip_frag = CTC_IP_FRAG_NON;
     ctc_parser_l3_type_t ctc_ip_type = CTC_PARSER_L3_TYPE_NONE;
     ctc_parser_l4_type_t ctc_l4_type = CTC_PARSER_L4_TYPE_NONE;
@@ -1216,18 +1216,18 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
     ipv6_addr_t *ipv6_da_mask = NULL;
     ctc_sai_acl_range_t *p_acl_range = NULL;
     sai_acl_entry_attr_t packet_type_field[] = {SAI_ACL_ENTRY_ATTR_FIELD_ETHER_TYPE, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_FIELD_IP_PROTOCOL, SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER};
-    uint32 ctc_udf_group_id = 0;
-    uint8 group_type = SAI_UDF_GROUP_TYPE_GENERIC;
-    sai_object_id_t sai_object_id;
     ctc_acl_udf_t* p_acl_udf_data = NULL;
     ctc_acl_udf_t* p_acl_udf_mask = NULL;
     ctc_parser_l3_type_t l3_type = CTC_PARSER_L3_TYPE_NONE;
     ctc_slistnode_t* p_node = NULL;
-    ctc_sai_udf_group_t* p_udf_group = NULL;
     ctc_sai_udf_entry_t* p_udf_entry = NULL;
-    ctc_sai_udf_group_member_t* p_udf_group_member = NULL;
+    ctc_sai_acl_entry_t* p_acl_entry = NULL;
+    ctc_sai_acl_table_t* p_acl_table = NULL;
+    ctc_sai_udf_group_t* p_udf_group = NULL;
+    ctc_sai_acl_table_udf_group_t* p_table_udf_group = NULL;
+    ctc_sai_udf_group_member_t *p_udf_group_member = NULL;
 
-    sal_memset(&object_id, 0, sizeof(sai_object_id_t));
+    sal_memset(&sai_object_id, 0, sizeof(sai_object_id_t));
     sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
     sal_memset(&ctc_port_object_id, 0, sizeof(ctc_object_id_t));
 
@@ -1360,6 +1360,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
         switch (attr_list[i].id)
         {
             case SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
+            {
                 MALLOC_ZERO(MEM_ACL_MODULE, ipv6_sa, sizeof(ipv6_addr_t));
                 if (NULL == ipv6_sa)
                 {
@@ -1383,7 +1384,9 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].ext_mask = (void*)ipv6_sa_mask;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
+            {
                 MALLOC_ZERO(MEM_ACL_MODULE, ipv6_da, sizeof(ipv6_addr_t));
                 if (NULL == ipv6_da)
                 {
@@ -1407,7 +1410,9 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].ext_mask = (void*)ipv6_da_mask;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_SRC_MAC:
+            {
                 MALLOC_ZERO(MEM_ACL_MODULE, macsa, sizeof(sai_mac_t));
                 if (NULL == macsa)
                 {
@@ -1429,7 +1434,9 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].ext_mask = (void*)(macsa_mask);
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_DST_MAC:
+            {
                 MALLOC_ZERO(MEM_ACL_MODULE, macda, sizeof(sai_mac_t));
                 if (NULL == macda)
                 {
@@ -1451,19 +1458,25 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].ext_mask = (void*)(macda_mask);
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IP_SA;
                 field_key[*p_key_count].data = sal_ntohl(attr_list[i].value.aclfield.data.ip4);
                 field_key[*p_key_count].mask = sal_ntohl(attr_list[i].value.aclfield.mask.ip4);
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_DST_IP:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IP_DA;
                 field_key[*p_key_count].data = sal_ntohl(attr_list[i].value.aclfield.data.ip4);
                 field_key[*p_key_count].mask = sal_ntohl(attr_list[i].value.aclfield.mask.ip4);
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_IN_PORTS : /* (mask is not needed) */
+            {
                 MALLOC_ZERO(MEM_ACL_MODULE, p_field_port_array, sizeof(ctc_field_port_t) * 8);
                 if (NULL == p_field_port_array)
                 {
@@ -1506,8 +1519,10 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                     }
                 }
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
             case SAI_ACL_ENTRY_ATTR_FIELD_SRC_PORT:
+            {
                 MALLOC_ZERO(MEM_ACL_MODULE, p_field_port, sizeof(ctc_field_port_t));
                 if (NULL == p_field_port)
                 {
@@ -1532,79 +1547,105 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].ext_mask = (void*)p_field_port_mask;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_OUTER_VLAN_ID:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_SVLAN_ID;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u16;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u16;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_OUTER_VLAN_PRI:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_STAG_COS;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_OUTER_VLAN_CFI:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_STAG_CFI;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_INNER_VLAN_ID:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_CVLAN_ID;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u16;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u16;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_INNER_VLAN_PRI:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_CTAG_COS;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_INNER_VLAN_CFI:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_CTAG_CFI;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_L4_SRC_PORT:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_L4_SRC_PORT;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u16;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u16;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_L4_DST_PORT:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_L4_DST_PORT;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u16;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u16;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_ETHER_TYPE:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_ETHER_TYPE;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u16;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u16;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_DSCP:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IP_DSCP;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_ECN:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IP_ECN;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_TTL:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IP_TTL;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_TOS :    /* tos == dscp(7-2) + ecn(1-0)*/
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IP_ECN;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8 & 0x3;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8 & 0x3;
@@ -1614,13 +1655,17 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].mask = (attr_list[i].value.aclfield.mask.u8 >> 2) & 0x3F;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_TCP_FLAGS:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_TCP_FLAGS;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE:
+            {
                 /* field mask is not needed */
                 CTC_SAI_ERROR_RETURN(_ctc_sai_acl_mapping_l3_type_info(attr_list[i].value.aclfield.data.s32, &ctc_ip_type));
                 field_key[*p_key_count].type = CTC_FIELD_KEY_L3_TYPE;
@@ -1642,7 +1687,9 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                     (*p_key_count)++;
                 }
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_FRAG:
+            {
                 /* field mask is not needed */
                 CTC_SAI_ERROR_RETURN(_ctc_sai_acl_mapping_ip_frag_info(attr_list[i].value.aclfield.data.s32, &ctc_ip_frag));
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IP_FRAG;
@@ -1650,27 +1697,35 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].mask = 0x3; /* mask is meanless as sdk will support mask */
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_IPV6_FLOW_LABEL:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IPV6_FLOW_LABEL;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u32;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u32;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_ICMP_TYPE:
             case SAI_ACL_ENTRY_ATTR_FIELD_ICMPV6_TYPE:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_ICMP_TYPE;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_ICMP_CODE:
             case SAI_ACL_ENTRY_ATTR_FIELD_ICMPV6_CODE:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_ICMP_CODE;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_PACKET_VLAN : /* only acl support */
+            {
                 if (SAI_PACKET_VLAN_SINGLE_OUTER_TAG == attr_list[i].value.aclfield.data.s32)
                 {
                     field_key[*p_key_count].type = CTC_FIELD_KEY_STAG_VALID;
@@ -1678,104 +1733,122 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                     field_key[*p_key_count].mask = 1;
                     (*p_key_count)++;
                 }
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_HAS_VLAN_TAG:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_VLAN_NUM;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.s32;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.s32;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_LABEL:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_LABEL0;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u32;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u32;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_TTL:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_TTL0;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_EXP:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_EXP0;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL0_BOS:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_SBIT0;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.booldata;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_LABEL:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_LABEL1;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u32;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u32;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_TTL:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_TTL1;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_EXP:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_EXP1;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL1_BOS:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_SBIT1;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.booldata;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL2_LABEL:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_LABEL2;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u32;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u32;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL2_TTL:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_TTL2;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL2_EXP:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_EXP2;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u8;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MPLS_LABEL2_BOS:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MPLS_SBIT2;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.booldata;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u8;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_FDB_DST_USER_META:
             case SAI_ACL_ENTRY_ATTR_FIELD_ROUTE_DST_USER_META:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_DST_CID;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u32;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u32;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_PORT_USER_META:
+            {
                 MALLOC_ZERO(MEM_ACL_MODULE, p_field_port, sizeof(ctc_field_port_t));
                 if (NULL == p_field_port)
                 {
@@ -1799,7 +1872,9 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].ext_mask = (void*)p_field_port_mask;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_VLAN_USER_META:
+            {
                 MALLOC_ZERO(MEM_ACL_MODULE, p_field_port, sizeof(ctc_field_port_t));
                 if (NULL == p_field_port)
                 {
@@ -1822,7 +1897,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 field_key[*p_key_count].ext_mask = (void*)p_field_port_mask;
                 (*p_key_count)++;
                 break;
-
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_NEIGHBOR_DST_USER_META:
             case SAI_ACL_ENTRY_ATTR_FIELD_FDB_NPU_META_DST_HIT:
             case SAI_ACL_ENTRY_ATTR_FIELD_NEIGHBOR_NPU_META_DST_HIT:
@@ -1831,10 +1906,11 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
             case SAI_ACL_ENTRY_ATTR_FIELD_AETH_SYNDROME:
                 break;
             case SAI_ACL_ENTRY_ATTR_FIELD_ACL_RANGE_TYPE:
+            {
                 for (loop = 0; loop < attr_list[i].value.aclfield.data.objlist.count; loop++)
                 {
-                    object_id = attr_list[i].value.aclfield.data.objlist.list[loop];
-                    p_acl_range = ctc_sai_db_get_object_property(lchip, object_id);/* the p_acl_range can not be NULL as we have check this situation in creating entry */
+                    sai_object_id = attr_list[i].value.aclfield.data.objlist.list[loop];
+                    p_acl_range = ctc_sai_db_get_object_property(lchip, sai_object_id);/* the p_acl_range can not be NULL as we have check this situation in creating entry */
                     switch (p_acl_range->range_type)
                     {
                         case SAI_ACL_RANGE_TYPE_L4_SRC_PORT_RANGE:
@@ -1860,7 +1936,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
 
                         sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
                         sal_memset(&vrange_info, 0, sizeof(ctc_vlan_range_info_t));
-                        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ACL_RANGE, object_id, &ctc_object_id);
+                        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ACL_RANGE, sai_object_id, &ctc_object_id);
                         MALLOC_ZERO(MEM_ACL_MODULE, field_key[*p_key_count].ext_data, sizeof(uint32));
                         if (NULL == field_key[*p_key_count].ext_data)
                         {
@@ -1897,20 +1973,20 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                         }
                         else
                         {
-                            for (a = 0; a < SAI_ACL_KEY_ATTR_NUM; a++)
+                            for (j = 0; j < SAI_ACL_KEY_ATTR_NUM; j++)
                             {
-                                if (attr_list[a].value.aclfield.enable)
+                                if (attr_list[j].value.aclfield.enable)
                                 {
-                                    if ((SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT == attr_list[a].id) || (SAI_ACL_ENTRY_ATTR_FIELD_SRC_PORT == attr_list[a].id))
+                                    if ((SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT == attr_list[j].id) || (SAI_ACL_ENTRY_ATTR_FIELD_SRC_PORT == attr_list[j].id))
                                     {
-                                        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[a].value.aclfield.data.oid, &ctc_object_id);
+                                        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[j].value.aclfield.data.oid, &ctc_object_id);
                                         CTC_SAI_ERROR_GOTO(ctcs_port_set_vlan_range(lchip, ctc_object_id.value, &vrange_info, 1), status, error0);
                                     }
-                                    else if (SAI_ACL_ENTRY_ATTR_FIELD_IN_PORTS == attr_list[a].id)
+                                    else if (SAI_ACL_ENTRY_ATTR_FIELD_IN_PORTS == attr_list[j].id)
                                     {
-                                        for (n = 0; n < attr_list[a].value.aclfield.data.objlist.count; n++)
+                                        for (n = 0; n < attr_list[j].value.aclfield.data.objlist.count; n++)
                                         {
-                                            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[a].value.aclfield.data.oid, &ctc_object_id);
+                                            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[j].value.aclfield.data.oid, &ctc_object_id);
                                             CTC_SAI_ERROR_GOTO(ctcs_port_set_vlan_range(lchip, ctc_object_id.value, &vrange_info, 1), status, error0);
                                         }
                                     }
@@ -1929,13 +2005,17 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                     (*p_key_count)++;
                 }
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_GRE_KEY:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_GRE_KEY;
                 field_key[*p_key_count].data = attr_list[i].value.aclfield.data.u32;
                 field_key[*p_key_count].mask = attr_list[i].value.aclfield.mask.u32;
                 (*p_key_count)++;
                 break;
+            }
             case SAI_ACL_ENTRY_ATTR_FIELD_MACSEC_SCI:
+            {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_DOT1AE_SCI;
 
                 field_key[*p_key_count].ext_data = mem_malloc(MEM_ACL_MODULE, 8);
@@ -1956,11 +2036,28 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 sal_memcpy(field_key[*p_key_count].ext_mask, attr_list[i].value.aclfield.mask.u8list.list, 8);
                 (*p_key_count)++;
                 break;
-
+            }
             default:
+            {
                 if (attr_list[i].id >= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN
                     && attr_list[i].id < (SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN + CTC_SAI_UDF_GROUP_MAX_NUM(lchip)))
                 {
+                    p_acl_entry = ctc_sai_db_get_object_property(lchip, entry_object_id);
+                    if (NULL == p_acl_entry)
+                    {
+                        CTC_SAI_LOG_ERROR(SAI_API_ACL, "The ACL entry is not exist\n");
+                        status =  SAI_STATUS_ITEM_NOT_FOUND;
+                        goto error0;
+                    }
+
+                    p_acl_table = ctc_sai_db_get_object_property(lchip, p_acl_entry->table_id);
+                    if (NULL == p_acl_table)
+                    {
+                        CTC_SAI_LOG_ERROR(SAI_API_ACL, "The ACL table is not exist\n");
+                        status =  SAI_STATUS_ITEM_NOT_FOUND;
+                        goto error0;
+                    }
+
                     p_acl_udf_data = (ctc_acl_udf_t*)mem_malloc(MEM_ACL_MODULE, sizeof(ctc_acl_udf_t));
                     if (NULL == p_acl_udf_data)
                     {
@@ -1968,6 +2065,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                         status =  SAI_STATUS_NO_MEMORY;
                         goto error0;
                     }
+                    sal_memset(p_acl_udf_data, 0, sizeof(ctc_acl_udf_t));
 
                     p_acl_udf_mask = (ctc_acl_udf_t*)mem_malloc(MEM_ACL_MODULE, sizeof(ctc_acl_udf_t));
                     if (NULL == p_acl_udf_mask)
@@ -1976,39 +2074,49 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                         status =  SAI_STATUS_NO_MEMORY;
                         goto error0;
                     }
+                    sal_memset(p_acl_udf_mask, 0, sizeof(ctc_acl_udf_t));
 
-                    ctc_udf_group_id = attr_list[i].id-SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN;
-                    sai_object_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_UDF_GROUP, lchip, group_type, 0, ctc_udf_group_id);
-
-                    ctc_sai_get_sai_object_id(SAI_OBJECT_TYPE_UDF_GROUP, &ctc_object_id, &sai_object_id);
-                    p_udf_group = ctc_sai_db_get_object_property(lchip, sai_object_id);
-                    if (NULL == p_udf_group)
+                    j = 0;
+                    CTC_SLIST_LOOP(p_acl_table->udf_groups, p_node)
                     {
-                        CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add udf field, invalid udf_group_id 0x%"PRIx64"!\n", sai_object_id);
-                        status = SAI_STATUS_ITEM_NOT_FOUND;
-                        goto error0;
+                        p_table_udf_group = (ctc_sai_acl_table_udf_group_t*)p_node;
+                        if (p_table_udf_group->index == (attr_list[i].id - SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN))
+                        {
+                            sai_object_id = p_table_udf_group->group_id;
+                            p_udf_group = ctc_sai_db_get_object_property(lchip, sai_object_id);
+                            if (NULL == p_udf_group)
+                            {
+                                CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add udf field, invalid udf_group_id 0x%"PRIx64"!\n", sai_object_id);
+                                status = SAI_STATUS_ITEM_NOT_FOUND;
+                                goto error0;
+                            }
+
+                            for (j = 0; j < attr_list[i].value.aclfield.data.u8list.count/CTC_SAI_UDF_OFFSET_BYTE_LEN; j++)
+                            {
+                                sal_memcpy(p_acl_udf_data->udf + p_udf_group->offset[j]*CTC_SAI_UDF_OFFSET_BYTE_LEN, attr_list[i].value.aclfield.data.u8list.list+j*CTC_SAI_UDF_OFFSET_BYTE_LEN, CTC_SAI_UDF_OFFSET_BYTE_LEN);
+                                sal_memcpy(p_acl_udf_mask->udf + p_udf_group->offset[j]*CTC_SAI_UDF_OFFSET_BYTE_LEN, attr_list[i].value.aclfield.mask.u8list.list+j*CTC_SAI_UDF_OFFSET_BYTE_LEN, CTC_SAI_UDF_OFFSET_BYTE_LEN);
+                            }
+                        }
+                        j++;
                     }
 
                     CTC_SLIST_LOOP(p_udf_group->member_list, p_node)
                     {
                         p_udf_group_member = (ctc_sai_udf_group_member_t*)p_node;
-                        p_udf_entry = ctc_sai_db_get_object_property(lchip, p_udf_group_member->udf_id);
+                        p_udf_entry = ctc_sai_db_get_object_property(lchip, p_udf_group_member->udf_oid);
 
                         if (NULL == p_udf_entry)
                         {
-                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add acl udf filed of group_id 0x%"PRIx64"'s udf member udf_id 0x%"PRIx64"!\n", attr_list[i].id-SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, p_udf_group_member->udf_id);
+                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add acl udf filed of group_id 0x%"PRIx64"'s udf member udf_id 0x%"PRIx64"!\n", attr_list[i].id-SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, p_udf_group_member->udf_oid);
                             status = SAI_STATUS_ITEM_NOT_FOUND;
                             goto error0;
                         }
-                        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF, p_udf_group_member->udf_id, &ctc_object_id);
-                        p_acl_udf_data->udf_id = ctc_object_id.value;
-                        p_acl_udf_mask->udf_id = ctc_object_id.value;
+                        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF_MATCH, p_udf_entry->match_oid, &ctc_object_id);
+                        p_acl_udf_data->udf_ad_id = ctc_object_id.value + 1;
                         break;
                     }
-                    sal_memcpy(p_acl_udf_data->udf, attr_list[i].value.aclfield.data.u8list.list, attr_list[i].value.aclfield.data.u8list.count);
-                    sal_memcpy(p_acl_udf_mask->udf, attr_list[i].value.aclfield.mask.u8list.list, attr_list[i].value.aclfield.mask.u8list.count);
 
-                    field_key[*p_key_count].type = CTC_FIELD_KEY_UDF;
+                    field_key[*p_key_count].type = CTC_FIELD_KEY_UDF_AD_ID;
                     field_key[*p_key_count].ext_data = p_acl_udf_data;
                     field_key[*p_key_count].ext_mask = p_acl_udf_mask;
                     (*p_key_count)++;
@@ -2019,6 +2127,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                     /* all not support key fields has been checked */
                     break;
                 }
+            }
         }
     }
 
@@ -2088,6 +2197,7 @@ error0:
 
     return status;
 }
+
 
 static sai_status_t
 _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key, uint8 group_priority, sai_object_id_t entry_object_id, sai_attribute_t *attr_list,
@@ -3592,7 +3702,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                 sal_memcpy(&key_attr_list[update_attr->id - SAI_ACL_ENTRY_ATTR_FIELD_START], update_attr, sizeof(sai_attribute_t));
                 sal_memcpy(action_attr_list, p_acl_entry->action_attr_list, sizeof(action_attr_list));
 
-                status = status?:_ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, &bmp_count, &bmp_start);
+                status = status?:_ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, entry_object_id, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, &bmp_count, &bmp_start);
                 status = status?:_ctc_sai_acl_mapping_acl_entry_action_fields(lchip, key, group_priority, entry_object_id, action_attr_list, acl_action_fields_array, &action_count);
 
                 for (ii = 0; ii < bmp_count; ii++)
@@ -3691,7 +3801,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                                 status = SAI_STATUS_ITEM_NOT_FOUND;
                                 goto error0;
                             }
-                            p_udf_group->ref_cnt--;
+                            p_udf_group->hash_ref_cnt--;
                             break;
                         }
                     }
@@ -3709,7 +3819,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                             status = SAI_STATUS_ITEM_NOT_FOUND;
                             goto error0;
                         }
-                        p_udf_group->ref_cnt++;
+                        p_udf_group->hash_ref_cnt++;
                     }
                 }
 
@@ -3717,7 +3827,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                 if (update_attr->value.aclfield.enable)
                 {
                     sal_memcpy(&key_attr_list[update_attr->id - SAI_ACL_ENTRY_ATTR_FIELD_START], update_attr, sizeof(sai_attribute_t));
-                    status = _ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, NULL, NULL);
+                    status = _ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, entry_object_id, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, NULL, NULL);
 
                     for (ii = 0; ii < key_count; ii++)
                     {
@@ -3729,7 +3839,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                 {
                     sal_memcpy(&key_attr_list[update_attr->id - SAI_ACL_ENTRY_ATTR_FIELD_START], update_attr, sizeof(sai_attribute_t));
                     key_attr_list[update_attr->id - SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.enable = 1;
-                    status = _ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, NULL, NULL);
+                    status = _ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, entry_object_id, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, NULL, NULL);
 
                     for (ii = 0; ii < key_count; ii++)
                     {
@@ -4121,7 +4231,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
         sal_memcpy(key_attr_list, p_acl_entry->key_attr_list, sizeof(key_attr_list));
         sal_memcpy(action_attr_list, p_acl_entry->action_attr_list, sizeof(action_attr_list));
 
-        status = _ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, &bmp_count, &bmp_start);
+        status = _ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, entry_object_id, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, &bmp_count, &bmp_start);
         status = status?:_ctc_sai_acl_mapping_acl_entry_action_fields(lchip, key, group_priority, entry_object_id, action_attr_list, acl_action_fields_array, &action_count);
 
         /* first add one entry */
@@ -7547,11 +7657,12 @@ ctc_sai_acl_init_key_template(uint8 lchip)
         CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_IP_OPTIONS);
         CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_L4_DST_PORT);
         CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_L4_SRC_PORT);
-        CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_UDF);
+        CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_UDF_AD_ID);
         CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_PORT);
         CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_DST_CID);
         CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_INTERFACE_ID);
         CTC_ACL_KSET_ADD(acl_flex_key.kset, CTC_FIELD_KEY_CLASS_ID);
+        acl_flex_key.udf_bmp = 0xFF;
 
         CTC_SAI_CTC_ERROR_RETURN(ctcs_acl_set_flex_key_fields(lchip, &acl_flex_key));
     }
@@ -8315,7 +8426,7 @@ _ctc_sai_acl_remove_acl_entry(sai_object_id_t acl_entry_id)
                 status = SAI_STATUS_ITEM_NOT_FOUND;
                 return status;
             }
-            p_udf_group->ref_cnt--;
+            p_udf_group->hash_ref_cnt--;
         }
     }
 
@@ -8736,7 +8847,7 @@ ctc_sai_acl_create_acl_entry(sai_object_id_t *acl_entry_id,
                 status = SAI_STATUS_ITEM_NOT_FOUND;
                 goto error0;
             }
-            p_udf_group->ref_cnt++;
+            p_udf_group->hash_ref_cnt++;
         }
     }
 
@@ -8927,9 +9038,10 @@ ctc_sai_acl_create_acl_table(sai_object_id_t *acl_table_id,
     uint32 table_size = 0;
     uint32 table_index = 0;
     uint32 index = 0;
-    const sai_attribute_value_t *attr_value = NULL;
-    ctc_sai_acl_table_t *p_acl_table = NULL;
     uint32 lookup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
+    ctc_sai_acl_table_t* p_acl_table = NULL;
+    const sai_attribute_value_t* attr_value = NULL;
+    ctc_sai_acl_table_udf_group_t* p_table_udf_group = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_ACL);
     if (NULL == acl_table_id)
@@ -9004,7 +9116,6 @@ ctc_sai_acl_create_acl_table(sai_object_id_t *acl_table_id,
 
     CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_ACL_TABLE_INDEX, &table_index), status, error0);
     *acl_table_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_ACL_TABLE, lchip, 0, 0, table_index);
-
     CTC_SAI_LOG_ERROR(SAI_API_ACL, "acl_table_id = 0x%"PRIx64"\n", *acl_table_id);
 
     MALLOC_ZERO(MEM_ACL_MODULE, p_acl_table, sizeof(ctc_sai_acl_table_t));
@@ -9030,18 +9141,52 @@ ctc_sai_acl_create_acl_table(sai_object_id_t *acl_table_id,
                     CTC_BIT_SET(p_acl_table->range_type_bmp, attr_value->s32list.list[jj]);
                     break;
                 default:
-                    return SAI_STATUS_INVALID_PARAMETER;
+                    status = SAI_STATUS_INVALID_PARAMETER;
+                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Invalid acl range type\n");
+                    goto error2;
             }
         }
+    }
+
+    p_acl_table->udf_groups = ctc_slist_new();
+    if (NULL == p_acl_table->udf_groups)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to create table's udf group list\n");
+        status = SAI_STATUS_NO_MEMORY;
+        goto error2;
     }
 
     /* the table match field has to be processed */
     for (ii = 0; ii < ctc_sai_key_info.avail_num; ii++)
     {
         status = ctc_sai_find_attrib_in_list(attr_count, attr_list, ctc_sai_key_info.attr_avail[ii], &attr_value, &index);
-        if ((!CTC_SAI_ERROR(status)) && attr_value->booldata)
+        if (!CTC_SAI_ERROR(status))
         {
-            CTC_BMP_SET(p_acl_table->table_key_bmp, SAI_ACL_ATTR_ID2INDEX(ctc_sai_key_info.attr_avail[ii]));
+            if (ctc_sai_key_info.attr_avail[ii] >= SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN
+               && ctc_sai_key_info.attr_avail[ii] <= SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX)
+            {
+                if (attr_value->oid != SAI_NULL_OBJECT_ID)
+                {
+                    MALLOC_ZERO(MEM_ACL_MODULE, p_table_udf_group, sizeof(ctc_sai_acl_table_udf_group_t));
+                    if (NULL == p_table_udf_group)
+                    {
+                        status = SAI_STATUS_NO_MEMORY;
+                        goto error3;
+                    }
+                    p_table_udf_group->index = ctc_sai_key_info.attr_avail[ii] - SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN;
+                    p_table_udf_group->group_id = attr_value->oid;
+
+                    ctc_slist_add_tail(p_acl_table->udf_groups, &(p_table_udf_group->head));
+                    CTC_BMP_SET(p_acl_table->table_key_bmp, SAI_ACL_ATTR_ID2INDEX(ctc_sai_key_info.attr_avail[ii]));
+                }
+            }
+            else
+            {
+                if (attr_value->booldata)
+                {
+                    CTC_BMP_SET(p_acl_table->table_key_bmp, SAI_ACL_ATTR_ID2INDEX(ctc_sai_key_info.attr_avail[ii]));
+                }
+            }
         }
         /* do nothing if not find */
     }
@@ -9053,40 +9198,42 @@ ctc_sai_acl_create_acl_table(sai_object_id_t *acl_table_id,
     p_acl_table->created_entry_count = 0;
     p_acl_table->entry_list = ctc_slist_new();
 
-    CTC_SAI_ERROR_GOTO(_ctc_sai_acl_mapping_table_lookup_type(lchip, p_acl_table), status, error1);
+    CTC_SAI_ERROR_GOTO(_ctc_sai_acl_mapping_table_lookup_type(lchip, p_acl_table), status, error3);
 
     if (NULL == p_acl_table->entry_list)
     {
         CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to create table's entry list\n");
         status = SAI_STATUS_INVALID_PARAMETER;
-        goto error2;
+        goto error3;
     }
+
     p_acl_table->group_list = ctc_slist_new();
     if (NULL == p_acl_table->group_list)
     {
         CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to create table's group list\n");
         status = SAI_STATUS_INVALID_PARAMETER;
-        goto error3;
+        goto error4;
     }
     p_acl_table->bind_points = ctc_slist_new();
     if (NULL == p_acl_table->bind_points)
     {
         CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to create table's bind points list\n");
         status = SAI_STATUS_INVALID_PARAMETER;
-        goto error4;
+        goto error5;
     }
-
-    CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, *acl_table_id, (void*)p_acl_table), status, error5);
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, *acl_table_id, (void*)p_acl_table), status, error6);
 
     CTC_SAI_DB_UNLOCK(lchip);
     return status;
 
-error5:
+error6:
     ctc_slist_free(p_acl_table->bind_points);
-error4:
+error5:
     ctc_slist_free(p_acl_table->group_list);
-error3:
+error4:
     ctc_slist_free(p_acl_table->entry_list);
+error3:
+    ctc_slist_free(p_acl_table->udf_groups);
 error2:
     mem_free(p_acl_table);
 error1:
@@ -9224,6 +9371,7 @@ ctc_sai_acl_remove_acl_table(sai_object_id_t acl_table_id)
     ctc_slist_free(p_acl_table->entry_list);
     ctc_slist_free(p_acl_table->group_list);
     ctc_slist_free(p_acl_table->bind_points);
+    ctc_slist_free(p_acl_table->udf_groups);
 
     CTC_SAI_ERROR_GOTO(ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_ACL_TABLE_INDEX, table_index), status, error0);
     CTC_SAI_ERROR_GOTO(ctc_sai_db_remove_object_property(lchip, acl_table_id), status, error0);
@@ -10998,6 +11146,84 @@ ctc_sai_acl_db_init(uint8 lchip)
     uint32 attr = 0;
     ctc_sai_db_wb_t wb_info;
 
+    /* group */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(ctc_sai_acl_group_t);
+    wb_info.wb_sync_cb = _ctc_sai_acl_group_wb_sync_cb;
+    wb_info.wb_reload_cb = _ctc_sai_acl_group_wb_reload_cb;
+    wb_info.wb_reload_cb1 = _ctc_sai_acl_group_wb_reload_cb1;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_TABLE_GROUP, (void*)(&wb_info));
+
+    /* table */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(ctc_sai_acl_table_t);
+    wb_info.wb_sync_cb = _ctc_sai_acl_table_wb_sync_cb;
+    wb_info.wb_reload_cb = _ctc_sai_acl_table_wb_reload_cb;
+    wb_info.wb_reload_cb1 = _ctc_sai_acl_table_wb_reload_cb1;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_TABLE, (void*)(&wb_info));
+
+    /* entry */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(ctc_sai_acl_entry_t);
+    wb_info.wb_sync_cb = _ctc_sai_acl_entry_wb_sync_cb;
+    wb_info.wb_reload_cb = _ctc_sai_acl_entry_wb_reload_cb;
+    wb_info.wb_reload_cb1 = _ctc_sai_acl_entry_wb_reload_cb1;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_ENTRY, (void*)(&wb_info));
+
+    /* table group member */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(ctc_sai_acl_table_group_member_t);
+    wb_info.wb_sync_cb = NULL;
+    wb_info.wb_reload_cb = _ctc_sai_acl_table_group_member_wb_reload_cb;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_TABLE_GROUP_MEMBER, (void*)(&wb_info));
+
+    /* range */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(ctc_sai_acl_range_t);
+    wb_info.wb_sync_cb = _ctc_sai_acl_range_wb_sync_cb;
+    wb_info.wb_reload_cb = _ctc_sai_acl_range_wb_reload_cb;
+    wb_info.wb_reload_cb1 = _ctc_sai_acl_range_wb_reload_cb1;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_RANGE, (void*)(&wb_info));
+
+     /* counter */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(ctc_sai_acl_counter_t);
+    wb_info.wb_sync_cb = _ctc_sai_acl_counter_wb_sync_cb;
+    wb_info.wb_reload_cb = _ctc_sai_acl_counter_wb_reload_cb;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_COUNTER, (void*)(&wb_info));
+
+    /* acl entry type */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(uint32);
+    wb_info.wb_sync_cb = NULL;
+    wb_info.wb_reload_cb = NULL;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_ENTRY, CTC_SAI_DB_ENTRY_TYPE_ACL, (void*)(&wb_info));
+
+    /* acl entry type */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(sai_object_id_t);
+    wb_info.wb_sync_cb = NULL;
+    wb_info.wb_reload_cb = NULL;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_ENTRY, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, (void*)(&wb_info));
+
+    /* acl entry type */
+    sal_memset(&wb_info, 0, sizeof(wb_info));
+    wb_info.version = SYS_WB_VERSION_ACL;
+    wb_info.data_len = sizeof(sai_object_id_t);
+    wb_info.wb_sync_cb = NULL;
+    wb_info.wb_reload_cb = NULL;
+    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_ENTRY, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS, (void*)(&wb_info));
+
+    CTC_SAI_WARMBOOT_STATUS_CHECK(lchip);
+
     chip_type = ctcs_get_chip_type(lchip);
     /* the tcam key type of tcam lookup type, suppose the simplest condition, reguardless of flex global key control */
     sal_memset(&ctc_sai_key_info, 0, sizeof(ctc_sai_key_info_t));
@@ -11413,82 +11639,6 @@ ctc_sai_acl_db_init(uint8 lchip)
     CTC_BIT_SET(ctc_sai_key_info.key2packet[CTC_ACL_KEY_MAC_IPV6], PKT_TYPE_IPV6);
 
     CTC_BIT_SET(ctc_sai_key_info.key2packet[CTC_ACL_KEY_IPV6_EXT], PKT_TYPE_IPV6);
-
-    /* group */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(ctc_sai_acl_group_t);
-    wb_info.wb_sync_cb = _ctc_sai_acl_group_wb_sync_cb;
-    wb_info.wb_reload_cb = _ctc_sai_acl_group_wb_reload_cb;
-    wb_info.wb_reload_cb1 = _ctc_sai_acl_group_wb_reload_cb1;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_TABLE_GROUP, (void*)(&wb_info));
-
-    /* table */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(ctc_sai_acl_table_t);
-    wb_info.wb_sync_cb = _ctc_sai_acl_table_wb_sync_cb;
-    wb_info.wb_reload_cb = _ctc_sai_acl_table_wb_reload_cb;
-    wb_info.wb_reload_cb1 = _ctc_sai_acl_table_wb_reload_cb1;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_TABLE, (void*)(&wb_info));
-
-    /* entry */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(ctc_sai_acl_entry_t);
-    wb_info.wb_sync_cb = _ctc_sai_acl_entry_wb_sync_cb;
-    wb_info.wb_reload_cb = _ctc_sai_acl_entry_wb_reload_cb;
-    wb_info.wb_reload_cb1 = _ctc_sai_acl_entry_wb_reload_cb1;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_ENTRY, (void*)(&wb_info));
-
-    /* table group member */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(ctc_sai_acl_table_group_member_t);
-    wb_info.wb_sync_cb = NULL;
-    wb_info.wb_reload_cb = _ctc_sai_acl_table_group_member_wb_reload_cb;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_TABLE_GROUP_MEMBER, (void*)(&wb_info));
-
-    /* range */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(ctc_sai_acl_range_t);
-    wb_info.wb_sync_cb = _ctc_sai_acl_range_wb_sync_cb;
-    wb_info.wb_reload_cb = _ctc_sai_acl_range_wb_reload_cb;
-    wb_info.wb_reload_cb1 = _ctc_sai_acl_range_wb_reload_cb1;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_RANGE, (void*)(&wb_info));
-
-     /* counter */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(ctc_sai_acl_counter_t);
-    wb_info.wb_sync_cb = _ctc_sai_acl_counter_wb_sync_cb;
-    wb_info.wb_reload_cb = _ctc_sai_acl_counter_wb_reload_cb;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_OID, SAI_OBJECT_TYPE_ACL_COUNTER, (void*)(&wb_info));
-
-    /* acl entry type */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(uint32);
-    wb_info.wb_sync_cb = NULL;
-    wb_info.wb_reload_cb = NULL;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_ENTRY, CTC_SAI_DB_ENTRY_TYPE_ACL, (void*)(&wb_info));
-
-    /* acl entry type */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(sai_object_id_t);
-    wb_info.wb_sync_cb = NULL;
-    wb_info.wb_reload_cb = NULL;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_ENTRY, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_INGRESS, (void*)(&wb_info));
-
-    /* acl entry type */
-    sal_memset(&wb_info, 0, sizeof(wb_info));
-    wb_info.version = SYS_WB_VERSION_ACL;
-    wb_info.data_len = sizeof(sai_object_id_t);
-    wb_info.wb_sync_cb = NULL;
-    wb_info.wb_reload_cb = NULL;
-    ctc_sai_warmboot_register_cb(lchip, CTC_SAI_WB_TYPE_ENTRY, CTC_SAI_DB_ENTRY_TYPE_ACL_BIND_EGRESS, (void*)(&wb_info));
 
     return SAI_STATUS_SUCCESS;
 }

@@ -566,6 +566,14 @@ struct ctc_sai_acl_table_group_list_s
 };
 typedef struct ctc_sai_acl_table_group_list_s ctc_sai_acl_table_group_list_t;
 
+struct ctc_sai_acl_table_udf_group_s
+{
+    ctc_slistnode_t head;
+    uint8           index;
+    sai_object_id_t group_id;
+};
+typedef struct ctc_sai_acl_table_udf_group_s ctc_sai_acl_table_udf_group_t;
+
 struct ctc_sai_acl_table_s
 {
     uint8  table_stage;
@@ -579,6 +587,7 @@ struct ctc_sai_acl_table_s
     ctc_slist_t* entry_list;                                        /* all entries added to this table */
     ctc_slist_t* group_list;                                        /* the table is a member of these groups */
     ctc_slist_t* bind_points;                                       /* the table (as bind unit) is bound to these bind points */
+    ctc_slist_t* udf_groups;
 };
 typedef struct ctc_sai_acl_table_s ctc_sai_acl_table_t;
 

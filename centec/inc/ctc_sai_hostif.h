@@ -189,16 +189,24 @@
 #define CTC_SAI_CTC_CPU_REASON_ID_MASK 0xFFFF
 #define CTC_SAI_CPU_MAX_QNUM_PER_GROUP 8
 
-typedef enum ctc_hostif_l2pdu_index_s
+typedef enum ctc_hostif_l2pdu_macda_index_s
 {
     CTC_HOSTIF_L2PDU_PVRST_INDEX = 1,
     CTC_HOSTIF_L2PDU_UDLD_INDEX,
-    CTC_HOSTIF_L2PDU_CDP_INDEX,
+    CTC_HOSTIF_L2PDU_ISIS_BROADCAST_INDEX,
+    CTC_HOSTIF_L2PDU_ISIS_P2P_INDEX,
+
+}ctc_hostif_l2pdu_macda_index_t;
+
+typedef enum ctc_hostif_l2pdu_prot_index_s
+{
+    CTC_HOSTIF_L2PDU_CDP_INDEX = 1,
     CTC_HOSTIF_L2PDU_VTP_INDEX,
     CTC_HOSTIF_L2PDU_DDP_INDEX,
     CTC_HOSTIF_L2PDU_PAGP_INDEX,
 
-}ctc_hostif_l2pdu_index_t;
+}ctc_hostif_l2pdu_prot_index_t;
+    
 
 typedef enum ctc_hostif_l2pdu_action_index_s
 {
@@ -208,6 +216,7 @@ typedef enum ctc_hostif_l2pdu_action_index_s
     CTC_HOSTIF_L2PDU_ACTION_VTP_INDEX,
     CTC_HOSTIF_L2PDU_ACTION_DTP_INDEX,
     CTC_HOSTIF_L2PDU_ACTION_PAGP_INDEX,
+    CTC_HOSTIF_L2PDU_ACTION_ISIS_INDEX,
 
 }ctc_hostif_l2pdu_action_index_t;
 
@@ -220,7 +229,7 @@ typedef enum ctc_hostif_l3pdu_classify_index_s
 
 typedef enum ctc_hostif_l3pdu_action_index_s
 {
-    CTC_HOSTIF_L3PDU_ACTION_BGPV6_INDEX = CTC_L3PDU_ACTION_INDEX_DHCP+1,
+    CTC_HOSTIF_L3PDU_ACTION_BGPV6_INDEX = CTC_L3PDU_ACTION_INDEX_MRD+1,
     CTC_HOSTIF_L3PDU_ACTION_OSPFV6_INDEX,
     CTC_HOSTIF_L3PDU_ACTION_VRRPV6_INDEX,
     CTC_HOSTIF_L3PDU_ACTION_SNMP_INDEX,

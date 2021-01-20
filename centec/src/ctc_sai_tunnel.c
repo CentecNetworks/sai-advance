@@ -3217,12 +3217,13 @@ _ctc_sai_tunnel_wb_reload_tunnel_cb(uint8 lchip, void* key, void* data)
 
     if((SAI_TUNNEL_TYPE_VXLAN == p_tunnel->tunnel_type) || (SAI_TUNNEL_TYPE_MPLS == p_tunnel->tunnel_type) || (SAI_TUNNEL_TYPE_MPLS_L2 == p_tunnel->tunnel_type))
     {
-        CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_COMMON, p_tunnel->logic_port));
+        CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id_from_position(lchip, CTC_SAI_DB_ID_TYPE_LOGIC_PORT, p_tunnel->logic_port));
     }
     
     p_tunnel->encap_map_list = ctc_slist_new();
     p_tunnel->decap_map_list = ctc_slist_new();
-    if ((NULL == p_tunnel->encap_map_list) || (NULL == p_tunnel->decap_map_list))
+    p_tunnel->encap_nh_list = ctc_slist_new();
+    if ((NULL == p_tunnel->encap_map_list) || (NULL == p_tunnel->decap_map_list) || (NULL == p_tunnel->encap_nh_list))
     {
         return SAI_STATUS_NO_MEMORY;
     }

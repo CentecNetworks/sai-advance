@@ -382,7 +382,7 @@ _ctc_sai_bridge_port_check_port_type_attr(sai_bridge_port_type_t port_type, sai_
             }
             break;
         case SAI_BRIDGE_PORT_ATTR_TUNNEL_ID:
-            if ( (SAI_BRIDGE_PORT_TYPE_TUNNEL != port_type) && (SAI_BRIDGE_PORT_TYPE_FRR != port_type) )
+            if ((SAI_BRIDGE_PORT_TYPE_TUNNEL != port_type) && (SAI_BRIDGE_PORT_TYPE_FRR != port_type) && (SAI_BRIDGE_PORT_TYPE_LB != port_type))
             {
                 status = SAI_STATUS_INVALID_PARAMETER;
             }
@@ -401,6 +401,7 @@ _ctc_sai_bridge_port_check_port_type_attr(sai_bridge_port_type_t port_type, sai_
             }
             break;
         case SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP:
+        case SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP:
         case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID:
         case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE:
         case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS:
@@ -1013,6 +1014,38 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         }
         
     }
+    else if(p_bridge_port->port_type == SAI_BRIDGE_PORT_TYPE_LB)
+    {
+        sal_memset(&l2dflt_addr, 0, sizeof(ctc_l2dflt_addr_t));
+        l2dflt_addr.fid = p_bridge_port->bridge_id;
+        l2dflt_addr.with_nh = TRUE;
+        l2dflt_addr.member.nh_id = p_bridge_port->nh_id;
+        l2dflt_addr.member.mem_port = p_bridge_port->logic_port;
+        
+        if (admin_state)
+        {
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, p_bridge_port->nh_id), status, roll_back_0);
+            if( SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type)
+            {
+                if(p_bridge_port->need_flood)
+                {
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_add_port_to_default_entry(lchip, &l2dflt_addr), status, roll_back_1);
+                }
+            }
+        }
+        else
+        {          
+            ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, CTC_NH_RESERVED_NHID_FOR_DROP);
+            if( SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type )
+            {
+                if(p_bridge_port->need_flood)
+                {
+                    ctcs_l2_remove_port_from_default_entry(lchip, &l2dflt_addr);
+                }
+            }
+        }
+        
+    }
     p_bridge_port->admin_state = admin_state;
 
     return SAI_STATUS_SUCCESS;
@@ -1162,6 +1195,9 @@ ctc_sai_bridge_port_get_port_property(sai_object_key_t* key, sai_attribute_t* at
             break;
         case SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP:
             attr->value.oid = p_bridge_port->frr_nhp_grp_id;
+            break;
+        case SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP:
+            attr->value.oid = p_bridge_port->lb_nhp_grp_id;
             break;
         case SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID:
             attr->value.u16 = p_bridge_port->cvlan_id;
@@ -1574,7 +1610,12 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
             {
                 if(0 != p_cross_connect_bport->nh_id && SAI_BRIDGE_TYPE_CROSS_CONNECT == p_bridge_port->bridge_type)
                 {
-                    if(SAI_BRIDGE_PORT_TYPE_SUB_PORT != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_TUNNEL != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_FRR != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_PORT != p_bridge_port->port_type && SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT != p_bridge_port->port_type)
+                    if( (SAI_BRIDGE_PORT_TYPE_SUB_PORT != p_bridge_port->port_type) && 
+                        (SAI_BRIDGE_PORT_TYPE_TUNNEL != p_bridge_port->port_type) && 
+                        (SAI_BRIDGE_PORT_TYPE_FRR != p_bridge_port->port_type) && 
+                        (SAI_BRIDGE_PORT_TYPE_LB != p_bridge_port->port_type) && 
+                        (SAI_BRIDGE_PORT_TYPE_PORT != p_bridge_port->port_type) && 
+                        (SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT != p_bridge_port->port_type))
                     {
                         CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "bridge port attribute %d value invalid\n", attr->id);
                         status = SAI_STATUS_INVALID_ATTR_VALUE_0;
@@ -1627,7 +1668,8 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
             if( ( ( SAI_BRIDGE_PORT_TYPE_SUB_PORT == p_bridge_port->port_type) || 
                   ( SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT == p_bridge_port->port_type) || 
                   ( SAI_BRIDGE_PORT_TYPE_TUNNEL == p_bridge_port->port_type) || 
-                  ( SAI_BRIDGE_PORT_TYPE_FRR == p_bridge_port->port_type) || 
+                  ( SAI_BRIDGE_PORT_TYPE_FRR == p_bridge_port->port_type) ||
+                  ( SAI_BRIDGE_PORT_TYPE_LB == p_bridge_port->port_type) || 
                   (SAI_BRIDGE_PORT_TYPE_PORT == p_bridge_port->port_type) ) && 
                 ( SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type) )
             {
@@ -3424,6 +3466,63 @@ _ctc_sai_bridge_port_destroy_frr_port(uint8 lchip, ctc_sai_bridge_port_t* p_brid
     return SAI_STATUS_SUCCESS;
 }
 
+static sai_status_t
+_ctc_sai_bridge_port_create_lb_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_port,
+                                                uint32_t attr_count, const sai_attribute_t* attr_list)
+{
+    sai_status_t status = SAI_STATUS_SUCCESS;
+    uint32 attr_idx = 0;
+    const sai_attribute_value_t* attr_val = NULL;
+    ctc_sai_next_hop_grp_t* p_next_hop_grp = NULL;
+    uint32 logic_port = 0;
+    ctc_object_id_t ctc_object_id;
+    
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP, &attr_val, &attr_idx);
+    if (CTC_SAI_ERROR(status))
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "Missing mandatory SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP attr\n");
+        status = SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
+        goto out;
+    }
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP_GROUP, attr_val->oid, &ctc_object_id);
+
+    p_next_hop_grp = ctc_sai_db_get_object_property(lchip, attr_val->oid);
+    if (NULL == p_next_hop_grp)
+    {
+        return SAI_STATUS_INVALID_OBJECT_ID;
+    }
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_LOGIC_PORT, &logic_port), status, out);
+    p_bridge_port->need_flood = true;
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_NEED_FLOOD, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        p_bridge_port->need_flood = attr_val->booldata;
+    }
+    p_bridge_port->port_type = SAI_BRIDGE_PORT_TYPE_LB;    
+    p_bridge_port->lb_nhp_grp_id = attr_val->oid;
+    p_bridge_port->logic_port = logic_port;
+    p_bridge_port->nh_id = ctc_object_id.value;
+    p_next_hop_grp->logic_port = logic_port;
+    
+    return SAI_STATUS_SUCCESS;
+out:
+    return status;
+}
+
+static sai_status_t
+_ctc_sai_bridge_port_destroy_lb_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_port)
+{
+    ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, 0);    
+
+    ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_LOGIC_PORT, p_bridge_port->logic_port);
+
+    p_bridge_port->lb_nhp_grp_id = 0;
+    p_bridge_port->logic_port = 0;
+
+    return SAI_STATUS_SUCCESS;
+}
+
+
 /**
  * @brief Create bridge port
  *
@@ -3572,6 +3671,14 @@ ctc_sai_bridge_create_bridge_port(sai_object_id_t* bridge_port_id,
             ctc_bridge_port_id.value = p_bridge_port->logic_port;
             ctc_bridge_port_id.value2 = 0;
             break;
+        case SAI_BRIDGE_PORT_TYPE_LB:
+            CTC_SAI_ERROR_GOTO(_ctc_sai_bridge_port_create_lb_port(lchip, p_bridge_port, attr_count, attr_list), status, roll_back_0);
+            ctc_bridge_port_id.lchip = lchip;
+            ctc_bridge_port_id.type = SAI_OBJECT_TYPE_BRIDGE_PORT;
+            ctc_bridge_port_id.sub_type = SAI_BRIDGE_PORT_TYPE_LB;
+            ctc_bridge_port_id.value = p_bridge_port->logic_port;
+            ctc_bridge_port_id.value2 = 0;
+            break;
         case SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT:
             CTC_SAI_ERROR_GOTO(_ctc_sai_bridge_port_create_double_vlan_sub_port(lchip, p_bridge_port, attr_count, attr_list), status, roll_back_0);
             ctc_bridge_port_id.lchip = lchip;
@@ -3700,6 +3807,10 @@ roll_back_1:
     {
         _ctc_sai_bridge_port_destroy_frr_port(lchip, p_bridge_port);
     }
+    else if (SAI_BRIDGE_PORT_TYPE_LB == bport_type)
+    {
+        _ctc_sai_bridge_port_destroy_lb_port(lchip, p_bridge_port);
+    }
 
 roll_back_0:
     if (CTC_SAI_ERROR(status))
@@ -3815,6 +3926,7 @@ static  ctc_sai_attr_fn_entry_t brg_port_attr_fn_entries[] = {
     {SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID, ctc_sai_bridge_port_get_port_property, ctc_sai_bridge_port_set_port_property},
     {SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID, ctc_sai_bridge_port_get_port_property, ctc_sai_bridge_port_set_port_property},
     {SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP, ctc_sai_bridge_port_get_port_property, NULL},
+    {SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP, ctc_sai_bridge_port_get_port_property, NULL},
     {SAI_BRIDGE_PORT_ATTR_CUSTOMER_VLAN_ID, ctc_sai_bridge_port_get_port_property, NULL},
     {SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID, ctc_sai_bridge_port_get_port_property, NULL},
     {SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE, ctc_sai_bridge_port_get_port_property, NULL},

@@ -130,6 +130,17 @@ Sales email: sales@centecnetworks.com<BR>
 ### Dependencies
  This package depends on Centec SDK V5.6.1
  
+## 2021-01-20
+  5th release.<BR>
+  tag：CTC-v2.0.2-SAI-1.6.4
+### Feature Added:
+    Support CTC7132
+    Support SAI 1.6.4
+    Support new feature list: 
+         Some feature update
+### Dependencies
+ This package depends on Centec SDK V5.6.1
+ 
 # How to compile
 
 ## 1. Preparation

@@ -4481,7 +4481,7 @@ static sai_status_t ctc_sai_mcast_create_ipmc_entry(
     }
     else
     {
-        CTC_SAI_LOG_ERROR(SAI_API_IPMC,"mandatory attribute SAI_IPMC_ENTRY_ATTR_PACKET_ACTION missing！ \n");
+        CTC_SAI_LOG_ERROR(SAI_API_IPMC,"mandatory attribute SAI_IPMC_ENTRY_ATTR_PACKET_ACTION missing! \n");
         return SAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
     }
 
@@ -5579,6 +5579,8 @@ ctc_sai_mcast_db_init(uint8 lchip)
 {
     sai_status_t           status = SAI_STATUS_SUCCESS;
     ctc_sai_db_wb_t wb_info;
+    ctc_ipmc_force_route_t mcv4_route;
+    ctc_ipmc_force_route_t mcv6_route;
 
     sal_memset(&wb_info, 0, sizeof(wb_info));
     wb_info.version = SYS_WB_VERSION_L2MCGROUP;
@@ -5630,6 +5632,57 @@ ctc_sai_mcast_db_init(uint8 lchip)
 
     CTC_SAI_WARMBOOT_STATUS_CHECK(lchip);
 
+    CTC_SAI_LOG_ERROR(SAI_API_IPMC,"force route entry set start\n");
+    /* ipv4 L3 pdu mcast route force bridge */
+    /*for ipv4 pdu packets*/
+    sal_memset(&mcv4_route, 0, sizeof(ctc_ipmc_force_route_t));
+    mcv4_route.ip_version = CTC_IP_VER_4;
+    mcv4_route.force_bridge_en = 1;
+
+    mcv4_route.ipaddr0_valid = 1;
+    mcv4_route.ip_addr0.ipv4 = 0xE0000000;
+    mcv4_route.addr0_mask = 24;
+    //CTC_SAI_CTC_ERROR_GOTO(ctc_ipmc_set_mcast_force_route(&mcv4_route), status, out);
+
+    mcv4_route.ipaddr1_valid = 1;
+    mcv4_route.ip_addr1.ipv4 = 0x0;
+    mcv4_route.addr1_mask = 32;
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_ipmc_set_mcast_force_route(lchip, &mcv4_route), status, error1);
+
+    /* ipv6 set mcast address in order to send ndp, ospf packet to cpu via force bridge when packet
+    is multicast
+    #define ALLNODE                            "ff02::1"
+    #define ALLROUTER                        "ff02::2"
+    #define SOLICITED_PREFIX            "ff02::1:ff00:0"*/
+    sal_memset(&mcv6_route, 0, sizeof(ctc_ipmc_force_route_t));
+    mcv6_route.ip_version = CTC_IP_VER_6;
+    mcv6_route.force_bridge_en = 1;
+    //mcv6_route.force_ucast_en = 1;
+
+    mcv6_route.ipaddr0_valid = 1;
+    mcv6_route.ip_addr0.ipv6[0] = 0xFF020000;
+    mcv6_route.ip_addr0.ipv6[1] = 0x00000000;
+    mcv6_route.ip_addr0.ipv6[2] = 0x00000000;
+    mcv6_route.ip_addr0.ipv6[3] = 0x00000000;
+    mcv6_route.addr0_mask = 120;
+    //ret = ctc_ipmc_set_mcast_force_route(&mcv6_route);
+
+    mcv6_route.ipaddr1_valid = 1;
+    mcv6_route.ip_addr1.ipv6[0] = 0xFF020000;
+    mcv6_route.ip_addr1.ipv6[1] = 0x00000000;
+    mcv6_route.ip_addr1.ipv6[2] = 0x00000001;
+    mcv6_route.ip_addr1.ipv6[3] = 0xFF000000;
+    mcv6_route.addr1_mask = 104;
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_ipmc_set_mcast_force_route(lchip, &mcv6_route), status, error2);
+
+    goto out;
+    
+error2:
+    CTC_SAI_LOG_ERROR(SAI_API_IPMC,"ipv6 force route entry set fail\n");
+
+error1:
+    CTC_SAI_LOG_ERROR(SAI_API_IPMC,"ipv4 force route entry set fail\n");
+out:
     return status;
 }
 

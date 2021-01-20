@@ -596,6 +596,11 @@ int sai_deserialize_uint64(
         _In_ char *buffer,
         _Out_ uint64_t *u64);
 
+
+int sai_deserialize_hex_uint64(
+        _In_ char *buffer,
+        _Out_ uint64_t *u64);
+
 /**
  * @brief Serialize 64 bit signed integer.
  *
