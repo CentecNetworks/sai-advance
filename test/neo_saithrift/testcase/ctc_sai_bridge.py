@@ -3563,7 +3563,7 @@ class scenario_09_bridge_port_change_bridge_id(sai_base_test.ThriftInterfaceData
 
 
 @group('L2')
-class scenario_10_bridge_port_learning_limit_and_violation(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_10_bridge_port_learning_limit_violation(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         '''
         only support TRANSMIT, DENY, TRAP, FORWARD(== TRASMIT), DROP(== DENY)
@@ -3921,6 +3921,442 @@ class scenario_14_bridge_port_is_lag(sai_base_test.ThriftInterfaceDataPlane):
         sys_logging("### -----scenario_14_bridge_port_is_lag----- ###")
         switch_init(self.client)
 
+        port1 = port_list[0] #SAI_BRIDGE_TYPE_1Q, SAI_BRIDGE_PORT_TYPE_PORT
+        port2 = port_list[1] #SAI_BRIDGE_TYPE_1Q, SAI_BRIDGE_PORT_TYPE_PORT, is LAG_MEMBER
+        port3 = port_list[2] #SAI_BRIDGE_TYPE_1Q, SAI_BRIDGE_PORT_TYPE_PORT, is LAG_MEMBER
+
+        port4 = port_list[3] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_PORT, is LAG_MEMBER
+        port5 = port_list[4] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_PORT, is LAG_MEMBER
+
+        port6 = port_list[5] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_SUB_PORT, is LAG_MEMBER
+        port7 = port_list[6] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_SUB_PORT, is LAG_MEMBER
+
+        port8 = port_list[7] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT, is LAG_MEMBER
+        port9 = port_list[8] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT, is LAG_MEMBER
+
+        default_1q_bridge = switch.default_1q_bridge
+        default_vlan_id = switch.default_vlan.oid
+        bridge_id = sai_thrift_create_bridge(self.client, SAI_BRIDGE_TYPE_1D)
+
+        bport1 = sai_thrift_get_bridge_port_by_port(self.client, port1)
+        lag_id1 = sai_thrift_create_lag(self.client)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+        bport2 = sai_thrift_create_bridge_port(self.client, lag_id1)
+
+        lag_id2 = sai_thrift_create_lag(self.client)
+        lag_member_id4 = sai_thrift_create_lag_member(self.client, lag_id2, port4)
+        lag_member_id5 = sai_thrift_create_lag_member(self.client, lag_id2, port5)
+        bport_1d = sai_thrift_create_bridge_port(self.client, lag_id2, bridge_id=bridge_id)
+        sys_logging("### created bridge port of type: port_1d, id = 0x%x ###" %bport_1d)
+
+        vlan1 = 10
+        lag_id3 = sai_thrift_create_lag(self.client)
+        lag_member_id6 = sai_thrift_create_lag_member(self.client, lag_id3, port6)
+        lag_member_id7 = sai_thrift_create_lag_member(self.client, lag_id3, port7)
+        sub_bport = sai_thrift_create_bridge_sub_port(self.client, lag_id3, bridge_id, vlan1)
+        sys_logging("### created bridge port of type: sub port, id = 0x%x ###" %sub_bport)
+
+        vlan2 = 20
+        lag_id4 = sai_thrift_create_lag(self.client)
+        lag_member_id8 = sai_thrift_create_lag_member(self.client, lag_id4, port8)
+        lag_member_id9 = sai_thrift_create_lag_member(self.client, lag_id4, port9)
+        qinq_bport = sai_thrift_create_bridge_double_vlan_sub_port(self.client, lag_id4, bridge_id, vlan1, vlan2)
+        sys_logging("### created bridge port of type: double vlan sub port, id = 0x%x ###" %qinq_bport)
+
+
+        src_mac1 = '00:00:00:01:01:07'
+        src_mac2 = '00:00:00:01:01:08'
+        dest_mac = '00:00:00:02:02:01'
+        ip_da = '20.20.20.1'
+        ip_sa = '10.10.10.1'
+
+        pkt1 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac1,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=100)
+        pkt2 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac2,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=100)
+
+        pkt3 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac1,
+                                 dl_vlan_enable=True, vlan_vid=vlan1,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=104)
+        pkt4 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac2,
+                                 dl_vlan_enable=True, vlan_vid=vlan1,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=104)
+
+        pkt5 = simple_qinq_tcp_packet(eth_dst=dest_mac, eth_src=src_mac1,
+                                      dl_vlan_outer=vlan1, dl_vlan_pcp_outer=0, dl_vlan_cfi_outer=0,
+                                      vlan_vid=vlan2, vlan_pcp=0, dl_vlan_cfi=0,
+                                      ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=108)
+        pkt6 = simple_qinq_tcp_packet(eth_dst=dest_mac, eth_src=src_mac2,
+                                      dl_vlan_outer=vlan1, dl_vlan_pcp_outer=0, dl_vlan_cfi_outer=0,
+                                      vlan_vid=vlan2, vlan_pcp=0, dl_vlan_cfi=0,
+                                      ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=108)
+
+        pkt7 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac1,
+                                 dl_vlan_enable=True, vlan_vid=vlan2,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=104)
+        pkt8 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac2,
+                                 dl_vlan_enable=True, vlan_vid=vlan2,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=104)
+
+        hash_id_lag = 0x201C
+        field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC]
+        hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+        attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST, value=attr_value)
+        self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+        try:
+            '''
+            STEP 1: SAI_BRIDGE_TYPE_1Q, SAI_BRIDGE_PORT_TYPE_PORT
+            '''
+            sys_logging("### SAI_BRIDGE_TYPE_1Q: SAI_BRIDGE_PORT_TYPE_PORT => SAI_BRIDGE_PORT_TYPE_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, default_vlan_id, dest_mac, bport2))
+            self.ctc_send_packet(0, pkt1)
+            self.ctc_verify_packet(pkt1, 1)
+            self.ctc_verify_no_packet(pkt1, 2)
+            #pdb.set_trace()
+            self.ctc_send_packet(0, pkt2)
+            self.ctc_verify_packet(pkt2, 2)
+            self.ctc_verify_no_packet(pkt2, 1)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            sys_logging("### SAI_BRIDGE_TYPE_1Q: SAI_BRIDGE_PORT_TYPE_PORT => SAI_BRIDGE_PORT_TYPE_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, default_vlan_id, dest_mac, bport1))
+            self.ctc_send_packet(1, pkt1)
+            self.ctc_verify_packet(pkt1, 0)
+            self.ctc_verify_no_packet(pkt1, 2)
+            self.ctc_send_packet(2, pkt2)
+            self.ctc_verify_packet(pkt2, 0)
+            self.ctc_verify_no_packet(pkt2, 1)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            '''
+            STEP 2: SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_PORT
+            '''
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_PORT => SAI_BRIDGE_PORT_TYPE_SUB_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, sub_bport))
+            self.ctc_send_packet(3, pkt1)
+            self.ctc_verify_packet(pkt3, 5)
+            self.ctc_verify_no_packet(pkt3, 6)
+            self.ctc_send_packet(4, pkt2)
+            self.ctc_verify_packet(pkt4, 6)
+            self.ctc_verify_no_packet(pkt4, 5)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_PORT => SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, qinq_bport))
+            self.ctc_send_packet(3, pkt1)
+            self.ctc_verify_packet(pkt3, 7)
+            self.ctc_verify_no_packet(pkt3, 8)
+            self.ctc_send_packet(4, pkt2)
+            self.ctc_verify_packet(pkt4, 8)
+            self.ctc_verify_no_packet(pkt4, 7)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            '''
+            STEP 3: SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_SUB_PORT
+            '''
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_SUB_PORT => SAI_BRIDGE_PORT_TYPE_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, bport_1d))
+            self.ctc_send_packet(5, pkt3)
+            self.ctc_verify_packet(pkt1, 3)
+            self.ctc_verify_no_packet(pkt1, 4)
+            self.ctc_send_packet(6, pkt4)
+            self.ctc_verify_packet(pkt2, 4)
+            self.ctc_verify_no_packet(pkt2, 3)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_SUB_PORT => SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, qinq_bport))
+            self.ctc_send_packet(5, pkt3)
+            self.ctc_verify_packet(pkt3, 7)
+            self.ctc_verify_no_packet(pkt3, 8)
+            self.ctc_send_packet(6, pkt4)
+            self.ctc_verify_packet(pkt4, 8)
+            self.ctc_verify_no_packet(pkt4, 7)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            '''
+            STEP 4: SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
+            '''
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT => SAI_BRIDGE_PORT_TYPE_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, bport_1d))
+            self.ctc_send_packet(7, pkt5)
+            self.ctc_verify_packet(pkt7, 3)
+            self.ctc_verify_no_packet(pkt7, 4)
+            self.ctc_send_packet(8, pkt6)
+            self.ctc_verify_packet(pkt8, 4)
+            self.ctc_verify_no_packet(pkt8, 3)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT => SAI_BRIDGE_PORT_TYPE_SUB_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, sub_bport))
+            self.ctc_send_packet(7, pkt5)
+            self.ctc_verify_packet(pkt5, 5)
+            self.ctc_verify_no_packet(pkt5, 6)
+            self.ctc_send_packet(8, pkt6)
+            self.ctc_verify_packet(pkt6, 6)
+            self.ctc_verify_no_packet(pkt6, 5)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+        finally:
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+            self.client.sai_thrift_remove_bridge_port(qinq_bport)
+            self.client.sai_thrift_remove_bridge_port(sub_bport)
+            self.client.sai_thrift_remove_bridge_port(bport_1d)
+            self.client.sai_thrift_remove_bridge_port(bport2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag_member(self.client, lag_member_id4)
+            sai_thrift_remove_lag_member(self.client, lag_member_id5)
+            sai_thrift_remove_lag_member(self.client, lag_member_id6)
+            sai_thrift_remove_lag_member(self.client, lag_member_id7)
+            sai_thrift_remove_lag_member(self.client, lag_member_id8)
+            sai_thrift_remove_lag_member(self.client, lag_member_id9)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            sai_thrift_remove_lag(self.client, lag_id2)
+            sai_thrift_remove_lag(self.client, lag_id3)
+            sai_thrift_remove_lag(self.client, lag_id4)
+            self.client.sai_thrift_remove_bridge(bridge_id)
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC,
+                          SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+            attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,value=attr_value)
+            self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+
+@group('L2')
+class scenario_15_bridge_port_change_lag_member(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("### -----scenario_15_bridge_port_change_lag_member----- ###")
+        switch_init(self.client)
+
+        port1 = port_list[0] #SAI_BRIDGE_TYPE_1Q, SAI_BRIDGE_PORT_TYPE_PORT
+        port2 = port_list[1] #SAI_BRIDGE_TYPE_1Q, SAI_BRIDGE_PORT_TYPE_PORT, is LAG_MEMBER
+        port3 = port_list[2] #SAI_BRIDGE_TYPE_1Q, SAI_BRIDGE_PORT_TYPE_PORT, is LAG_MEMBER
+
+        port4 = port_list[3] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_PORT, is LAG_MEMBER
+        port5 = port_list[4] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_PORT, is LAG_MEMBER
+
+        port6 = port_list[5] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_SUB_PORT, is LAG_MEMBER
+        port7 = port_list[6] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_SUB_PORT, is LAG_MEMBER
+
+        port8 = port_list[7] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT, is LAG_MEMBER
+        port9 = port_list[8] #SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT, is LAG_MEMBER
+
+        default_1q_bridge = switch.default_1q_bridge
+        default_vlan_id = switch.default_vlan.oid
+        bridge_id = sai_thrift_create_bridge(self.client, SAI_BRIDGE_TYPE_1D)
+
+        bport1 = sai_thrift_get_bridge_port_by_port(self.client, port1)
+        lag_id1 = sai_thrift_create_lag(self.client)
+        
+        bport2 = sai_thrift_create_bridge_port(self.client, lag_id1)
+
+        lag_id2 = sai_thrift_create_lag(self.client)
+
+        bport_1d = sai_thrift_create_bridge_port(self.client, lag_id2, bridge_id=bridge_id)
+        sys_logging("### created bridge port of type: port_1d, id = 0x%x ###" %bport_1d)
+
+        vlan1 = 10
+        lag_id3 = sai_thrift_create_lag(self.client)
+
+        sub_bport = sai_thrift_create_bridge_sub_port(self.client, lag_id3, bridge_id, vlan1)
+        sys_logging("### created bridge port of type: sub port, id = 0x%x ###" %sub_bport)
+
+        vlan2 = 20
+        lag_id4 = sai_thrift_create_lag(self.client)
+
+        qinq_bport = sai_thrift_create_bridge_double_vlan_sub_port(self.client, lag_id4, bridge_id, vlan1, vlan2)
+        sys_logging("### created bridge port of type: double vlan sub port, id = 0x%x ###" %qinq_bport)
+
+        src_mac1 = '00:00:00:01:01:07'
+        src_mac2 = '00:00:00:01:01:08'
+        dest_mac = '00:00:00:02:02:01'
+        ip_da = '20.20.20.1'
+        ip_sa = '10.10.10.1'
+
+        pkt1 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac1,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=100)
+        pkt2 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac2,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=100)
+
+        pkt3 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac1,
+                                 dl_vlan_enable=True, vlan_vid=vlan1,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=104)
+        pkt4 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac2,
+                                 dl_vlan_enable=True, vlan_vid=vlan1,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=104)
+
+        pkt5 = simple_qinq_tcp_packet(eth_dst=dest_mac, eth_src=src_mac1,
+                                      dl_vlan_outer=vlan1, dl_vlan_pcp_outer=0, dl_vlan_cfi_outer=0,
+                                      vlan_vid=vlan2, vlan_pcp=0, dl_vlan_cfi=0,
+                                      ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=108)
+        pkt6 = simple_qinq_tcp_packet(eth_dst=dest_mac, eth_src=src_mac2,
+                                      dl_vlan_outer=vlan1, dl_vlan_pcp_outer=0, dl_vlan_cfi_outer=0,
+                                      vlan_vid=vlan2, vlan_pcp=0, dl_vlan_cfi=0,
+                                      ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=108)
+
+        pkt7 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac1,
+                                 dl_vlan_enable=True, vlan_vid=vlan2,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=104)
+        pkt8 = simple_tcp_packet(eth_dst=dest_mac, eth_src=src_mac2,
+                                 dl_vlan_enable=True, vlan_vid=vlan2,
+                                 ip_dst=ip_da, ip_src=ip_sa, ip_ttl=64, pktlen=104)
+
+        hash_id_lag = 0x201C
+        field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC]
+        hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+        attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST, value=attr_value)
+        self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+        lag_member_id4 = sai_thrift_create_lag_member(self.client, lag_id2, port4)
+        lag_member_id5 = sai_thrift_create_lag_member(self.client, lag_id2, port5)
+        lag_member_id6 = sai_thrift_create_lag_member(self.client, lag_id3, port6)
+        lag_member_id7 = sai_thrift_create_lag_member(self.client, lag_id3, port7)
+        lag_member_id8 = sai_thrift_create_lag_member(self.client, lag_id4, port8)
+        lag_member_id9 = sai_thrift_create_lag_member(self.client, lag_id4, port9)
+
+        sai_thrift_remove_lag_member(self.client, lag_member_id3)
+        sai_thrift_remove_lag_member(self.client, lag_member_id5)
+        sai_thrift_remove_lag_member(self.client, lag_member_id7)
+        sai_thrift_remove_lag_member(self.client, lag_member_id9)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+        lag_member_id5 = sai_thrift_create_lag_member(self.client, lag_id2, port5)
+        lag_member_id7 = sai_thrift_create_lag_member(self.client, lag_id3, port7)
+        lag_member_id9 = sai_thrift_create_lag_member(self.client, lag_id4, port9)
+
+        try:
+            '''
+            STEP 1: SAI_BRIDGE_TYPE_1Q, SAI_BRIDGE_PORT_TYPE_PORT
+            '''
+            sys_logging("### SAI_BRIDGE_TYPE_1Q: SAI_BRIDGE_PORT_TYPE_PORT => SAI_BRIDGE_PORT_TYPE_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, default_vlan_id, dest_mac, bport2))
+            self.ctc_send_packet(0, pkt1)
+            self.ctc_verify_packet(pkt1, 1)
+            self.ctc_verify_no_packet(pkt1, 2)
+            self.ctc_send_packet(0, pkt2)
+            self.ctc_verify_packet(pkt2, 2)
+            self.ctc_verify_no_packet(pkt2, 1)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            sys_logging("### SAI_BRIDGE_TYPE_1Q: SAI_BRIDGE_PORT_TYPE_PORT => SAI_BRIDGE_PORT_TYPE_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, default_vlan_id, dest_mac, bport1))
+            self.ctc_send_packet(1, pkt1)
+            self.ctc_verify_packet(pkt1, 0)
+            self.ctc_verify_no_packet(pkt1, 2)
+            self.ctc_send_packet(2, pkt2)
+            self.ctc_verify_packet(pkt2, 0)
+            self.ctc_verify_no_packet(pkt2, 1)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            '''
+            STEP 2: SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_PORT
+            '''
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_PORT => SAI_BRIDGE_PORT_TYPE_SUB_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, sub_bport))
+            self.ctc_send_packet(3, pkt1)
+            self.ctc_verify_packet(pkt3, 5)
+            self.ctc_verify_no_packet(pkt3, 6)
+            self.ctc_send_packet(4, pkt2)
+            self.ctc_verify_packet(pkt4, 6)
+            self.ctc_verify_no_packet(pkt4, 5)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_PORT => SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, qinq_bport))
+            self.ctc_send_packet(3, pkt1)
+            self.ctc_verify_packet(pkt3, 7)
+            self.ctc_verify_no_packet(pkt3, 8)
+            self.ctc_send_packet(4, pkt2)
+            self.ctc_verify_packet(pkt4, 8)
+            self.ctc_verify_no_packet(pkt4, 7)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            '''
+            STEP 3: SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_SUB_PORT
+            '''
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_SUB_PORT => SAI_BRIDGE_PORT_TYPE_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, bport_1d))
+            self.ctc_send_packet(5, pkt3)
+            self.ctc_verify_packet(pkt1, 3)
+            self.ctc_verify_no_packet(pkt1, 4)
+            self.ctc_send_packet(6, pkt4)
+            self.ctc_verify_packet(pkt2, 4)
+            self.ctc_verify_no_packet(pkt2, 3)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_SUB_PORT => SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, qinq_bport))
+            self.ctc_send_packet(5, pkt3)
+            self.ctc_verify_packet(pkt3, 7)
+            self.ctc_verify_no_packet(pkt3, 8)
+            self.ctc_send_packet(6, pkt4)
+            self.ctc_verify_packet(pkt4, 8)
+            self.ctc_verify_no_packet(pkt4, 7)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            '''
+            STEP 4: SAI_BRIDGE_TYPE_1D, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT
+            '''
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT => SAI_BRIDGE_PORT_TYPE_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, bport_1d))
+            self.ctc_send_packet(7, pkt5)
+            self.ctc_verify_packet(pkt7, 3)
+            self.ctc_verify_no_packet(pkt7, 4)
+            self.ctc_send_packet(8, pkt6)
+            self.ctc_verify_packet(pkt8, 4)
+            self.ctc_verify_no_packet(pkt8, 3)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+            sys_logging("### SAI_BRIDGE_TYPE_1D: SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT => SAI_BRIDGE_PORT_TYPE_SUB_PORT ###")
+            assert(SAI_STATUS_SUCCESS == sai_thrift_create_fdb_bport(self.client, bridge_id, dest_mac, sub_bport))
+            self.ctc_send_packet(7, pkt5)
+            self.ctc_verify_packet(pkt5, 5)
+            self.ctc_verify_no_packet(pkt5, 6)
+            self.ctc_send_packet(8, pkt6)
+            self.ctc_verify_packet(pkt6, 6)
+            self.ctc_verify_no_packet(pkt6, 5)
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+
+        finally:
+            sai_thrift_flush_fdb(self.client, type=SAI_FDB_FLUSH_ENTRY_TYPE_ALL)
+            self.client.sai_thrift_remove_bridge_port(qinq_bport)
+            self.client.sai_thrift_remove_bridge_port(sub_bport)
+            self.client.sai_thrift_remove_bridge_port(bport_1d)
+            self.client.sai_thrift_remove_bridge_port(bport2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag_member(self.client, lag_member_id4)
+            sai_thrift_remove_lag_member(self.client, lag_member_id5)
+            sai_thrift_remove_lag_member(self.client, lag_member_id6)
+            sai_thrift_remove_lag_member(self.client, lag_member_id7)
+            sai_thrift_remove_lag_member(self.client, lag_member_id8)
+            sai_thrift_remove_lag_member(self.client, lag_member_id9)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            sai_thrift_remove_lag(self.client, lag_id2)
+            sai_thrift_remove_lag(self.client, lag_id3)
+            sai_thrift_remove_lag(self.client, lag_id4)
+            self.client.sai_thrift_remove_bridge(bridge_id)
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC,
+                          SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+            attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,value=attr_value)
+            self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+
+@group('L2')
+class scenario_16_bridge_port_is_lag_learning_limit_violation(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("### -----scenario_16_bridge_port_is_lag_learning_limit_and_violation----- ###")
+        switch_init(self.client)
+
         port1 = port_list[0]
         port2 = port_list[1]
         port3 = port_list[2]
@@ -4009,9 +4445,9 @@ class scenario_14_bridge_port_is_lag(sai_base_test.ThriftInterfaceDataPlane):
 
 
 @group('L2')
-class scenario_15_bridge_port_change_lag_member(sai_base_test.ThriftInterfaceDataPlane):
+class scenario_17_bridge_port_change_lag_member_learning_limit_violation(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
-        sys_logging("### -----scenario_15_bridge_port_change_lag_member----- ###")
+        sys_logging("### -----scenario_17_bridge_port_change_lag_member_learning_limit_violation----- ###")
         switch_init(self.client)
 
         port1 = port_list[0]
@@ -4083,6 +4519,7 @@ class scenario_15_bridge_port_change_lag_member(sai_base_test.ThriftInterfaceDat
         warmboot(self.client)
 
         try:
+            
             self.ctc_send_packet(0, str(pkt))
             self.ctc_verify_no_packet(str(pkt), 1)
             self.ctc_verify_packets( str(pkt), [2], 1)
@@ -4092,6 +4529,7 @@ class scenario_15_bridge_port_change_lag_member(sai_base_test.ThriftInterfaceDat
             self.ctc_verify_no_packet(str(pkt1), 0)
             self.ctc_verify_packets( str(pkt1), [2], 1)
             self.ctc_verify_no_packet(str(pkt1), 3)
+            
 
             self.ctc_send_packet(3, str(pkt2))
             self.ctc_verify_no_packet(str(pkt2), 0)
@@ -4214,19 +4652,19 @@ class scenario_15_bridge_port_change_lag_member(sai_base_test.ThriftInterfaceDat
 '''
 class scenario_16_sub_port_change_tagging_mode(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
-        
         switch_init(self.client)
+
         vlan_id1 = 10
-        vlan_id2 = 20        
+        vlan_id2 = 20
         port1 = port_list[0]
         port2 = port_list[1]
         port3 = port_list[2]
-        port4 = port_list[3]        
+        port4 = port_list[3]
         mac1 = '00:00:00:00:00:01'
         mac2 = '00:00:00:00:00:03'
-        
+
         bridge_id1 = sai_thrift_create_bridge(self.client, SAI_BRIDGE_TYPE_1D)    
-        
+
         sub_port_id1 = sai_thrift_create_bridge_sub_port(self.client, port1, bridge_id1, vlan_id1)
         sub_port_id2 = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id1, vlan_id2)
         sub_port_id3 = sai_thrift_create_bridge_sub_port(self.client, port3, bridge_id1, vlan_id1)
@@ -4253,39 +4691,36 @@ class scenario_16_sub_port_change_tagging_mode(sai_base_test.ThriftInterfaceData
                                 ip_dst='10.0.0.1',
                                 ip_id=102,
                                 ip_ttl=64)
-                                
-        
+
         warmboot(self.client)
         try:
-
             attrs = self.client.sai_thrift_get_bridge_port_attribute(sub_port_id2)
             for a in attrs.attr_list:
                 if a.id == SAI_BRIDGE_PORT_ATTR_TAGGING_MODE:
                     sys_logging("###SAI_BRIDGE_PORT_ATTR_TAGGING_MODE = %d ###" %a.value.s32)
-                    assert( SAI_BRIDGE_PORT_TAGGING_MODE_TAGGED == a.value.s32)    
-            
+                    assert( SAI_BRIDGE_PORT_TAGGING_MODE_TAGGED == a.value.s32)
+
             self.ctc_send_packet(0, str(pkt1))
             self.ctc_verify_packets( str(pkt2), [1,3], 1)
-            self.ctc_verify_packets( str(pkt1), [2], 1)  
+            self.ctc_verify_packets( str(pkt1), [2], 1)
 
             # do not support update tag mode for sub port
             value = SAI_BRIDGE_PORT_TAGGING_MODE_UNTAGGED
             attr_value = sai_thrift_attribute_value_t(s32=value)
             attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_TAGGING_MODE, value=attr_value)
             self.client.sai_thrift_set_bridge_port_attribute(sub_port_id2, attr)
-  
+
             self.ctc_send_packet(0, str(pkt1))
             self.ctc_verify_packets( str(pkt3), [1], 1)
             self.ctc_verify_packets( str(pkt1), [2], 1) 
             self.ctc_verify_packets( str(pkt2), [3], 1)
-                     
+
         finally:
             sai_thrift_flush_fdb_by_vlan(self.client, bridge_id1)
             self.client.sai_thrift_remove_bridge_port(sub_port_id1)
             self.client.sai_thrift_remove_bridge_port(sub_port_id2)
             self.client.sai_thrift_remove_bridge_port(sub_port_id3)
-            self.client.sai_thrift_remove_bridge_port(sub_port_id4)                     
-            self.client.sai_thrift_remove_bridge(bridge_id1)       
+            self.client.sai_thrift_remove_bridge_port(sub_port_id4)
+            self.client.sai_thrift_remove_bridge(bridge_id1)
 '''
-
 

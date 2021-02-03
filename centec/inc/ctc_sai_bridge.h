@@ -68,6 +68,7 @@
 \e  |  SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT                   |            CTC7132,CTC8180             |
 \e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE                  |            CTC7132,CTC8180             |
 \e  |  SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP                                 |            CTC7132,CTC8180             |
+\e  |  SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP                                  |            CTC7132,CTC8180             |
 \e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID                  |            CTC7132,CTC8180             |
 \e  |  SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_SERVICE_ID                  |            CTC7132,CTC8180             |
 \e  |  SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_ID                    |            CTC7132,CTC8180             |
@@ -135,6 +136,11 @@ typedef struct ctc_sai_bridge_port_s
     uint8 outgoing_scos;
     int32 outgoing_scos_mode;
     bool need_flood;
+    uint8 qos_tc_valid;
+    uint8 qos_tc;
+    uint8 qos_color_valid;
+    uint8 qos_color;
+    
 }
 ctc_sai_bridge_port_t;
 

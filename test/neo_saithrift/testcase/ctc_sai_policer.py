@@ -1108,7 +1108,7 @@ class SubPortPoicer(sai_base_test.ThriftInterfaceDataPlane):
                         sys_logging("red drop error!!! %d" % a.value.s32)
                         raise NotImplementedError()
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -1406,12 +1406,11 @@ class SubportAndTunnelportRFC2697SrTCMPPSPoicerResetId(sai_base_test.ThriftInter
 
         sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, rif_id3, packet_action)
         sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1, policer_id=policer_id2)  
-        #pdb.set_trace()
         bport = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id, policer_id = policer_id1)
-        #pdb.set_trace()
+        
         tunnel_bport = sai_thrift_create_bridge_tunnel_port(self.client, tunnel_id=tunnel_id1, bridge_id=bridge_id)
         
-        #pdb.set_trace()
+        
         
         warmboot(self.client)
         try:
@@ -1443,7 +1442,7 @@ class SubportAndTunnelportRFC2697SrTCMPPSPoicerResetId(sai_base_test.ThriftInter
                                                     SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_TR_TCM, SAI_POLICER_COLOR_SOURCE_BLIND,
                                                     150000, 2500, 250000, 4500,
                                                     0, 0, SAI_PACKET_ACTION_DROP, [0,0,1])
-            #pdb.set_trace()
+            
             bport_attr_value = sai_thrift_attribute_value_t(booldata=False)
             bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_ADMIN_STATE, value=bport_attr_value)
             self.client.sai_thrift_set_bridge_port_attribute(tunnel_bport, bport_attr)
@@ -1479,9 +1478,9 @@ class SubportAndTunnelportRFC2697SrTCMPPSPoicerResetId(sai_base_test.ThriftInter
                     sys_logging( "get policer oid = 0x%x" %a.value.oid)
                     if policer_id1 != a.value.oid:
                         raise NotImplementedError()
-            #pdb.set_trace()    
+                
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             
             self.client.sai_thrift_remove_inseg_entry(mpls1) 
@@ -1607,7 +1606,7 @@ class PortBindThreeTypeStormctlPolicer(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID, value=attr_value)
             status = self.client.sai_thrift_set_port_attribute(port,attr)
             sys_logging('set port attribute status = %d' %status)
-            #pdb.set_trace()
+            
             attrs = self.client.sai_thrift_get_port_attribute(port)
             sys_logging('get attribute status = %d' %attrs.status)
             for a in attrs.attr_list:
@@ -1850,7 +1849,7 @@ class fun_05_remove_bind_bridge_port_policer_fn(sai_base_test.ThriftInterfaceDat
             sys_logging('get policer attribute status = %d' %attrs.status)
             assert(attrs.status == SAI_STATUS_SUCCESS)
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             mpls1 = sai_thrift_inseg_entry_t(label1)
             mpls2 = sai_thrift_inseg_entry_t(label2) 
@@ -2282,7 +2281,7 @@ class fun_13_set_policer_attribute_enable_counter_list_fn(sai_base_test.ThriftIn
                     print a.value.s32list.s32list
                     if [] != a.value.s32list.s32list:
                         raise NotImplementedError()
-            #pdb.set_trace()
+            
             stats_en_list = [SAI_POLICER_STAT_GREEN_PACKETS, SAI_POLICER_STAT_YELLOW_PACKETS, SAI_POLICER_STAT_RED_PACKETS]
             attr_value_list = sai_thrift_s32_list_t(count=len(stats_en_list), s32list=stats_en_list)
             attr_value = sai_thrift_attribute_value_t(s32list=attr_value_list)
@@ -2319,7 +2318,7 @@ class fun_14_get_policer_default_attribute_fn(sai_base_test.ThriftInterfaceDataP
         attr_value = sai_thrift_attribute_value_t(oid=policer_id)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_POLICER_ID, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port,attr)
-        #pdb.set_trace()
+        
         try:
             attrs = self.client.sai_thrift_get_policer_attribute(policer_id)
             for a in attrs.attr_list:
@@ -2806,7 +2805,7 @@ class fun_19_vlan_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDa
         vlan_id1 = 10
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id1)
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
-        #pdb.set_trace()
+        
         cir = 100000
         cbs = 2000
         pir = 200000
@@ -2837,13 +2836,13 @@ class fun_19_vlan_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDa
                 sys_logging("cir: %d" %a.value.u64)
 
         try:
-            #pdb.set_trace()
+            
             attr_value = sai_thrift_attribute_value_t(oid=policer_id)
             attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_POLICER_ID, value=attr_value)
             status = self.client.sai_thrift_set_vlan_attribute(vlan_oid1,attr)
             sys_logging('set vlan attribute policer status = %d' %status)
             assert(status == SAI_STATUS_SUCCESS)
-            #pdb.set_trace()
+            
             attr_value = sai_thrift_attribute_value_t(u64=cir_new)
             attr = sai_thrift_attribute_t(id=SAI_POLICER_ATTR_CIR, value=attr_value)
             self.client.sai_thrift_set_policer_attribute(policer_id,attr)
@@ -2854,14 +2853,14 @@ class fun_19_vlan_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDa
             for a in attrs.attr_list:
                 if a.id == SAI_POLICER_ATTR_CIR:
                     sys_logging("cir: %d" %a.value.u64)
-            #pdb.set_trace()        
+                    
             attr_value = sai_thrift_attribute_value_t(oid=policer_id2)
             attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_POLICER_ID, value=attr_value)
             status = self.client.sai_thrift_set_vlan_attribute(vlan_oid1,attr)
             sys_logging('set vlan attribute policer status = %d' %status)
             assert(status == SAI_STATUS_SUCCESS)
         finally:
-            #pdb.set_trace()
+            
             sys_logging("======clean up======")
             #attr_value = sai_thrift_attribute_value_t(oid=0)
             #attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_POLICER_ID, value=attr_value)
@@ -2938,12 +2937,12 @@ class fun_20_inseg_entry_bind_police_and_update_bind_fn(sai_base_test.ThriftInte
 
         sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, rif_id3, packet_action)
         sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1, policer_id=policer_id2)  
-        #pdb.set_trace()
+        
         bport = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id, policer_id = policer_id1)
-        #pdb.set_trace()
+        
         tunnel_bport = sai_thrift_create_bridge_tunnel_port(self.client, tunnel_id=tunnel_id1, bridge_id=bridge_id)
         
-        #pdb.set_trace()
+        
         
         warmboot(self.client)
         try:
@@ -2979,7 +2978,7 @@ class fun_20_inseg_entry_bind_police_and_update_bind_fn(sai_base_test.ThriftInte
                     sys_logging("cbs: %d" %a.value.u64)
                     assert(cbs_new==a.value.u64)
 
-            #pdb.set_trace()        
+                    
             sys_logging("======set the inseg entry attribute policer======")
             attr_value = sai_thrift_attribute_value_t(oid=policer_id3)
             attr = sai_thrift_attribute_t(id=SAI_INSEG_ENTRY_ATTR_POLICER_ID, value=attr_value)
@@ -2996,9 +2995,9 @@ class fun_20_inseg_entry_bind_police_and_update_bind_fn(sai_base_test.ThriftInte
                     sys_logging( "get policer oid = 0x%x" %a.value.oid)
                     if policer_id3 != a.value.oid:
                         raise NotImplementedError()
-            #pdb.set_trace()    
+                
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             
             self.client.sai_thrift_remove_inseg_entry(mpls1) 
@@ -3216,7 +3215,7 @@ class fun_21_acl_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDat
 
         warmboot(self.client)
         try:
-            #pdb.set_trace()
+            
             cir_new =150000
             cbs_new = 2500
             attr_value = sai_thrift_attribute_value_t(u64=cir_new)
@@ -3237,7 +3236,7 @@ class fun_21_acl_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDat
                     sys_logging("cbs: %d" %a.value.u64)
                     assert(cbs_new==a.value.u64)
 
-            #pdb.set_trace()
+            
             attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=policer_id2), enable = True))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER, value=attribute_value)
             status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
@@ -3250,11 +3249,9 @@ class fun_21_acl_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDat
                     sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
                     assert(a.value.aclaction.parameter.oid==policer_id2)
         finally:
-            #pdb.set_trace()
             attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=0), enable = True))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER, value=attribute_value)
             self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port, attr)
@@ -3331,12 +3328,12 @@ class fun_22_sub_port_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfa
 
         sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, rif_id3, packet_action)
         sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1, policer_id=policer_id2)  
-        #pdb.set_trace()
+        
         bport = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id, policer_id = policer_id1)
-        #pdb.set_trace()
+        
         tunnel_bport = sai_thrift_create_bridge_tunnel_port(self.client, tunnel_id=tunnel_id1, bridge_id=bridge_id)
         
-        #pdb.set_trace()
+        
         
         warmboot(self.client)
         try:
@@ -3370,7 +3367,7 @@ class fun_22_sub_port_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfa
                     sys_logging("cbs: %d" %a.value.u64)
                     assert(cbs_new==a.value.u64)
 
-            #pdb.set_trace()  
+              
             bport_attr_value = sai_thrift_attribute_value_t(booldata=False)
             bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_ADMIN_STATE, value=bport_attr_value)
             self.client.sai_thrift_set_bridge_port_attribute(tunnel_bport, bport_attr)
@@ -3393,9 +3390,9 @@ class fun_22_sub_port_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfa
                     sys_logging( "get policer oid = 0x%x" %a.value.oid)
                     if policer_id3 != a.value.oid:
                         raise NotImplementedError()
-            #pdb.set_trace()    
+                
         finally:
-            sai_thrift_remove_bridge_sub_port(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
             self.client.sai_thrift_remove_bridge_port(tunnel_bport)
             
             self.client.sai_thrift_remove_inseg_entry(mpls1) 
@@ -3414,7 +3411,6 @@ class fun_22_sub_port_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfa
             self.client.sai_thrift_remove_policer(policer_id1)
             self.client.sai_thrift_remove_policer(policer_id2)
             self.client.sai_thrift_remove_policer(policer_id3)
-
 
 class fun_23_get_vlan_policer_green_pkt_stats_fn(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -3514,7 +3510,7 @@ class fun_23_get_vlan_policer_green_pkt_stats_fn(sai_base_test.ThriftInterfaceDa
             self.client.sai_thrift_remove_vlan(vlan_oid)
             self.client.sai_thrift_remove_policer(policer_id)
 
-
+#bug112419,last two case fail
 class fun_24_get_inseg_entry_policer_green_pkt_stats_fn(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
 
@@ -3573,7 +3569,7 @@ class fun_24_get_inseg_entry_policer_green_pkt_stats_fn(sai_base_test.ThriftInte
 
         sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, rif_id3, packet_action)
         sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1)  
-        #pdb.set_trace()
+        
         bport = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id, policer_id = policer_id1)
         tunnel_bport = sai_thrift_create_bridge_tunnel_port(self.client, tunnel_id=tunnel_id1, bridge_id=bridge_id)
 
@@ -3656,7 +3652,7 @@ class fun_24_get_inseg_entry_policer_green_pkt_stats_fn(sai_base_test.ThriftInte
                                 ip_src='2.2.2.2',
                                 ip_ttl=64,
                                 ip_ihl=5)
-        #pdb.set_trace()
+        
         warmboot(self.client)
         try:
             #ac to pw
@@ -3954,7 +3950,7 @@ class fun_25_acl_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDat
                                 pktlen=80)
         warmboot(self.client)
         try:
-            #pdb.set_trace()
+            
             self.ctc_send_packet(0, str(pkt1))
             self.ctc_verify_packets( str(pkt1), [1], 1)
             stats_get_list = [SAI_POLICER_STAT_GREEN_PACKETS, SAI_POLICER_STAT_YELLOW_PACKETS, SAI_POLICER_STAT_RED_PACKETS, SAI_POLICER_STAT_GREEN_BYTES]
@@ -3995,14 +3991,14 @@ class fun_25_acl_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDat
             assert (counters_results[3] == 168)
 
         finally:
-            #pdb.set_trace()
+            
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid)
             attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=0), enable = True))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER, value=attribute_value)
             self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
-            #pdb.set_trace()
+            
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port, attr)
@@ -4012,5 +4008,726 @@ class fun_25_acl_bind_police_and_update_bind_fn(sai_base_test.ThriftInterfaceDat
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_id)
             status = self.client.sai_thrift_remove_acl_table(acl_table_id)
 
+class fun_26_one_strom_ctl_policer_use_in_multiple_port(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        Storm Contorl Poicer, verify policer attribute
+        step1:create policer_id & binding port & as flood
+        step2:verify policer attr
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port0 = port_list[0]
+        port1 = port_list[1]
+        port2 = port_list[2]
+        port3 = port_list[3]
+
+        #create policer id
+        policer_id = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_STORM_CONTROL, 0,
+                                                    100000, 0, 0, 0,
+                                                    0, 0, 0, [0,0,0])
+        policer_id2 = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_STORM_CONTROL, 0,
+                                                    200000, 0, 0, 0,
+                                                    0, 0, 0, [0,0,0])
+        #apply to port
+        attr_value = sai_thrift_attribute_value_t(oid=policer_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_FLOOD_STORM_CONTROL_POLICER_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port0,attr)
+        self.client.sai_thrift_set_port_attribute(port1,attr)
+        self.client.sai_thrift_set_port_attribute(port2,attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=policer_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port0,attr)
+        self.client.sai_thrift_set_port_attribute(port1,attr)
+        self.client.sai_thrift_set_port_attribute(port3,attr)
+
+        attr_value = sai_thrift_attribute_value_t(oid=policer_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MULTICAST_STORM_CONTROL_POLICER_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port0,attr)
+        self.client.sai_thrift_set_port_attribute(port2,attr)
+        self.client.sai_thrift_set_port_attribute(port3,attr)
 
 
+        warmboot(self.client)
+        try:
+            #set policer attr
+            
+            attr_value = sai_thrift_attribute_value_t(u64=120000)
+            attr = sai_thrift_attribute_t(id=SAI_POLICER_ATTR_CIR, value=attr_value)
+            self.client.sai_thrift_set_policer_attribute(policer_id,attr)
+
+            #get policer attr
+            attrs = self.client.sai_thrift_get_policer_attribute(policer_id)
+            for a in attrs.attr_list:
+                if a.id == SAI_POLICER_ATTR_CIR:
+                    sys_logging("cir: %d" %a.value.u64)
+                    if 120000 != a.value.u64:
+                        raise NotImplementedError()
+                if a.id == SAI_POLICER_ATTR_METER_TYPE:
+                    if SAI_METER_TYPE_BYTES != a.value.s32:
+                        sys_logging("meter type error!!! %d" % a.value.s32)
+                        raise NotImplementedError()
+                if a.id == SAI_POLICER_ATTR_MODE:
+                    if SAI_POLICER_MODE_STORM_CONTROL != a.value.s32:
+                        sys_logging("policer mode error!!! %d" % a.value.s32)
+                        raise NotImplementedError()
+
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_FLOOD_STORM_CONTROL_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port0,attr)
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port0,attr)
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MULTICAST_STORM_CONTROL_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port0,attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=policer_id2)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MULTICAST_STORM_CONTROL_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1,attr)
+            attr_value = sai_thrift_attribute_value_t(oid=policer_id2)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_FLOOD_STORM_CONTROL_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1,attr)
+            attr_value = sai_thrift_attribute_value_t(oid=policer_id2)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1,attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=policer_id)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_FLOOD_STORM_CONTROL_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1,attr)
+
+        finally:
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_FLOOD_STORM_CONTROL_POLICER_ID, value=attr_value)
+
+            self.client.sai_thrift_set_port_attribute(port1,attr)
+            self.client.sai_thrift_set_port_attribute(port2,attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID, value=attr_value)
+
+            self.client.sai_thrift_set_port_attribute(port1,attr)
+            self.client.sai_thrift_set_port_attribute(port3,attr)
+
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MULTICAST_STORM_CONTROL_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port1,attr)
+            self.client.sai_thrift_set_port_attribute(port2,attr)
+            self.client.sai_thrift_set_port_attribute(port3,attr)
+
+        
+            self.client.sai_thrift_remove_policer(policer_id)
+            self.client.sai_thrift_remove_policer(policer_id2)
+
+class fun_27_one_rfc2697_policer_use_in_two_port(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        """
+        RFC2697 SrTCM Poicer,verify policer attribute 
+        step1:create policer_id1 & binding port
+        step2:create policer_id2 & binding port
+        step3:clean up
+        """
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[0]
+        port2 = port_list[1]
+
+        #create policer id 1
+        policer_id1 = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_SR_TCM, SAI_POLICER_COLOR_SOURCE_BLIND,
+                                                    100000, 2000, 0, 0,
+                                                    0, 0, SAI_PACKET_ACTION_DROP, [0,0,1])
+        #apply to port
+        attr_value = sai_thrift_attribute_value_t(oid=policer_id1)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_POLICER_ID, value=attr_value)
+        status = self.client.sai_thrift_set_port_attribute(port,attr)
+        sys_logging('set attribute status = %d' %status)
+
+        attrs = self.client.sai_thrift_get_port_attribute(port)
+        sys_logging('get attribute status = %d' %attrs.status)
+        for a in attrs.attr_list:
+            if a.id == SAI_PORT_ATTR_POLICER_ID:
+                sys_logging("get port bind policer id = 0x%x" %a.value.oid)
+
+        warmboot(self.client)
+        try:
+
+            attr_value = sai_thrift_attribute_value_t(oid=policer_id1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_POLICER_ID, value=attr_value)
+            status = self.client.sai_thrift_set_port_attribute(port2,attr)  
+            sys_logging('set attribute status = %d' %status)
+            assert(status == -17)
+
+        finally:
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port,attr)
+            self.client.sai_thrift_remove_policer(policer_id1)
+
+class fun_28_one_rfc2698_policer_use_in_two_vlan(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+ 
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[0]
+        port2 = port_list[1]
+
+        vlan_id1 = 10
+        vlan_oid1 = sai_thrift_create_vlan(self.client, vlan_id1)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        vlan_id2 = 20
+        vlan_oid2 = sai_thrift_create_vlan(self.client, vlan_id2)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        #create policer id 1
+        cir = 100000
+        cbs = 2000
+        pir = 200000
+        pbs = 4000
+
+        pkt_action_new = SAI_PACKET_ACTION_FORWARD
+
+        pkt_action = SAI_PACKET_ACTION_DROP
+        policer_id1 = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_PACKETS, SAI_POLICER_MODE_SR_TCM, SAI_POLICER_COLOR_SOURCE_AWARE,
+                                                    cir, cbs, pir, pbs,
+                                                    pkt_action, pkt_action, pkt_action, [1,1,1])
+        #apply to port
+        attr_value = sai_thrift_attribute_value_t(oid=policer_id1)
+        attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_POLICER_ID, value=attr_value)
+        status = self.client.sai_thrift_set_vlan_attribute(vlan_oid1,attr)
+        sys_logging('set attribute status = %d' %status)
+
+        attrs = self.client.sai_thrift_get_vlan_attribute(vlan_oid1)
+        sys_logging('get attribute status = %d' %attrs.status)
+        for a in attrs.attr_list:
+            if a.id == SAI_VLAN_ATTR_POLICER_ID:
+                sys_logging("get vlan bind policer id = 0x%x" %a.value.oid)
+
+        warmboot(self.client)
+        try:
+
+            attr_value = sai_thrift_attribute_value_t(oid=policer_id1)
+            attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_POLICER_ID, value=attr_value)
+            status = self.client.sai_thrift_set_vlan_attribute(vlan_oid2,attr)  
+            sys_logging('set attribute status = %d' %status)
+            assert(status == -17)
+
+        finally:
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_vlan_attribute(vlan_oid1,attr)
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            self.client.sai_thrift_remove_vlan(vlan_oid1)
+            self.client.sai_thrift_remove_vlan(vlan_oid2)
+            self.client.sai_thrift_remove_policer(policer_id1)
+
+class fun_29_one_rfc2697_policer_use_in_multiple_acl_entry(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[0]
+                
+
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_PORT]
+        addr_family = None
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = None
+        mac_src = '00:11:11:11:11:11'
+        mac_src2 = '00:33:33:33:33:33'
+        mac_src3 = '00:44:44:44:44:44'
+        mac_dst = '00:22:22:22:22:22'
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+        ip_src = None
+        ip_src_mask = None
+        ip_dst = None
+        ip_dst_mask = None
+        #ip qos info
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        ip_protocol = None
+        in_port = 0
+        out_port = None
+        out_ports = None
+        src_l4_port = None
+        dst_l4_port = None
+        ingress_mirror_id = None
+        egress_mirror_id = None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+
+        acl_table_id = sai_thrift_create_acl_table(self.client,
+            table_stage,
+            table_bind_point_list,
+            addr_family,
+            mac_src,
+            mac_dst,
+            ip_src,
+            ip_dst,
+            in_ports,
+            out_ports,
+            in_port,
+            out_port,
+            svlan_id,
+            svlan_pri,
+            svlan_cfi,
+            cvlan_id,
+            cvlan_pri,
+            cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_protocol,
+            src_l4_port,
+            dst_l4_port)
+
+        entry_priority = 1
+        admin_state = True
+        acl_entry_id = sai_thrift_create_acl_entry(self.client,
+            acl_table_id,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror_id,
+            egress_mirror_id,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn)
+
+        acl_entry_id2 = sai_thrift_create_acl_entry(self.client,
+            acl_table_id,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src2, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror_id,
+            egress_mirror_id,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn)
+    
+        acl_entry_id3 = sai_thrift_create_acl_entry(self.client,
+            acl_table_id,
+            entry_priority,
+            admin_state,
+            action, addr_family,
+            mac_src3, mac_src_mask,
+            mac_dst, mac_dst_mask,
+            svlan_id, svlan_pri,
+            svlan_cfi, cvlan_id,
+            cvlan_pri, cvlan_cfi,
+            ip_type,
+            mpls_label0_label,
+            mpls_label0_ttl,
+            mpls_label0_exp,
+            mpls_label0_bos,
+            mpls_label1_label,
+            mpls_label1_ttl,
+            mpls_label1_exp,
+            mpls_label1_bos,
+            mpls_label2_label,
+            mpls_label2_ttl,
+            mpls_label2_exp,
+            mpls_label2_bos,
+            mpls_label3_label,
+            mpls_label3_ttl,
+            mpls_label3_exp,
+            mpls_label3_bos,
+            mpls_label4_label,
+            mpls_label4_ttl,
+            mpls_label4_exp,
+            mpls_label4_bos,
+            ip_src, ip_src_mask,
+            ip_dst, ip_dst_mask,
+            ip_protocol,
+            ip_tos, ip_ecn,
+            ip_dscp, ip_ttl,
+            in_ports, out_ports,
+            in_port, out_port,
+            src_l4_port, dst_l4_port,
+            ingress_mirror_id,
+            egress_mirror_id,
+            new_svlan, new_scos,
+            new_cvlan, new_ccos,
+            deny_learn)
+        sys_logging(" step2: bind this ACL group to port  ")
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port, attr)
+            
+        #create policer id 1
+        policer_id1 = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_SR_TCM, SAI_POLICER_COLOR_SOURCE_BLIND,
+                                                    100000, 2000, 200000, 4000,
+                                                    0, 0, SAI_PACKET_ACTION_DROP, [0,0,1])
+        policer_id2 = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_SR_TCM, SAI_POLICER_COLOR_SOURCE_BLIND,
+                                                    100000, 3000, 200000, 5000,
+                                                    0, 0, SAI_PACKET_ACTION_DROP, [0,0,1])
+        print '0x%x' %policer_id1
+        print '0x%x' %policer_id2
+ 
+        
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=policer_id1), enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER, value=attribute_value)
+        status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+        sys_logging('set attribute status = %d' %status)
+        status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id2, attribute)
+        sys_logging('set attribute status = %d' %status)
+        status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id3, attribute)
+        sys_logging('set attribute status = %d' %status)
+        
+        attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+        sys_logging('get attribute status = %d' %attrs.status)
+        for a in attrs.attr_list:
+            if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+
+        attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id2, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+        sys_logging('get attribute status = %d' %attrs.status)
+        for a in attrs.attr_list:
+            if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+
+        attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id3, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+        sys_logging('get attribute status = %d' %attrs.status)
+        for a in attrs.attr_list:
+            if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+        warmboot(self.client)
+        try:
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER, value=attribute_value)
+            self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+            sys_logging('get attribute status = %d' %attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                    sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+                    assert(a.value.aclaction.parameter.oid==0)
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id2, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+            sys_logging('get attribute status = %d' %attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                    sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+                    assert(a.value.aclaction.parameter.oid==policer_id1)
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id3, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+            sys_logging('get attribute status = %d' %attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                    sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+                    assert(a.value.aclaction.parameter.oid==policer_id1)
+
+
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=policer_id2), enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER, value=attribute_value)
+            self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id2, attribute)
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+            sys_logging('get attribute status = %d' %attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                    sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+                    assert(a.value.aclaction.parameter.oid==0)
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id2, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+            sys_logging('get attribute status = %d' %attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                    sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+                    assert(a.value.aclaction.parameter.oid==policer_id2)
+
+            attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_id3, [SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER])
+            sys_logging('get attribute status = %d' %attrs.status)
+            for a in attrs.attr_list:
+                if a.id == SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER:
+                    sys_logging("get acl bind policer id = 0x%x" %a.value.aclaction.parameter.oid)
+                    assert(a.value.aclaction.parameter.oid==policer_id1)
+        finally:
+            
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER, value=attribute_value)
+            self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id2, attribute)
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(enable = False))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER, value=attribute_value)
+            self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id3, attribute)
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port, attr)
+            
+            
+            self.client.sai_thrift_remove_policer(policer_id1)
+            self.client.sai_thrift_remove_policer(policer_id2)
+
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_id2)
+            status = self.client.sai_thrift_remove_acl_entry(acl_entry_id3)
+            status = self.client.sai_thrift_remove_acl_table(acl_table_id)
+            
+class fun_30_one_rfc2698_policer_use_in_multiple_sub_port(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+
+        sys_logging("start test")
+        switch_init(self.client)
+        port = port_list[0]
+
+        #create policer id
+        policer_id1 = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_TR_TCM, SAI_POLICER_COLOR_SOURCE_BLIND,
+                                                    100000, 2000, 200000, 4000,
+                                                    0, 0, SAI_PACKET_ACTION_DROP, [0,0,1])
+        policer_id2 = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_TR_TCM, SAI_POLICER_COLOR_SOURCE_BLIND,
+                                                    200000, 4000, 400000, 8000,
+                                                    0, 0, SAI_PACKET_ACTION_DROP, [0,0,1])
+        policer_id3 = sai_thrift_qos_create_policer(self.client,
+                                                    SAI_METER_TYPE_BYTES, SAI_POLICER_MODE_TR_TCM, SAI_POLICER_COLOR_SOURCE_BLIND,
+                                                    400000, 8000, 800000, 9000,
+                                                    0, 0, SAI_PACKET_ACTION_DROP, [0,0,1])
+
+
+        print '0x%x' %policer_id1
+        print '0x%x' %policer_id2
+        print '0x%x' %policer_id3
+
+        #vpls config
+        port1 = port
+        port2 = port_list[2]
+        
+        vlan_id = 10
+        vlan_id2 = 20
+        vlan_id3 = 30
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        ip_mask = '255.255.255.0'
+        ip_da = '5.5.5.2'
+        dmac = '00:55:55:55:55:55'
+        mac1 = '00:00:00:01:01:01'
+        mac2 = '00:00:00:02:02:02'
+
+        label1 = 100
+        label2 = 200
+        label3 = 300
+        label4 = 400
+        label_list1 = [(label1<<12) | 64]
+        label_list2 = [(label2<<12) | 32]
+        label_list3 = [(label3<<12) | 64]
+        label_list4 = [(label4<<12) | 32]
+        mpls1 = sai_thrift_inseg_entry_t(label1) 
+        mpls2 = sai_thrift_inseg_entry_t(label2)
+        mpls3 = sai_thrift_inseg_entry_t(label3) 
+        mpls4 = sai_thrift_inseg_entry_t(label4)
+        pop_nums = 1
+        packet_action = SAI_PACKET_ACTION_FORWARD
+
+        bridge_id = sai_thrift_create_bridge(self.client, SAI_BRIDGE_TYPE_1D)
+
+        tunnel_id1= sai_thrift_create_tunnel_mpls_l2vpn(self.client, decap_pw_mode=SAI_TUNNEL_MPLS_PW_MODE_TAGGED, encap_pw_mode=SAI_TUNNEL_MPLS_PW_MODE_TAGGED, decap_cw_en=False, encap_cw_en=False, encap_ttl_val=0, encap_tagged_vlan=30)
+        
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER, 0, 0, v4_enabled, v6_enabled, mac, dot1d_bridge_id=bridge_id)
+        rif_id3 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_MPLS_ROUTER, 0, 0, v4_enabled, v6_enabled, mac)
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+        next_hop = sai_thrift_create_mpls_nhop(self.client, addr_family, ip_da, rif_id1, label_list1)
+        next_hop1 = sai_thrift_create_tunnel_mpls_l2vpn_nhop(self.client, tunnel_id1, label_list2, next_level_nhop_oid=next_hop)
+
+        sai_thrift_create_inseg_entry(self.client, label1, pop_nums, None, rif_id3, packet_action)
+        sai_thrift_create_inseg_entry(self.client, label2, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1, policer_id=policer_id2)
+        sai_thrift_create_inseg_entry(self.client, label3, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1, policer_id=policer_id2)
+        sai_thrift_create_inseg_entry(self.client, label4, pop_nums, None, rif_id2, packet_action, tunnel_id=tunnel_id1, policer_id=policer_id2) 
+        
+        bport = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id, policer_id = policer_id1)
+        bport2 = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id2, policer_id = policer_id1)
+        bport3 = sai_thrift_create_bridge_sub_port(self.client, port2, bridge_id, vlan_id3, policer_id = policer_id1)
+        
+        tunnel_bport = sai_thrift_create_bridge_tunnel_port(self.client, tunnel_id=tunnel_id1, bridge_id=bridge_id)
+        
+        
+        
+        warmboot(self.client)
+        try:
+            bport_attr_value = sai_thrift_attribute_value_t(booldata=False)
+            bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_ADMIN_STATE, value=bport_attr_value)
+            self.client.sai_thrift_set_bridge_port_attribute(bport, bport_attr)
+            self.client.sai_thrift_set_bridge_port_attribute(bport2, bport_attr)
+
+            sys_logging("======set sub port attribute policer======")
+            attr_value = sai_thrift_attribute_value_t(oid=policer_id3)
+            attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID, value=attr_value)
+            self.client.sai_thrift_set_bridge_port_attribute(bport, attr)
+            attr_value = sai_thrift_attribute_value_t(oid=0)
+            attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID, value=attr_value)
+            
+            self.client.sai_thrift_set_bridge_port_attribute(bport2, attr) 
+
+            bport_attr_value = sai_thrift_attribute_value_t(booldata=True)
+            bport_attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_ADMIN_STATE, value=bport_attr_value)
+            self.client.sai_thrift_set_bridge_port_attribute(bport, bport_attr)
+            self.client.sai_thrift_set_bridge_port_attribute(bport2, bport_attr)
+
+                    
+            sys_logging("======get sub port attribute policer id======")
+            attrs = self.client.sai_thrift_get_bridge_port_attribute(bport)
+            for a in attrs.attr_list:
+                if a.id == SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID:
+                    sys_logging( "set policer oid = 0x%x" %policer_id3)
+                    sys_logging( "get policer oid = 0x%x" %a.value.oid)
+                    if policer_id3 != a.value.oid:
+                        raise NotImplementedError()
+        finally:
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport2, port2)
+            sai_thrift_remove_bridge_sub_port_2(self.client, bport3, port2)
+            self.client.sai_thrift_remove_bridge_port(tunnel_bport)
+            
+            self.client.sai_thrift_remove_inseg_entry(mpls1) 
+            self.client.sai_thrift_remove_inseg_entry(mpls2) 
+            self.client.sai_thrift_remove_inseg_entry(mpls3) 
+            self.client.sai_thrift_remove_inseg_entry(mpls4)
+
+            self.client.sai_thrift_remove_next_hop(next_hop1)
+            self.client.sai_thrift_remove_next_hop(next_hop)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_da, dmac)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_router_interface(rif_id3)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            self.client.sai_thrift_remove_tunnel(tunnel_id1)
+            self.client.sai_thrift_remove_bridge(bridge_id)
+            
+            self.client.sai_thrift_remove_policer(policer_id1)
+            self.client.sai_thrift_remove_policer(policer_id2)
+            self.client.sai_thrift_remove_policer(policer_id3)

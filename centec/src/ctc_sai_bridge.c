@@ -13,6 +13,15 @@
 #include "ctc_sai_next_hop_group.h"
 #include "ctc_sai_policer.h"
 
+#define QOS_COLOR_SAI_TO_CTC(sai, ctc)\
+{\
+    if (sai == SAI_PACKET_COLOR_RED)\
+        {ctc = CTC_QOS_COLOR_RED;}\
+    else if (sai == SAI_PACKET_COLOR_YELLOW)\
+        {ctc = CTC_QOS_COLOR_YELLOW;}\
+    else\
+        {ctc = CTC_QOS_COLOR_GREEN;}\
+}
 
 void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id, uint32 mem_port, bool change)
 {
@@ -30,6 +39,10 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
     ctc_port_restriction_t port_restriction;
     ctc_object_id_t ctc_object_id = {0};
     ctc_security_learn_limit_t learn_limit;
+    ctc_scl_field_action_t field_action;
+    ctc_scl_logic_port_t scl_logic_port;
+    ctc_scl_vlan_edit_t scl_vlan_edit;
+    ctc_scl_default_action_t def_action;
     sal_memset(&learn_limit, 0, sizeof(ctc_security_learn_limit_t));
 
     
@@ -201,7 +214,58 @@ void _ctc_sai_bridge_port_lag_member_change_cb_fn(uint8 lchip, uint32 linkagg_id
             ctcs_port_set_property(lchip, mem_port, CTC_PORT_PROP_REFLECTIVE_BRIDGE_EN, 0); 
         }
     }
-    
+    if(CTC_IS_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 1)) //1d port
+    {
+        if(change)
+        {
+            sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+
+            def_action.gport = mem_port;
+            def_action.mode = 1;
+
+            /* set pending status */
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+            field_action.data0 = 1;
+            def_action.field_action = &field_action;
+            ctcs_scl_set_default_action(lchip, &def_action);
+
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            sal_memset(&scl_logic_port, 0, sizeof(ctc_scl_logic_port_t));
+            scl_logic_port.logic_port = p_db_lag->logic_port;
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_LOGIC_PORT;
+            field_action.ext_data = (void*)&scl_logic_port;
+            def_action.field_action = &field_action;
+            ctcs_scl_set_default_action(lchip, &def_action);
+
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_FID;
+            field_action.data0 = p_db_lag->bridge_id;
+            def_action.field_action = &field_action;
+            ctcs_scl_set_default_action(lchip, &def_action);
+
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            sal_memset(&scl_vlan_edit, 0, sizeof(ctc_scl_vlan_edit_t));
+            scl_vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN;
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_VLAN_EDIT;
+            field_action.ext_data = (void*)&scl_vlan_edit;
+            def_action.field_action = &field_action;
+            ctcs_scl_set_default_action(lchip, &def_action);
+
+            /* clear pending status and install ad immediately */
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+            field_action.data0 = 0;
+            def_action.field_action = &field_action;
+            ctcs_scl_set_default_action(lchip, &def_action);
+        }
+        else
+        {
+            sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+            def_action.gport = mem_port;
+            ctcs_scl_set_default_action(lchip, &def_action);
+        }
+    }
 }
 
 typedef struct  ctc_sai_bridge_traverse_param_s
@@ -501,6 +565,8 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     sai_object_id_t sai_lag_id;
     uint32 bit_cnt = 0;
     ctc_sai_lag_info_t *p_db_lag;
+    ctc_scl_qos_map_t scl_qos_map;
+    ctc_qos_color_t ctc_color = CTC_QOS_COLOR_NONE;
     
     ctcs_get_gchip_id(lchip, &gchip);
     sal_memset(&ctc_mpls_ilm, 0, sizeof(ctc_mpls_ilm_t));
@@ -512,7 +578,7 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     }
 
     if(p_bridge_port->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_HW || 
-        p_bridge_port->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_CPU_TRAP)
+        p_bridge_port->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_FDB_NOTIFICATION)
     {
         fdb_learn_enable = TRUE;
     }
@@ -620,6 +686,26 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
                 CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
             }
 
+            //qos tc & color
+            if(p_bridge_port->qos_color_valid || p_bridge_port->qos_tc_valid)
+            {
+                sal_memset(&scl_qos_map, 0, sizeof(ctc_scl_qos_map_t));
+                sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+                scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_QOS_MAP;
+
+                if(p_bridge_port->qos_tc_valid)
+                {
+                    CTC_SET_FLAG(scl_qos_map.flag, CTC_SCL_QOS_MAP_FLAG_PRIORITY_VALID);
+                    scl_qos_map.priority = p_bridge_port->qos_tc*2;
+                }
+                QOS_COLOR_SAI_TO_CTC(p_bridge_port->qos_color, ctc_color);
+                scl_qos_map.color = p_bridge_port->qos_color_valid ? ctc_color : CTC_QOS_COLOR_NONE;
+                
+                scl_action_field.ext_data = (void*)&scl_qos_map;
+                def_action.field_action = &scl_action_field;
+                CTC_SAI_CTC_ERROR_RETURN(ctcs_scl_set_default_action(lchip, &def_action));
+            }
+
             sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
             sal_memset(&scl_vlan_edit, 0, sizeof(ctc_scl_vlan_edit_t));
             scl_vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN;
@@ -722,6 +808,34 @@ _ctc_sai_bridge_port_set_admin_state(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
         }
         else
         {
+            ctcs_scl_remove_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
+        }
+
+        //qos tc & color
+        if(p_bridge_port->qos_color_valid || p_bridge_port->qos_tc_valid)
+        {
+            sal_memset(&scl_qos_map, 0, sizeof(ctc_scl_qos_map_t));
+            sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+            scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_QOS_MAP;
+
+            if(p_bridge_port->qos_tc_valid)
+            {
+                CTC_SET_FLAG(scl_qos_map.flag, CTC_SCL_QOS_MAP_FLAG_PRIORITY_VALID);
+                scl_qos_map.priority = p_bridge_port->qos_tc*2;
+            }
+            QOS_COLOR_SAI_TO_CTC(p_bridge_port->qos_color, ctc_color);
+            scl_qos_map.color = p_bridge_port->qos_color_valid ? ctc_color : CTC_QOS_COLOR_NONE;
+            
+            scl_action_field.ext_data = (void*)&scl_qos_map;
+            ctcs_scl_add_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
+        }
+        else
+        {
+            sal_memset(&scl_qos_map, 0, sizeof(ctc_scl_qos_map_t));
+            sal_memset(&scl_action_field, 0, sizeof(ctc_scl_field_action_t));
+            scl_action_field.type = CTC_SCL_FIELD_ACTION_TYPE_QOS_MAP;
+
+            scl_action_field.ext_data = (void*)&scl_qos_map;
             ctcs_scl_remove_action_field(lchip, p_bridge_port->scl_entry_id, &scl_action_field);
         }
 
@@ -1214,6 +1328,18 @@ ctc_sai_bridge_port_get_port_property(sai_object_key_t* key, sai_attribute_t* at
         case SAI_BRIDGE_PORT_ATTR_NEED_FLOOD:
             attr->value.booldata = p_bridge_port->need_flood;
             break;
+        case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID:
+            attr->value.booldata = p_bridge_port->qos_color_valid;
+            break;
+        case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID:
+            attr->value.booldata = p_bridge_port->qos_tc_valid;
+            break;
+        case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR:
+            attr->value.s32 = p_bridge_port->qos_color;
+            break;
+        case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC:
+            attr->value.u8 = p_bridge_port->qos_tc;
+            break;
         default:
             CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "bridge port attribute %d not implemented\n", attr->id);
             status = SAI_STATUS_ATTR_NOT_IMPLEMENTED_0;
@@ -1694,7 +1820,35 @@ ctc_sai_bridge_port_set_port_property(sai_object_key_t* key, const sai_attribute
             }
             
             break;
-        
+
+        case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID:        
+            if (p_bridge_port->admin_state)
+            {
+                return SAI_STATUS_INVALID_ATTR_VALUE_0;
+            }
+            p_bridge_port->qos_color_valid = attr->value.booldata;
+            break;
+        case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR:        
+            if (p_bridge_port->admin_state)
+            {
+                return SAI_STATUS_INVALID_ATTR_VALUE_0;
+            }
+            p_bridge_port->qos_color = attr->value.s32;
+            break;
+        case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID:        
+            if (p_bridge_port->admin_state)
+            {
+                return SAI_STATUS_INVALID_ATTR_VALUE_0;
+            }
+            p_bridge_port->qos_tc_valid = attr->value.booldata;
+            break;
+        case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC:        
+            if (p_bridge_port->admin_state)
+            {
+                return SAI_STATUS_INVALID_ATTR_VALUE_0;
+            }
+            p_bridge_port->qos_tc = attr->value.u8;
+            break;
         default:
             CTC_SAI_LOG_ERROR(SAI_API_BRIDGE, "bridge port attribute %d not implemented\n", attr->id);
             status = SAI_STATUS_ATTR_NOT_IMPLEMENTED_0;
@@ -2001,6 +2155,7 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
     ctc_scl_field_action_t field_action;
     ctc_scl_logic_port_t scl_logic_port;
     ctc_scl_vlan_edit_t scl_vlan_edit;
+    uint8 qos_tc_valid = 0, qos_tc = 0, qos_color_valid = 0, qos_color = 0;
 
     ctcs_get_gchip_id(lchip, &gchip);
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_PORT_ID, &attr_val, &attr_idx);
@@ -2164,46 +2319,98 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
         CTC_SAI_CTC_ERROR_GOTO(ctcs_l2_set_nhid_by_logic_port(lchip, logic_port, nh_id), status, roll_back_3);
         
         //Ingress action
-        sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+        if(is_lag_port)
+        {
+            for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+                {
+                    sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
 
-        def_action.gport = gport;
-        def_action.mode = 1;
+                    def_action.gport = CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt);
+                    def_action.mode = 1;
 
-        /* set pending status */
-        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
-        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
-        field_action.data0 = 1;
-        def_action.field_action = &field_action;
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_3);
+                    /* set pending status */
+                    sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+                    field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+                    field_action.data0 = 1;
+                    def_action.field_action = &field_action;
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_3);
 
-        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
-        sal_memset(&scl_logic_port, 0, sizeof(ctc_scl_logic_port_t));
-        scl_logic_port.logic_port = p_bridge_port->logic_port;
-        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_LOGIC_PORT;
-        field_action.ext_data = (void*)&scl_logic_port;
-        def_action.field_action = &field_action;
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+                    sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+                    sal_memset(&scl_logic_port, 0, sizeof(ctc_scl_logic_port_t));
+                    scl_logic_port.logic_port = p_bridge_port->logic_port;
+                    field_action.type = CTC_SCL_FIELD_ACTION_TYPE_LOGIC_PORT;
+                    field_action.ext_data = (void*)&scl_logic_port;
+                    def_action.field_action = &field_action;
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
 
-        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
-        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_FID;
-        field_action.data0 = p_bridge_port->bridge_id;
-        def_action.field_action = &field_action;
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+                    sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+                    field_action.type = CTC_SCL_FIELD_ACTION_TYPE_FID;
+                    field_action.data0 = p_bridge_port->bridge_id;
+                    def_action.field_action = &field_action;
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
 
-        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
-        sal_memset(&scl_vlan_edit, 0, sizeof(ctc_scl_vlan_edit_t));
-        scl_vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN;
-        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_VLAN_EDIT;
-        field_action.ext_data = (void*)&scl_vlan_edit;
-        def_action.field_action = &field_action;
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+                    sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+                    sal_memset(&scl_vlan_edit, 0, sizeof(ctc_scl_vlan_edit_t));
+                    scl_vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN;
+                    field_action.type = CTC_SCL_FIELD_ACTION_TYPE_VLAN_EDIT;
+                    field_action.ext_data = (void*)&scl_vlan_edit;
+                    def_action.field_action = &field_action;
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
 
-        /* clear pending status and install ad immediately */
-        sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
-        field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
-        field_action.data0 = 0;
-        def_action.field_action = &field_action;
-        CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+                    /* clear pending status and install ad immediately */
+                    sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+                    field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+                    field_action.data0 = 0;
+                    def_action.field_action = &field_action;
+                    CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+                }
+            }
+        }
+        else
+        {
+            sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+
+            def_action.gport = gport;
+            def_action.mode = 1;
+
+            /* set pending status */
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+            field_action.data0 = 1;
+            def_action.field_action = &field_action;
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_3);
+
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            sal_memset(&scl_logic_port, 0, sizeof(ctc_scl_logic_port_t));
+            scl_logic_port.logic_port = p_bridge_port->logic_port;
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_LOGIC_PORT;
+            field_action.ext_data = (void*)&scl_logic_port;
+            def_action.field_action = &field_action;
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_FID;
+            field_action.data0 = p_bridge_port->bridge_id;
+            def_action.field_action = &field_action;
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            sal_memset(&scl_vlan_edit, 0, sizeof(ctc_scl_vlan_edit_t));
+            scl_vlan_edit.vlan_domain = CTC_SCL_VLAN_DOMAIN_CVLAN;
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_VLAN_EDIT;
+            field_action.ext_data = (void*)&scl_vlan_edit;
+            def_action.field_action = &field_action;
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+
+            /* clear pending status and install ad immediately */
+            sal_memset(&field_action, 0, sizeof(ctc_scl_field_action_t));
+            field_action.type = CTC_SCL_FIELD_ACTION_TYPE_PENDING;
+            field_action.data0 = 0;
+            def_action.field_action = &field_action;
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_scl_set_default_action(lchip, &def_action), status, roll_back_4);
+        }
 
     }
     
@@ -2213,6 +2420,30 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
     {
         need_flood = attr_val->booldata;
     }
+
+    // qos tc 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_tc_valid = attr_val->booldata;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_tc = attr_val->u8;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_color_valid = attr_val->booldata;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_color = attr_val->s32;
+    }
+    
     sal_memset(&learn_limit, 0, sizeof(ctc_security_learn_limit_t));
     learn_limit.limit_type = CTC_SECURITY_LEARN_LIMIT_TYPE_PORT;
     learn_limit.gport = gport;
@@ -2294,6 +2525,10 @@ _ctc_sai_bridge_port_create_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_po
         if(SAI_BRIDGE_TYPE_1D == p_bridge_port->bridge_type)
         {
             p_bridge_port->need_flood = need_flood;
+            p_bridge_port->qos_tc_valid = qos_tc_valid;
+            p_bridge_port->qos_tc = qos_tc;
+            p_bridge_port->qos_color_valid = qos_color_valid;
+            p_bridge_port->qos_color = qos_color;
         }
         if(is_lag_port)
         {
@@ -2443,9 +2678,26 @@ _ctc_sai_bridge_port_destroy_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridge_p
         ctcs_l2_set_nhid_by_logic_port(lchip, p_bridge_port->logic_port, 0);
         ctcs_nh_remove_xlate(lchip, p_bridge_port->nh_id);
 
-        sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
-        def_action.gport = p_bridge_port->gport;
-        ctcs_scl_set_default_action(lchip, &def_action);
+        if(is_lag)
+        {    
+            for (bit_cnt = 0; bit_cnt < sizeof(p_db_lag->member_ports_bits)*8; bit_cnt++)
+            {
+                if (CTC_BMP_ISSET(p_db_lag->member_ports_bits, bit_cnt))
+                {
+                    sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+                    def_action.gport = CTC_MAP_LPORT_TO_GPORT(gchip, bit_cnt);
+                    ctcs_scl_set_default_action(lchip, &def_action);
+                }
+            }   
+        }
+        else
+        {
+            sal_memset(&def_action, 0, sizeof(ctc_scl_default_action_t));
+            def_action.gport = p_bridge_port->gport;
+            ctcs_scl_set_default_action(lchip, &def_action);
+        }
+
+        
     
         sal_memset(&port_scl_property, 0, sizeof(port_scl_property));
         port_scl_property.scl_id = 0;
@@ -2570,6 +2822,7 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     uint32 scl_entry_id;
     int32 scos_mode = 0;
     bool need_flood = true;
+    uint8 qos_tc_valid = 0, qos_tc = 0, qos_color_valid = 0, qos_color = 0;
     
     sal_memset(&port_data, 0, sizeof(ctc_field_port_t));
     sal_memset(&port_mask, 0, sizeof(ctc_field_port_t));
@@ -2660,6 +2913,29 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     if (!CTC_SAI_ERROR(status))
     {
         need_flood = attr_val->booldata;
+    }
+
+    // qos tc 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_tc_valid = attr_val->booldata;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_tc = attr_val->u8;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_color_valid = attr_val->booldata;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_color = attr_val->s32;
     }
 
     status = ctc_sai_bridge_traverse_get_sub_port_info(lchip, gport, vlan_id, 0, &logic_port);
@@ -2796,6 +3072,10 @@ _ctc_sai_bridge_port_create_sub_port(uint8 lchip, ctc_sai_bridge_port_t* p_bridg
     p_bridge_port->outgoing_scos = edit_info.stag_cos;
     p_bridge_port->outgoing_scos_mode = scos_mode;
     p_bridge_port->need_flood = need_flood;
+    p_bridge_port->qos_tc_valid = qos_tc_valid;
+    p_bridge_port->qos_tc = qos_tc;
+    p_bridge_port->qos_color_valid = qos_color_valid;
+    p_bridge_port->qos_color = qos_color;
 
     if(is_lag)
     {
@@ -2951,6 +3231,7 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
     ctc_field_port_t port_mask;
     int32 scos_mode = 0;
     bool need_flood = true;
+    uint8 qos_tc_valid = 0, qos_tc = 0, qos_color_valid = 0, qos_color = 0;
 
     sal_memset(&port_data, 0, sizeof(ctc_field_port_t));
     sal_memset(&port_mask, 0, sizeof(ctc_field_port_t));
@@ -3052,6 +3333,29 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
     if (!CTC_SAI_ERROR(status))
     {
         need_flood = attr_val->booldata;
+    }
+
+    // qos tc 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_tc_valid = attr_val->booldata;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_tc = attr_val->u8;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_color_valid = attr_val->booldata;
+    }
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR, &attr_val, &attr_idx);
+    if (!CTC_SAI_ERROR(status))
+    {
+        qos_color = attr_val->s32;
     }
 
     status = ctc_sai_bridge_traverse_get_sub_port_info(lchip, gport, vlan_id, customer_vlan_id, &logic_port);
@@ -3195,6 +3499,11 @@ _ctc_sai_bridge_port_create_double_vlan_sub_port(uint8 lchip, ctc_sai_bridge_por
     p_bridge_port->outgoing_scos = edit_info.stag_cos;
     p_bridge_port->outgoing_scos_mode = scos_mode;
     p_bridge_port->need_flood = need_flood;
+    p_bridge_port->qos_tc_valid = qos_tc_valid;
+    p_bridge_port->qos_tc = qos_tc;
+    p_bridge_port->qos_color_valid = qos_color_valid;
+    p_bridge_port->qos_color = qos_color;
+    
     if(is_lag)
     {
         p_db_lag->scl0_ref_cnt++;
@@ -3621,8 +3930,15 @@ ctc_sai_bridge_create_bridge_port(sai_object_id_t* bridge_port_id,
             ctc_bridge_port_id.lchip = lchip;
             ctc_bridge_port_id.type = SAI_OBJECT_TYPE_BRIDGE_PORT;
             ctc_bridge_port_id.sub_type = SAI_BRIDGE_PORT_TYPE_PORT;
-            ctc_bridge_port_id.value = p_bridge_port->gport;
-            ctc_bridge_port_id.value2 = 0;
+            ctc_bridge_port_id.value2 = bridge_type;
+            if(bridge_type == SAI_BRIDGE_TYPE_1Q)
+            {
+                ctc_bridge_port_id.value = p_bridge_port->gport;
+            }
+            else
+            {
+                ctc_bridge_port_id.value = p_bridge_port->logic_port;
+            }
             break;
 
         case SAI_BRIDGE_PORT_TYPE_SUB_PORT:
@@ -3757,6 +4073,8 @@ ctc_sai_bridge_create_bridge_port(sai_object_id_t* bridge_port_id,
         else if ((bport_type == SAI_BRIDGE_PORT_TYPE_PORT)&&(SAI_BRIDGE_TYPE_1D == bridge_type))
         {
             CTC_BIT_SET(p_db_lag->bind_bridge_port_type_bmp, 1);
+            p_db_lag->bridge_id = p_bridge_port->bridge_id;
+            p_db_lag->logic_port = p_bridge_port->logic_port;
         }
         else if (bport_type == SAI_BRIDGE_PORT_TYPE_SUB_PORT)
         {
@@ -3932,6 +4250,10 @@ static  ctc_sai_attr_fn_entry_t brg_port_attr_fn_entries[] = {
     {SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE, ctc_sai_bridge_port_get_port_property, NULL},
     {SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS, ctc_sai_bridge_port_get_port_property, NULL},
     {SAI_BRIDGE_PORT_ATTR_NEED_FLOOD, ctc_sai_bridge_port_get_port_property, ctc_sai_bridge_port_set_port_property},
+    {SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID, ctc_sai_bridge_port_get_port_property, ctc_sai_bridge_port_set_port_property},
+    {SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC, ctc_sai_bridge_port_get_port_property, ctc_sai_bridge_port_set_port_property},
+    {SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID, ctc_sai_bridge_port_get_port_property, ctc_sai_bridge_port_set_port_property},
+    {SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR, ctc_sai_bridge_port_get_port_property, ctc_sai_bridge_port_set_port_property},
     {CTC_SAI_FUNC_ATTR_END_ID,NULL,NULL}
  };
 

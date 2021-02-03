@@ -879,6 +879,7 @@ _ctc_sai_sched_group_create_service_group(uint8 lchip, uint32 gport, uint16 serv
     srv_queue_info.opcode = CTC_QOS_SERVICE_ID_BIND_DESTPORT;
     srv_queue_info.service_id = service_id;
     srv_queue_info.gport = gport;
+    CTC_SET_FLAG(srv_queue_info.flag, CTC_QOS_SERVICE_FLAG_HSCH_EN);
 
     sal_memcpy(&que_cfg.value.srv_queue_info, &srv_queue_info, sizeof(srv_queue_info));
     CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_queue(lchip, &que_cfg));
@@ -948,6 +949,7 @@ _ctc_sai_sched_group_destroy_service_group(uint8 lchip, uint32 gport, uint16 ser
     srv_queue_info.opcode = CTC_QOS_SERVICE_ID_UNBIND_DESTPORT;
     srv_queue_info.service_id = service_id;
     srv_queue_info.gport = gport;
+    CTC_SET_FLAG(srv_queue_info.flag, CTC_QOS_SERVICE_FLAG_HSCH_EN);
 
     sal_memcpy(&que_cfg.value.srv_queue_info, &srv_queue_info, sizeof(srv_queue_info));
     CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_queue(lchip, &que_cfg));
@@ -1271,6 +1273,10 @@ ctc_sai_scheduler_group_set_ctc_weight_and_shaping(uint8 lchip, uint8 level,uint
         qos_shape.shape.group_shape.class_prio = group_index % 4;
     }
     qos_shape.shape.group_shape.class_prio_valid = 1;
+    if(p_scheduler_db->meter_type == 0)
+    {
+        qos_shape.shape.group_shape.pps_en = 1;
+    }
     if ((is_set)&&(p_scheduler_db->max_rate))
     {
         qos_shape.shape.group_shape.enable = 1;

@@ -472,13 +472,13 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 1, 4096);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_TWAMP;
-    ctc_opf_init_offset(&opf, 0, 4);
+    ctc_opf_init_offset(&opf, 0, ((CTC_CHIP_TSINGMA_MX == chip_type) ? 512 : 4));
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_NPM;
     ctc_opf_init_offset(&opf, 0, 4);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_Y1731_MEG;
-    ctc_opf_init_offset(&opf, 1, 4096);
+    ctc_opf_init_offset(&opf, 1, 8192);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_Y1731_SESSION;
     ctc_opf_init_offset(&opf, 1, 4096);
@@ -496,17 +496,27 @@ _ctc_sai_db_init_id(uint8 lchip)
     ctc_opf_init_offset(&opf, 1, 2);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_MATCH;
-    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 256 : 16);
+    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 511 : 16);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_ENTRY;
-    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 256 : 16);
+    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 511*8 : 16*4);
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_UDF_GROUP;
-    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 256 : 16);
+    ctc_opf_init_offset(&opf, 0, (CTC_CHIP_TSINGMA_MX == chip_type) ? 511*8: 16*4);
+
+    opf.pool_type = CTC_SAI_DB_ID_TYPE_SDK_UDF_MAPPED_ID;
+    if (CTC_CHIP_TSINGMA == chip_type)
+    {
+        ctc_opf_init_offset(&opf, 0, 16);
+    }
+    else if (CTC_CHIP_TSINGMA_MX == chip_type)
+    {
+        ctc_opf_init_offset(&opf, 1, 511);
+    }
 
     opf.pool_type = CTC_SAI_DB_ID_TYPE_WRED;
     ctc_opf_init_offset(&opf, 1, 31);
-    
+
     opf.pool_type = CTC_SAI_DB_ID_TYPE_SCHEDULER_GROUP;
     ctc_opf_init_offset(&opf, 0, 3072);
 

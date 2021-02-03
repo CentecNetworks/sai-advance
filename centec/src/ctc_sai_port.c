@@ -430,7 +430,7 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
         break;
     case SAI_PORT_ATTR_ADMIN_STATE:
         /* SYSTEM MODIFIED, duet2 & tsingma SONIC, 20200227, SAI merge 20200824*/
-        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type))
+        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type) || (CTC_CHIP_TSINGMA_MX == chip_type))
         {
             CTC_SAI_ATTR_ERROR_RETURN(ctcs_port_get_property(lchip, gport, CTC_PORT_PROP_PHY_EN, &value), attr_idx);
             attr->value.booldata = value ? 1 : 0;
@@ -873,7 +873,7 @@ static sai_status_t ctc_sai_port_get_basic_info(  sai_object_key_t   *key, sai_a
         attr->value.booldata = p_port_db->y1731_lm_en;
         break;
     case SAI_PORT_ATTR_Y1731_MIP_ENABLE:
-        if((CTC_CHIP_TSINGMA == chip_type) || (CTC_CHIP_DUET2 == chip_type))
+        if((CTC_CHIP_TSINGMA_MX == chip_type) || (CTC_CHIP_TSINGMA == chip_type) || (CTC_CHIP_DUET2 == chip_type))
         {
             attr->value.u8 = p_port_db->y1731_mip_bitmap;
         }
@@ -960,7 +960,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
 
         CTC_SAI_ERROR_RETURN(_ctc_sai_port_mapping_ctc_speed_mode(attr->value.u32, &speed_mode));
         /*SAI merge 20200824 */
-        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type))
+        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type) || (CTC_CHIP_TSINGMA_MX == chip_type))
         {
             uint32 phy_id = 0;
             ctc_port_if_mode_t if_mode;
@@ -1014,7 +1014,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
 
     case SAI_PORT_ATTR_ADMIN_STATE:
         /* SYSTEM MODIFIED For duet2 & tsingma SONIC, 20200227 SAI merge 20200824*/
-        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type))
+        if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type) || (CTC_CHIP_TSINGMA_MX == chip_type))
         {
             CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_PHY_EN, attr->value.booldata?1:0));
         }
@@ -1367,7 +1367,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         p_port_db->y1731_lm_en = attr->value.booldata;
         break;
     case SAI_PORT_ATTR_Y1731_MIP_ENABLE:
-        if((CTC_CHIP_TSINGMA == chip_type) || (CTC_CHIP_DUET2 == chip_type))
+        if((CTC_CHIP_TSINGMA_MX == chip_type) || (CTC_CHIP_TSINGMA == chip_type) || (CTC_CHIP_DUET2 == chip_type))
         {
             sal_memset(&oam_prop, 0, sizeof(ctc_oam_property_t));
             p_eth_prop  = &oam_prop.u.y1731;
@@ -1718,7 +1718,6 @@ _ctc_sai_port_get_ptp(sai_object_key_t *key, sai_attribute_t *attr, uint32 attr_
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_gport(key->key.object_id, &gport));
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(key->key.object_id, &lchip));
 
-    attr->value.oid = SAI_NULL_OBJECT_ID;
     p_port_db = ctc_sai_db_get_object_property(lchip, key->key.object_id);
 
     if (NULL == p_port_db)
@@ -1734,7 +1733,7 @@ _ctc_sai_port_get_ptp(sai_object_key_t *key, sai_attribute_t *attr, uint32 attr_
 
         case SAI_PORT_ATTR_PTP_DOMAIN_ID://domain id cannot be 0
             ctc_ptp_domain_id = p_port_db->ptp_domain_id;
-            attr->value.oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, lchip, 0, 0, ctc_ptp_domain_id);
+            attr->value.oid = ctc_ptp_domain_id ? ctc_sai_create_object_id(SAI_OBJECT_TYPE_PTP_DOMAIN, lchip, 0, 0, ctc_ptp_domain_id):SAI_NULL_OBJECT_ID;
             break;
 
         case SAI_PORT_ATTR_PTP_PATH_DELAY:
@@ -2640,7 +2639,7 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
 
     /*BEGIN: SYSTEM MODIFIED For tsingma 24X2C 100GE port, 20200227*/ /* SAI merge 20200824 */
     chip_type = ctcs_get_chip_type(lchip);
-    if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type))
+    if ((CTC_CHIP_DUET2 == chip_type) || (CTC_CHIP_TSINGMA == chip_type) || (CTC_CHIP_TSINGMA_MX == chip_type))
     {
         uint32 phy_id = 0;
         ctc_port_if_mode_t if_mode;

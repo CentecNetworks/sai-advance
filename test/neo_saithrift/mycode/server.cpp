@@ -529,8 +529,11 @@ public:
                 case SAI_PORT_ATTR_QOS_DSCP_TO_COLOR_MAP:
                 case SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP:
                 case SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP:
+                case SAI_PORT_ATTR_QOS_MPLS_EXP_TO_TC_MAP:
+                case SAI_PORT_ATTR_QOS_MPLS_EXP_TO_COLOR_MAP:
+                case SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP:
                 case SAI_PORT_ATTR_INGRESS_ACL:
-                case SAI_PORT_ATTR_EGRESS_ACL:    
+                case SAI_PORT_ATTR_EGRESS_ACL:
                 case SAI_PORT_ATTR_POLICER_ID:
                 case SAI_PORT_ATTR_FLOOD_STORM_CONTROL_POLICER_ID:
                 case SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID:
@@ -551,6 +554,7 @@ public:
                 case SAI_PORT_ATTR_GLOBAL_FLOW_CONTROL_MODE:
                 case SAI_PORT_ATTR_FEC_MODE:
                 case SAI_PORT_ATTR_INTERNAL_LOOPBACK_MODE:
+                case SAI_PORT_ATTR_PTP_MODE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
                 case SAI_PORT_ATTR_MAC_ADDRESS:
@@ -1111,10 +1115,12 @@ public:
             }
         }
     }
-    
-    sai_thrift_status_t sai_thrift_set_port_attribute(const sai_thrift_object_id_t port_id, const sai_thrift_attribute_t &thrift_attr)
+
+    sai_thrift_status_t
+    sai_thrift_set_port_attribute(const sai_thrift_object_id_t port_id,
+                                  const sai_thrift_attribute_t &thrift_attr)
     {
-        printf("sai_thrift_set_port\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_port_api_t *port_api;
         status = sai_api_query(SAI_API_PORT, (void **) &port_api);
@@ -1122,58 +1128,53 @@ public:
         {
             return status;
         }
+
         sai_object_id_t *buffer_profile_list = NULL;
         std::vector<sai_thrift_attribute_t> thrift_attr_list;
         thrift_attr_list.push_back(thrift_attr);
         sai_attribute_t attr;
         sai_thrift_parse_port_attributes(thrift_attr_list, &attr, &buffer_profile_list);
         status = port_api->set_port_attribute((sai_object_id_t)port_id, &attr);
-    
+
         if (status != SAI_STATUS_SUCCESS)
         {
             SAI_THRIFT_LOG_ERR("Failed to set port attributes, status:%d", status);
         }
-    
+
         if (buffer_profile_list)
         {
           free(buffer_profile_list);
         }
-    
+
         return status;
     }
-    
-    
-    sai_thrift_object_id_t sai_thrift_create_port(const std::string& port_name, 
-                                                  const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+
+    sai_thrift_object_id_t
+    sai_thrift_create_port(const std::string& port_name,
+                           const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
-    
-        SAI_THRIFT_LOG_DBG("Called.");
-    
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
-    
         sai_port_api_t *port_api;
-    
         extern std::map<std::set<int>, std::string> gPortMap;
-    
         std::map<std::set<int>, std::string>::iterator gPortMapIt;
-    
+
         status = sai_api_query(SAI_API_PORT, (void **) &port_api);
         if (status != SAI_STATUS_SUCCESS)
         {
             printf("port sai_api_query failed!!!\n");
             return SAI_NULL_OBJECT_ID;
         }
-    
-        for (gPortMapIt = gPortMap.begin() ; gPortMapIt != gPortMap.end() ; gPortMapIt++)
+
+        for (gPortMapIt = gPortMap.begin(); gPortMapIt != gPortMap.end(); gPortMapIt++)
         {
             if (gPortMapIt->second == port_name)
             {
                 break;
             }
         }
-    
+
         std::set<int> lane_set;
-    
         if (gPortMapIt != gPortMap.end())
         {
             lane_set = gPortMapIt->first;
@@ -1183,38 +1184,35 @@ public:
             printf("Do not find matching port to received name!\n");
             return SAI_NULL_OBJECT_ID;
         }
-    
+
         sai_attribute_t *attr_list = nullptr;
         sai_uint32_t attr_size = thrift_attr_list.size();
         sai_thrift_alloc_attr(attr_list, attr_size);
-    
+
         sai_thrift_parse_port_attributes_with_create_port(thrift_attr_list, attr_list);
-    
+
         sai_object_id_t port_oid = 0;
         status = port_api->create_port(&port_oid, gSwitchId, attr_size, attr_list);
         sai_thrift_free_attr(attr_list);
-    
+
         if (status == SAI_STATUS_SUCCESS)
         {
               return port_oid;
         }
-    
         SAI_THRIFT_LOG_ERR("Failed to create PORT.");
-    
         return SAI_NULL_OBJECT_ID;
     }
-    
-    void sai_thrift_parse_port_attributes_with_create_port(const std::vector<sai_thrift_attribute_t> & thrift_attr_list, sai_attribute_t *attr_list)
+
+    void
+    sai_thrift_parse_port_attributes_with_create_port(const std::vector<sai_thrift_attribute_t> & thrift_attr_list,
+                                                      sai_attribute_t *attr_list)
     {
-        SAI_THRIFT_LOG_DBG("Called.");
-    
         std_sai_thrift_attr_vctr_t::const_iterator cit = thrift_attr_list.begin();
-    
         for (sai_uint32_t i = 0; i < thrift_attr_list.size(); i++, cit++)
         {
             sai_thrift_attribute_t attribute = *cit;
             attr_list[i].id = attribute.id;
-    
+
             switch (attribute.id)
             {
                 case SAI_PORT_ATTR_SPEED:
@@ -1238,9 +1236,9 @@ public:
             }
         }
     }
-    
-    
-    sai_thrift_status_t sai_thrift_remove_port(const sai_thrift_object_id_t port_oid)
+
+    sai_thrift_status_t
+    sai_thrift_remove_port(const sai_thrift_object_id_t port_oid)
     {
         SAI_THRIFT_FUNC_LOG();
         sai_port_api_t *port_api = nullptr;
@@ -1751,6 +1749,7 @@ public:
                 case SAI_BRIDGE_PORT_ATTR_FDB_LEARNING_LIMIT_VIOLATION_PACKET_ACTION:
                 case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS:
                 case SAI_BRIDGE_PORT_ATTR_OUTGOING_SERVICE_VLAN_COS_MODE:
+                case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
 
@@ -1759,6 +1758,8 @@ public:
                 case SAI_BRIDGE_PORT_ATTR_EGRESS_FILTERING:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_OAM_ENABLE:
                 case SAI_BRIDGE_PORT_ATTR_NEED_FLOOD:
+                case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID:
+                case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID:
                     attr_list[i].value.booldata = attribute.value.booldata;
                     break;
 
@@ -1774,6 +1775,7 @@ public:
                     break;
 
                 case SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP:
+                case SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP:
                 case SAI_BRIDGE_PORT_ATTR_PORT_ID:
                 case SAI_BRIDGE_PORT_ATTR_RIF_ID:
                 case SAI_BRIDGE_PORT_ATTR_TUNNEL_ID:
@@ -1782,6 +1784,9 @@ public:
                 case SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID:
                     attr_list[i].value.oid = attribute.value.oid;
+                    break;
+                case SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC:
+                    attr_list[i].value.u8 = attribute.value.u8;
                     break;
 
                 default:
@@ -4980,6 +4985,7 @@ public:
                 case SAI_BRIDGE_PORT_ATTR_ISOLATION_GROUP:
                 case SAI_BRIDGE_PORT_ATTR_CROSS_CONNECT_BRIDGE_PORT:
                 case SAI_BRIDGE_PORT_ATTR_FRR_NHP_GRP:
+                case SAI_BRIDGE_PORT_ATTR_LB_NHP_GRP:
                 case SAI_BRIDGE_PORT_ATTR_SUB_TUNNEL_PORT_POLICER_ID:
                     thrift_attr.id = attribute.id;
                     thrift_attr.value.__set_oid(attribute.value.oid);
@@ -5580,14 +5586,14 @@ public:
             case SAI_SWITCH_ATTR_FDB_AGING_TIME:
             case SAI_SWITCH_ATTR_MAX_LEARNED_ADDRESSES:
             case SAI_SWITCH_ATTR_MAX_TWAMP_SESSION:
-	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MIN_THRD:
-	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
-	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL:
-	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK:
-	     case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK:
-	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD:
-	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD:
-	     case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MIN_THRD:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_MB_TOTAL_MAX_THRD:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_TIME_INTERVAL:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_INGRESS_WATERMARK:
+            case SAI_SWITCH_ATTR_MONITOR_BUFFER_MONITOR_EGRESS_WATERMARK:
+            case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MIN_THRESHOLD:
+            case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_MAX_THRESHOLD:
+            case SAI_SWITCH_ATTR_MONITOR_LATENCY_MONITOR_INTERVAL:
                 attr->value.u32 = thrift_attr.value.u32;
                 break;
 
@@ -5602,6 +5608,9 @@ public:
             case SAI_SWITCH_ATTR_QOS_DSCP_TO_COLOR_MAP:
             case SAI_SWITCH_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP:
             case SAI_SWITCH_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP:
+            case SAI_SWITCH_ATTR_QOS_MPLS_EXP_TO_TC_MAP:
+            case SAI_SWITCH_ATTR_QOS_MPLS_EXP_TO_COLOR_MAP:
+            case SAI_SWITCH_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP:
             case SAI_SWITCH_ATTR_INGRESS_ACL:
                 attr->value.oid = thrift_attr.value.oid;
                 break;
@@ -6901,6 +6910,13 @@ public:
                 case SAI_ACL_TABLE_ATTR_FIELD_ROUTE_NPU_META_DST_HIT:
                 case SAI_ACL_TABLE_ATTR_FIELD_BTH_OPCODE:
                 case SAI_ACL_TABLE_ATTR_FIELD_AETH_SYNDROME:
+                case SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER:
+                case SAI_ACL_TABLE_ATTR_FIELD_GRE_KEY:
+                case SAI_ACL_TABLE_ATTR_FIELD_TAM_INT_TYPE:
+                case SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID:
+                    attr_list[i].value.booldata = attribute.value.booldata;
+                    break;
+
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+0:
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1:
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2:
@@ -7157,12 +7173,9 @@ public:
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+253:
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+254:
                 case SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+255:
-                case SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER:
-                case SAI_ACL_TABLE_ATTR_FIELD_GRE_KEY:
-                case SAI_ACL_TABLE_ATTR_FIELD_TAM_INT_TYPE:
-                case SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID:
-                    attr_list[i].value.booldata = attribute.value.booldata;
+                    attr_list[i].value.oid = attribute.value.oid;
                     break;
+
                 default:
                     break;
             }
@@ -11888,59 +11901,55 @@ public:
         return status;
     }
 
-    void sai_thrift_get_port_stats(std::vector<int64_t> & thrift_counters,
-                                   const sai_thrift_object_id_t port_id,
-                                   const std::vector<sai_thrift_port_stat_counter_t> & thrift_counter_ids,
-                                   const int32_t number_of_counters)
+    void
+    sai_thrift_get_port_stats(std::vector<int64_t> & thrift_counters,
+                              const sai_thrift_object_id_t port_id,
+                              const std::vector<sai_thrift_port_stat_counter_t> & thrift_counter_ids,
+                              const int32_t number_of_counters)
     {
-        printf("sai_thrift_get_port_stats\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
+
         sai_port_api_t *port_api;
-        
         status = sai_api_query(SAI_API_PORT, (void **) &port_api);
-        
         if (status != SAI_STATUS_SUCCESS)
         {
             return;
         }
-        
+
         sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(sai_port_stat_t) * thrift_counter_ids.size());
         std::vector<int32_t>::const_iterator it = thrift_counter_ids.begin();
         uint64_t *counters = (uint64_t *) malloc(sizeof(uint64_t) * thrift_counter_ids.size());
-        
+
         for(uint32_t i = 0; i < thrift_counter_ids.size(); i++, it++)
         {
             counter_ids[i] = (sai_port_stat_t) *it;
         }
-        
-        status = port_api->get_port_stats((sai_object_id_t) port_id,
-                                          number_of_counters,
-                                          counter_ids,
-                                          counters);
-        
+
+        status = port_api->get_port_stats((sai_object_id_t) port_id, number_of_counters, counter_ids, counters);
+
         for (uint32_t i = 0; i < thrift_counter_ids.size(); i++)
         {
             thrift_counters.push_back(counters[i]);
         }
-        
+
         free(counter_ids);
         free(counters);
-        
         return;
     }
 
-    void sai_thrift_get_port_stats_ext(std::vector<int64_t> & thrift_counters,
-                                       const sai_thrift_object_id_t port_id,
-                                       const std::vector<sai_thrift_port_stat_counter_t> & thrift_counter_ids,
-                                       const int8_t mode,
-                                       const int32_t number_of_counters)
+    void
+    sai_thrift_get_port_stats_ext(std::vector<int64_t> & thrift_counters,
+                                  const sai_thrift_object_id_t port_id,
+                                  const std::vector<sai_thrift_port_stat_counter_t> & thrift_counter_ids,
+                                  const int8_t mode,
+                                  const int32_t number_of_counters)
     {
-        printf("sai_thrift_get_port_stats_ext\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
+
         sai_port_api_t *port_api;
-
         status = sai_api_query(SAI_API_PORT, (void **) &port_api);
-
         if (status != SAI_STATUS_SUCCESS)
         {
             return;
@@ -11956,10 +11965,10 @@ public:
         }
 
         status = port_api->get_port_stats_ext((sai_object_id_t) port_id,
-                                          number_of_counters,
-                                          counter_ids,
-                                          (sai_stats_mode_t)mode,
-                                          counters);
+                                              number_of_counters,
+                                              counter_ids,
+                                              (sai_stats_mode_t)mode,
+                                              counters);
 
         for (uint32_t i = 0; i < thrift_counter_ids.size(); i++)
         {
@@ -11971,74 +11980,82 @@ public:
         return;
     }
 
-
-    sai_thrift_status_t sai_thrift_clear_port_stats(const sai_thrift_object_id_t port_id,
-                                                    const int32_t number_of_counters,
-                                                    const std::vector<sai_thrift_port_stat_counter_t> & thrift_counter_ids)
+    sai_thrift_status_t
+    sai_thrift_clear_port_stats(const sai_thrift_object_id_t port_id,
+                                const int32_t number_of_counters,
+                                const std::vector<sai_thrift_port_stat_counter_t> & thrift_counter_ids)
     {
-        printf("sai_thrift_clear_port_all_stats\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
+
         sai_port_api_t *port_api;
-        
         status = sai_api_query(SAI_API_PORT, (void **) &port_api);
         if (status != SAI_STATUS_SUCCESS)
         {
             return status;
         }
-        
+
         sai_stat_id_t *counter_ids = (sai_stat_id_t *) malloc(sizeof(sai_port_stat_t) * thrift_counter_ids.size());
         std::vector<int32_t>::const_iterator it = thrift_counter_ids.begin();
         uint64_t *counters = (uint64_t *) malloc(sizeof(uint64_t) * thrift_counter_ids.size());
-        
+
         for(uint32_t i = 0; i < thrift_counter_ids.size(); i++, it++)
         {
               counter_ids[i] = (sai_port_stat_t) *it;
         }
-        
-        status = port_api->clear_port_stats( (sai_object_id_t) port_id, number_of_counters, counter_ids);
-        
+
+        status = port_api->clear_port_stats((sai_object_id_t) port_id, number_of_counters, counter_ids);
+
         free(counter_ids);
         free(counters);
-        
         return status;
     }
 
-    sai_thrift_status_t sai_thrift_clear_port_all_stats(const sai_thrift_object_id_t port_id)
+    sai_thrift_status_t
+    sai_thrift_clear_port_all_stats(const sai_thrift_object_id_t port_id)
     {
-        printf("sai_thrift_clear_port_all_stats\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
+
         sai_port_api_t *port_api;
-        
         status = sai_api_query(SAI_API_PORT, (void **) &port_api);
         if (status != SAI_STATUS_SUCCESS)
         {
             return status;
         }
-        
-        status = port_api->clear_port_all_stats( (sai_object_id_t) port_id);
+
+        status = port_api->clear_port_all_stats((sai_object_id_t) port_id);
         return status;
     }
 
-    void sai_thrift_get_port_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t port_id)
+    void
+    sai_thrift_get_port_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                  const sai_thrift_object_id_t port_id)
     {
-        printf("sai_thrift_get_port_attribute\n");
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
+
         sai_port_api_t *port_api;
-	    std::vector<sai_thrift_attribute_t>& attr_list = thrift_attr_list.attr_list;
+        std::vector<sai_thrift_attribute_t>& attr_list = thrift_attr_list.attr_list;
         status = sai_api_query(SAI_API_PORT, (void **) &port_api);
         if (status != SAI_STATUS_SUCCESS)
         {
             return;
         }
-        
-	    sai_attribute_t port_type;
+
+        sai_attribute_t port_type;
         sai_thrift_attribute_t thrift_port_type;
         port_type.id = SAI_PORT_ATTR_TYPE;
         port_api->get_port_attribute(port_id, 1, &port_type);
         thrift_port_type.id = SAI_PORT_ATTR_TYPE;
         thrift_port_type.value.__set_s32(port_type.value.s32);
         attr_list.push_back(thrift_port_type);
-        
+
+        if (SAI_PORT_TYPE_CPU == port_type.value.s32)
+        {
+            return;
+        }
+
         sai_attribute_t port_oper_status_attribute;
         sai_thrift_attribute_t thrift_port_status;
         port_oper_status_attribute.id = SAI_PORT_ATTR_OPER_STATUS;
@@ -12046,7 +12063,7 @@ public:
         thrift_port_status.id = SAI_PORT_ATTR_OPER_STATUS;
         thrift_port_status.value.__set_s32(port_oper_status_attribute.value.s32);
         attr_list.push_back(thrift_port_status);
-        
+
         sai_attribute_t support_breakout_mode_type;
         sai_thrift_attribute_t thrift_support_breakout_mode_type;
         support_breakout_mode_type.id = SAI_PORT_ATTR_SUPPORTED_BREAKOUT_MODE_TYPE;
@@ -12065,15 +12082,15 @@ public:
         thrift_support_breakout_mode_type.value.__isset.s32list = true;
         attr_list.push_back(thrift_support_breakout_mode_type);
         free(support_breakout_mode_type.value.s32list.list);
-        
-	    sai_attribute_t current_breakout_mode_type;
+
+        sai_attribute_t current_breakout_mode_type;
         sai_thrift_attribute_t thrift_current_breakout_mode_type;
         current_breakout_mode_type.id = SAI_PORT_ATTR_CURRENT_BREAKOUT_MODE_TYPE;
         port_api->get_port_attribute(port_id, 1, &current_breakout_mode_type);
         thrift_current_breakout_mode_type.id = SAI_PORT_ATTR_CURRENT_BREAKOUT_MODE_TYPE;
         thrift_current_breakout_mode_type.value.__set_s32(current_breakout_mode_type.value.s32);
         attr_list.push_back(thrift_current_breakout_mode_type);
-        
+
         sai_attribute_t qos_queue_num;
         sai_thrift_attribute_t thrift_qos_queue_num;
         qos_queue_num.id = SAI_PORT_ATTR_QOS_NUMBER_OF_QUEUES;
@@ -12081,7 +12098,7 @@ public:
         thrift_qos_queue_num.id = SAI_PORT_ATTR_QOS_NUMBER_OF_QUEUES;
         thrift_qos_queue_num.value.__set_u32(qos_queue_num.value.u32);
         attr_list.push_back(thrift_qos_queue_num);
-        
+
         sai_attribute_t queue_list;
         sai_thrift_attribute_t thrift_queue_list;
         queue_list.id = SAI_PORT_ATTR_QOS_QUEUE_LIST;
@@ -12100,7 +12117,7 @@ public:
         thrift_queue_list.value.__isset.objlist = true;
         attr_list.push_back(thrift_queue_list);
         free(queue_list.value.objlist.list);
-        
+
         sai_attribute_t scheduler_group_num;
         sai_thrift_attribute_t thrift_scheduler_group_num;
         scheduler_group_num.id = SAI_PORT_ATTR_QOS_NUMBER_OF_SCHEDULER_GROUPS;
@@ -12108,7 +12125,7 @@ public:
         thrift_scheduler_group_num.id = SAI_PORT_ATTR_QOS_NUMBER_OF_SCHEDULER_GROUPS;
         thrift_scheduler_group_num.value.__set_u32(scheduler_group_num.value.u32);
         attr_list.push_back(thrift_scheduler_group_num);
-        
+
         sai_attribute_t scheduler_group_list;
         sai_thrift_attribute_t thrift_scheduler_group_list;
         scheduler_group_list.id = SAI_PORT_ATTR_QOS_SCHEDULER_GROUP_LIST;
@@ -12127,7 +12144,7 @@ public:
         thrift_scheduler_group_list.value.__isset.objlist = true;
         attr_list.push_back(thrift_scheduler_group_list);
         free(scheduler_group_list.value.objlist.list);
-        
+
         sai_attribute_t support_speed;
         sai_thrift_attribute_t thrift_support_speed;
         support_speed.id = SAI_PORT_ATTR_SUPPORTED_SPEED;
@@ -12146,7 +12163,7 @@ public:
         thrift_support_speed.value.__isset.u32list = true;
         attr_list.push_back(thrift_support_speed);
         free(support_speed.value.u32list.list);
-        
+
         sai_attribute_t support_fec_mode;
         sai_thrift_attribute_t thrift_support_fec_mode;
         support_fec_mode.id = SAI_PORT_ATTR_SUPPORTED_FEC_MODE;
@@ -12165,7 +12182,7 @@ public:
         thrift_support_fec_mode.value.__isset.s32list = true;
         attr_list.push_back(thrift_support_fec_mode);
         free(support_fec_mode.value.s32list.list);
-        
+
         sai_attribute_t support_half_duplex_speed;
         sai_thrift_attribute_t thrift_support_half_duplex_speed;
         support_half_duplex_speed.id = SAI_PORT_ATTR_SUPPORTED_HALF_DUPLEX_SPEED;
@@ -12184,23 +12201,23 @@ public:
         thrift_support_half_duplex_speed.value.__isset.u32list = true;
         attr_list.push_back(thrift_support_half_duplex_speed);
         free(support_half_duplex_speed.value.u32list.list);
-        
-	    sai_attribute_t auto_neg_mode;
+
+        sai_attribute_t auto_neg_mode;
         sai_thrift_attribute_t thrift_auto_neg_mode;
         auto_neg_mode.id = SAI_PORT_ATTR_SUPPORTED_AUTO_NEG_MODE;
         port_api->get_port_attribute(port_id, 1, &auto_neg_mode);
         thrift_auto_neg_mode.id = SAI_PORT_ATTR_SUPPORTED_AUTO_NEG_MODE;
         thrift_auto_neg_mode.value.__set_booldata(auto_neg_mode.value.booldata);
         attr_list.push_back(thrift_auto_neg_mode);
-        
-	    sai_attribute_t flow_control_mode;
+
+        sai_attribute_t flow_control_mode;
         sai_thrift_attribute_t thrift_flow_control_mode;
         flow_control_mode.id = SAI_PORT_ATTR_SUPPORTED_FLOW_CONTROL_MODE;
         port_api->get_port_attribute(port_id, 1, &flow_control_mode);
         thrift_flow_control_mode.id = SAI_PORT_ATTR_SUPPORTED_FLOW_CONTROL_MODE;
         thrift_flow_control_mode.value.__set_s32(flow_control_mode.value.s32);
         attr_list.push_back(thrift_flow_control_mode);
-        
+
         sai_attribute_t asy_pause_mode;
         sai_thrift_attribute_t thrift_asy_pause_mode;
         asy_pause_mode.id = SAI_PORT_ATTR_SUPPORTED_ASYMMETRIC_PAUSE_MODE;
@@ -12208,7 +12225,7 @@ public:
         thrift_asy_pause_mode.id = SAI_PORT_ATTR_SUPPORTED_ASYMMETRIC_PAUSE_MODE;
         thrift_asy_pause_mode.value.__set_booldata(asy_pause_mode.value.booldata);
         attr_list.push_back(thrift_asy_pause_mode);
-        
+
         sai_attribute_t support_media_type;
         sai_thrift_attribute_t thrift_support_media_type;
         support_media_type.id = SAI_PORT_ATTR_SUPPORTED_MEDIA_TYPE;
@@ -12216,7 +12233,7 @@ public:
         thrift_support_media_type.id = SAI_PORT_ATTR_SUPPORTED_MEDIA_TYPE;
         thrift_support_media_type.value.__set_s32(support_media_type.value.s32);
         attr_list.push_back(thrift_support_media_type);
-        
+
         sai_attribute_t ingress_pg_num;
         sai_thrift_attribute_t thrift_ingress_pg_num;
         ingress_pg_num.id = SAI_PORT_ATTR_NUMBER_OF_INGRESS_PRIORITY_GROUPS;
@@ -12224,7 +12241,7 @@ public:
         thrift_ingress_pg_num.id = SAI_PORT_ATTR_NUMBER_OF_INGRESS_PRIORITY_GROUPS;
         thrift_ingress_pg_num.value.__set_u32(ingress_pg_num.value.u32);
         attr_list.push_back(thrift_ingress_pg_num);
-        
+
         sai_attribute_t ingress_pg_list;
         sai_thrift_attribute_t thrift_ingress_pg_list;
         ingress_pg_list.id = SAI_PORT_ATTR_INGRESS_PRIORITY_GROUP_LIST;
@@ -12243,7 +12260,7 @@ public:
         thrift_ingress_pg_list.value.__isset.objlist = true;
         attr_list.push_back(thrift_ingress_pg_list);
         free(ingress_pg_list.value.objlist.list);
-        
+
         sai_attribute_t oper_speed;
         sai_thrift_attribute_t thrift_oper_speed;
         oper_speed.id = SAI_PORT_ATTR_OPER_SPEED;
@@ -12251,7 +12268,7 @@ public:
         thrift_oper_speed.id = SAI_PORT_ATTR_OPER_SPEED;
         thrift_oper_speed.value.__set_u32(oper_speed.value.u32);
         attr_list.push_back(thrift_oper_speed);
-        
+
         sai_attribute_t hw_lane_list;
         sai_thrift_attribute_t thrift_hw_lane_list;
         hw_lane_list.id = SAI_PORT_ATTR_HW_LANE_LIST;
@@ -12270,7 +12287,7 @@ public:
         thrift_hw_lane_list.value.__isset.u32list = true;
         attr_list.push_back(thrift_hw_lane_list);
         free(hw_lane_list.value.u32list.list);
-        
+
         sai_attribute_t full_duplex_mode;
         sai_thrift_attribute_t thrift_full_duplex_mode;
         full_duplex_mode.id = SAI_PORT_ATTR_FULL_DUPLEX_MODE;
@@ -12278,7 +12295,7 @@ public:
         thrift_full_duplex_mode.id = SAI_PORT_ATTR_FULL_DUPLEX_MODE;
         thrift_full_duplex_mode.value.__set_booldata(full_duplex_mode.value.booldata);
         attr_list.push_back(thrift_full_duplex_mode);
-        
+
         sai_attribute_t speed;
         sai_thrift_attribute_t thrift_speed;
         speed.id = SAI_PORT_ATTR_SPEED;
@@ -12286,7 +12303,7 @@ public:
         thrift_speed.id = SAI_PORT_ATTR_SPEED;
         thrift_speed.value.__set_u32(speed.value.u32);
         attr_list.push_back(thrift_speed);
-        
+
         sai_attribute_t curr_auto_neg_mode;
         sai_thrift_attribute_t thrift_curr_auto_neg_mode;
         curr_auto_neg_mode.id = SAI_PORT_ATTR_AUTO_NEG_MODE;
@@ -12294,7 +12311,7 @@ public:
         thrift_curr_auto_neg_mode.id = SAI_PORT_ATTR_AUTO_NEG_MODE;
         thrift_curr_auto_neg_mode.value.__set_booldata(curr_auto_neg_mode.value.booldata);
         attr_list.push_back(thrift_curr_auto_neg_mode);
-        
+
         sai_attribute_t curr_admin_state;
         sai_thrift_attribute_t thrift_curr_admin_state;
         curr_admin_state.id = SAI_PORT_ATTR_ADMIN_STATE;
@@ -12302,7 +12319,7 @@ public:
         thrift_curr_admin_state.id = SAI_PORT_ATTR_ADMIN_STATE;
         thrift_curr_admin_state.value.__set_booldata(curr_admin_state.value.booldata);
         attr_list.push_back(thrift_curr_admin_state);
-        
+
         sai_attribute_t pvid;
         sai_thrift_attribute_t thrift_pvid;
         pvid.id = SAI_PORT_ATTR_PORT_VLAN_ID;
@@ -12310,7 +12327,7 @@ public:
         thrift_pvid.id = SAI_PORT_ATTR_PORT_VLAN_ID;
         thrift_pvid.value.__set_u16(pvid.value.u16);
         attr_list.push_back(thrift_pvid);
-        
+
         sai_attribute_t default_vlan_pri;
         sai_thrift_attribute_t thrift_default_vlan_pri;
         default_vlan_pri.id = SAI_PORT_ATTR_DEFAULT_VLAN_PRIORITY;
@@ -12318,7 +12335,7 @@ public:
         thrift_default_vlan_pri.id = SAI_PORT_ATTR_DEFAULT_VLAN_PRIORITY;
         thrift_default_vlan_pri.value.__set_u8(default_vlan_pri.value.u8);
         attr_list.push_back(thrift_default_vlan_pri);
-        
+
         sai_attribute_t drop_untag;
         sai_thrift_attribute_t thrift_drop_untag;
         drop_untag.id = SAI_PORT_ATTR_DROP_UNTAGGED;
@@ -12326,7 +12343,7 @@ public:
         thrift_drop_untag.id = SAI_PORT_ATTR_DROP_UNTAGGED;
         thrift_drop_untag.value.__set_booldata(drop_untag.value.booldata);
         attr_list.push_back(thrift_drop_untag);
-        
+
         sai_attribute_t drop_tag;
         sai_thrift_attribute_t thrift_drop_tag;
         drop_tag.id = SAI_PORT_ATTR_DROP_TAGGED;
@@ -12342,7 +12359,7 @@ public:
         thrift_internal_lb_mode.id = SAI_PORT_ATTR_INTERNAL_LOOPBACK_MODE;
         thrift_internal_lb_mode.value.__set_s32(internal_lb_mode.value.s32);
         attr_list.push_back(thrift_internal_lb_mode);
-        
+
         sai_attribute_t fec_mode;
         sai_thrift_attribute_t thrift_fec_mode;
         fec_mode.id = SAI_PORT_ATTR_FEC_MODE;
@@ -12350,7 +12367,7 @@ public:
         thrift_fec_mode.id = SAI_PORT_ATTR_FEC_MODE;
         thrift_fec_mode.value.__set_s32(fec_mode.value.s32);
         attr_list.push_back(thrift_fec_mode);
-        
+
         sai_attribute_t update_dscp;
         sai_thrift_attribute_t thrift_update_dscp;
         update_dscp.id = SAI_PORT_ATTR_UPDATE_DSCP;
@@ -12358,7 +12375,7 @@ public:
         thrift_update_dscp.id = SAI_PORT_ATTR_UPDATE_DSCP;
         thrift_update_dscp.value.__set_booldata(update_dscp.value.booldata);
         attr_list.push_back(thrift_update_dscp);
-        
+
         sai_attribute_t mtu;
         sai_thrift_attribute_t thrift_mtu;
         mtu.id = SAI_PORT_ATTR_MTU;
@@ -12366,7 +12383,7 @@ public:
         thrift_mtu.id = SAI_PORT_ATTR_MTU;
         thrift_mtu.value.__set_u32(mtu.value.u32);
         attr_list.push_back(thrift_mtu);
-        
+
         sai_attribute_t f_stom_policer_id;
         sai_thrift_attribute_t thrift_f_stom_policer_id;
         f_stom_policer_id.id = SAI_PORT_ATTR_FLOOD_STORM_CONTROL_POLICER_ID;
@@ -12374,7 +12391,7 @@ public:
         thrift_f_stom_policer_id.id = SAI_PORT_ATTR_FLOOD_STORM_CONTROL_POLICER_ID;
         thrift_f_stom_policer_id.value.__set_oid(f_stom_policer_id.value.oid);
         attr_list.push_back(thrift_f_stom_policer_id);
-        
+
         sai_attribute_t b_stom_policer_id;
         sai_thrift_attribute_t thrift_b_stom_policer_id;
         b_stom_policer_id.id = SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID;
@@ -12382,7 +12399,7 @@ public:
         thrift_b_stom_policer_id.id = SAI_PORT_ATTR_BROADCAST_STORM_CONTROL_POLICER_ID;
         thrift_b_stom_policer_id.value.__set_oid(b_stom_policer_id.value.oid);
         attr_list.push_back(thrift_b_stom_policer_id);
-        
+
         sai_attribute_t m_stom_policer_id;
         sai_thrift_attribute_t thrift_m_stom_policer_id;
         m_stom_policer_id.id = SAI_PORT_ATTR_MULTICAST_STORM_CONTROL_POLICER_ID;
@@ -12390,7 +12407,7 @@ public:
         thrift_m_stom_policer_id.id = SAI_PORT_ATTR_MULTICAST_STORM_CONTROL_POLICER_ID;
         thrift_m_stom_policer_id.value.__set_oid(m_stom_policer_id.value.oid);
         attr_list.push_back(thrift_m_stom_policer_id);
-        
+
         sai_attribute_t global_flow_control_mode;
         sai_thrift_attribute_t thrift_global_flow_control_mode;
         global_flow_control_mode.id = SAI_PORT_ATTR_GLOBAL_FLOW_CONTROL_MODE;
@@ -12398,7 +12415,7 @@ public:
         thrift_global_flow_control_mode.id = SAI_PORT_ATTR_GLOBAL_FLOW_CONTROL_MODE;
         thrift_global_flow_control_mode.value.__set_s32(global_flow_control_mode.value.s32);
         attr_list.push_back(thrift_global_flow_control_mode);
-        
+
         sai_attribute_t ingress_mirror_session;
         sai_thrift_attribute_t thrift_ingress_mirror_session;
         ingress_mirror_session.id = SAI_PORT_ATTR_INGRESS_MIRROR_SESSION;
@@ -12417,7 +12434,7 @@ public:
         thrift_ingress_mirror_session.value.__isset.objlist = true;
         attr_list.push_back(thrift_ingress_mirror_session);
         free(ingress_mirror_session.value.objlist.list);
-        
+
         sai_attribute_t egress_mirror_session;
         sai_thrift_attribute_t thrift_egress_mirror_session;
         egress_mirror_session.id = SAI_PORT_ATTR_EGRESS_MIRROR_SESSION;
@@ -12433,10 +12450,10 @@ public:
         {
             egress_mirror_list.push_back((sai_thrift_object_id_t)egress_mirror_list_object->list[index]);
         }
-        thrift_ingress_mirror_session.value.__isset.objlist = true;
-        attr_list.push_back(thrift_ingress_mirror_session);
+        thrift_egress_mirror_session.value.__isset.objlist = true;
+        attr_list.push_back(thrift_egress_mirror_session);
         free(egress_mirror_session.value.objlist.list);
-        
+
         sai_attribute_t ingress_samplepacket_oid;
         sai_thrift_attribute_t thrift_ingress_samplepacket_oid;
         ingress_samplepacket_oid.id = SAI_PORT_ATTR_INGRESS_SAMPLEPACKET_ENABLE;
@@ -12444,7 +12461,7 @@ public:
         thrift_ingress_samplepacket_oid.id = SAI_PORT_ATTR_INGRESS_SAMPLEPACKET_ENABLE;
         thrift_ingress_samplepacket_oid.value.__set_oid(ingress_samplepacket_oid.value.oid);
         attr_list.push_back(thrift_ingress_samplepacket_oid);
-        
+
         sai_attribute_t egress_samplepacket_oid;
         sai_thrift_attribute_t thrift_egress_samplepacket_oid;
         egress_samplepacket_oid.id = SAI_PORT_ATTR_EGRESS_SAMPLEPACKET_ENABLE;
@@ -12452,7 +12469,7 @@ public:
         thrift_egress_samplepacket_oid.id = SAI_PORT_ATTR_EGRESS_SAMPLEPACKET_ENABLE;
         thrift_egress_samplepacket_oid.value.__set_oid(egress_samplepacket_oid.value.oid);
         attr_list.push_back(thrift_egress_samplepacket_oid);
-        
+
         sai_attribute_t policer_oid;
         sai_thrift_attribute_t thrift_policer_oid;
         policer_oid.id = SAI_PORT_ATTR_POLICER_ID;
@@ -12460,7 +12477,7 @@ public:
         thrift_policer_oid.id = SAI_PORT_ATTR_POLICER_ID;
         thrift_policer_oid.value.__set_oid(policer_oid.value.oid);
         attr_list.push_back(thrift_policer_oid);
-        
+
         sai_attribute_t qos_dot1p_to_tc;
         sai_thrift_attribute_t thrift_qos_dot1p_to_tc;
         qos_dot1p_to_tc.id = SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP;
@@ -12468,7 +12485,7 @@ public:
         thrift_qos_dot1p_to_tc.id = SAI_PORT_ATTR_QOS_DOT1P_TO_TC_MAP;
         thrift_qos_dot1p_to_tc.value.__set_oid(qos_dot1p_to_tc.value.oid);
         attr_list.push_back(thrift_qos_dot1p_to_tc);
-        
+
         sai_attribute_t qos_dot1p_to_color;
         sai_thrift_attribute_t thrift_qos_dot1p_to_color;
         qos_dot1p_to_color.id = SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP;
@@ -12476,7 +12493,7 @@ public:
         thrift_qos_dot1p_to_color.id = SAI_PORT_ATTR_QOS_DOT1P_TO_COLOR_MAP;
         thrift_qos_dot1p_to_color.value.__set_oid(qos_dot1p_to_color.value.oid);
         attr_list.push_back(thrift_qos_dot1p_to_color);
-        
+
         sai_attribute_t qos_dscp_to_tc;
         sai_thrift_attribute_t thrift_qos_dscp_to_tc;
         qos_dscp_to_tc.id = SAI_PORT_ATTR_QOS_DSCP_TO_TC_MAP;
@@ -12484,7 +12501,7 @@ public:
         thrift_qos_dscp_to_tc.id = SAI_PORT_ATTR_QOS_DSCP_TO_TC_MAP;
         thrift_qos_dscp_to_tc.value.__set_oid(qos_dscp_to_tc.value.oid);
         attr_list.push_back(thrift_qos_dscp_to_tc);
-        
+
         sai_attribute_t qos_dscp_to_color;
         sai_thrift_attribute_t thrift_qos_dscp_to_color;
         qos_dscp_to_color.id = SAI_PORT_ATTR_QOS_DSCP_TO_COLOR_MAP;
@@ -12492,7 +12509,7 @@ public:
         thrift_qos_dscp_to_color.id = SAI_PORT_ATTR_QOS_DSCP_TO_COLOR_MAP;
         thrift_qos_dscp_to_color.value.__set_oid(qos_dscp_to_color.value.oid);
         attr_list.push_back(thrift_qos_dscp_to_color);
-        
+
         sai_attribute_t qos_color_to_dot1p;
         sai_thrift_attribute_t thrift_qos_color_to_dot1p;
         qos_color_to_dot1p.id = SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP;
@@ -12500,7 +12517,7 @@ public:
         thrift_qos_color_to_dot1p.id = SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DOT1P_MAP;
         thrift_qos_color_to_dot1p.value.__set_oid(qos_color_to_dot1p.value.oid);
         attr_list.push_back(thrift_qos_color_to_dot1p);
-        
+
         sai_attribute_t qos_color_to_dscp;
         sai_thrift_attribute_t thrift_qos_color_to_dscp;
         qos_color_to_dscp.id = SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP;
@@ -12508,7 +12525,7 @@ public:
         thrift_qos_color_to_dscp.id = SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP;
         thrift_qos_color_to_dscp.value.__set_oid(qos_color_to_dscp.value.oid);
         attr_list.push_back(thrift_qos_color_to_dscp);
-        
+
         sai_attribute_t scheduler_profile_id;
         sai_thrift_attribute_t thrift_scheduler_profile_id;
         scheduler_profile_id.id = SAI_PORT_ATTR_QOS_SCHEDULER_PROFILE_ID;
@@ -12516,7 +12533,7 @@ public:
         thrift_scheduler_profile_id.id = SAI_PORT_ATTR_QOS_SCHEDULER_PROFILE_ID;
         thrift_scheduler_profile_id.value.__set_oid(scheduler_profile_id.value.oid);
         attr_list.push_back(thrift_scheduler_profile_id);
-        
+
         sai_attribute_t pfc_mode;
         sai_thrift_attribute_t thrift_pfc_mode;
         pfc_mode.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_MODE;
@@ -12524,31 +12541,36 @@ public:
         thrift_pfc_mode.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_MODE;
         thrift_pfc_mode.value.__set_s32(pfc_mode.value.s32);
         attr_list.push_back(thrift_pfc_mode);
-        
-        sai_attribute_t pfc;
-        sai_thrift_attribute_t thrift_pfc;
-        pfc.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL;
-        port_api->get_port_attribute(port_id, 1, &pfc);
-        thrift_pfc.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL;
-        thrift_pfc.value.__set_u8(pfc.value.u8);
-        attr_list.push_back(thrift_pfc);
-        
-        sai_attribute_t pfc_rx;
-        sai_thrift_attribute_t thrift_pfc_rx;
-        pfc_rx.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_RX;
-        port_api->get_port_attribute(port_id, 1, &pfc_rx);
-        thrift_pfc_rx.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_RX;
-        thrift_pfc_rx.value.__set_u8(pfc_rx.value.u8);
-        attr_list.push_back(thrift_pfc_rx);
-        
-        sai_attribute_t pfc_tx;
-        sai_thrift_attribute_t thrift_pfc_tx;
-        pfc_tx.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_TX;
-        port_api->get_port_attribute(port_id, 1, &pfc_tx);
-        thrift_pfc_tx.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_TX;
-        thrift_pfc_tx.value.__set_u8(pfc_tx.value.u8);
-        attr_list.push_back(thrift_pfc_tx);
-        
+
+        if (SAI_PORT_PRIORITY_FLOW_CONTROL_MODE_COMBINED == pfc_mode.value.s32)
+        {
+            sai_attribute_t pfc;
+            sai_thrift_attribute_t thrift_pfc;
+            pfc.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL;
+            port_api->get_port_attribute(port_id, 1, &pfc);
+            thrift_pfc.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL;
+            thrift_pfc.value.__set_u8(pfc.value.u8);
+            attr_list.push_back(thrift_pfc);
+        }
+        else if (SAI_PORT_PRIORITY_FLOW_CONTROL_MODE_SEPARATE == pfc_mode.value.s32)
+        {
+            sai_attribute_t pfc_rx;
+            sai_thrift_attribute_t thrift_pfc_rx;
+            pfc_rx.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_RX;
+            port_api->get_port_attribute(port_id, 1, &pfc_rx);
+            thrift_pfc_rx.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_RX;
+            thrift_pfc_rx.value.__set_u8(pfc_rx.value.u8);
+            attr_list.push_back(thrift_pfc_rx);
+
+            sai_attribute_t pfc_tx;
+            sai_thrift_attribute_t thrift_pfc_tx;
+            pfc_tx.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_TX;
+            port_api->get_port_attribute(port_id, 1, &pfc_tx);
+            thrift_pfc_tx.id = SAI_PORT_ATTR_PRIORITY_FLOW_CONTROL_TX;
+            thrift_pfc_tx.value.__set_u8(pfc_tx.value.u8);
+            attr_list.push_back(thrift_pfc_tx);
+        }
+
         sai_attribute_t meta_data;
         sai_thrift_attribute_t thrift_meta_data;
         meta_data.id = SAI_PORT_ATTR_META_DATA;
@@ -12556,7 +12578,7 @@ public:
         thrift_meta_data.id = SAI_PORT_ATTR_META_DATA;
         thrift_meta_data.value.__set_u32(meta_data.value.u32);
         attr_list.push_back(thrift_meta_data);
-        
+
         sai_attribute_t egress_block_port_list;
         sai_thrift_attribute_t thrift_egress_block_port_list;
         egress_block_port_list.id = SAI_PORT_ATTR_EGRESS_BLOCK_PORT_LIST;
@@ -12575,8 +12597,8 @@ public:
         thrift_egress_block_port_list.value.__isset.objlist = true;
         attr_list.push_back(thrift_egress_block_port_list);
         free(egress_block_port_list.value.objlist.list);
-        
-        
+
+        /* TsingMa & TsingMa_MX do not support EEE
         sai_attribute_t eee_enable = {0};
         sai_thrift_attribute_t thrift_eee_enable;
         eee_enable.id = SAI_PORT_ATTR_EEE_ENABLE;
@@ -12584,7 +12606,8 @@ public:
         thrift_eee_enable.id = SAI_PORT_ATTR_EEE_ENABLE;
         thrift_eee_enable.value.__set_booldata(eee_enable.value.booldata);
         attr_list.push_back(thrift_eee_enable);
-        
+         */
+
         sai_attribute_t isolation_group;
         sai_thrift_attribute_t thrift_isolation_group;
         isolation_group.id = SAI_PORT_ATTR_ISOLATION_GROUP;
@@ -12592,7 +12615,7 @@ public:
         thrift_isolation_group.id = SAI_PORT_ATTR_ISOLATION_GROUP;
         thrift_isolation_group.value.__set_oid(isolation_group.value.oid);
         attr_list.push_back(thrift_isolation_group);
-        
+
         sai_attribute_t tx_enable;
         sai_thrift_attribute_t thrift_tx_enable;
         tx_enable.id = SAI_PORT_ATTR_PKT_TX_ENABLE;
@@ -12600,7 +12623,7 @@ public:
         thrift_tx_enable.id = SAI_PORT_ATTR_PKT_TX_ENABLE;
         thrift_tx_enable.value.__set_booldata(tx_enable.value.booldata);
         attr_list.push_back(thrift_tx_enable);
-        
+
         sai_attribute_t es;
         sai_thrift_attribute_t thrift_es;
         es.id = SAI_PORT_ATTR_ES;
@@ -12608,7 +12631,7 @@ public:
         thrift_es.id = SAI_PORT_ATTR_ES;
         thrift_es.value.__set_oid(es.value.oid);
         attr_list.push_back(thrift_es);
-        
+
         sai_attribute_t ing_acl_oid;
         sai_thrift_attribute_t thrift_ing_acl_oid;
         ing_acl_oid.id = SAI_PORT_ATTR_INGRESS_ACL;
@@ -12616,7 +12639,7 @@ public:
         thrift_ing_acl_oid.id = SAI_PORT_ATTR_INGRESS_ACL;
         thrift_ing_acl_oid.value.__set_oid(ing_acl_oid.value.oid);
         attr_list.push_back(thrift_ing_acl_oid);
-        
+
         sai_attribute_t eg_acl_oid;
         sai_thrift_attribute_t thrift_eg_acl_oid;
         eg_acl_oid.id = SAI_PORT_ATTR_EGRESS_ACL;
@@ -12625,7 +12648,6 @@ public:
         thrift_eg_acl_oid.value.__set_oid(eg_acl_oid.value.oid);
         attr_list.push_back(thrift_eg_acl_oid);
 
-        
         sai_attribute_t ptp_mode;
         sai_thrift_attribute_t thrift_ptp_mode;
         ptp_mode.id = SAI_PORT_ATTR_PTP_MODE;
@@ -12633,7 +12655,7 @@ public:
         thrift_ptp_mode.id = SAI_PORT_ATTR_PTP_MODE;
         thrift_ptp_mode.value.__set_s32(ptp_mode.value.s32);
         attr_list.push_back(thrift_ptp_mode);
-        
+
         sai_attribute_t ing_asy_delay;
         sai_thrift_attribute_t thrift_ing_asy_delay;
         ing_asy_delay.id = SAI_PORT_ATTR_PTP_INGRESS_ASYMMETRY_DELAY;
@@ -12641,7 +12663,7 @@ public:
         thrift_ing_asy_delay.id = SAI_PORT_ATTR_PTP_INGRESS_ASYMMETRY_DELAY;
         thrift_ing_asy_delay.value.__set_u64(ing_asy_delay.value.u64);
         attr_list.push_back(thrift_ing_asy_delay);
-        
+
         sai_attribute_t eg_asy_delay;
         sai_thrift_attribute_t thrift_eg_asy_delay;
         eg_asy_delay.id = SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY;
@@ -12649,7 +12671,7 @@ public:
         thrift_eg_asy_delay.id = SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY;
         thrift_eg_asy_delay.value.__set_u64(eg_asy_delay.value.u64);
         attr_list.push_back(thrift_eg_asy_delay);
-        
+
         sai_attribute_t path_delay;
         sai_thrift_attribute_t thrift_path_delay;
         path_delay.id = SAI_PORT_ATTR_PTP_PATH_DELAY;
@@ -12657,29 +12679,29 @@ public:
         thrift_path_delay.id = SAI_PORT_ATTR_PTP_PATH_DELAY;
         thrift_path_delay.value.__set_u64(path_delay.value.u64);
         attr_list.push_back(thrift_path_delay);
-        
+
         sai_attribute_t domain_id;
         sai_thrift_attribute_t thrift_domain_id;
         domain_id.id = SAI_PORT_ATTR_PTP_DOMAIN_ID;
         port_api->get_port_attribute(port_id, 1, &domain_id);
         thrift_domain_id.id = SAI_PORT_ATTR_PTP_DOMAIN_ID;
-        thrift_domain_id.value.__set_u8(domain_id.value.u8);
+        thrift_domain_id.value.__set_oid(domain_id.value.oid);
         attr_list.push_back(thrift_domain_id);
-        
+
         sai_attribute_t oam_enable;
         sai_thrift_attribute_t thrift_oam_enable;
         oam_enable.id = SAI_PORT_ATTR_Y1731_ENABLE;
         port_api->get_port_attribute(port_id, 1, &oam_enable);
-        
+
         thrift_oam_enable.id = SAI_PORT_ATTR_Y1731_ENABLE;
         thrift_oam_enable.value.__set_booldata(oam_enable.value.booldata);
         attr_list.push_back(thrift_oam_enable);
-        
+
         sai_attribute_t oam_lm_enable;
         sai_thrift_attribute_t thrift_oam_lm_enable;
         oam_lm_enable.id = SAI_PORT_ATTR_Y1731_LM_ENABLE;
         port_api->get_port_attribute(port_id, 1, &oam_lm_enable);
-        
+
         thrift_oam_lm_enable.id = SAI_PORT_ATTR_Y1731_LM_ENABLE;
         thrift_oam_lm_enable.value.__set_booldata(oam_lm_enable.value.booldata);
         attr_list.push_back(thrift_oam_lm_enable);
@@ -12688,21 +12710,20 @@ public:
         sai_thrift_attribute_t thrift_oam_mip_enable;
         oam_mip_enable.id = SAI_PORT_ATTR_Y1731_MIP_ENABLE;
         port_api->get_port_attribute(port_id, 1, &oam_mip_enable);
-        
+
         thrift_oam_mip_enable.id = SAI_PORT_ATTR_Y1731_MIP_ENABLE;
         thrift_oam_mip_enable.value.__set_u8(oam_mip_enable.value.u8);
         attr_list.push_back(thrift_oam_mip_enable);
-        
+
         sai_attribute_t port_mac;
         sai_thrift_attribute_t thrift_port_mac;
         port_mac.id = SAI_PORT_ATTR_MAC_ADDRESS;
         port_api->get_port_attribute(port_id, 1, &port_mac);
-        
+
         thrift_port_mac.id = SAI_PORT_ATTR_MAC_ADDRESS;
         thrift_port_mac.value.mac = sai_thrift_mac_to_string(port_mac.value.mac);
         thrift_port_mac.value.__isset.mac = true;
-        attr_list.push_back(thrift_port_mac);   
-        
+        attr_list.push_back(thrift_port_mac);
     }
 
     void sai_thrift_get_queue_stats(std::vector<int64_t> & thrift_counters,
@@ -13535,8 +13556,10 @@ public:
         return status;
     }
 
-    sai_thrift_object_id_t sai_thrift_create_qos_map(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
+    sai_thrift_object_id_t
+    sai_thrift_create_qos_map(const std::vector<sai_thrift_attribute_t> & thrift_attr_list)
     {
+        SAI_THRIFT_FUNC_LOG();
         std::vector<sai_thrift_attribute_t>::const_iterator it = thrift_attr_list.begin();
         sai_thrift_attribute_t attribute;
         sai_attribute_t *attr_list;
@@ -13544,36 +13567,34 @@ public:
         sai_qos_map_api_t *qos_map_api;
         sai_object_id_t qos_map_id = 0;
         sai_qos_map_t *qos_map_list = NULL;
-        
-        printf("sai_thrift_create_qos_map\n");
-        
+
         status = sai_api_query(SAI_API_QOS_MAP, (void **) &qos_map_api);
         if (status != SAI_STATUS_SUCCESS)
         {
-            return status;
+            SAI_THRIFT_LOG_ERR("Failed to obtain qos_map api, status:%d", status);
+            return;
         }
-        
+
         attr_list = (sai_attribute_t *) malloc(sizeof(sai_attribute_t) * thrift_attr_list.size());
-        
         for (uint32_t i = 0; i < thrift_attr_list.size(); i++, it++)
         {
             attribute = (sai_thrift_attribute_t)*it;
             attr_list[i].id = attribute.id;
-        
+
             switch (attribute.id)
             {
                 case SAI_QOS_MAP_ATTR_TYPE:
                     attr_list[i].value.s32 = attribute.value.s32;
                     break;
-        
+
                 case SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST:
                     sai_attribute_t *attr = &attr_list[i];
-        
+
                     attr->value.qosmap.count = attribute.value.qosmap.count;
-        
+
                     qos_map_list = (sai_qos_map_t *) malloc(attr->value.qosmap.count * sizeof(sai_qos_map_t));
                     attr->value.qosmap.list = qos_map_list;
-        
+
                     for (uint32_t j = 0; j < attribute.value.qosmap.count; j++)
                     {
                         sai_thrift_parse_qos_map_params(&attribute.value.qosmap.map_list[j].key, &attr->value.qosmap.list[j].key);
@@ -13582,15 +13603,21 @@ public:
                     break;
             }
         }
-        
-        qos_map_api->create_qos_map(&qos_map_id, gSwitchId, thrift_attr_list.size(), attr_list);
-        
+
+        status = qos_map_api->create_qos_map(&qos_map_id, gSwitchId, thrift_attr_list.size(), attr_list);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to create qos_map, status:%d", status);
+            return;
+        }
         free(qos_map_list);
         free(attr_list);
         return qos_map_id;
     }
 
-    void sai_thrift_parse_qos_map_params(const sai_thrift_qos_map_params_t *thrift_qos_params, sai_qos_map_params_t *qos_params)
+    void
+    sai_thrift_parse_qos_map_params(const sai_thrift_qos_map_params_t *thrift_qos_params,
+                                    sai_qos_map_params_t *qos_params)
     {
         qos_params->tc = thrift_qos_params->tc;
         qos_params->dscp = thrift_qos_params->dscp;
@@ -13602,7 +13629,9 @@ public:
         qos_params->mpls_exp = thrift_qos_params->mpls_exp;
     }
 
-    void sai_thrift_parse_qos_map_params(const sai_qos_map_params_t *qos_params, sai_thrift_qos_map_params_t *thrift_qos_params)
+    void
+    sai_thrift_parse_qos_map_params(const sai_qos_map_params_t *qos_params,
+                                    sai_thrift_qos_map_params_t *thrift_qos_params)
     {
         thrift_qos_params->tc = qos_params->tc;
         thrift_qos_params->dscp = qos_params->dscp;
@@ -13614,124 +13643,122 @@ public:
         thrift_qos_params->mpls_exp = qos_params->mpls_exp;
     }
 
-    sai_thrift_status_t sai_thrift_remove_qos_map(const sai_thrift_object_id_t qos_map_id)
+    sai_thrift_status_t
+    sai_thrift_remove_qos_map(const sai_thrift_object_id_t qos_map_id)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_qos_map_api_t *qos_map_api;
-        
-        printf("sai_thrift_remove_qos_map\n");
-        
+
         status = sai_api_query(SAI_API_QOS_MAP, (void **) &qos_map_api);
         if (status != SAI_STATUS_SUCCESS)
         {
+            SAI_THRIFT_LOG_ERR("Failed to obtain qos_map api, status:%d", status);
             return status;
         }
-        
+
         status = qos_map_api->remove_qos_map((sai_object_id_t) qos_map_id);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to remove qos_map, status:%d", status);
+        }
         return status;
     }
 
-    void sai_thrift_get_qos_map_attribute(sai_thrift_attribute_list_t& thrift_attr_list, const sai_thrift_object_id_t qos_map_id)
+    void
+    sai_thrift_get_qos_map_attribute(sai_thrift_attribute_list_t& thrift_attr_list,
+                                     const sai_thrift_object_id_t qos_map_id)
     {
+        SAI_THRIFT_FUNC_LOG();
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_qos_map_api_t *qos_map_api;
         uint32_t attr_count = 0;
         sai_attribute_t attr[2];
-	    sai_thrift_attribute_t thrift_attr;
-	    sai_thrift_qos_map_t map_list;
-        
-        SAI_THRIFT_FUNC_LOG();
-        
+        sai_thrift_attribute_t thrift_attr;
+        sai_thrift_qos_map_t map_list;
         thrift_attr_list.attr_count = 0;
-        
+
         status = sai_api_query(SAI_API_QOS_MAP, (void **) &qos_map_api);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain qos_map api, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain qos_map api, status:%d", status);
             return;
         }
-        
+
         attr[0].id = SAI_QOS_MAP_ATTR_TYPE;
         attr[1].id = SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST;
         attr_count = 2;
-	    attr[1].value.qosmap.count = 64;
-	    attr[1].value.qosmap.list = (sai_qos_map_t*)malloc(attr[1].value.qosmap.count * sizeof(sai_qos_map_t));
-        
+        attr[1].value.qosmap.count = 64;
+        attr[1].value.qosmap.list = (sai_qos_map_t*)malloc(attr[1].value.qosmap.count * sizeof(sai_qos_map_t));
+
         status = qos_map_api->get_qos_map_attribute(qos_map_id, attr_count, attr);
+        thrift_attr_list.status = status;
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to get qos_map attr, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to get qos_map attr, status:%d", status);
             return;
         }
-        
-	    thrift_attr.id = attr[0].id;
-	    thrift_attr.value.__set_s32(attr[0].value.s32);
+
+        thrift_attr.id = attr[0].id;
+        thrift_attr.value.__set_s32(attr[0].value.s32);
         thrift_attr_list.attr_list.push_back(thrift_attr);
-        
-	    thrift_attr.id = attr[1].id;
-	    thrift_attr.value.qosmap.count = attr[1].value.qosmap.count;
-        
-	    for (int index = 0; index < attr[1].value.qosmap.count; index++)
-  	    {
-  	    	memset(&map_list, 0, sizeof(map_list));
-	        //map_list.key.tc = attr[1].value.qosmap.list[index].key.tc;
-	        sai_thrift_parse_qos_map_params(&attr[1].value.qosmap.list[index].key, &map_list.key);
+
+        thrift_attr.id = attr[1].id;
+        thrift_attr.value.qosmap.count = attr[1].value.qosmap.count;
+        for (int index = 0; index < attr[1].value.qosmap.count; index++)
+        {
+            memset(&map_list, 0, sizeof(map_list));
+            //map_list.key.tc = attr[1].value.qosmap.list[index].key.tc;
+            sai_thrift_parse_qos_map_params(&attr[1].value.qosmap.list[index].key, &map_list.key);
             sai_thrift_parse_qos_map_params(&attr[1].value.qosmap.list[index].value, &map_list.value);
             thrift_attr.value.__isset.qosmap = true;
-	        thrift_attr.value.qosmap.map_list.push_back(map_list);
-  	    }
-	    thrift_attr_list.attr_list.push_back(thrift_attr);
-        
-	    free(attr[1].value.qosmap.list);
+            thrift_attr.value.qosmap.map_list.push_back(map_list);
+        }
+        thrift_attr_list.attr_list.push_back(thrift_attr);
+
+        free(attr[1].value.qosmap.list);
     }
 
-    sai_thrift_status_t sai_thrift_set_qos_map_attribute(const sai_thrift_object_id_t qos_map_id, 
-                                                         const sai_thrift_attribute_t &thrift_attr)
+    sai_thrift_status_t
+    sai_thrift_set_qos_map_attribute(const sai_thrift_object_id_t qos_map_id,
+                                     const sai_thrift_attribute_t &thrift_attr)
     {
         sai_attribute_t attr;
         sai_status_t status = SAI_STATUS_SUCCESS;
         sai_qos_map_api_t *qos_map_api = NULL;
         sai_qos_map_t *qos_map_list = NULL;
-        
-	    if (thrift_attr.id != SAI_QOS_MAP_ATTR_MAP_TO_VALUE_LIST)
-  	    {
-  	    	status= SAI_STATUS_NOT_SUPPORTED;
-  	    	SAI_THRIFT_LOG_DBG("Error Exited.");return status;
-  	    }
-        
-	    status = sai_api_query(SAI_API_QOS_MAP, (void **) &qos_map_api);
+
+        status = sai_api_query(SAI_API_QOS_MAP, (void **) &qos_map_api);
         if (status != SAI_STATUS_SUCCESS)
         {
-            SAI_THRIFT_LOG_ERR("failed to obtain qos_map api, status:%d", status);
+            SAI_THRIFT_LOG_ERR("Failed to obtain qos_map api, status:%d", status);
             return status;
         }
-        
-	    attr.id = thrift_attr.id;
+
+        attr.id = thrift_attr.id;
         attr.value.qosmap.count = thrift_attr.value.qosmap.count;
-        
+
         qos_map_list = (sai_qos_map_t *) malloc(attr.value.qosmap.count * sizeof(sai_qos_map_t));
         attr.value.qosmap.list = qos_map_list;
-        
+
         for (uint32_t j = 0; j < thrift_attr.value.qosmap.count; j++)
         {
             sai_thrift_parse_qos_map_params(&thrift_attr.value.qosmap.map_list[j].key, &attr.value.qosmap.list[j].key);
             sai_thrift_parse_qos_map_params(&thrift_attr.value.qosmap.map_list[j].value, &attr.value.qosmap.list[j].value);
         }
-        
-	    status = qos_map_api->set_qos_map_attribute(qos_map_id, &attr);
-        
+
+        status = qos_map_api->set_qos_map_attribute(qos_map_id, &attr);
+        if (status != SAI_STATUS_SUCCESS)
+        {
+            SAI_THRIFT_LOG_ERR("Failed to set qos_map attr, status:%d", status);
+        }
         free(qos_map_list);
-        if (status == SAI_STATUS_SUCCESS)
-        { SAI_THRIFT_LOG_DBG("Exited.");return status; }
-        
-        SAI_THRIFT_LOG_ERR("Failed to set attribute.");
-        
         return status;
     }
+
     //
     // SAI Next Hop Group API *****************************************************************************************
     //
-
     void sai_thrift_parse_next_hop_group_attributes(sai_attribute_t *attr_list, 
                                                     const std::vector<sai_thrift_attribute_t> &thrift_attr_list) noexcept
     {
@@ -18305,6 +18332,8 @@ public:
                     break;
                 case SAI_HOSTIF_PACKET_ATTR_EGRESS_PORT_OR_LAG:
                 case SAI_HOSTIF_PACKET_ATTR_CUSTOM_OAM_Y1731_SESSION_ID:
+                case SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT:
+                case SAI_HOSTIF_PACKET_ATTR_INGRESS_LAG:
                     attr_list[i].value.oid = attribute.value.oid;
                     break;
                 case SAI_HOSTIF_PACKET_ATTR_CUSTOM_TIMESTAMP_OFFSET:

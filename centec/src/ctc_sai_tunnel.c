@@ -1431,7 +1431,7 @@ _ctc_sai_tunnel_set_tunnel_property(sai_object_key_t* key, const sai_attribute_t
         if(attr->value.booldata)
         {
             nh_mpls_param.nh_para.nh_param_push.martini_encap_valid = TRUE;
-            nh_mpls_param.nh_para.nh_param_push.martini_encap_type = 1;
+            nh_mpls_param.nh_para.nh_param_push.martini_encap_type = 0;
         }
         else
         {

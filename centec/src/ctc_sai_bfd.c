@@ -510,6 +510,10 @@ _ctc_sai_bfd_build_ipbfd_nh(uint8 lchip, ctc_sai_bfd_t* p_bfd_info, uint32* nh_i
                     p_bfd_info->inner_nhid = *nh_id;
                     p_bfd_info->inner_gport = p_ctc_sai_bfd[lchip]->reroute_inner_port;
                 }
+                else if (CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+                {
+                    //do not need nh
+                }
                 else
                 {                
                     /*alloc iloop port */
@@ -652,6 +656,10 @@ _ctc_sai_bfd_remove_ipbfd_nh(uint8 lchip, ctc_sai_bfd_t* p_bfd_info)
             if((CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)) && p_ctc_sai_bfd[lchip]->use_global_res_info)
             {
                 //Do not del nh info
+            }
+            else if (CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+            {
+
             }
             else
             {
@@ -1430,6 +1438,10 @@ ctc_sai_bfd_get_info(sai_object_key_t *key, sai_attribute_t* attr, uint32 attr_i
                 {
                     attr->value.oid = p_bfd_info->vr_oid;
                 }
+                else if(CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+                {
+                    attr->value.oid = p_bfd_info->vr_oid;
+                }
                 else
                 {
                     if(CTC_SAI_BFD_NH_TYPE_ILOOP == p_bfd_info->inner_nh_type)
@@ -2176,6 +2188,11 @@ sai_status_t ctc_sai_bfd_create_bfd_session( sai_object_id_t      * sai_bfd_sess
         else
         {
             CTC_SAI_ERROR_GOTO(_ctc_sai_bfd_build_ipbfd_nh(lchip, p_bfd_info, &nh_id), status, error2);
+        }
+
+        if (CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+        {
+            ctc_sai_oid_get_vrf_id(p_bfd_info->vr_oid, &p_bfd_lmep->vrf_id);
         }
 
         p_bfd_lmep->nhid = nh_id;

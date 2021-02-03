@@ -158,6 +158,7 @@
 \e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_Y1731_TP_DM    |           CTC7132              |
 \e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_MICROBURST_LOG |           CTC7132              |
 \e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_LATENCY_OVERFLOW_LOG  |           CTC7132              |
+\e  |  SAI_HOSTIF_TRAP_TYPE_CUSTOM_EXCEPTION_ISIS           |           CTC7132              |
 
 \b
  The Hostif user defined trap type supported by centec devices:

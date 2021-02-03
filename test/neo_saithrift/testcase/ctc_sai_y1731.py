@@ -21,13 +21,10 @@ import sai_base_test
 from ptf.mask import Mask
 import pdb
 
-
 oam_port_tx_smac = '00:00:00:22:00:00'
 default_port_mac = '00:00:00:00:00:00'
 
-
 @group('y1731')
-
 class afunc_01_MegCreateTest(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         switch_init(self.client)
@@ -1544,8 +1541,9 @@ class afunc_09_VplsOamVlanTxRxTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             
-            sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
-            sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
+            flush_all_fdb(self.client)
+            #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
+            #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
             sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
@@ -1810,6 +1808,7 @@ class afunc_10_VpwsOamFidTxRxTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             
+            flush_all_fdb(self.client)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
             #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
@@ -2941,8 +2940,6 @@ class func_02_create_same_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
         
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_meg(meg_id1)
-            
-
 
 class func_03_create_multi_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -3014,8 +3011,6 @@ class func_03_create_multi_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_meg(meg_id1)
             self.client.sai_thrift_remove_y1731_meg(meg_id2) 
 
-
-
 class func_04_create_max_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -3025,10 +3020,20 @@ class func_04_create_max_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
         meg_type1 = SAI_Y1731_MEG_TYPE_ETHER_VLAN
         meg_name1 = ''
         level1 = 0
-        
-        meg_id_list = range(684)
-         
-        for i in range(0,682):
+
+        meg_id_list = range(8200)
+
+        num = 0
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+        if chipname == "tsingma":
+            num = 4096/2
+        elif chipname == "tsingma_mx":
+            num = 8192
+        else:
+            num = 0
+            sys_logging("======chipname is error======")
+        for i in range(0,num):
             meg_name = '%d' %i
             sys_logging("meg_name = %s" %meg_name)
             meg_id_list[i] = sai_thrift_create_y1731_meg(self.client, meg_type1, meg_name, level1)
@@ -3039,22 +3044,20 @@ class func_04_create_max_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
         
         try:
 
-            meg_name = '%d' %682
+            meg_name = '%d' %num
             sys_logging("meg_name = %s" %meg_name)
-            meg_id_list[682] = sai_thrift_create_y1731_meg(self.client, meg_type1, meg_name, level1)
-            sys_logging("creat meg id = %d" %meg_id_list[682])
-            assert( meg_id_list[682] == SAI_NULL_OBJECT_ID)            
-            
+            meg_id_list[num] = sai_thrift_create_y1731_meg(self.client, meg_type1, meg_name, level1)
+            sys_logging("creat meg id = %d" %meg_id_list[num])
+            assert( meg_id_list[num] == SAI_NULL_OBJECT_ID)
+
         finally:
         
             sys_logging("clear configuration")
-            for i in range(0,682):
+            for i in range(0,num):
                 meg_name = '%d' %i
-                sys_logging("meg_name = %s" %meg_name)            
+                sys_logging("meg_name = %s" %meg_name)
                 self.client.sai_thrift_remove_y1731_meg(meg_id_list[i])
                 sys_logging("remove meg id = %d" %meg_id_list[i])
-
-
 
 class func_05_remove_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -3081,7 +3084,6 @@ class func_05_remove_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
         finally:
         
             sys_logging("clear configuration")
-
 
 class func_06_remove_not_exist_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -3110,10 +3112,7 @@ class func_06_remove_not_exist_y1731_meg_fn(sai_base_test.ThriftInterfaceDataPla
             assert (status != SAI_STATUS_SUCCESS)
             
         finally:
-        
             sys_logging("clear configuration")
-
-
 
 class func_07_create_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -3231,14 +3230,12 @@ class func_07_create_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
             
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
-
 
 class func_08_create_same_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -3374,7 +3371,6 @@ class func_08_create_same_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlan
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
-            
 
 class func_09_create_multi_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -3454,74 +3450,72 @@ class func_09_create_multi_y1731_session_fn(sai_base_test.ThriftInterfaceDataPla
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
-            
 
-#stress case can not test on uml           
-'''
 class func_10_create_max_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
-
     def runTest(self):
-    
         switch_init(self.client)
-        
+
         port1 = port_list[0]
         port2 = port_list[1]
-        
+
         vlan = 10
-        
+
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)
-        
+
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
         vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_TAGGED)
-               
+
         meg_type = SAI_Y1731_MEG_TYPE_ETHER_VLAN
         meg_name = "abcd"
         level = 3
-        
+
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
 
         dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
         ccm_period = 1 
-        ccm_en = 1
+        ccm_en = 0
+        num = 0
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+        if chipname == "tsingma":
+            num = 2048
+        elif chipname == "tsingma_mx":
+            num = 4095
+        else:
+            num = 0
+            sys_logging("======chipname is error======")
+        mep_id_list = range(5000)
 
-        
-        mep_id_list = range(4096)
-         
-        for i in range(2,2050):    
-            vlan = i      
-            sys_logging(" vlan_id = %d" %vlan)            
-            mep_id_list[i] = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=vlan)        
+        for i in range(0,num):
+            vlan = i
+            sys_logging(" vlan_id = %d" %vlan)
+            mep_id_list[i] = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=vlan)
             sys_logging("creat mep id = %d" %mep_id_list[i])
             assert ( mep_id_list[i] != SAI_NULL_OBJECT_ID)
-        
-        warmboot(self.client)
-        
-        try:
-            
-            vlan = 2050      
-            sys_logging(" vlan_id = %d" %vlan)            
-            mep_id_list[2050] = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=2050)        
-            sys_logging("creat mep id = %d" %mep_id_list[2050])
-            assert ( mep_id_list[2050] == SAI_NULL_OBJECT_ID)        
 
-            
+        warmboot(self.client)
+
+        try:
+            vlan = num
+            sys_logging(" vlan_id = %d" %vlan)
+            mep_id_list[num] = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=num)
+            sys_logging("creat mep id = %d" %mep_id_list[num])
+            assert ( mep_id_list[num] == SAI_NULL_OBJECT_ID)
+
         finally:
-        
             sys_logging("clear configuration")
-            for i in range(2,2050): 
+            for i in range(0,num):
                 self.client.sai_thrift_remove_y1731_session(mep_id_list[i])
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
-'''            
-            
+
 class func_11_remove_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
-    
         switch_init(self.client)
         
         port1 = port_list[0]
@@ -3580,28 +3574,24 @@ class func_11_remove_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
         warmboot(self.client)
         
         try:
-                                  
-            sys_logging("remove mep session")                        
-            status = self.client.sai_thrift_remove_y1731_session(mep_id)  
-            sys_logging("remove mep session status = %d" %status)            
+            sys_logging("remove mep session")
+            status = self.client.sai_thrift_remove_y1731_session(mep_id)
+            sys_logging("remove mep session status = %d" %status)
             assert (status != SAI_STATUS_SUCCESS)
             
             status = self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             sys_logging("remove rmep status = %d" %status)
             assert (status == SAI_STATUS_SUCCESS)
             
-            sys_logging("remove mep session")                        
-            status = self.client.sai_thrift_remove_y1731_session(mep_id)  
-            sys_logging("remove mep session status = %d" %status)            
-            assert (status == SAI_STATUS_SUCCESS)            
-            
-            
+            sys_logging("remove mep session")
+            status = self.client.sai_thrift_remove_y1731_session(mep_id)
+            sys_logging("remove mep session status = %d" %status)
+            assert (status == SAI_STATUS_SUCCESS)
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             
-            self.client.sai_thrift_remove_mcast_fdb_entry(mcast_fdb_entry)            
+            self.client.sai_thrift_remove_mcast_fdb_entry(mcast_fdb_entry)
             self.client.sai_thrift_remove_l2mc_group_member(member_id1)
             self.client.sai_thrift_remove_l2mc_group_member(member_id2)
             self.client.sai_thrift_remove_l2mc_group(grp_id1)
@@ -3614,8 +3604,6 @@ class func_11_remove_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
 
-            
- 
 class func_12_remove_not_exist_y1731_session_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -3655,101 +3643,96 @@ class func_12_remove_not_exist_y1731_session_fn(sai_base_test.ThriftInterfaceDat
             attrs = self.client.sai_thrift_get_y1731_session_attribute(mep_id1)
             sys_logging("get attr status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
-                                   
-            sys_logging("remove mep1 session")                        
-            status = self.client.sai_thrift_remove_y1731_session(mep_id1)  
-            sys_logging("remove mep1 session status = %d" %status)            
+
+            sys_logging("remove mep1 session")
+            status = self.client.sai_thrift_remove_y1731_session(mep_id1)
+            sys_logging("remove mep1 session status = %d" %status)
             assert (status == SAI_STATUS_SUCCESS)
 
-            sys_logging("remove mep1 session")                        
-            status = self.client.sai_thrift_remove_y1731_session(mep_id1)  
-            sys_logging("remove mep1 session status = %d" %status)            
+            sys_logging("remove mep1 session")
+            status = self.client.sai_thrift_remove_y1731_session(mep_id1)
+            sys_logging("remove mep1 session status = %d" %status)
             assert (status != SAI_STATUS_SUCCESS)
             
         finally:
-        
             sys_logging("clear configuration")        
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
 
-'''
 class func_13_create_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
-    
         switch_init(self.client)
-        
+
         port1 = port_list[0]
         port2 = port_list[1]
-        
+
         oam_dmac1 = '01:80:C2:00:00:33'
-        
+
         vlan = 10
         sys_logging("### Step1. Create Vlan, mcast FDB ###")
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)
-        
+
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
         vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_TAGGED)
-        
+
         grp_attr_list = []
         grp_id1 = self.client.sai_thrift_create_l2mc_group(grp_attr_list)
         member_id1 = sai_thrift_create_l2mc_group_member(self.client, grp_id1, port1)
         member_id2 = sai_thrift_create_l2mc_group_member(self.client, grp_id1, port2)
-        
+
         mcast_fdb_entry = sai_thrift_mcast_fdb_entry_t(mac_address=oam_dmac1, bv_id=vlan_oid1)
         status = sai_thrift_create_mcast_fdb_entry(self.client, mcast_fdb_entry, grp_id1)
         assert( SAI_STATUS_SUCCESS == status)
-        
+
         sys_logging("### Step2. Set Port Oam Enable ###")
         attr_value = sai_thrift_attribute_value_t(booldata=1)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port1, attr)        
-        
+
         attrs = self.client.sai_thrift_get_port_attribute(port1)
         for a in attrs.attr_list:
             if a.id == SAI_PORT_ATTR_Y1731_ENABLE:
                 sys_logging("### SAI_PORT_ATTR_Y1731_ENABLE = %d ###"  %a.value.booldata)
                 assert (1 == a.value.booldata)
-            
+
         meg_type = SAI_Y1731_MEG_TYPE_ETHER_VLAN
         meg_name = "abcd"
         level = 3
-        
+
         sys_logging("### Step3. Create OAM MEP ###")
-        
+
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
-        
+
         dir = SAI_Y1731_SESSION_DIRECTION_UPMEP
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 0
         mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id = vlan)       
         sys_logging("creat mep id = %d" %mep_id)
-        
+
         remote_mep_id1 = 11
         mac1 = '00:11:11:11:11:11'
         rmep_id1 = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)        
         sys_logging("creat rmep id1 = %d" %rmep_id1)
-               
+        assert ( rmep_id1 != SAI_NULL_OBJECT_ID )
         warmboot(self.client)
         
         try:
-                                
             sys_logging("get rmep 1 info")
             attrs = self.client.sai_thrift_get_y1731_rmep_attribute(rmep_id1)
             sys_logging("get attr status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
-            
+
             for a in attrs.attr_list:
-            
                 if a.id == SAI_Y1731_REMOTE_MEP_ATTR_Y1731_SESSION_ID:
                     sys_logging("get mep_id = %d" %a.value.oid)
                     if mep_id != a.value.oid:
                         raise NotImplementedError()
-                        
+
                 if a.id == SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_ID:
                     sys_logging("get remote_mep_id = %s" %a.value.u32)
                     if remote_mep_id1 != a.value.u32:
@@ -3765,63 +3748,24 @@ class func_13_create_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
                     if 0 != a.value.booldata:
                         raise NotImplementedError()
 
-                        
-            mac2 = '00:11:11:11:11:22'
-            attr_value = sai_thrift_attribute_value_t(mac=mac2)
-            attr = sai_thrift_attribute_t(id=SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS, value=attr_value)
-            status = self.client.sai_thrift_set_y1731_rmep_attribute(rmep_id1, attr)
-            sys_logging("set rmep attr status = %d" %status)
-            assert (status == SAI_STATUS_SUCCESS)
-
-            sys_logging("get rmep 1 info")
-            attrs = self.client.sai_thrift_get_y1731_rmep_attribute(rmep_id1)
-            sys_logging("get attr status = %d" %attrs.status)
-            assert (attrs.status == SAI_STATUS_SUCCESS)
-            
-            for a in attrs.attr_list:
-            
-                if a.id == SAI_Y1731_REMOTE_MEP_ATTR_Y1731_SESSION_ID:
-                    sys_logging("get mep_id = %d" %a.value.oid)
-                    if mep_id != a.value.oid:
-                        raise NotImplementedError()
-                        
-                if a.id == SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_ID:
-                    sys_logging("get remote_mep_id = %s" %a.value.u32)
-                    if remote_mep_id1 != a.value.u32:
-                        raise NotImplementedError()
-                        
-                if a.id == SAI_Y1731_REMOTE_MEP_ATTR_REMOTE_MEP_MAC_ADDRESS:
-                    sys_logging("get mac = %s" %a.value.mac)
-                    if mac2 != a.value.mac:
-                        raise NotImplementedError()
-                        
-                if a.id == SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED:
-                    sys_logging("get rmep established = %s" %a.value.booldata)
-                    if 0 != a.value.booldata:
-                        raise NotImplementedError()
-                        
-            
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
-            
+
             self.client.sai_thrift_remove_mcast_fdb_entry(mcast_fdb_entry)            
             self.client.sai_thrift_remove_l2mc_group_member(member_id1)
             self.client.sai_thrift_remove_l2mc_group_member(member_id2)
             self.client.sai_thrift_remove_l2mc_group(grp_id1)
-            
+
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
-            
+
             attr_value = sai_thrift_attribute_value_t(booldata=0)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
-'''
-
 
 class func_14_create_same_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -3919,7 +3863,6 @@ class func_14_create_same_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
                     if 0 != a.value.booldata:
                         raise NotImplementedError()
 
-                                                          
         finally:
         
             sys_logging("clear configuration")
@@ -3927,7 +3870,7 @@ class func_14_create_same_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             
-            self.client.sai_thrift_remove_mcast_fdb_entry(mcast_fdb_entry)            
+            self.client.sai_thrift_remove_mcast_fdb_entry(mcast_fdb_entry)
             self.client.sai_thrift_remove_l2mc_group_member(member_id1)
             self.client.sai_thrift_remove_l2mc_group_member(member_id2)
             self.client.sai_thrift_remove_l2mc_group(grp_id1)
@@ -3939,10 +3882,6 @@ class func_14_create_same_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(booldata=0)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
-
-
-            
-
 
 class func_15_create_multi_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -4017,7 +3956,6 @@ class func_15_create_multi_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane)
         warmboot(self.client)
         
         try:
-
             sys_logging("get mep info")
             attrs = self.client.sai_thrift_get_y1731_session_attribute(mep_id)
             sys_logging("get attr status = %d" %attrs.status)
@@ -4089,7 +4027,6 @@ class func_15_create_multi_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane)
                         raise NotImplementedError()
                         
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_rmep(rmep_id2)            
@@ -4109,12 +4046,8 @@ class func_15_create_multi_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
 
-
-
 class func_16_create_max_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
-
     def runTest(self):
-    
         switch_init(self.client)
         
         port1 = port_list[0]
@@ -4162,43 +4095,50 @@ class func_16_create_max_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
         local_mep_id = 10
         ccm_period = 1 
         ccm_en = 0
-        mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id = vlan)       
+        mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id = vlan)
         sys_logging("create mep id = %d" %mep_id)
         
         remote_mep_id1 = 11
         mac1 = '00:11:11:11:11:11'
-        
-        rmep_list = range(4106)         
-        for i in range(11,4104):  
-            remote_mep_id1 = i  
-            sys_logging(" remote_mep_id1 = %d" %remote_mep_id1)            
-            rmep_list[i] = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)        
+        num = 0
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+        if chipname == "tsingma":
+            num = 4094
+        elif chipname == "tsingma_mx":
+            num = 2080
+        else:
+            num = 0
+            sys_logging("======chipname is error======")
+        rmep_list = range(4106)
+        for i in range(1,num):
+            remote_mep_id1 = i
+            sys_logging(" remote_mep_id1 = %d" %remote_mep_id1)
+            rmep_list[i] = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)
             sys_logging("create rmep id1 = %d" %rmep_list[i])
             assert ( rmep_list[i] != SAI_NULL_OBJECT_ID )
         
         warmboot(self.client)
         
         try:
-        
-            remote_mep_id1 = 4105  
-            sys_logging(" remote_mep_id1 = %d" %remote_mep_id1)            
-            rmep_list[4105] = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)        
-            sys_logging("create rmep id1 = %d" %rmep_list[4105])
-            assert ( rmep_list[4105] == SAI_NULL_OBJECT_ID )
-            
+            remote_mep_id1 = num
+            sys_logging(" remote_mep_id1 = %d" %remote_mep_id1)
+            rmep_list[num] = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)
+            sys_logging("create rmep id1 = %d" %rmep_list[num])
+            assert ( rmep_list[num] == SAI_NULL_OBJECT_ID )
+
         finally:
-        
             sys_logging("clear configuration")
-            for i in range(11,4104):  
+            for i in range(1,num):
                 remote_mep_id1 = i  
-                sys_logging(" remote_mep_id1 = %d" %remote_mep_id1)                
+                sys_logging(" remote_mep_id1 = %d" %remote_mep_id1)
                 self.client.sai_thrift_remove_y1731_rmep(rmep_list[i])
                 sys_logging("remove rmep id1 = %d" %rmep_list[i])
                 
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             
-            self.client.sai_thrift_remove_mcast_fdb_entry(mcast_fdb_entry)            
+            self.client.sai_thrift_remove_mcast_fdb_entry(mcast_fdb_entry)
             self.client.sai_thrift_remove_l2mc_group_member(member_id1)
             self.client.sai_thrift_remove_l2mc_group_member(member_id2)
             self.client.sai_thrift_remove_l2mc_group(grp_id1)
@@ -4210,9 +4150,6 @@ class func_16_create_max_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(booldata=0)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
-            
-
-
 
 class func_17_remove_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -4310,8 +4247,6 @@ class func_17_remove_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
 
-
-
 class func_18_remove_not_exist_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -4389,7 +4324,6 @@ class func_18_remove_not_exist_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPl
             assert (status != SAI_STATUS_SUCCESS)
             
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
@@ -4406,9 +4340,7 @@ class func_18_remove_not_exist_y1731_rmep_fn(sai_base_test.ThriftInterfaceDataPl
             attr_value = sai_thrift_attribute_value_t(booldata=0)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
-            
 
-            
 class func_19_EthOam_DownMep_Dual_LMStats_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -4420,7 +4352,7 @@ class func_19_EthOam_DownMep_Dual_LMStats_test(sai_base_test.ThriftInterfaceData
         
         default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
         
-        vlan = 10        
+        vlan = 10
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)
         
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
@@ -4478,7 +4410,7 @@ class func_19_EthOam_DownMep_Dual_LMStats_test(sai_base_test.ThriftInterfaceData
                                 ip_id=105,
                                 ip_ttl=64,
                                 ip_ihl=5)
-                                                
+
         warmboot(self.client)
         
         try:
@@ -4570,11 +4502,11 @@ class func_19_EthOam_DownMep_Dual_LMStats_test(sai_base_test.ThriftInterfaceData
             sys_logging ("receive rx packet %d" %ret.data.u16)
             if ret.data.u16 != 1:
                 raise NotImplementedError() 
-
+            
             attrs = self.client.sai_thrift_get_cpu_packet_attribute()
-
+            
             for a in attrs.attr_list:
-
+            
                 if a.id == SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT:
                     sys_logging("get SAI_HOSTIF_PACKET_ATTR_INGRESS_PORT = 0x%x" %a.value.oid)
                     if port1 != a.value.oid:
@@ -4601,9 +4533,8 @@ class func_19_EthOam_DownMep_Dual_LMStats_test(sai_base_test.ThriftInterfaceData
             assert ( counters_results[0] == 5 )
             assert ( counters_results[1] == 6 )
             assert ( counters_results[2] == 7 )
-            assert ( counters_results[3] == 2 )            
+            assert ( counters_results[3] == 2 )
 
-                       
         finally:
         
             sys_logging("clear configuration")
@@ -4630,23 +4561,21 @@ class func_19_EthOam_DownMep_Dual_LMStats_test(sai_base_test.ThriftInterfaceData
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
 
-            
 class scenario_01_eth_down_mep_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
-    
         switch_init(self.client)
-        
+
         port1 = port_list[0]
         port2 = port_list[1]
         
         sys_logging("### Step1. Create basic Environment ###")
         
-        vlan = 10                
-        vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)        
+        vlan = 10
+        vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
         vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_TAGGED)
-                
+
         sys_logging("### Step2. Set Port Oam Enable ###")
 
         attr_value = sai_thrift_attribute_value_t(mac=oam_port_tx_smac)
@@ -4655,7 +4584,7 @@ class scenario_01_eth_down_mep_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
 
         attr_value = sai_thrift_attribute_value_t(booldata=1)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
-        self.client.sai_thrift_set_port_attribute(port1, attr)        
+        self.client.sai_thrift_set_port_attribute(port1, attr)
         
         attrs = self.client.sai_thrift_get_port_attribute(port1)
         for a in attrs.attr_list:
@@ -4668,29 +4597,35 @@ class scenario_01_eth_down_mep_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
         meg_type = SAI_Y1731_MEG_TYPE_ETHER_VLAN
         meg_name = "ETHER_VLAN"
         level = 4
-                
+
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
         dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
-        ccm_period = 2 
+        ccm_period = 1
         ccm_en = 1
-        mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=vlan)       
+        mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=vlan)
         sys_logging("creat mep id = %d" %mep_id)
+        
+        
+        sys_logging("get mep info")
+        attrs = self.client.sai_thrift_get_y1731_session_attribute(mep_id)
+        sys_logging("get attr status = %d" %attrs.status)
+        assert (attrs.status == SAI_STATUS_SUCCESS)
+        for a in attrs.attr_list:
+            if a.id == SAI_Y1731_SESSION_ATTR_CCM_PERIOD:
+                sys_logging("SAI_Y1731_SESSION_ATTR_CCM_PERIOD  = %d" %a.value.s32)
         
         remote_mep_id1 = 11
         mac1 = '00:11:11:11:11:11'
-        rmep_id1 = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)        
+        rmep_id1 = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)
         sys_logging("creat rmep id1 = %d" %rmep_id1)
-               
         warmboot(self.client)
         
         try:
-            
             oam_multicast_dmac = '01:80:C2:00:00:34'
-            
-            
+
             ccm_hdr = simple_ccm_packet(mel=level,
                                         rdi=0,
                                         period=ccm_period,
@@ -4779,30 +4714,10 @@ class scenario_01_eth_down_mep_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
             assert (attrs.status == SAI_STATUS_SUCCESS)
             
             for a in attrs.attr_list:
-            
                 if a.id == SAI_Y1731_SESSION_ATTR_EXP_OR_COS:
                     sys_logging("get vlan cos = 0x%x" %a.value.u8)
                     if 7 != a.value.u8:
                         raise NotImplementedError()
-
-            ccm_hdr = simple_ccm_packet(mel=level,
-                                        rdi=0,
-                                        period=ccm_period,
-                                        mepid=local_mep_id,
-                                        megid=meg_name)
-
-                                        
-            pkt1 = simple_eth_packet(pktlen=97,
-                                    eth_dst=oam_multicast_dmac,
-                                    eth_src=oam_port_tx_smac,
-                                    dl_vlan_enable=True,
-                                    vlan_vid=10,
-                                    vlan_pcp=7,
-                                    eth_type=0x8902,
-                                    inner_frame=ccm_hdr)
-            
-            self.ctc_show_packet(0,None,str(pkt1))
-          
         finally:
         
             sys_logging("clear configuration")
@@ -4821,7 +4736,6 @@ class scenario_01_eth_down_mep_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(mac=default_port_mac)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
-
 
 class scenario_01_eth_down_mep_ccm_test_for_lag(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -4879,7 +4793,7 @@ class scenario_01_eth_down_mep_ccm_test_for_lag(sai_base_test.ThriftInterfaceDat
         
         dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
-        ccm_period = 2 
+        ccm_period = 1
         ccm_en = 1
         mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=lag_oid, vlan_id=vlan)       
         sys_logging("creat mep id = %d" %mep_id)
@@ -5045,7 +4959,7 @@ class scenario_02_eth_up_mep_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
         
         dir = SAI_Y1731_SESSION_DIRECTION_UPMEP
         local_mep_id = 10
-        ccm_period = 2 
+        ccm_period = 1
         ccm_en = 1
         mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=vlan)       
         sys_logging("creat mep id = %d" %mep_id)
@@ -5146,10 +5060,6 @@ class scenario_02_eth_up_mep_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
 
-
-
-
-
 class scenario_03_eth_down_mep_lb_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -5195,14 +5105,14 @@ class scenario_03_eth_down_mep_lb_test(sai_base_test.ThriftInterfaceDataPlane):
         
         dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
-        ccm_period = 2 
+        ccm_period = 1
         ccm_en = 1
         mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=vlan)       
         sys_logging("creat mep id = %d" %mep_id)
         
         remote_mep_id1 = 11
         mac1 = '00:11:11:11:11:11'
-        rmep_id1 = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)        
+        rmep_id1 = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)
         sys_logging("creat rmep id1 = %d" %rmep_id1)
                
         warmboot(self.client)
@@ -5285,10 +5195,7 @@ class scenario_03_eth_down_mep_lb_test(sai_base_test.ThriftInterfaceDataPlane):
                     if default_1q_bridge != a.value.oid:
                         raise NotImplementedError()
 
-            
-            
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
@@ -5306,11 +5213,6 @@ class scenario_03_eth_down_mep_lb_test(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(mac=default_port_mac)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
-
-
-
-
-
 
 class scenario_04_eth_down_mep_lt_test(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -5420,8 +5322,6 @@ class scenario_04_eth_down_mep_lt_test(sai_base_test.ThriftInterfaceDataPlane):
             if ret.data.u16 != 1:
                 raise NotImplementedError() 
 
-
-
             self.client.sai_thrift_clear_cpu_packet_info()              
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
@@ -5436,9 +5336,7 @@ class scenario_04_eth_down_mep_lt_test(sai_base_test.ThriftInterfaceDataPlane):
             if ret.data.u16 != 1:
                 raise NotImplementedError()
 
-            
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
@@ -5455,8 +5353,6 @@ class scenario_04_eth_down_mep_lt_test(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(mac=default_port_mac)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
-
-
 
 class scenario_05_eth_rdi_test(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -5680,9 +5576,7 @@ class scenario_05_eth_rdi_test(sai_base_test.ThriftInterfaceDataPlane):
             
             self.ctc_show_packet(0,None,str(pkt1))
 
-            
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
@@ -5700,8 +5594,6 @@ class scenario_05_eth_rdi_test(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
 
-
-
 class scenario_06_eth_link_oam_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -5713,7 +5605,7 @@ class scenario_06_eth_link_oam_test(sai_base_test.ThriftInterfaceDataPlane):
         
         sys_logging("### Step1. Create basic Environment ###")
         
-        vlan = 10                
+        vlan = 10
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)        
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
         vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_TAGGED)
@@ -5745,9 +5637,9 @@ class scenario_06_eth_link_oam_test(sai_base_test.ThriftInterfaceDataPlane):
         
         dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
-        ccm_period = 2 
+        ccm_period = 1
         ccm_en = 1
-        mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=0, bridge_id=None)       
+        mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, port_id=port1, vlan_id=0, bridge_id=None)
         sys_logging("creat mep id = %d" %mep_id)
         
         remote_mep_id1 = 11
@@ -5775,7 +5667,7 @@ class scenario_06_eth_link_oam_test(sai_base_test.ThriftInterfaceDataPlane):
                                     dl_vlan_enable=False,
                                     eth_type=0x8902,
                                     inner_frame=ccm_hdr)
-            
+
             self.ctc_show_packet(0,None,str(pkt1))
 
 
@@ -5838,6 +5730,7 @@ class scenario_06_eth_link_oam_test(sai_base_test.ThriftInterfaceDataPlane):
         finally:
         
             sys_logging("clear configuration")
+            flush_all_fdb(self.client)
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
@@ -5853,9 +5746,6 @@ class scenario_06_eth_link_oam_test(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(mac=default_port_mac)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
-
-
-
 
 class scenario_07_eth_down_mep_lm_test(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -5909,7 +5799,7 @@ class scenario_07_eth_down_mep_lm_test(sai_base_test.ThriftInterfaceDataPlane):
         
         dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
-        ccm_period = 2 
+        ccm_period = 2
         ccm_en = 0
         lm_type = SAI_Y1731_SESSION_LM_TYPE_SINGLE_ENDED
         mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, lm_en=1, lm_type=lm_type, port_id=port1, vlan_id=vlan)       
@@ -6147,8 +6037,8 @@ class scenario_07_eth_down_mep_lm_test(sai_base_test.ThriftInterfaceDataPlane):
                                     eth_type=0x8902,
                                     dl_vlan_enable=True,
                                     vlan_vid=vlan,
-                                    vlan_pcp=0,                                    
-                                    inner_frame=ccm_hdr1)            
+                                    vlan_pcp=0,
+                                    inner_frame=ccm_hdr1)
             
             self.ctc_show_packet(0,None,str(tx_ccm_pkt1))
 
@@ -6160,16 +6050,16 @@ class scenario_07_eth_down_mep_lm_test(sai_base_test.ThriftInterfaceDataPlane):
                                         period=ccm_period,
                                         mepid=remote_mep_id1,
                                         megid=meg_name,
-                                        txfcf=0,
+                                        txfcf=1,
                                         rxfcb=0,
                                         txfcb=0)
-                                        
+
             pkt = simple_eth_packet(pktlen=93,
                                     eth_dst='01:80:C2:00:00:34',
                                     eth_src=mac1,
                                     eth_type=0x8902,
                                     dl_vlan_enable=True,
-                                    vlan_vid=vlan,                                    
+                                    vlan_vid=vlan,
                                     inner_frame=ccm_hdr)
 
             ccm_hdr1 = simple_ccm_packet(mel=level,
@@ -6179,7 +6069,7 @@ class scenario_07_eth_down_mep_lm_test(sai_base_test.ThriftInterfaceDataPlane):
                                         megid=meg_name,
                                         txfcf=3,
                                         rxfcb=2,
-                                        txfcb=0)
+                                        txfcb=1)
                                         
 
             pkt1 = simple_eth_packet(pktlen=93,
@@ -6187,14 +6077,13 @@ class scenario_07_eth_down_mep_lm_test(sai_base_test.ThriftInterfaceDataPlane):
                                     eth_src=oam_port_tx_smac,
                                     eth_type=0x8902,
                                     dl_vlan_enable=True,
-                                    vlan_vid=vlan,                                    
+                                    vlan_vid=vlan,
                                     inner_frame=ccm_hdr1)
                                     
-            self.ctc_send_packet(0, str(pkt))            
-            self.ctc_verify_packets(pkt1, [0]) 
-            
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(pkt1, [0])
+
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
@@ -6216,11 +6105,9 @@ class scenario_07_eth_down_mep_lm_test(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
 
-
 class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
-    
         switch_init(self.client)
         
         port1 = port_list[0]
@@ -6229,11 +6116,11 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
         default_1q_bridge = self.client.sai_thrift_get_default_1q_bridge_id()
         sys_logging("### Step1. Create basic Environment ###")
         
-        vlan = 10                
+        vlan = 10
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)        
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
         vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_TAGGED)
-                
+
         sys_logging("### Step2. Set Port Oam Enable ###")
 
         attr_value = sai_thrift_attribute_value_t(mac=oam_port_tx_smac)
@@ -6242,47 +6129,56 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
         
         attr_value = sai_thrift_attribute_value_t(booldata=1)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
-        self.client.sai_thrift_set_port_attribute(port1, attr)        
+        self.client.sai_thrift_set_port_attribute(port1, attr)
         
         attrs = self.client.sai_thrift_get_port_attribute(port1)
         for a in attrs.attr_list:
             if a.id == SAI_PORT_ATTR_Y1731_ENABLE:
                 sys_logging("### SAI_PORT_ATTR_Y1731_ENABLE = %d ###"  %a.value.booldata)
                 assert (1 == a.value.booldata)
-                
+
         sys_logging("### Step3. Create OAM MEP ###")
         
         meg_type = SAI_Y1731_MEG_TYPE_ETHER_VLAN
         meg_name = "ETHER_VLAN"
         level = 4
-                
+
         meg_id = sai_thrift_create_y1731_meg(self.client, meg_type, meg_name, level)
         sys_logging("creat meg id = %d" %meg_id)
         
         dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
-        ccm_period = 2 
+        ccm_period = 2
         ccm_en = 0
         lm_type = SAI_Y1731_SESSION_LM_TYPE_SINGLE_ENDED
-        mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, lm_en=1, lm_type=lm_type, port_id=port1, vlan_id=vlan)       
+        mep_id = sai_thrift_create_y1731_eth_session(self.client, meg_id, dir, local_mep_id, ccm_period, ccm_en, lm_en=1, lm_type=lm_type, port_id=port1, vlan_id=vlan)
         sys_logging("creat mep id = %d" %mep_id)
 
         remote_mep_id1 = 11
         mac1 = '00:11:11:11:11:11'
-        rmep_id1 = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)        
+        rmep_id1 = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1, mac1)
         sys_logging("creat rmep id1 = %d" %rmep_id1)
-               
+
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+        txts = 0x0
+        if chipname == "tsingma":
+            txts = 0x445678
+        elif chipname == "tsingma_mx":
+            txts = 0x665678
+        else:
+            txts = 0
+            sys_logging("======chipname is error======")
+
         warmboot(self.client)
         
         try:
-                       
             sys_logging("get mep session info")
             attrs = self.client.sai_thrift_get_y1731_session_attribute(mep_id)
             sys_logging("get attr status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
 
             for a in attrs.attr_list:
-                    
                 if a.id == SAI_Y1731_SESSION_ATTR_DM_OFFLOAD_TYPE:
                     sys_logging("get dm offload type = 0x%x" %a.value.s32)
                     if SAI_Y1731_SESSION_PERF_MONITOR_OFFLOAD_TYPE_NONE != a.value.s32:
@@ -6322,17 +6218,15 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
 
-
-
             sys_logging("### Step4. TX Y1731_1DM ###")
 
-            oam_dmac1 = '01:80:C2:00:00:34'            
+            oam_dmac1 = '01:80:C2:00:00:34'
             dm_type = '1DM'
             dm_hdr = simple_dm_packet(dm_type,
                                        mel=level,
                                        rdi=0,
                                        period=ccm_period,
-                                       txtsf=0x445678,
+                                       txtsf=txts,
                                        rxtsf=0,
                                        txtsb=0,
                                        rxtsb=0)
@@ -6347,7 +6241,7 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
 
             oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM
             host_if_tx_type = SAI_HOSTIF_TX_TYPE_OAM_PACKET_TX
-            sai_thrift_send_hostif_packet(self.client, mep_id, str(tx_dmm_pkt), oam_tx_type, host_if_tx_type, oam_session=mep_id, dm_offset=22)                                    
+            sai_thrift_send_hostif_packet(self.client, mep_id, str(tx_dmm_pkt), oam_tx_type, host_if_tx_type, oam_session=mep_id, dm_offset=22)
 
             self.ctc_show_packet(0,None,str(tx_dmm_pkt),1)
 
@@ -6399,13 +6293,13 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
 
             sys_logging("### Step6. TX Y1731_DMM ###")
             
-            oam_dmac1 = '01:80:C2:00:00:34'            
+            oam_dmac1 = '01:80:C2:00:00:34'
             dm_type = 'DMM'
             dm_hdr = simple_dm_packet(dm_type,
                                        mel=level,
                                        rdi=0,
                                        period=ccm_period,
-                                       txtsf=0x445678,
+                                       txtsf=txts,
                                        rxtsf=0,
                                        txtsb=0,
                                        rxtsb=0)
@@ -6420,7 +6314,7 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
             
             oam_tx_type = SAI_HOSTIF_PACKET_OAM_TX_TYPE_DM
             host_if_tx_type = SAI_HOSTIF_TX_TYPE_OAM_PACKET_TX
-            sai_thrift_send_hostif_packet(self.client, mep_id, str(tx_dmm_pkt), oam_tx_type, host_if_tx_type, oam_session=mep_id, dm_offset=22)                                    
+            sai_thrift_send_hostif_packet(self.client, mep_id, str(tx_dmm_pkt), oam_tx_type, host_if_tx_type, oam_session=mep_id, dm_offset=22)
             
             self.ctc_show_packet(0,None,str(tx_dmm_pkt),1)
 
@@ -6433,9 +6327,9 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
                                        mel=level,
                                        rdi=0,
                                        period=ccm_period,
-                                       txtsf=0x445678,
+                                       txtsf=txts,
                                        rxtsf=0x345678,
-                                       txtsb=0x445678,
+                                       txtsb=txts,
                                        rxtsb=0)
                                        
             rx_dmr_pkt = simple_eth_packet(pktlen=97,
@@ -6447,17 +6341,14 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
                                     inner_frame=dm_hdr)
 
             self.ctc_send_packet(0, str(tx_dmm_pkt))
-            self.ctc_verify_packets(rx_dmr_pkt, [0]) 
-
-            
+            self.ctc_verify_packets(rx_dmr_pkt, [0])
 
             sys_logging("### Step8. RX Y1731_DMR ###")
 
-
             self.client.sai_thrift_clear_cpu_packet_info()
-            
+
             self.ctc_send_packet(0, str(rx_dmr_pkt))
-        
+
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
             if ret.data.u16 != 1:
@@ -6495,14 +6386,12 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
                     
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
-                        
+
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
@@ -6514,7 +6403,6 @@ class scenario_08_eth_down_mep_dm_test(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(mac=default_port_mac)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
-
 
 class scenario_09_vpls_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -6754,8 +6642,7 @@ class scenario_09_vpls_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
             assert (status == SAI_STATUS_SUCCESS)
             
             self.ctc_show_packet(1)
-                       
-                        
+
         finally:
         
             sys_logging("clear configuration")
@@ -6763,8 +6650,9 @@ class scenario_09_vpls_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             
-            sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
-            sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
+            flush_all_fdb(self.client)
+            #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
+            #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
             sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
@@ -6800,9 +6688,6 @@ class scenario_09_vpls_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
 
-
-
-
 class scenario_10_vpls_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -6812,10 +6697,9 @@ class scenario_10_vpls_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
         port1 = port_list[0]
         port2 = port_list[1]
         
-        
         ##### data forward configuration ######
         
-        vlan = 10        
+        vlan = 10
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)
         
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
@@ -7035,8 +6919,7 @@ class scenario_10_vpls_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
                         
             self.ctc_show_packet(1)
-                       
-                        
+
         finally:
         
             sys_logging("clear configuration")
@@ -7044,8 +6927,9 @@ class scenario_10_vpls_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             
-            sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
-            sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
+            flush_all_fdb(self.client)
+            #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
+            #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
             sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, port1)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
@@ -7080,7 +6964,6 @@ class scenario_10_vpls_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(mac=default_port_mac)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
-
 
 class scenario_10_vpls_vsi_test_for_lag(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -7278,7 +7161,6 @@ class scenario_10_vpls_vsi_test_for_lag(sai_base_test.ThriftInterfaceDataPlane):
                         raise NotImplementedError()
         
             self.ctc_show_packet(2)
-                                                          
         finally:
         
             sys_logging("clear configuration")
@@ -7287,8 +7169,9 @@ class scenario_10_vpls_vsi_test_for_lag(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
             
-            sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
-            sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
+            flush_all_fdb(self.client) 
+            #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_local, uni_port_oid)
+            #sai_thrift_delete_fdb(self.client, bridge_id, mac_host_remote, pw2_tunnel_bport_oid)
             
             sai_thrift_remove_bridge_sub_port_2(self.client, uni_port_oid, lag_oid)            
             self.client.sai_thrift_remove_bridge_port(pw2_tunnel_bport_oid)
@@ -7328,7 +7211,6 @@ class scenario_10_vpls_vsi_test_for_lag(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(mac=default_port_mac)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
-
 
 class scenario_11_vpws_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -7557,9 +7439,6 @@ class scenario_11_vpws_vlan_test(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
 
-
-
-
 class scenario_12_vpws_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -7761,6 +7640,7 @@ class scenario_12_vpws_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
         finally:
         
             sys_logging("clear configuration")
+            flush_all_fdb(self.client)
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
@@ -7799,16 +7679,13 @@ class scenario_12_vpws_vsi_test(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr) 
 
-
 class scenario_13_tp_section_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
-    
         switch_init(self.client)
         
         port1 = port_list[0] 
 
-        
         v4_enabled = 1
         v6_enabled = 1
         mac = ''
@@ -7844,7 +7721,7 @@ class scenario_13_tp_section_test(sai_base_test.ThriftInterfaceDataPlane):
         
         dir = SAI_Y1731_SESSION_DIRECTION_DOWNMEP
         local_mep_id = 10
-        ccm_period = 2 
+        ccm_period = 1
         ccm_en = 1
         mep_id = sai_thrift_create_y1731_tp_section_session(self.client, meg_id, rif_id1, dir, local_mep_id, ccm_period, ccm_en, nhop1)       
         sys_logging("creat mep id = %d" %mep_id)
@@ -7852,11 +7729,10 @@ class scenario_13_tp_section_test(sai_base_test.ThriftInterfaceDataPlane):
         remote_mep_id1 = 11
         rmep_id1 = sai_thrift_create_y1731_rmep(self.client, mep_id, remote_mep_id1)        
         sys_logging("creat rmep id1 = %d" %rmep_id1)
-               
-        warmboot(self.client)
-        
-        try:
 
+        warmboot(self.client)
+
+        try:
             sys_logging("get rmep 1 info")
             attrs = self.client.sai_thrift_get_y1731_rmep_attribute(rmep_id1)
             sys_logging("get attr status = %d" %attrs.status)
@@ -7901,9 +7777,9 @@ class scenario_13_tp_section_test(sai_base_test.ThriftInterfaceDataPlane):
                     sys_logging("get rmep established = %s" %a.value.booldata)
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
-                        
+
             self.ctc_show_packet(0)
-                    
+
             sys_logging("get mep session info")
             attrs = self.client.sai_thrift_get_y1731_session_attribute(mep_id)
             sys_logging("get attr status = %d" %attrs.status)
@@ -7921,7 +7797,6 @@ class scenario_13_tp_section_test(sai_base_test.ThriftInterfaceDataPlane):
                     if nhop1 != a.value.oid:
                         raise NotImplementedError()
 
-                        
             attr_value = sai_thrift_attribute_value_t(oid=rif_id1)
             attr = sai_thrift_attribute_t(id=SAI_Y1731_SESSION_ATTR_TP_ROUTER_INTERFACE_ID, value=attr_value)
             status = self.client.sai_thrift_set_y1731_session_attribute(mep_id, attr)
@@ -7950,24 +7825,20 @@ class scenario_13_tp_section_test(sai_base_test.ThriftInterfaceDataPlane):
                     sys_logging("get nexthop oid = 0x%x" %a.value.oid)
                     if nhop2 != a.value.oid:
                         raise NotImplementedError()
-                        
-            self.ctc_show_packet(0)                        
 
-            
+            self.ctc_show_packet(0)
+
         finally:
         
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
-            self.client.sai_thrift_remove_y1731_meg(meg_id)                                   
-            self.client.sai_thrift_remove_next_hop(nhop1)  
-            self.client.sai_thrift_remove_next_hop(nhop2)            
+            self.client.sai_thrift_remove_y1731_meg(meg_id)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop2)
             sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, dst_ip, dmac1)
-            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, dst_ip2, dmac2)            
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, dst_ip2, dmac2)
             self.client.sai_thrift_remove_router_interface(rif_id1)
-
-
-
 
 class scenario_14_tp_lsp_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -8066,7 +7937,6 @@ class scenario_14_tp_lsp_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
         warmboot(self.client)
         
         try:
-        
             self.ctc_show_packet(0)
 
             sys_logging("get rmep 1 info")
@@ -8130,9 +8000,6 @@ class scenario_14_tp_lsp_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(mpls_rif_oid)
 
-            
-            
-            
 class scenario_15_tp_pw_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -8216,7 +8083,7 @@ class scenario_15_tp_pw_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
         ccm_period = 1 
         ccm_en = 1
         mpls_in_label = inseg_pw2_label
-        mep_id = sai_thrift_create_y1731_tp_session(self.client, mpls_in_label, meg_id, dir, local_mep_id, ccm_period, ccm_en, nhop_pw_pe1_to_pe2, nogal=0)        
+        mep_id = sai_thrift_create_y1731_tp_session(self.client, mpls_in_label, meg_id, dir, local_mep_id, ccm_period, ccm_en, nhop_pw_pe1_to_pe2, nogal=1)        
         sys_logging("creat mep id = %d" %mep_id)
         
         remote_mep_id1 = 11
@@ -8282,7 +8149,7 @@ class scenario_15_tp_pw_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
                         
                 if a.id == SAI_Y1731_SESSION_ATTR_TP_WITHOUT_GAL:
                     sys_logging("get without gal = 0x%x" %a.value.booldata)
-                    if 0 != a.value.booldata:
+                    if 1 != a.value.booldata:
                         raise NotImplementedError()
 
                 if a.id == SAI_Y1731_SESSION_ATTR_TTL:
@@ -8370,8 +8237,6 @@ class scenario_15_tp_pw_ccm_test(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_tunnel(tunnel_id_pw2)
             self.client.sai_thrift_remove_bridge(bridge_id)
 
-                        
-            
 class scenario_16_defect_test_dloc(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -8424,13 +8289,12 @@ class scenario_16_defect_test_dloc(sai_base_test.ThriftInterfaceDataPlane):
         warmboot(self.client)
         
         try:
-                                   
             ccm_hdr = simple_ccm_packet(mel=level,
                                         rdi=0,
                                         period=ccm_period,
                                         mepid=remote_mep_id1,
                                         megid=meg_name)
-                                        
+
             pkt = simple_eth_packet(pktlen=97,
                                     eth_dst='01:80:C2:00:00:34',
                                     eth_src=mac1,
@@ -8438,46 +8302,40 @@ class scenario_16_defect_test_dloc(sai_base_test.ThriftInterfaceDataPlane):
                                     vlan_vid=10,
                                     eth_type=0x8902,
                                     inner_frame=ccm_hdr)
-                                    
+
             self.ctc_send_packet(0, str(pkt))
-            
+
             sys_logging("get rmep info")
             attrs = self.client.sai_thrift_get_y1731_rmep_attribute(rmep_id1)
             sys_logging("get attr status = %d" %attrs.status)
             assert (attrs.status == SAI_STATUS_SUCCESS)
-            
+
             for a in attrs.attr_list:
-            
                 if a.id == SAI_Y1731_REMOTE_MEP_ATTR_CONNECTION_ESTABLISHED:
                     sys_logging("get rmep established = %s" %a.value.booldata)
                     if 1 != a.value.booldata:
                         raise NotImplementedError()
-                        
+
             #=== event occur, event id: 8 ===
 
             time.sleep(5)
-
-
-            #=== event occur, event id: 4 ===            
+            #=== event occur, event id: 4 ===
             #=== event occur, event id: 8 ===
 
-                        
         finally:
-        
             sys_logging("clear configuration")
             self.client.sai_thrift_remove_y1731_rmep(rmep_id1)
             self.client.sai_thrift_remove_y1731_session(mep_id)
             self.client.sai_thrift_remove_y1731_meg(meg_id)
-                        
+
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid1)
-            
+
             attr_value = sai_thrift_attribute_value_t(booldata=0)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
 
-            
 class scenario_16_defect_test_mismerge(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -8597,7 +8455,6 @@ class scenario_16_defect_test_mismerge(sai_base_test.ThriftInterfaceDataPlane):
             attr_value = sai_thrift_attribute_value_t(booldata=0)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
-
 
 class scenario_16_defect_test_unexpected_level(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -8719,8 +8576,6 @@ class scenario_16_defect_test_unexpected_level(sai_base_test.ThriftInterfaceData
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
 
-
-
 class scenario_16_defect_test_unexpected_mep(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -8840,7 +8695,6 @@ class scenario_16_defect_test_unexpected_mep(sai_base_test.ThriftInterfaceDataPl
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)       
 
-
 class scenario_16_defect_test_unexpected_period(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -8959,8 +8813,6 @@ class scenario_16_defect_test_unexpected_period(sai_base_test.ThriftInterfaceDat
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)  
 
-
-          
 class scenario_16_defect_test_src_mac_mismatch(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -9078,10 +8930,6 @@ class scenario_16_defect_test_src_mac_mismatch(sai_base_test.ThriftInterfaceData
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)  
 
-
-
-
-                      
 class scenario_16_defect_test_rx_rdi(sai_base_test.ThriftInterfaceDataPlane):
 
     def runTest(self):
@@ -9196,14 +9044,10 @@ class scenario_16_defect_test_rx_rdi(sai_base_test.ThriftInterfaceDataPlane):
             
             attr_value = sai_thrift_attribute_value_t(booldata=0)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
-            self.client.sai_thrift_set_port_attribute(port1, attr)  
-            
-
+            self.client.sai_thrift_set_port_attribute(port1, attr)
 
 class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
-
     def runTest(self):
-    
         switch_init(self.client)
         
         port1 = port_list[0]
@@ -9211,17 +9055,16 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
         
         sys_logging("### Step1. Create basic Environment ###")
         
-        vlan = 10                
+        vlan = 10
         vlan_oid1 = sai_thrift_create_vlan(self.client, vlan)        
         vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port1, SAI_VLAN_TAGGING_MODE_TAGGED)
         vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid1, port2, SAI_VLAN_TAGGING_MODE_TAGGED)
-                
+
         sys_logging("### Step2. Set Port Oam Enable ###")
        
         attrs = self.client.sai_thrift_get_port_attribute(port1)
         
         for a in attrs.attr_list:
-        
             if a.id == SAI_PORT_ATTR_Y1731_ENABLE:
                 sys_logging("### SAI_PORT_ATTR_Y1731_ENABLE = %d ###"  %a.value.booldata)
                 assert (0 == a.value.booldata)
@@ -9231,12 +9074,14 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
                 assert (0 == a.value.u8)
 
             if a.id == SAI_PORT_ATTR_MAC_ADDRESS:
+                print "###########################################"
+                print default_port_mac
                 sys_logging("### SAI_PORT_ATTR_MAC_ADDRESS = %s ###"  %a.value.mac)
                 assert (default_port_mac == a.value.mac)
-                
+
         attr_value = sai_thrift_attribute_value_t(booldata=1)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_ENABLE, value=attr_value)
-        self.client.sai_thrift_set_port_attribute(port1, attr)        
+        self.client.sai_thrift_set_port_attribute(port1, attr)
 
         attr_value = sai_thrift_attribute_value_t(u8=16)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_MIP_ENABLE, value=attr_value)
@@ -9246,11 +9091,10 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
         attr_value = sai_thrift_attribute_value_t(mac=port_mac)
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port1, attr) 
-        
+
         attrs = self.client.sai_thrift_get_port_attribute(port1)
-        
+
         for a in attrs.attr_list:
-        
             if a.id == SAI_PORT_ATTR_Y1731_ENABLE:
                 sys_logging("### SAI_PORT_ATTR_Y1731_ENABLE = %d ###"  %a.value.booldata)
                 assert (1 == a.value.booldata)
@@ -9262,28 +9106,23 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
             if a.id == SAI_PORT_ATTR_MAC_ADDRESS:
                 sys_logging("### SAI_PORT_ATTR_MAC_ADDRESS = %s ###"  %a.value.mac)
                 assert (port_mac == a.value.mac)
-                
 
         sys_logging("### Step3. Create OAM MEP ###")
-        
-     
-        level = 4
-        ccm_period = 1 
 
-               
+        level = 4
+        ccm_period = 1
+
         warmboot(self.client)
-        
+
         try:
-                       
             macda = port_mac
             macsa = '00:00:00:00:00:01'
 
             # step 1 level match
-            
             lbm_hdr = simple_lbm_packet(mel=level,
                                         rdi=0,
                                         period=ccm_period)
-                                        
+
             pkt1 = simple_eth_packet(pktlen=97,
                                     eth_dst=macda,
                                     eth_src=macsa,
@@ -9295,7 +9134,7 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
             lbr_hdr = simple_lbr_packet(mel=level,
                                         rdi=0,
                                         period=ccm_period)
-                                        
+
             pkt2 = simple_eth_packet(pktlen=97,
                                     eth_dst=macsa,
                                     eth_src=macda,
@@ -9303,12 +9142,10 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
                                     vlan_vid=10,
                                     eth_type=0x8902,
                                     inner_frame=lbr_hdr)
-                                    
-                                    
-            self.ctc_send_packet(0, str(pkt1))
-            self.ctc_verify_packets(pkt2, [0]) 
 
-                        
+            self.ctc_send_packet(0, str(pkt1))
+            self.ctc_verify_packets(pkt2, [0])
+
             # step 2 level not match
 
             level = 3 
@@ -9335,14 +9172,11 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
                                     vlan_vid=10,
                                     eth_type=0x8902,
                                     inner_frame=lbr_hdr)
-                                    
-                                    
+
             self.ctc_send_packet(0, str(pkt1))
-            self.ctc_verify_packets(pkt1, [1]) 
-            
-            
+            self.ctc_verify_no_packet(pkt2, 0)
+
         finally:
-        
             sys_logging("clear configuration")
 
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
@@ -9357,12 +9191,12 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_Y1731_MIP_ENABLE, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
 
-            attr_value = sai_thrift_attribute_value_t(mac=oam_port_tx_smac)
+            attr_value = sai_thrift_attribute_value_t(mac=default_port_mac)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_MAC_ADDRESS, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)                       
 
             attrs = self.client.sai_thrift_get_port_attribute(port1)
-            
+
             for a in attrs.attr_list:
             
                 if a.id == SAI_PORT_ATTR_Y1731_ENABLE:
@@ -9375,5 +9209,4 @@ class scenario_17_mip_test(sai_base_test.ThriftInterfaceDataPlane):
 
                 if a.id == SAI_PORT_ATTR_MAC_ADDRESS:
                     sys_logging("### SAI_PORT_ATTR_MAC_ADDRESS = %s ###"  %a.value.mac)
-                    assert (oam_port_tx_smac == a.value.mac)        
-                    
+                    assert (default_port_mac == a.value.mac)

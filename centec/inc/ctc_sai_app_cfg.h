@@ -21,6 +21,12 @@ extern "C" {
 extern int32
 ctc_app_get_config(uint8 lchip, char* init_config, char* data_cfg, char* mem_cfg, ctc_init_cfg_t * p_init_config, ctc_init_cfg_t * user_init_config);
 
+extern int32
+ctc_app_parse_config(uint8 lchip, char* chip_cfg, char* data_cfg, char* mem_cfg, ctc_init_cfg_t * p_init_config);
+
+extern int32 
+ctc_app_free_init_param(ctc_init_cfg_t* p_init_config);
+
 #ifdef __cplusplus
 }
 #endif

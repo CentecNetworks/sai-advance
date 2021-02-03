@@ -570,6 +570,18 @@ _ctc_sai_y1731_session_create_attr_check(uint8 lchip, uint32_t attr_count, const
         }
     }
 
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_LOCAL_MEP_ID, &attr_value, &index);
+    if (CTC_SAI_ERROR(status))
+    {        
+        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+    }
+
+    status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_CCM_PERIOD, &attr_value, &index);
+    if (CTC_SAI_ERROR(status))
+    {        
+        return SAI_STATUS_INVALID_ATTRIBUTE_0 + index;
+    }
+
     //status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_Y1731_SESSION_ATTR_IS_P2P_MODE, &attr_value, &index);
     //if (CTC_SAI_ERROR(status))
     //{        
@@ -1822,6 +1834,11 @@ sai_status_t ctc_sai_y1731_create_y1731_session( sai_object_id_t *sai_y1731_sess
     {
         /* need update ccm en */
         p_y1731_session_info->ccm_en = attr_value->booldata;
+        need_update_en = 1;
+    }
+    else
+    {
+        p_y1731_session_info->ccm_en = 1;
         need_update_en = 1;
     }
 

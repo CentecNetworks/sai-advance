@@ -168,6 +168,18 @@ ctc_key_name_value_pair_t g_tbl_pair[] =
 #define FTM_PROFILE_RESULT_NUM  12
 
 /*--------------------------------Define--------------------------------------*/
+ctc_key_name_size_pair_t* ctc_app_get_ftm_tcam_pair(uint32* array_cnt)
+{
+    *array_cnt = sizeof(g_key_pair)/sizeof(g_key_pair[0]);
+    return g_key_pair;
+}
+
+ctc_key_name_value_pair_t* ctc_app_get_ftm_tbl_pair(uint32* array_cnt)
+{
+    *array_cnt = sizeof(g_tbl_pair)/sizeof(g_tbl_pair[0]);
+    return g_tbl_pair;
+}
+
 
 int32
 ctc_app_read_ftm_profile_global_info(ctc_app_parse_file_t* pfile,
@@ -391,7 +403,7 @@ ctc_app_read_ftm_profile_spcecs(ctc_app_parse_file_t* pfile,
     uint8 i = 0;
     uint8 result_num = 0;
 
-    for(i = 0; i < CTC_FTM_SPEC_MAX; ++i)
+    for(i = 0; i < CTC_FTM_SPEC_MAX && i < sizeof(g_tbl_entry_num)/sizeof(g_tbl_entry_num[0]); ++i)
     {
         result_num = 1;
         ctc_app_parse_file(pfile,

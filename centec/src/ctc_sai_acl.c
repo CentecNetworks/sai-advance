@@ -1186,6 +1186,7 @@ static sai_status_t
 _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_direction_t dir, sai_object_id_t entry_object_id, uint8 group_priority, ctc_acl_key_type_t type, sai_attribute_t* attr_list, ctc_field_key_t* field_key, uint32* p_key_count, uint8* p_bmp_cnt, uint32* p_bmp_start)
 {
     uint8  flag_valid = 0;/* make default equal to zeros */
+    uint8  is_first_udf = 0;
     uint16 lport = 0;
     uint16 max_num = 0;
     uint16 cnt = 0;
@@ -1221,6 +1222,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
     ctc_parser_l3_type_t l3_type = CTC_PARSER_L3_TYPE_NONE;
     ctc_slistnode_t* p_node = NULL;
     ctc_sai_udf_entry_t* p_udf_entry = NULL;
+    ctc_sai_udf_match_t* p_udf_match = NULL;
     ctc_sai_acl_entry_t* p_acl_entry = NULL;
     ctc_sai_acl_table_t* p_acl_table = NULL;
     ctc_sai_udf_group_t* p_udf_group = NULL;
@@ -2040,7 +2042,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
             default:
             {
                 if (attr_list[i].id >= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN
-                    && attr_list[i].id < (SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN + CTC_SAI_UDF_GROUP_MAX_NUM(lchip)))
+                   && attr_list[i].id <= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX)
                 {
                     p_acl_entry = ctc_sai_db_get_object_property(lchip, entry_object_id);
                     if (NULL == p_acl_entry)
@@ -2058,25 +2060,32 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                         goto error0;
                     }
 
-                    p_acl_udf_data = (ctc_acl_udf_t*)mem_malloc(MEM_ACL_MODULE, sizeof(ctc_acl_udf_t));
+                    is_first_udf = ((NULL == p_acl_udf_data && NULL == p_acl_udf_mask))?1:0;
                     if (NULL == p_acl_udf_data)
                     {
-                        CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry udf field memory\n");
-                        status =  SAI_STATUS_NO_MEMORY;
-                        goto error0;
+                        p_acl_udf_data = (ctc_acl_udf_t*)mem_malloc(MEM_ACL_MODULE, sizeof(ctc_acl_udf_t));
+                        if (NULL == p_acl_udf_data)
+                        {
+                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry udf field memory\n");
+                            status =  SAI_STATUS_NO_MEMORY;
+                            goto error0;
+                        }
+                        sal_memset(p_acl_udf_data, 0, sizeof(ctc_acl_udf_t));
                     }
-                    sal_memset(p_acl_udf_data, 0, sizeof(ctc_acl_udf_t));
 
-                    p_acl_udf_mask = (ctc_acl_udf_t*)mem_malloc(MEM_ACL_MODULE, sizeof(ctc_acl_udf_t));
                     if (NULL == p_acl_udf_mask)
                     {
-                        CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry udf field memory\n");
-                        status =  SAI_STATUS_NO_MEMORY;
-                        goto error0;
+                        p_acl_udf_mask = (ctc_acl_udf_t*)mem_malloc(MEM_ACL_MODULE, sizeof(ctc_acl_udf_t));
+                        if (NULL == p_acl_udf_mask)
+                        {
+                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry udf field memory\n");
+                            status =  SAI_STATUS_NO_MEMORY;
+                            goto error0;
+                        }
+                        sal_memset(p_acl_udf_mask, 0xff, sizeof(ctc_acl_udf_t));
+                        sal_memset(p_acl_udf_mask->udf, 0, sizeof(p_acl_udf_mask->udf));
                     }
-                    sal_memset(p_acl_udf_mask, 0, sizeof(ctc_acl_udf_t));
 
-                    j = 0;
                     CTC_SLIST_LOOP(p_acl_table->udf_groups, p_node)
                     {
                         p_table_udf_group = (ctc_sai_acl_table_udf_group_t*)p_node;
@@ -2091,35 +2100,53 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                                 goto error0;
                             }
 
+                            if (CTC_SAI_UDF_OFFSET_NUM == p_udf_group->offset[j])
+                            {
+                                CTC_SAI_LOG_INFO(SAI_API_ACL, " apply udf_group_id 0x%"PRIx64", but exist none udf entry!\n", sai_object_id);
+                                continue;
+                            }
+
                             for (j = 0; j < attr_list[i].value.aclfield.data.u8list.count/CTC_SAI_UDF_OFFSET_BYTE_LEN; j++)
                             {
                                 sal_memcpy(p_acl_udf_data->udf + p_udf_group->offset[j]*CTC_SAI_UDF_OFFSET_BYTE_LEN, attr_list[i].value.aclfield.data.u8list.list+j*CTC_SAI_UDF_OFFSET_BYTE_LEN, CTC_SAI_UDF_OFFSET_BYTE_LEN);
                                 sal_memcpy(p_acl_udf_mask->udf + p_udf_group->offset[j]*CTC_SAI_UDF_OFFSET_BYTE_LEN, attr_list[i].value.aclfield.mask.u8list.list+j*CTC_SAI_UDF_OFFSET_BYTE_LEN, CTC_SAI_UDF_OFFSET_BYTE_LEN);
                             }
+                            break;
                         }
-                        j++;
                     }
 
                     CTC_SLIST_LOOP(p_udf_group->member_list, p_node)
                     {
                         p_udf_group_member = (ctc_sai_udf_group_member_t*)p_node;
-                        p_udf_entry = ctc_sai_db_get_object_property(lchip, p_udf_group_member->udf_oid);
 
+                        p_udf_entry = ctc_sai_db_get_object_property(lchip, p_udf_group_member->udf_oid);
                         if (NULL == p_udf_entry)
                         {
-                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add acl udf filed of group_id 0x%"PRIx64"'s udf member udf_id 0x%"PRIx64"!\n", attr_list[i].id-SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, p_udf_group_member->udf_oid);
+                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "sai udf entry oid:0x%"PRIx64" is not exist!\n", p_udf_group_member->udf_oid);
+                            return SAI_STATUS_ITEM_NOT_FOUND;
+                            goto error0;
+                        }
+
+                        p_udf_match = ctc_sai_db_get_object_property(lchip, p_udf_entry->match_oid);
+                        if (NULL == p_udf_match)
+                        {
+                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "sai udf match oid:0x%"PRIx64" is not exist!\n", p_udf_entry->match_oid);
                             status = SAI_STATUS_ITEM_NOT_FOUND;
                             goto error0;
                         }
-                        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF_MATCH, p_udf_entry->match_oid, &ctc_object_id);
-                        p_acl_udf_data->udf_ad_id = ctc_object_id.value + 1;
+
+                        p_acl_udf_data->udf_ad_id = p_udf_match->ctc_group_id;
                         break;
                     }
 
-                    field_key[*p_key_count].type = CTC_FIELD_KEY_UDF_AD_ID;
-                    field_key[*p_key_count].ext_data = p_acl_udf_data;
-                    field_key[*p_key_count].ext_mask = p_acl_udf_mask;
-                    (*p_key_count)++;
+                    if (is_first_udf)
+                    {
+                        field_key[*p_key_count].mask = 0xFFFFFFFF;
+                        field_key[*p_key_count].type = CTC_FIELD_KEY_UDF_AD_ID;
+                        field_key[*p_key_count].ext_data = p_acl_udf_data;
+                        field_key[*p_key_count].ext_mask = p_acl_udf_mask;
+                        (*p_key_count)++;
+                    }
                     break;
                 }
                 else
@@ -2134,6 +2161,15 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
     return SAI_STATUS_SUCCESS;
 
 error0:
+
+    if (p_acl_udf_data)
+    {
+        mem_free(p_acl_udf_data);
+    }
+    if (p_acl_udf_mask)
+    {
+        mem_free(p_acl_udf_mask);
+    }
     if (ipv6_sa)
     {
         mem_free(ipv6_sa);
@@ -3650,9 +3686,9 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
     uint32 rr = 0;
     uint32 loop = 0;
     uint32 key_count = 0;
+    uint32 udf_group_num = 0;
     uint32 action_count = 0;
     uint32 temp_index = 0;
-    uint32 ctc_udf_group_id = 0;
     bool   trap_enable = false;
     bool   is_copy_action = false;
     ctc_stats_statsid_t statsid;
@@ -3665,7 +3701,6 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
     ctc_sai_acl_table_t* p_acl_table = NULL;
     ctc_sai_acl_counter_t* p_acl_counter = NULL;
     ctc_sai_acl_range_t* p_acl_range = NULL;
-    ctc_sai_udf_group_t* p_udf_group = NULL;
     const sai_attribute_value_t* p_attr_value = NULL;
     ctc_acl_field_action_t acl_field_action;
     ctc_field_key_t key_fields_array[CTC_FIELD_KEY_NUM];
@@ -3781,58 +3816,45 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                         p_acl_range->ref_cnt++;
                     }
                 }
-
-                if (update_attr->id >= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN
-                   && update_attr->id <= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX)
+                if (update_attr->id >= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN && update_attr->id <= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX)
                 {
-                    for (ii = 0; ii < SAI_ACL_USER_DEFINED_FIELD_ATTR_ID_RANGE; ii++)
+                    for (ii = SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN-SAI_ACL_ENTRY_ATTR_FIELD_START; ii <= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-SAI_ACL_ENTRY_ATTR_FIELD_START; ii++)
                     {
-                        status = ctc_sai_find_attrib_in_list(SAI_ACL_KEY_ATTR_NUM, p_acl_entry->key_attr_list, SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+ii, &p_attr_value, &index);
-                        if ((!CTC_SAI_ERROR(status)) && p_acl_entry->key_attr_list[ii].value.aclfield.enable)
+                        if ((ii+SAI_ACL_ENTRY_ATTR_FIELD_START) == update_attr->id)
                         {
-                            ctc_udf_group_id = p_acl_entry->key_attr_list[ii].id-SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN;
-                            sai_object_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_UDF_GROUP, lchip, SAI_UDF_GROUP_TYPE_GENERIC, 0, ctc_udf_group_id);
-
-                            ctc_sai_get_sai_object_id(SAI_OBJECT_TYPE_UDF_GROUP, &ctc_object_id, &sai_object_id);
-                            p_udf_group = ctc_sai_db_get_object_property(lchip, sai_object_id);
-                            if (NULL == p_udf_group)
+                            if (update_attr->value.aclfield.enable)
                             {
-                                CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add udf field, invalid udf_group_id 0x%"PRIx64"!\n", sai_object_id);
-                                status = SAI_STATUS_ITEM_NOT_FOUND;
-                                goto error0;
+                                udf_group_num++;
                             }
-                            p_udf_group->hash_ref_cnt--;
-                            break;
                         }
-                    }
-
-                    if ((!CTC_SAI_ERROR(status)) && update_attr->value.aclfield.enable)
-                    {
-                        ctc_udf_group_id = update_attr->id-SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN;
-                        sai_object_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_UDF_GROUP, lchip, SAI_UDF_GROUP_TYPE_GENERIC, 0, ctc_udf_group_id);
-
-                        ctc_sai_get_sai_object_id(SAI_OBJECT_TYPE_UDF_GROUP, &ctc_object_id, &sai_object_id);
-                        p_udf_group = ctc_sai_db_get_object_property(lchip, sai_object_id);
-                        if (NULL == p_udf_group)
+                        else
                         {
-                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add udf field, invalid udf_group_id 0x%"PRIx64"!\n", sai_object_id);
-                            status = SAI_STATUS_ITEM_NOT_FOUND;
-                            goto error0;
+                            if (p_acl_entry->key_attr_list[ii].value.aclfield.enable)
+                            {
+                                sal_memcpy(&key_attr_list[ii], &p_acl_entry->key_attr_list[ii], sizeof(sai_attribute_t));
+                                udf_group_num++;
+                            }
                         }
-                        p_udf_group->hash_ref_cnt++;
                     }
                 }
 
                 status = status?:ctcs_acl_uninstall_entry(lchip, ctc_entry_id);
-                if (update_attr->value.aclfield.enable)
+                if (udf_group_num || update_attr->value.aclfield.enable)
                 {
+                    status = _ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, entry_object_id, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, NULL, NULL);
+                    for (ii = 0; ii < key_count; ii++)
+                    {
+                        status = status?:ctcs_acl_remove_key_field(lchip, ctc_entry_id, &key_fields_array[ii]);
+                    }
+
+                    key_count = 0;
                     sal_memcpy(&key_attr_list[update_attr->id - SAI_ACL_ENTRY_ATTR_FIELD_START], update_attr, sizeof(sai_attribute_t));
                     status = _ctc_sai_acl_mapping_entry_key_fields(lchip, key, dir, entry_object_id, group_priority, p_acl_entry->key_type, key_attr_list, key_fields_array, &key_count, NULL, NULL);
-
                     for (ii = 0; ii < key_count; ii++)
                     {
                         status = status?:ctcs_acl_add_key_field(lchip, ctc_entry_id, &key_fields_array[ii]);
                     }
+
                     status = status?:ctcs_acl_install_entry(lchip, ctc_entry_id);
                 }
                 else
@@ -6632,7 +6654,769 @@ static ctc_sai_attr_fn_entry_t acl_entry_attr_fn_entries[] = {
     { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN,
       ctc_sai_acl_get_acl_entry_info,
       ctc_sai_acl_set_acl_entry_info },
-    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX,
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+8,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+9,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+10,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+11,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+12,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+13,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+14,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+15,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+16,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+17,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+18,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+19,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+20,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+21,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+22,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+23,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+24,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+25,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+26,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+27,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+28,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+29,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+30,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+31,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+32,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+33,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+34,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+35,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+36,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+37,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+38,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+39,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+40,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+41,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+42,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+43,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+44,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+45,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+46,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+47,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+48,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+49,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+50,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+51,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+52,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+53,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+54,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+55,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+56,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+57,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+58,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+59,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+60,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+61,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+62,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+63,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+64,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+65,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+66,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+67,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+68,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+69,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+70,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+71,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+72,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+73,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+74,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+75,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+76,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+77,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+78,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+79,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+80,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+81,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+82,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+83,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+84,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+85,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+86,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+87,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+88,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+89,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+90,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+91,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+92,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+93,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+94,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+95,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+96,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+97,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+98,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+99,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+100,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+101,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+102,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+103,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+104,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+105,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+106,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+107,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+108,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+109,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+110,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+111,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+112,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+113,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+114,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+115,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+116,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+117,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+118,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+119,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+120,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+121,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+122,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+123,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+124,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+125,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+126,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+127,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+128,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+129,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+130,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+131,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+132,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+133,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+134,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+135,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+136,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+137,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+138,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+139,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+140,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+141,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+142,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+143,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+144,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+145,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+146,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+147,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+148,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+149,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+150,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+151,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+152,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+153,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+154,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+155,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+156,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+157,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+158,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+159,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+160,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+161,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+162,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+163,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+164,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+165,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+166,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+167,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+168,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+169,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+170,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+171,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+172,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+173,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+174,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+175,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+176,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+177,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+178,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+179,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+180,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+181,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+182,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+183,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+184,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+185,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+186,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+187,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+188,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+189,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+190,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+191,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+192,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+193,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+194,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+195,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+196,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+197,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+198,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+199,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+200,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+201,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+202,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+203,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+204,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+205,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+206,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+207,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+208,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+209,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+210,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+211,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+212,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+213,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+214,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+215,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+216,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+217,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+218,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+219,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+220,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+221,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+222,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+223,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+224,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+225,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+226,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+227,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+228,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+229,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+230,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+231,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+232,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+233,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+234,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+235,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+236,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+237,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+238,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+239,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+240,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+241,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+242,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+243,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+244,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+245,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+246,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+247,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+248,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+249,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+250,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+251,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+252,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+253,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+254,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+255,
       ctc_sai_acl_get_acl_entry_info,
       ctc_sai_acl_set_acl_entry_info },
     { SAI_ACL_ENTRY_ATTR_FIELD_ACL_RANGE_TYPE,
@@ -8183,7 +8967,6 @@ _ctc_sai_acl_remove_acl_entry(sai_object_id_t acl_entry_id)
     uint32 gm = 0;
     uint32 index = 0;
     uint32 entry_index = 0;
-    uint32 ctc_udf_group_id = 0;
     sai_status_t status = SAI_STATUS_SUCCESS;
     ctc_object_id_t ctc_object_id = {0};
     sai_object_key_t key;
@@ -8194,7 +8977,6 @@ _ctc_sai_acl_remove_acl_entry(sai_object_id_t acl_entry_id)
     ctc_sai_acl_entry_t* p_acl_entry = NULL;
     ctc_sai_acl_table_t* p_acl_table = NULL;
     ctc_sai_acl_group_t* p_acl_group = NULL;
-    ctc_sai_udf_group_t* p_udf_group = NULL;
     ctc_sai_acl_counter_t* p_acl_counter = NULL;
     ctc_slistnode_t *group_node = NULL;
     ctc_slistnode_t *entry_node = NULL;
@@ -8410,26 +9192,6 @@ _ctc_sai_acl_remove_acl_entry(sai_object_id_t acl_entry_id)
         p_acl_counter->ref_oid_cnt--;
     }
 
-    for (ii = 0; ii < SAI_ACL_USER_DEFINED_FIELD_ATTR_ID_RANGE; ii++)
-    {
-        status = ctc_sai_find_attrib_in_list(SAI_ACL_KEY_ATTR_NUM, p_acl_entry->key_attr_list, SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+ii, &attr_value, &index);
-        if ((!CTC_SAI_ERROR(status)) && attr_value->aclfield.enable)
-        {
-            ctc_udf_group_id = ii;
-            sai_object_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_UDF_GROUP, lchip, SAI_UDF_GROUP_TYPE_GENERIC, 0, ctc_udf_group_id);
-
-            ctc_sai_get_sai_object_id(SAI_OBJECT_TYPE_UDF_GROUP, &ctc_object_id, &sai_object_id);
-            p_udf_group = ctc_sai_db_get_object_property(lchip, sai_object_id);
-            if (NULL == p_udf_group)
-            {
-                CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add udf field, invalid udf_group_id 0x%"PRIx64"!\n", sai_object_id);
-                status = SAI_STATUS_ITEM_NOT_FOUND;
-                return status;
-            }
-            p_udf_group->hash_ref_cnt--;
-        }
-    }
-
     /* free key attribute list */
     mem_free(p_acl_entry->key_attr_list);
 
@@ -8478,22 +9240,18 @@ ctc_sai_acl_create_acl_entry(sai_object_id_t *acl_entry_id,
     uint32 bind_point_value = 0;
     uint32 key_type = 0;
     uint32 *p_ctc_group_id = NULL;
-    uint32 ctc_udf_group_id = 0;
     uint64 hw_table_id = 0;
     sai_object_id_t table_id = 0;
     sai_object_id_t group_id = 0;
     sai_object_id_t range_id = 0;
-    sai_object_id_t sai_object_id = 0;
     sai_object_key_t key;
     sai_attribute_t attr;
     ctc_object_id_t ctc_table_object_id = {0};
     ctc_object_id_t ctc_bind_point_object_id = {0};
-    ctc_object_id_t ctc_object_id = {0};
     sai_acl_bind_point_type_t bind_point_type = 0;
     ctc_sai_acl_range_t* p_acl_range = NULL;
     ctc_sai_acl_counter_t *p_acl_counter = NULL;
     ctc_sai_acl_group_member_t *p_group_member = NULL;
-    ctc_sai_udf_group_t* p_udf_group = NULL;
     ctc_slistnode_t *table_node = NULL;
     ctc_slistnode_t *group_node = NULL;
     ctc_slistnode_t *bind_point_node = NULL;
@@ -8831,26 +9589,6 @@ ctc_sai_acl_create_acl_entry(sai_object_id_t *acl_entry_id,
         p_acl_counter->ref_oid_cnt++;
     }
 
-    for (ii = 0; ii < SAI_ACL_USER_DEFINED_FIELD_ATTR_ID_RANGE; ii++)
-    {
-        status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+ii, &attr_value, &index);
-        if ((!CTC_SAI_ERROR(status)) && attr_value->aclaction.enable)
-        {
-            ctc_udf_group_id = ii;
-            sai_object_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_UDF_GROUP, lchip, SAI_UDF_GROUP_TYPE_GENERIC, 0, ctc_udf_group_id);
-
-            ctc_sai_get_sai_object_id(SAI_OBJECT_TYPE_UDF_GROUP, &ctc_object_id, &sai_object_id);
-            p_udf_group = ctc_sai_db_get_object_property(lchip, sai_object_id);
-            if (NULL == p_udf_group)
-            {
-                CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add udf field, invalid udf_group_id 0x%"PRIx64"!\n", sai_object_id);
-                status = SAI_STATUS_ITEM_NOT_FOUND;
-                goto error0;
-            }
-            p_udf_group->hash_ref_cnt++;
-        }
-    }
-
     CTC_SAI_DB_UNLOCK(lchip);
     return SAI_STATUS_SUCCESS;
 error5:
@@ -9040,6 +9778,7 @@ ctc_sai_acl_create_acl_table(sai_object_id_t *acl_table_id,
     uint32 index = 0;
     uint32 lookup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
     ctc_sai_acl_table_t* p_acl_table = NULL;
+    ctc_sai_udf_group_t* p_udf_group = NULL;
     const sai_attribute_value_t* attr_value = NULL;
     ctc_sai_acl_table_udf_group_t* p_table_udf_group = NULL;
 
@@ -9165,8 +9904,16 @@ ctc_sai_acl_create_acl_table(sai_object_id_t *acl_table_id,
             if (ctc_sai_key_info.attr_avail[ii] >= SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN
                && ctc_sai_key_info.attr_avail[ii] <= SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX)
             {
-                if (attr_value->oid != SAI_NULL_OBJECT_ID)
+                if (SAI_NULL_OBJECT_ID != attr_value->oid)
                 {
+                    p_udf_group = ctc_sai_db_get_object_property(lchip, attr_value->oid);
+                    if (NULL == p_udf_group)
+                    {
+                        CTC_SAI_LOG_ERROR(SAI_API_UDF, "Failed to get udf group 0x%"PRIx64"!\n", attr_value->oid);
+                        status = SAI_STATUS_ITEM_NOT_FOUND;
+                        goto error3;
+                    }
+
                     MALLOC_ZERO(MEM_ACL_MODULE, p_table_udf_group, sizeof(ctc_sai_acl_table_udf_group_t));
                     if (NULL == p_table_udf_group)
                     {
@@ -9178,6 +9925,8 @@ ctc_sai_acl_create_acl_table(sai_object_id_t *acl_table_id,
 
                     ctc_slist_add_tail(p_acl_table->udf_groups, &(p_table_udf_group->head));
                     CTC_BMP_SET(p_acl_table->table_key_bmp, SAI_ACL_ATTR_ID2INDEX(ctc_sai_key_info.attr_avail[ii]));
+
+                    p_udf_group->ref_cnt++;
                 }
             }
             else
@@ -9264,11 +10013,14 @@ ctc_sai_acl_remove_acl_table(sai_object_id_t acl_table_id)
     ctc_slistnode_t* table_node = NULL;
     ctc_slistnode_t* group_node = NULL;
     ctc_slistnode_t* bound_node = NULL;
+    ctc_slistnode_t* udf_group_node = NULL;
     ctc_sai_acl_table_t* p_acl_table = NULL;
     ctc_sai_acl_group_t* p_acl_group = NULL;
+    ctc_sai_udf_group_t* p_udf_group = NULL;
     ctc_sai_acl_table_member_t* p_table_member = NULL;
     ctc_sai_acl_group_member_t* p_group_member = NULL;
     ctc_sai_acl_bind_point_info_t* p_bind_point = NULL;
+    ctc_sai_acl_table_udf_group_t* p_table_udf_group = NULL;
     ctc_sai_acl_table_group_member_t table_group_member;
     ctc_sai_acl_table_group_list_t* p_acl_table_group_list = NULL;
 
@@ -9364,6 +10116,20 @@ ctc_sai_acl_remove_acl_table(sai_object_id_t acl_table_id)
                     break;
             }
         }
+    }
+
+    CTC_SLIST_LOOP(p_acl_table->udf_groups, udf_group_node)
+    {
+        p_table_udf_group = (ctc_sai_acl_table_udf_group_t*)udf_group_node;
+
+        p_udf_group = ctc_sai_db_get_object_property(lchip, p_table_udf_group->group_id);
+        if (NULL == p_udf_group)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_UDF, "Failed to get udf group 0x%"PRIx64"!\n", p_table_udf_group->group_id);
+            status = SAI_STATUS_ITEM_NOT_FOUND;
+            goto error0;
+        }
+        p_udf_group->ref_cnt--;
     }
 
     ctc_sai_db_traverse_object_property(lchip, SAI_OBJECT_TYPE_ACL_COUNTER, (hash_traversal_fn)_ctc_sai_acl_remove_acl_counter_cb, &acl_table_id);
@@ -11296,7 +12062,7 @@ ctc_sai_acl_db_init(uint8 lchip)
 
     CTC_BMP_SET(ctc_sai_key_info.attr2field[SAI_ACL_ATTR_ID2INDEX(SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID)],        CTC_FIELD_KEY_INTERFACE_ID);
 
-    for (ii = 0; ii < CTC_SAI_UDF_GROUP_MAX_NUM(lchip); ii++)
+    for (ii = 0; ii <= SAI_ACL_USER_DEFINED_FIELD_ATTR_ID_RANGE; ii++)
     {
         CTC_BMP_SET(ctc_sai_key_info.attr2field[SAI_ACL_ATTR_ID2INDEX(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+ii)], CTC_FIELD_KEY_UDF);
         if (chip_type == CTC_CHIP_TSINGMA)

@@ -264,7 +264,7 @@ class scenario_01_vr_change_rif_attr(sai_base_test.ThriftInterfaceDataPlane):
                 if a.id == SAI_ROUTER_INTERFACE_ATTR_SRC_MAC_ADDRESS:
                    
                     sys_logging("get new router_mac = %s" %a.value.mac)
-                    if vr_mac != a.value.mac:
+                    if router_mac != a.value.mac:
                         raise NotImplementedError()    
         finally:
 

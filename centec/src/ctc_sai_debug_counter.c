@@ -386,11 +386,11 @@ _ctc_sai_debug_counter_set_attr(sai_object_key_t* key, const sai_attribute_t* at
                 {            
                     if(attr->value.s32list.list[loop_i] < 32)
                     {
-                        SET_BIT(p_dbgcounter_info->drop_reason_list_bitmap[0], attr->value.s32list.list[loop_i]);
+                        CTC_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[0], attr->value.s32list.list[loop_i]);
                     }
                     else
                     {
-                        SET_BIT(p_dbgcounter_info->drop_reason_list_bitmap[1], attr->value.s32list.list[loop_i]-32);
+                        CTC_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[1], attr->value.s32list.list[loop_i]-32);
                     }
                 }
             }
@@ -410,11 +410,11 @@ _ctc_sai_debug_counter_set_attr(sai_object_key_t* key, const sai_attribute_t* at
                 {            
                     if(attr->value.s32list.list[loop_i] < 32)
                     {
-                        SET_BIT(p_dbgcounter_info->drop_reason_list_bitmap[0], attr->value.s32list.list[loop_i]);
+                        CTC_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[0], attr->value.s32list.list[loop_i]);
                     }
                     else
                     {
-                        SET_BIT(p_dbgcounter_info->drop_reason_list_bitmap[1], attr->value.s32list.list[loop_i]-32);
+                        CTC_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[1], attr->value.s32list.list[loop_i]-32);
                     }
                 }
             }
@@ -471,7 +471,7 @@ _ctc_sai_debug_counter_get_attr(sai_object_key_t* key, sai_attribute_t* attr, ui
                 {
                     if(loop_i < 32)
                     {
-                        if(IS_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[0], loop_i))
+                        if(CTC_IS_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[0], loop_i))
                         {
                             attr->value.s32list.list[attr->value.s32list.count] = loop_i;
                             attr->value.s32list.count++;
@@ -479,7 +479,7 @@ _ctc_sai_debug_counter_get_attr(sai_object_key_t* key, sai_attribute_t* attr, ui
                     }
                     else
                     {
-                        if(IS_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[1], loop_i-32))
+                        if(CTC_IS_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[1], loop_i-32))
                         {
                             attr->value.s32list.list[attr->value.s32list.count] = loop_i;
                             attr->value.s32list.count++;
@@ -502,7 +502,7 @@ _ctc_sai_debug_counter_get_attr(sai_object_key_t* key, sai_attribute_t* attr, ui
                 {
                     if(loop_i < 32)
                     {
-                        if(IS_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[0], loop_i))
+                        if(CTC_IS_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[0], loop_i))
                         {
                             attr->value.s32list.list[attr->value.s32list.count] = loop_i;
                             attr->value.s32list.count++;
@@ -510,7 +510,7 @@ _ctc_sai_debug_counter_get_attr(sai_object_key_t* key, sai_attribute_t* attr, ui
                     }
                     else
                     {
-                        if(IS_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[1], loop_i-32))
+                        if(CTC_IS_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[1], loop_i-32))
                         {
                             attr->value.s32list.list[attr->value.s32list.count] = loop_i;
                             attr->value.s32list.count++;
@@ -717,7 +717,7 @@ sai_status_t ctc_sai_debug_counter_get_port_stats(uint8 lchip, uint16 portid, ui
             {
                 tmp_drop_reason_list_bitmap = p_dbgcounter_info->drop_reason_list_bitmap[1];
             }
-            if(IS_BIT_SET(tmp_drop_reason_list_bitmap, loop_i))
+            if(CTC_IS_BIT_SET(tmp_drop_reason_list_bitmap, loop_i))
             {
                 _ctc_sai_debug_counter_drop_reason_map(loop_i, DROP_REASON_IN, &ctc_drop_reason);
                 CTC_SAI_ERROR_RETURN(_ctc_sai_debug_counter_get_port_reason_stats(lchip, portid, ctc_drop_reason, with_clear, &tmp_count));
@@ -737,7 +737,7 @@ sai_status_t ctc_sai_debug_counter_get_port_stats(uint8 lchip, uint16 portid, ui
             {
                 tmp_drop_reason_list_bitmap = p_dbgcounter_info->drop_reason_list_bitmap[1];
             }
-            if(IS_BIT_SET(tmp_drop_reason_list_bitmap, loop_i))
+            if(CTC_IS_BIT_SET(tmp_drop_reason_list_bitmap, loop_i))
             {
                 _ctc_sai_debug_counter_drop_reason_map(loop_i, DROP_REASON_OUT, &ctc_drop_reason);
                 CTC_SAI_ERROR_RETURN(_ctc_sai_debug_counter_get_port_reason_stats(lchip, portid, ctc_drop_reason, with_clear, &tmp_count));
@@ -815,7 +815,7 @@ sai_status_t ctc_sai_debug_counter_get_switch_stats(uint8 lchip, uint32 drop_ind
             {
                 tmp_drop_reason_list_bitmap = p_dbgcounter_info->drop_reason_list_bitmap[1];
             }
-            if(IS_BIT_SET(tmp_drop_reason_list_bitmap, loop_i))
+            if(CTC_IS_BIT_SET(tmp_drop_reason_list_bitmap, loop_i))
             {
                 _ctc_sai_debug_counter_drop_reason_map(loop_i, DROP_REASON_IN, &ctc_drop_reason);
                 for(num = 0; num < local_panel_ports.count; num ++)
@@ -844,7 +844,7 @@ sai_status_t ctc_sai_debug_counter_get_switch_stats(uint8 lchip, uint32 drop_ind
             {
                 tmp_drop_reason_list_bitmap = p_dbgcounter_info->drop_reason_list_bitmap[1];
             }
-            if(IS_BIT_SET(tmp_drop_reason_list_bitmap, loop_i))
+            if(CTC_IS_BIT_SET(tmp_drop_reason_list_bitmap, loop_i))
             {
                 _ctc_sai_debug_counter_drop_reason_map(loop_i, DROP_REASON_OUT, &ctc_drop_reason);
                 for(num = 0; num < local_panel_ports.count; num ++)
@@ -953,11 +953,11 @@ sai_status_t ctc_sai_debug_counter_create_debug_counter (
         {            
             if(attr_value->s32list.list[loop_i] < 32)
             {
-                SET_BIT(p_dbgcounter_info->drop_reason_list_bitmap[0], attr_value->s32list.list[loop_i]);
+                CTC_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[0], attr_value->s32list.list[loop_i]);
             }
             else
             {
-                SET_BIT(p_dbgcounter_info->drop_reason_list_bitmap[1], attr_value->s32list.list[loop_i]-32);
+                CTC_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[1], attr_value->s32list.list[loop_i]-32);
             }
         }
     }
@@ -969,11 +969,11 @@ sai_status_t ctc_sai_debug_counter_create_debug_counter (
         {            
             if(attr_value->s32list.list[loop_i] < 32)
             {
-                SET_BIT(p_dbgcounter_info->drop_reason_list_bitmap[0], attr_value->s32list.list[loop_i]);
+                CTC_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[0], attr_value->s32list.list[loop_i]);
             }
             else
             {
-                SET_BIT(p_dbgcounter_info->drop_reason_list_bitmap[1], attr_value->s32list.list[loop_i]-32);
+                CTC_BIT_SET(p_dbgcounter_info->drop_reason_list_bitmap[1], attr_value->s32list.list[loop_i]-32);
             }
         }
     }

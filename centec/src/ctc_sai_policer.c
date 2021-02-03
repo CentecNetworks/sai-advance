@@ -1258,6 +1258,7 @@ ctc_sai_policer_remove_policer_id(
         status = SAI_STATUS_OBJECT_IN_USE;
         goto error_return;
     }
+    ctc_slist_free(p_policer_db->port_id_head);
     mem_free(p_policer_db);
     ctc_sai_db_remove_object_property(lchip, policer_id);
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_POLICER, ctc_object_id.value);

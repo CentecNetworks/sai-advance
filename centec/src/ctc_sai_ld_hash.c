@@ -35,7 +35,6 @@ _ctc_sai_ld_hash_check_udf_attr(uint8 lchip, const sai_attribute_t* attr, sai_ob
     uint8 udf_offset[CTC_SAI_UDF_OFFSET_NUM] = {0};
     uint8 offset_num = 0;
     uint8 offset_len = 0;
-    uint8 offset_valid = 0;
     ctc_sai_ld_hash_t* p_hash_data = NULL;
     ctc_sai_udf_group_t* p_udf_group = NULL;
 
@@ -49,12 +48,17 @@ _ctc_sai_ld_hash_check_udf_attr(uint8 lchip, const sai_attribute_t* attr, sai_ob
 
     if (SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST == attr->id)
     {
-        ;
+        *p_udf_sel = CTC_LB_HASH_UDF_SEL_MAX_MODE;
     }
     else if (SAI_HASH_ATTR_UDF_GROUP_LIST == attr->id)
     {
         chip_type = ctcs_get_chip_type(lchip);
         *p_udf_sel = p_hash_data->udf_sel;
+
+        if (attr->value.objlist.count == 0)
+        {
+            return SAI_STATUS_SUCCESS;
+        }
 
         for (ii = 0; ii < attr->value.objlist.count; ii++)
         {
@@ -65,15 +69,15 @@ _ctc_sai_ld_hash_check_udf_attr(uint8 lchip, const sai_attribute_t* attr, sai_ob
                 return SAI_STATUS_ITEM_NOT_FOUND;
             }
 
-            for (jj = 0; jj < p_udf_group->length/CTC_SAI_UDF_OFFSET_NUM; jj++)
+            for (jj = 0; jj < p_udf_group->length/CTC_SAI_UDF_OFFSET_BYTE_LEN; jj++)
             {
-                udf_offset[jj] = p_udf_group->offset[jj];
+                udf_offset[offset_num] = p_udf_group->offset[jj];
                 offset_num++;
             }
             offset_len += p_udf_group->length;
         }
 
-        if (offset_len > (sizeof(uint32)/sizeof(uint16)))
+        if (offset_len > sizeof(uint32))
         {
             CTC_SAI_LOG_ERROR(SAI_API_HASH, "Total udf group's length:%u exceed max byte length 4!\n", offset_len);
             return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
@@ -81,100 +85,48 @@ _ctc_sai_ld_hash_check_udf_attr(uint8 lchip, const sai_attribute_t* attr, sai_ob
 
         if (CTC_CHIP_TSINGMA == chip_type)
         {
-            if (CTC_LB_HASH_UDF_SEL_MAX_MODE != p_hash_data->udf_sel)
+            switch (udf_offset[0])
             {
-                switch (p_hash_data->udf_sel)
-                {
-                    case 0:
-                        offset_valid = (udf_offset[0] == 0);
-                        break;
-                    case 1:
-                        offset_valid = (udf_offset[0] == 1);
-                        break;
-                    case 2:
-                        offset_valid = (udf_offset[0] == 2);
-                        break;
-                    case 3:
-                        offset_valid = (udf_offset[0] == 3);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else
-            {
-                switch (udf_offset[0])
-                {
-                    case 0:
-                        *p_udf_sel = 0;
-                        break;
-                    case 1:
-                        *p_udf_sel = 1;
-                        break;
-                    case 2:
-                        *p_udf_sel = 2;
-                        break;
-                    case 3:
-                        *p_udf_sel = 3;
-                        break;
-                    default:
-                        CTC_SAI_LOG_ERROR(SAI_API_HASH, "udf offset[0]:%u is not support!\n", udf_offset[0]);
-                        return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
-                }
+                case 0:
+                    *p_udf_sel = 0;
+                    break;
+                case 1:
+                    *p_udf_sel = 1;
+                    break;
+                case 2:
+                    *p_udf_sel = 2;
+                    break;
+                case 3:
+                    *p_udf_sel = 3;
+                    break;
+                default:
+                    CTC_SAI_LOG_ERROR(SAI_API_HASH, "udf offset[0]:%u is not support!\n", udf_offset[0]);
+                    return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
             }
         }
         else if (CTC_CHIP_TSINGMA_MX == chip_type)
         {
-            if (CTC_LB_HASH_UDF_SEL_MAX_MODE == p_hash_data->udf_sel)
+            if ((offset_num == 1 && (udf_offset[0] == 0 || udf_offset[0] == 1)) || (offset_num == 2 && udf_offset[0] == 0 && udf_offset[1] == 1))
             {
-                if ((offset_num == 1 && udf_offset[0] == 0) || (offset_num == 2 && udf_offset[0] == 0 && udf_offset[1] == 1))
-                {
-                    *p_udf_sel = 0;
-                }
-                else if ((offset_num == 1 && udf_offset[0] == 2) || (offset_num == 2 && udf_offset[0] == 2 && udf_offset[1] == 3))
-                {
-                    *p_udf_sel = 1;
-                }
-                else if ((offset_num == 1 && udf_offset[0] == 4) || (offset_num == 2 && udf_offset[0] == 4 && udf_offset[1] == 5))
-                {
-                    *p_udf_sel = 2;
-                }
-                else if ((offset_num == 1 && udf_offset[0] == 6) || (offset_num == 2 && udf_offset[0] == 6 && udf_offset[1] == 7))
-                {
-                    *p_udf_sel = 3;
-                }
-                else
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_HASH, "udf offset[0]:%u and offset[1]:%u is not support!\n", udf_offset[0], udf_offset[1]);
-                    return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
-                }
+                *p_udf_sel = 0;
+            }
+            else if ((offset_num == 1 && (udf_offset[0] == 2 || udf_offset[0] == 3)) || (offset_num == 2 && udf_offset[0] == 2 && udf_offset[1] == 3))
+            {
+                *p_udf_sel = 1;
+            }
+            else if ((offset_num == 1 && (udf_offset[0] == 4 || udf_offset[0] == 5)) || (offset_num == 2 && udf_offset[0] == 4 && udf_offset[1] == 5))
+            {
+                *p_udf_sel = 2;
+            }
+            else if ((offset_num == 1 && (udf_offset[0] == 6 || udf_offset[0] == 7)) || (offset_num == 2 && udf_offset[0] == 6 && udf_offset[1] == 7))
+            {
+                *p_udf_sel = 3;
             }
             else
             {
-                switch (p_hash_data->udf_sel)
-                {
-                    case 0:
-                        offset_valid = ((2 == offset_num && udf_offset[0] == 0 && udf_offset[1] == 1) || (1 == offset_num && udf_offset[0] == 0));
-                        break;
-                    case 1:
-                        offset_valid = ((2 == offset_num && udf_offset[0] == 2 && udf_offset[1] == 3) || (1 == offset_num && udf_offset[0] == 2));
-                        break;
-                    case 2:
-                        offset_valid = ((2 == offset_num && udf_offset[0] == 4 && udf_offset[1] == 5) || (1 == offset_num && udf_offset[0] == 4));
-                        break;
-                    case 3:
-                        offset_valid = ((2 == offset_num && udf_offset[0] == 6 && udf_offset[1] == 7) || (1 == offset_num && udf_offset[0] == 6));
-                        break;
-                    default:
-                        break;
-                }
+                CTC_SAI_LOG_ERROR(SAI_API_HASH, "udf offset[0]:%u and offset[1]:%u is not support!\n", udf_offset[0], udf_offset[1]);
+                return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
             }
-        }
-
-        if (!offset_valid)
-        {
-            CTC_SAI_LOG_ERROR(SAI_API_HASH, "udf offset indicated by udf groups is not supported!\n");
-            return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
         }
     }
     else
@@ -190,6 +142,7 @@ sai_status_t
 _ctc_sai_ld_hash_update_udf_group(uint8 lchip, const sai_attribute_t* attr, sai_object_id_t ld_hash_oid)
 {
     uint8 ii = 0;
+	uint8 jj = 0;
     ctc_object_id_t ctc_object_id = {0};
     ctc_slist_t* udf_group_list = NULL;
     ctc_slistnode_t* entry_node = NULL;
@@ -197,6 +150,36 @@ _ctc_sai_ld_hash_update_udf_group(uint8 lchip, const sai_attribute_t* attr, sai_
     ctc_sai_udf_group_t* p_udf_group = NULL;
     ctc_sai_ld_hash_group_t* p_hash_data_group = NULL;
     ctc_lb_hash_config_t ctc_lb_hash_config;
+
+    uint32 template_ip[] = {
+        CTC_LB_HASH_SELECT_IPV4,
+        CTC_LB_HASH_SELECT_IPV4_TCP_UDP,
+        CTC_LB_HASH_SELECT_IPV4_TCP_UDP_PORTS_EQUAL,
+        CTC_LB_HASH_SELECT_IPV4_VXLAN,
+        CTC_LB_HASH_SELECT_IPV4_GRE,
+        CTC_LB_HASH_SELECT_IPV4_NVGRE,
+        CTC_LB_HASH_SELECT_IPV6,
+        CTC_LB_HASH_SELECT_IPV6_TCP_UDP,
+        CTC_LB_HASH_SELECT_IPV6_TCP_UDP_PORTS_EQUAL,
+        CTC_LB_HASH_SELECT_IPV6_VXLAN,
+        CTC_LB_HASH_SELECT_IPV6_GRE,
+        CTC_LB_HASH_SELECT_IPV6_NVGRE,
+        CTC_LB_HASH_SELECT_NVGRE_INNER_IPV4,
+        CTC_LB_HASH_SELECT_NVGRE_INNER_IPV6,
+        CTC_LB_HASH_SELECT_VXLAN_INNER_IPV4,
+        CTC_LB_HASH_SELECT_VXLAN_INNER_IPV6,
+        CTC_LB_HASH_SELECT_MPLS_L2VPN_INNER_IPV4,
+        CTC_LB_HASH_SELECT_MPLS_L2VPN_INNER_IPV6,
+        CTC_LB_HASH_SELECT_MPLS_L3VPN_INNER_IPV4,
+        CTC_LB_HASH_SELECT_MPLS_L3VPN_INNER_IPV6,
+        CTC_LB_HASH_SELECT_TRILL_INNER_IPV4,
+        CTC_LB_HASH_SELECT_TRILL_INNER_IPV6,
+        CTC_LB_HASH_SELECT_TRILL_DECAP_INNER_IPV4,
+        CTC_LB_HASH_SELECT_TRILL_DECAP_INNER_IPV6,
+        CTC_LB_HASH_SELECT_FCOE,
+        CTC_LB_HASH_SELECT_FLEX_TNL_INNER_IPV4,
+        CTC_LB_HASH_SELECT_FLEX_TNL_INNER_IPV6
+    };
 
     CTC_SAI_LOG_ENTER(SAI_API_HASH);
 
@@ -225,7 +208,7 @@ _ctc_sai_ld_hash_update_udf_group(uint8 lchip, const sai_attribute_t* attr, sai_
                 goto error1;
             }
             p_udf_group = ctc_sai_db_get_object_property(lchip, attr->value.objlist.list[ii]);
-            p_udf_group->hash_ref_cnt++;
+            p_udf_group->ref_cnt++;
             p_hash_data_group->group_id = attr->value.objlist.list[ii];
             ctc_slist_add_head(udf_group_list, &(p_hash_data_group->head));
         }
@@ -234,10 +217,31 @@ _ctc_sai_ld_hash_update_udf_group(uint8 lchip, const sai_attribute_t* attr, sai_
         {
             p_hash_data_group = (ctc_sai_ld_hash_group_t*)entry_node;
             p_udf_group = ctc_sai_db_get_object_property(lchip, p_hash_data_group->group_id);
-            p_udf_group->hash_ref_cnt--;
+            p_udf_group->ref_cnt--;
         }
         ctc_slist_delete(p_hash_data->udf_group_list);
         p_hash_data->udf_group_list = udf_group_list;
+
+        //set select
+        for (jj = 0; jj < sizeof(template_ip) / 4; jj++)
+        {
+            sal_memset(&ctc_lb_hash_config, 0, sizeof(ctc_lb_hash_config_t));
+            CTC_UNSET_FLAG(ctc_lb_hash_config.sel_id, CTC_SAI_HASH_USAGE_NUM);
+            CTC_SET_FLAG(ctc_lb_hash_config.sel_id, (ctc_object_id.sub_type == CTC_SAI_HASH_USAGE_LINKAGG) ? CTC_SAI_HASH_USAGE_LINKAGG : CTC_SAI_HASH_USAGE_ECMP);
+            CTC_SET_FLAG(ctc_lb_hash_config.cfg_type, CTC_LB_HASH_CFG_HASH_SELECT);
+			ctc_lb_hash_config.hash_select = template_ip[jj];
+            CTC_SET_FLAG(ctc_lb_hash_config.value, CTC_LB_HASH_FIELD_UDF_LO);
+            CTC_SET_FLAG(ctc_lb_hash_config.value, CTC_LB_HASH_FIELD_UDF_HI);
+			CTC_SAI_CTC_ERROR_RETURN(ctcs_global_ctl_set(lchip, CTC_GLOBAL_LB_HASH_KEY, &ctc_lb_hash_config));
+        }
+
+        sal_memset(&ctc_lb_hash_config, 0, sizeof(ctc_lb_hash_config_t));
+        CTC_UNSET_FLAG(ctc_lb_hash_config.sel_id, CTC_SAI_HASH_USAGE_NUM);
+        CTC_SET_FLAG(ctc_lb_hash_config.sel_id, (ctc_object_id.sub_type == CTC_SAI_HASH_USAGE_LINKAGG) ? CTC_SAI_HASH_USAGE_LINKAGG : CTC_SAI_HASH_USAGE_ECMP);
+        CTC_SET_FLAG(ctc_lb_hash_config.cfg_type, CTC_LB_HASH_CFG_HASH_CONTROL);
+        CTC_SET_FLAG(ctc_lb_hash_config.hash_control, CTC_LB_HASH_CONTROL_L2_ONLY);
+        CTC_SET_FLAG(ctc_lb_hash_config.value, 0);
+        ctcs_global_ctl_set(lchip, CTC_GLOBAL_LB_HASH_KEY, &ctc_lb_hash_config);
 
         sal_memset(&ctc_lb_hash_config, 0, sizeof(ctc_lb_hash_config_t));
         CTC_UNSET_FLAG(ctc_lb_hash_config.sel_id, CTC_SAI_HASH_USAGE_NUM);
@@ -245,6 +249,7 @@ _ctc_sai_ld_hash_update_udf_group(uint8 lchip, const sai_attribute_t* attr, sai_
         CTC_SET_FLAG(ctc_lb_hash_config.cfg_type, CTC_LB_HASH_CFG_HASH_CONTROL);
         CTC_SET_FLAG(ctc_lb_hash_config.hash_control, CTC_LB_HASH_CONTROL_UDF_SELECT_MODE);
         CTC_SET_FLAG(ctc_lb_hash_config.value, p_hash_data->udf_sel);
+        CTC_SAI_LOG_INFO(SAI_API_HASH, "udf sel = %d\n", p_hash_data->udf_sel);
         ctcs_global_ctl_set(lchip, CTC_GLOBAL_LB_HASH_KEY, &ctc_lb_hash_config);
     }
     goto error0;
@@ -334,7 +339,7 @@ _ctc_sai_set_lag_hash(uint8 lchip, uint32 field_bmp)
     /*for don't clear table, set default select id use 2*/
     CTC_SET_FLAG(ctc_lb_hash_config.sel_id, CTC_SAI_HASH_USAGE_NUM);
     /* for update, only fields updated are valid, so must clean default value */
-    CTC_SET_FLAG(ctc_linkagg_psc.psc_type_bitmap, CTC_LINKAGG_PSC_TYPE_L2);
+    //CTC_SET_FLAG(ctc_linkagg_psc.psc_type_bitmap, CTC_LINKAGG_PSC_TYPE_L2);
 
     /* SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST */
     if (CTC_IS_BIT_SET(field_bmp, SAI_NATIVE_HASH_FIELD_SRC_IP))
@@ -538,7 +543,7 @@ _ctc_sai_set_ecmp_hash(uint8 lchip, uint32 field_bmp)
     /*for don't clear table, set default select id use 2*/
     CTC_SET_FLAG(ctc_lb_hash_config.sel_id, CTC_SAI_HASH_USAGE_NUM);
     /* for update, only fields updated are valid, so must clean default value */
-    CTC_SET_FLAG(ctc_ecmp_ctl.hash_type_bitmap, CTC_PARSER_HASH_TYPE_FLAGS_L2); /* last alredeady */
+    //CTC_SET_FLAG(ctc_ecmp_ctl.hash_type_bitmap, CTC_PARSER_HASH_TYPE_FLAGS_L2); /* last alredeady */
 
     CTC_SAI_LOG_ENTER(SAI_API_HASH);
 
@@ -773,8 +778,8 @@ _ctc_sai_ld_hash_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
             ctc_ecmp_ctl.hash_type_bitmap = CTC_PARSER_HASH_TYPE_FLAGS_IP | CTC_PARSER_HASH_TYPE_FLAGS_L4 | CTC_PARSER_HASH_TYPE_FLAGS_MPLS
                                            | CTC_PARSER_HASH_TYPE_FLAGS_FCOE | CTC_PARSER_HASH_TYPE_FLAGS_TRILL | CTC_PARSER_HASH_TYPE_FLAGS_L2;
             CTC_SAI_CTC_ERROR_GOTO((ctcs_parser_set_ecmp_hash_field(lchip, &ctc_ecmp_ctl)), status, error0);
+			CTC_SAI_ERROR_GOTO(_ctc_sai_set_ecmp_hash(lchip, field_bmp), status, error0);
         }
-        CTC_SAI_ERROR_GOTO(_ctc_sai_set_ecmp_hash(lchip, field_bmp), status, error0);
     }
     else if (ctc_object_id.sub_type == CTC_SAI_HASH_USAGE_LINKAGG)  /* linkagg hash: sub_type = 1; */
     {
@@ -784,8 +789,8 @@ _ctc_sai_ld_hash_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
             ctc_linkagg_psc.psc_type_bitmap = CTC_LINKAGG_PSC_TYPE_L2 | CTC_LINKAGG_PSC_TYPE_IP | CTC_LINKAGG_PSC_TYPE_L4 \
                                              | CTC_LINKAGG_PSC_TYPE_MPLS| CTC_LINKAGG_PSC_TYPE_FCOE |CTC_LINKAGG_PSC_TYPE_TRILL;
             CTC_SAI_CTC_ERROR_GOTO((ctcs_linkagg_set_psc(lchip, &ctc_linkagg_psc)),status,error0);
+			CTC_SAI_ERROR_GOTO(_ctc_sai_set_lag_hash(lchip, field_bmp), status, error0);
         }
-        CTC_SAI_ERROR_GOTO(_ctc_sai_set_lag_hash(lchip, field_bmp), status, error0);
     }
     else
     {

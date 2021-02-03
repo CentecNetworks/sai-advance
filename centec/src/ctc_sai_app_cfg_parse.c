@@ -3,7 +3,6 @@
  * Header Files
  *
  ****************************************************************************/
-
 #include "sal.h"
 #include "api/include/ctc_api.h"
 #include "ctc_sai_app_cfg_parse.h"

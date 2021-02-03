@@ -126,8 +126,9 @@ class casenum(sai_base_test.ThriftInterfaceDataPlane):
         allfiles = os.listdir(os.getcwd())
         print allfiles
         for filename in allfiles:
-            if re.match(r'.*sai.*.py$',filename):
+            if re.match(r'.*ctc.*.py$',filename):
                 filelist.append(filename)
+        filelist.sort()
         for file in filelist:
             fobj = open(file, 'r').read()
             words = re.findall('class',fobj)

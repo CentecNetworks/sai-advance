@@ -294,6 +294,11 @@ _do_parser(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chip_info)
         p_chip_info->sdb_en = (uint8)val;
     }
 
+    if (!ctc_app_parse_file(p_file, "SDB_TYPE", NULL, &val, &entry_num))
+    {
+        p_chip_info->sdb_type = (uint8)val;
+    }
+
     if (!ctc_app_parse_file(p_file, "QOS_POLICER_NUM", NULL, &val, &entry_num))
     {
         p_chip_info->policer_num = (uint16)val;
@@ -412,6 +417,10 @@ _do_parser(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chip_info)
     if(!ctc_app_parse_file(p_file, "LB_HASH_MODE", NULL, &val, &entry_num))
     {
         p_chip_info->lb_hash_mode = (uint8)val;
+    }
+    if(!ctc_app_parse_file(p_file, "IFA_EUNIT_EN", NULL, &val, &entry_num))
+    {
+        p_chip_info->ifa_eunit_en = (uint8)val;
     }
     return CTC_E_NONE;
 }
@@ -672,6 +681,19 @@ _do_parser_module_init(ctc_app_parse_file_t* p_file, ctc_init_chip_info_t* p_chi
         }
     }
 
+    val = 0;
+    if (!ctc_app_parse_file(p_file, "FLEXE_SUPPORT", NULL, &val, &entry_num))
+    {
+        if (val)
+        {
+            CTC_SET_FLAG(p_chip_info->init_flag, CTC_INIT_MODULE_FLEXE);
+        }
+        else
+        {
+            CTC_UNSET_FLAG(p_chip_info->init_flag, CTC_INIT_MODULE_FLEXE);
+        }
+    }
+
     return CTC_E_NONE;
 }
 
@@ -827,12 +849,12 @@ ctc_app_set_phy_mapping(uint8* fname, ctc_init_cfg_t * p_init_config, ctc_init_c
     if ((NULL == tmp_gport) || (NULL == tmp_phy) || (NULL == tmp_mdio))
     {
         ret = CTC_E_NO_MEMORY;
-        goto error;
+        goto error_proc;
     }
     sal_memset(tmp_gport, CTC_MAX_UINT8_VALUE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
     sal_memset(tmp_phy, CTC_MAX_UINT8_VALUE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
     sal_memset(tmp_mdio, CTC_MAX_UINT8_VALUE, sizeof(uint32)*MAX_PORT_NUM_PER_CHIP*p_chip_info->local_chip_num);
-
+#if 0
     for (index = 0; index < p_chip_info->local_chip_num; ++ index)
     {
         p_init_config->phy_mapping_para[index] =
@@ -852,24 +874,24 @@ ctc_app_set_phy_mapping(uint8* fname, ctc_init_cfg_t * p_init_config, ctc_init_c
         }
         sal_memset(p_init_config->phy_mapping_para[index], CTC_MAX_UINT8_VALUE, sizeof(ctc_chip_phy_mapping_para_t));
     }
-
+#endif
     /*Get port phy mdio mapping*/
     if (p_chip_info->port_phy_mapping_en)
     {
         ret = _ctc_app_get_phy_map(fname, 0, tmp_phy);
         if (CTC_E_NONE != ret)
         {
-            goto error;
+            goto error_proc;
         }
         ret = _ctc_app_get_phy_map(fname, 1, tmp_mdio);
         if (CTC_E_NONE != ret)
         {
-            goto error;
+            goto error_proc;
         }
         ret = _ctc_app_get_phy_map(fname, 2, tmp_gport);
         if (CTC_E_NONE != ret)
         {
-            goto error;
+            goto error_proc;
         }
 
         /*Get port phy address mapping*/
@@ -897,7 +919,7 @@ ctc_app_set_phy_mapping(uint8* fname, ctc_init_cfg_t * p_init_config, ctc_init_c
             }
         }
     }
-error:
+error_proc:
     if (tmp_gport)
     {
         mem_free(tmp_gport);

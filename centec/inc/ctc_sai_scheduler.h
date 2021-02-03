@@ -14,33 +14,33 @@ This module defines SAI Scheduler.
  The Scheduler Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_scheduler                                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_scheduler                                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_scheduler_attribute                              |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_scheduler_attribute                              |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_scheduler                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_scheduler                                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_scheduler_attribute                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_scheduler_attribute                              |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Scheduler attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_SCHEDULER_ATTR_SCHEDULING_TYPE                   |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_ATTR_SCHEDULING_WEIGHT                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_ATTR_METER_TYPE                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_RATE                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_BURST_RATE          |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_ATTR_MAX_BANDWIDTH_RATE                |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_ATTR_MAX_BANDWIDTH_BURST_RATE          |    CTC8096,CTC7148,CTC7132     |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_SCHEDULER_ATTR_SCHEDULING_TYPE                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_ATTR_SCHEDULING_WEIGHT                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_ATTR_METER_TYPE                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_RATE                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_BURST_RATE          |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_ATTR_MAX_BANDWIDTH_RATE                |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_ATTR_MAX_BANDWIDTH_BURST_RATE          |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Scheduler type supported by centec devices:
 \p
 \b
-\t  |   SCHEDULER TYPE                                      |       SUPPORT CHIPS LIST       |
-\t  |  SAI_SCHEDULING_TYPE_STRICT                           |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULING_TYPE_WRR                              |              -                 |
-\t  |  SAI_SCHEDULING_TYPE_DWRR                             |    CTC8096,CTC7148,CTC7132     |
+\t  |   SCHEDULER TYPE                                      |           SUPPORT CHIPS LIST           |
+\t  |  SAI_SCHEDULING_TYPE_STRICT                           |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULING_TYPE_WRR                              |                  -                     |
+\t  |  SAI_SCHEDULING_TYPE_DWRR                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 */
 

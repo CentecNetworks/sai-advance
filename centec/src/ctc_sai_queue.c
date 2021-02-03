@@ -980,6 +980,8 @@ ctc_sai_queue_get_stats(
     ctc_qos_queue_stats_t queue_stats;
     ctc_object_id_t ctc_oid;
     ctc_sai_switch_master_t* p_switch = NULL;
+    ctc_sai_queue_db_t* p_queue_db = NULL;
+    
     uint8   lchip = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_QUEUE);
@@ -1000,6 +1002,7 @@ ctc_sai_queue_get_stats(
         CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Switch DB not found!\n");
         return SAI_STATUS_FAILURE;
     }
+    CTC_SAI_ERROR_RETURN(_ctc_sai_queue_get_queue_db(queue_id, &p_queue_db));
 
     if ((ctc_oid.sub_type == SAI_QUEUE_TYPE_MULTICAST)
         && (p_switch->port_queues == 16))
@@ -1028,16 +1031,32 @@ ctc_sai_queue_get_stats(
         switch(counter_ids[attr_idx])
         {
             case SAI_QUEUE_STAT_PACKETS:
-                counters[attr_idx] = queue_stats.stats.deq_packets + queue_stats.stats.drop_packets;
+                counters[attr_idx] = queue_stats.stats.deq_packets + queue_stats.stats.drop_packets - p_queue_db->queue_all_pkt;
                 break;
             case SAI_QUEUE_STAT_BYTES:
-                counters[attr_idx] = queue_stats.stats.deq_bytes + queue_stats.stats.drop_bytes;
+                if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+                {
+                    counters[attr_idx] = queue_stats.stats.deq_bytes + queue_stats.stats.drop_bytes - p_queue_db->queue_all_byte;
+                }
+                if(CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+                {
+                    CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Failed to get queue stats,tmm not support\n");
+                    return SAI_STATUS_NOT_SUPPORTED;
+                }
                 break;
             case SAI_QUEUE_STAT_DROPPED_PACKETS:
-                counters[attr_idx] = queue_stats.stats.drop_packets;
+                counters[attr_idx] = queue_stats.stats.drop_packets - p_queue_db->queue_drop_pkt;
                 break;
             case SAI_QUEUE_STAT_DROPPED_BYTES:
-                counters[attr_idx] = queue_stats.stats.drop_bytes;
+                if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+                {
+                    counters[attr_idx] = queue_stats.stats.drop_bytes - p_queue_db->queue_drop_byte;
+                }
+                if(CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+                {
+                    CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Failed to get queue stats,tmm not support\n");
+                    return SAI_STATUS_NOT_SUPPORTED;
+                }
                 break;
             default:
                 CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Failed to get queue stats, not support\n");
@@ -1060,6 +1079,7 @@ ctc_sai_queue_get_stats_ext(
     ctc_qos_queue_stats_t queue_stats;
     ctc_object_id_t ctc_oid;
     ctc_sai_switch_master_t* p_switch = NULL;
+    ctc_sai_queue_db_t* p_queue_db = NULL;
     uint8   lchip = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_QUEUE);
@@ -1082,6 +1102,7 @@ ctc_sai_queue_get_stats_ext(
         CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Switch DB not found!\n");
         return SAI_STATUS_FAILURE;
     }
+    CTC_SAI_ERROR_RETURN(_ctc_sai_queue_get_queue_db(queue_id, &p_queue_db));
 
     if ((ctc_oid.sub_type == SAI_QUEUE_TYPE_MULTICAST)
         && (p_switch->port_queues == 16))
@@ -1110,16 +1131,32 @@ ctc_sai_queue_get_stats_ext(
         switch(counter_ids[attr_idx])
         {
             case SAI_QUEUE_STAT_PACKETS:
-                counters[attr_idx] = queue_stats.stats.deq_packets + queue_stats.stats.drop_packets;
+                counters[attr_idx] = queue_stats.stats.deq_packets + queue_stats.stats.drop_packets - p_queue_db->queue_all_pkt;
                 break;
             case SAI_QUEUE_STAT_BYTES:
-                counters[attr_idx] = queue_stats.stats.deq_bytes + queue_stats.stats.drop_bytes;
+                if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+                {
+                    counters[attr_idx] = queue_stats.stats.deq_bytes + queue_stats.stats.drop_bytes - p_queue_db->queue_all_byte;
+                }
+                if(CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+                {
+                    CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Failed to get queue stats,tmm not support\n");
+                    return SAI_STATUS_NOT_SUPPORTED;
+                }
                 break;
             case SAI_QUEUE_STAT_DROPPED_PACKETS:
-                counters[attr_idx] = queue_stats.stats.drop_packets;
+                counters[attr_idx] = queue_stats.stats.drop_packets - p_queue_db->queue_drop_pkt;
                 break;
             case SAI_QUEUE_STAT_DROPPED_BYTES:
-                counters[attr_idx] = queue_stats.stats.drop_bytes;
+                if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+                {
+                    counters[attr_idx] = queue_stats.stats.drop_bytes - p_queue_db->queue_drop_byte;
+                }
+                if(CTC_CHIP_TSINGMA_MX == ctcs_get_chip_type(lchip))
+                {
+                    CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Failed to get queue stats,tmm not support\n");
+                    return SAI_STATUS_NOT_SUPPORTED;
+                }
                 break;
             default:
                 CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Failed to get queue stats, not support\n");
@@ -1130,7 +1167,10 @@ ctc_sai_queue_get_stats_ext(
 
     if (SAI_STATS_MODE_READ_AND_CLEAR == mode)
     {
-        CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_clear_queue_stats(lchip, &queue_stats));
+        p_queue_db->queue_all_pkt = queue_stats.stats.deq_packets + queue_stats.stats.drop_packets;
+        p_queue_db->queue_all_byte = queue_stats.stats.deq_bytes + queue_stats.stats.drop_bytes;
+        p_queue_db->queue_drop_pkt = queue_stats.stats.drop_packets;
+        p_queue_db->queue_drop_byte = queue_stats.stats.drop_bytes;
     }
 
     return SAI_STATUS_SUCCESS;
@@ -1145,6 +1185,7 @@ ctc_sai_queue_clear_stats(
     ctc_qos_queue_stats_t queue_stats;
     ctc_object_id_t ctc_oid;
     ctc_sai_switch_master_t* p_switch = NULL;
+    ctc_sai_queue_db_t* p_queue_db = NULL;
     uint8   lchip = 0;
 
     CTC_SAI_LOG_ENTER(SAI_API_QUEUE);
@@ -1164,6 +1205,7 @@ ctc_sai_queue_clear_stats(
         CTC_SAI_LOG_ERROR(SAI_API_QUEUE, "Switch DB not found!\n");
         return SAI_STATUS_FAILURE;
     }
+    CTC_SAI_ERROR_RETURN(_ctc_sai_queue_get_queue_db(queue_id, &p_queue_db));
 
     if ((ctc_oid.sub_type == SAI_QUEUE_TYPE_MULTICAST)
         && (p_switch->port_queues == 16))
@@ -1185,7 +1227,11 @@ ctc_sai_queue_clear_stats(
 
     queue_stats.queue.gport = ctc_oid.value;
 
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_clear_queue_stats(lchip, &queue_stats));
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_query_queue_stats(lchip, &queue_stats));
+    p_queue_db->queue_all_pkt = queue_stats.stats.deq_packets + queue_stats.stats.drop_packets;
+    p_queue_db->queue_all_byte = queue_stats.stats.deq_bytes + queue_stats.stats.drop_bytes;
+    p_queue_db->queue_drop_pkt = queue_stats.stats.drop_packets;
+    p_queue_db->queue_drop_byte = queue_stats.stats.drop_bytes;
 
     return SAI_STATUS_SUCCESS;
 }

@@ -82,6 +82,7 @@ struct ctc_init_chip_info_s
     uint8 lb_hash_mode;
     uint8 tcam_scan_en;
     uint8 sdb_en;
+    uint8 sdb_type;
     uint8 queue_num_for_cpu_reason;
     uint8 cpu_que_shp_profile_num;
     uint8 stp_mode;
@@ -92,6 +93,7 @@ struct ctc_init_chip_info_s
     uint8 lag_gb_gg_interconnect_en;
     uint32 irq;
     uint8 stacking_learning_mode;
+    uint8 ifa_eunit_en;
 
     uint32 init_flag;
     uint32 cut_through_bitmap;
@@ -106,6 +108,9 @@ ctc_app_get_chip_profile(uint8* fname, ctc_init_cfg_t * p_init_config, ctc_init_
 
 extern int32
 ctc_app_set_phy_mapping(uint8* fname, ctc_init_cfg_t * p_init_config, ctc_init_chip_info_t* p_chip_info);
+
+extern uint32
+ctc_app_get_json_profile(uint8 lchip, char* mem_buf, ctc_init_cfg_t* p_init_config);
 
 #ifdef __cplusplus
 }

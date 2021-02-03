@@ -70,7 +70,6 @@ ctc_sai_switch_fdb_aging_process(uint8 gchip, void* p_data)
 {
     uint8 lchip = 0;
     uint32 i = 0;
-    uint32 index = 0;
     uint32  event_count = 0;
     ctc_aging_fifo_info_t* p_fifo = (ctc_aging_fifo_info_t*)p_data;
     ctc_aging_info_entry_t* p_entry = NULL;
@@ -78,6 +77,9 @@ ctc_sai_switch_fdb_aging_process(uint8 gchip, void* p_data)
     sai_fdb_event_notification_data_t* fdb_events = NULL;
     ctc_l2_addr_t l2_addr;
     void* data = NULL;
+
+    sai_object_id_t port_oid = SAI_NULL_OBJECT_ID;
+    ctc_sai_bridge_port_t* p_bport = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_SWITCH);
 
@@ -102,20 +104,41 @@ ctc_sai_switch_fdb_aging_process(uint8 gchip, void* p_data)
     for (i = 0; i < p_fifo->fifo_idx_num; i++)
     {
         p_entry = &(p_fifo->aging_entry[i]);
-        if (p_entry->aging_type == CTC_AGING_TYPE_MAC)
+        if (p_entry->aging_type != CTC_AGING_TYPE_MAC)
         {
-            fdb_events[index].event_type = SAI_FDB_EVENT_AGED;
-            sal_memcpy(&fdb_events[index].fdb_entry.mac_address, p_entry->mac, sizeof(sai_mac_t));
-            fdb_events[index].fdb_entry.bv_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VLAN, lchip, 0, 0, p_entry->fid);
-            data = ctc_sai_db_get_object_property(lchip, fdb_events[index].fdb_entry.bv_id);
-            if (NULL == data)
+            continue;
+        }
+        if (p_entry->is_logic_port)
+        {
+            port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_SUB_PORT, 0, p_entry->gport);
+            if (NULL == ctc_sai_db_get_object_property(lchip, port_oid))
             {
-                fdb_events[index].fdb_entry.bv_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, SAI_BRIDGE_TYPE_1D, 0, p_entry->fid);
+                port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_TUNNEL, 0, p_entry->gport);
             }
-            fdb_events[index].fdb_entry.switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, (uint32)gchip);
-            fdb_events[index].attr = NULL;
-            fdb_events[index].attr_count = 0;
-            event_count ++;
+            if (NULL == ctc_sai_db_get_object_property(lchip, port_oid))
+            {
+                port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT, 0, p_entry->gport);
+            }
+            if (NULL == ctc_sai_db_get_object_property(lchip, port_oid))
+            {
+                port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_PORT, SAI_BRIDGE_TYPE_1D, p_entry->gport);
+            }
+            p_bport = ctc_sai_db_get_object_property(lchip, port_oid);
+            if(!p_bport)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "aging logic port do not exist, logic port: %d", p_entry->gport, __FUNCTION__, __LINE__);
+                continue;
+            }
+        }
+        else
+        {
+            port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_PORT, SAI_BRIDGE_TYPE_1Q, p_entry->gport);
+            p_bport = ctc_sai_db_get_object_property(lchip, port_oid);
+            if(!p_bport)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "aging normal port do not exist, port: %d", p_entry->gport, __FUNCTION__, __LINE__);
+                continue;
+            }
         }
         if (!CTC_FLAG_ISSET(p_switch_master->flag, CTC_SAI_SWITCH_FLAG_HW_LEARNING_EN))
         {
@@ -124,7 +147,27 @@ ctc_sai_switch_fdb_aging_process(uint8 gchip, void* p_data)
             sal_memcpy(l2_addr.mac, p_entry->mac, sizeof(mac_addr_t));
             ctcs_l2_remove_fdb(lchip, &l2_addr);
         }
-        ctc_sai_neighbor_update_arp(lchip, (const sai_fdb_entry_t*)(&(fdb_events[index].fdb_entry)), 1, 0);
+
+        fdb_events[event_count].event_type = SAI_FDB_EVENT_AGED;
+        sal_memcpy(&fdb_events[event_count].fdb_entry.mac_address, p_entry->mac, sizeof(sai_mac_t));
+        fdb_events[event_count].fdb_entry.bv_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VLAN, lchip, 0, 0, p_entry->fid);
+        data = ctc_sai_db_get_object_property(lchip, fdb_events[event_count].fdb_entry.bv_id);
+        if (NULL == data)
+        {
+            fdb_events[event_count].fdb_entry.bv_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, SAI_BRIDGE_TYPE_1D, 0, p_entry->fid);
+        }
+        fdb_events[event_count].fdb_entry.switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, (uint32)gchip);
+        fdb_events[event_count].attr = NULL;
+        fdb_events[event_count].attr_count = 0;
+        
+        ctc_sai_neighbor_update_arp(lchip, (const sai_fdb_entry_t*)(&(fdb_events[event_count].fdb_entry)), 1, 0);
+
+        if(p_bport->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_HW)
+        {
+            //do not notify
+            continue;
+        }
+        event_count ++;
     }
 
     if (p_switch_master->fdb_event_cb)
@@ -153,6 +196,7 @@ ctc_sai_switch_fdb_learning_process(uint8 gchip, void* p_data)
     ctc_learning_cache_t* p_cache = (ctc_learning_cache_t*)p_data;
     ctc_l2_addr_t l2_addr;
     uint32 nhp_id = 0;
+    ctc_sai_bridge_port_t* p_bport = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_SWITCH);
     ctc_app_index_get_lchip_id(gchip, &lchip);
@@ -221,31 +265,70 @@ ctc_sai_switch_fdb_learning_process(uint8 gchip, void* p_data)
             {
                 port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_TUNNEL, 0, p_cache->learning_entry[index].logic_port);
             }
-            fdb_events[index].fdb_entry.bv_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, SAI_BRIDGE_TYPE_1D, 0, l2_addr.fid);
+            if (NULL == ctc_sai_db_get_object_property(lchip, port_oid))
+            {
+                port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_DOUBLE_VLAN_SUB_PORT, 0, p_cache->learning_entry[index].logic_port);
+            }
+            if (NULL == ctc_sai_db_get_object_property(lchip, port_oid))
+            {
+                port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_PORT, SAI_BRIDGE_TYPE_1D, p_cache->learning_entry[index].logic_port);
+            }
+            p_bport = ctc_sai_db_get_object_property(lchip, port_oid);
+            if(!p_bport)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "learning logic port do not exist, logic port: %d", p_cache->learning_entry[index].logic_port, __FUNCTION__, __LINE__);
+                continue;
+            }
             if (!CTC_FLAG_ISSET(p_switch_master->flag, CTC_SAI_SWITCH_FLAG_HW_LEARNING_EN))
             {
                 l2_addr.gport = p_cache->learning_entry[index].logic_port;
                 ctcs_l2_get_nhid_by_logic_port(lchip, p_cache->learning_entry[index].logic_port, &nhp_id);
                 ctcs_l2_add_fdb_with_nexthop(lchip, &l2_addr, nhp_id);
             }
+            
+            sal_memcpy(&fdb_events[event_count].fdb_entry.mac_address, l2_addr.mac, sizeof(sai_mac_t));
+            fdb_events[event_count].fdb_entry.bv_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, SAI_BRIDGE_TYPE_1D, 0, l2_addr.fid);
+            fdb_events[event_count].fdb_entry.switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, (uint32)gchip);
+            ctc_sai_neighbor_update_arp(lchip, (const sai_fdb_entry_t*)(&(fdb_events[event_count].fdb_entry)), 0, 0);
+            
+            if(p_bport->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_HW)
+            {
+                //do not notify
+                continue;
+            }
+            
         }
         else
         {
             port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_PORT, 0, p_cache->learning_entry[index].global_src_port);
-            fdb_events[index].fdb_entry.bv_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VLAN, lchip, 0, 0, l2_addr.fid);
+            p_bport = ctc_sai_db_get_object_property(lchip, port_oid);
+            if(!p_bport)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "learning normal port do not exist, port: %d", p_cache->learning_entry[index].global_src_port, __FUNCTION__, __LINE__);
+                continue;
+            }
             if (!CTC_FLAG_ISSET(p_switch_master->flag, CTC_SAI_SWITCH_FLAG_HW_LEARNING_EN))
             {
                 l2_addr.gport = p_cache->learning_entry[index].global_src_port;
                 ctcs_l2_add_fdb(lchip, &l2_addr);
             }
+
+            sal_memcpy(&fdb_events[event_count].fdb_entry.mac_address, l2_addr.mac, sizeof(sai_mac_t));
+            fdb_events[event_count].fdb_entry.bv_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_VLAN, lchip, 0, 0, l2_addr.fid);
+            fdb_events[event_count].fdb_entry.switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, (uint32)gchip);
+            ctc_sai_neighbor_update_arp(lchip, (const sai_fdb_entry_t*)(&(fdb_events[event_count].fdb_entry)), 0, 0);
+            
+            if(p_bport->fdb_learn_mode == SAI_BRIDGE_PORT_FDB_LEARNING_MODE_HW)
+            {
+                //do not notify
+                continue;
+            }
+            
         }
 
-        fdb_events[index].event_type = SAI_FDB_EVENT_LEARNED;
-        sal_memcpy(&fdb_events[index].fdb_entry.mac_address, l2_addr.mac, sizeof(sai_mac_t));
-
-        fdb_events[index].fdb_entry.switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, lchip, 0, 0, (uint32)gchip);
-        fdb_events[index].attr       = attr_listtmp;
-        fdb_events[index].attr_count = FDB_NOTIF_ATTRIBS_NUM;
+        fdb_events[event_count].event_type = SAI_FDB_EVENT_LEARNED;
+        fdb_events[event_count].attr       = attr_listtmp;
+        fdb_events[event_count].attr_count = FDB_NOTIF_ATTRIBS_NUM;
 
         attr_listtmp->id        = SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID;
         attr_listtmp->value.oid = port_oid;
@@ -259,7 +342,7 @@ ctc_sai_switch_fdb_learning_process(uint8 gchip, void* p_data)
         attr_listtmp->value.s32 = SAI_PACKET_ACTION_FORWARD;
         attr_listtmp++;
         event_count ++;
-        ctc_sai_neighbor_update_arp(lchip, (const sai_fdb_entry_t*)(&(fdb_events[index].fdb_entry)), 0, 0);
+        
     }
 
     if (p_switch_master->fdb_event_cb)
@@ -3055,6 +3138,8 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     const char*                       mem_cfg_file = NULL;
     sai_service_method_table_t* p_api_services=NULL;
     ctc_init_cfg_t* init_config = NULL;
+    ctc_sai_switch_master_t* p_switch_master = NULL;
+#ifdef sai_alloc    
     dal_op_t dal_cfg;
     ctc_pkt_global_cfg_t pkt_cfg;
     ctc_linkagg_global_cfg_t lag_cfg;
@@ -3079,6 +3164,7 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     ctc_acl_global_cfg_t acl_cfg;
     ctc_ptp_global_config_t* p_ptp_cfg = NULL;
     ctc_parser_global_cfg_t* p_parser_cfg = NULL;
+    #endif
 
     uint8 reloading = 0;
     char* boot_type_str[] = {"ColdBoot", "WarmBoot"};
@@ -3086,7 +3172,11 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     char* p_time_str = NULL;
 
     CTC_SAI_LOG_ENTER(SAI_API_SWITCH);
-
+    
+    init_config = (ctc_init_cfg_t*)sal_malloc( sizeof(ctc_init_cfg_t));
+    sal_memset(init_config, 0, sizeof(ctc_init_cfg_t));
+    
+#ifdef sai_alloc
     ftm_key_info = (ctc_ftm_key_info_t*)sal_malloc(sizeof(ctc_ftm_key_info_t)*CTC_FTM_KEY_TYPE_MAX);
     ftm_tbl_info = (ctc_ftm_tbl_info_t*)sal_malloc(sizeof(ctc_ftm_tbl_info_t)*CTC_FTM_TBL_TYPE_MAX);
     init_config = (ctc_init_cfg_t*)sal_malloc( sizeof(ctc_init_cfg_t));
@@ -3161,7 +3251,7 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     sal_memcpy(&dal_cfg, &g_dal_op, sizeof(dal_op_t));
     dal_cfg.lchip = lchip;
     sal_memcpy(&dal_cfg.pci_dev, p_pci_dev, sizeof(dal_pci_dev_t));
-
+#endif
     ctc_sai_get_services_fn(&p_api_services);
 
     init_cfg_file = p_api_services->profile_get_value(g_profile_id, SAI_KEY_INIT_CONFIG_FILE);
@@ -3169,7 +3259,8 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     mem_cfg_file = p_api_services->profile_get_value(g_profile_id, "SAI_MEMORY_PROFILE");
 
     /* get config info */
-    status = ctc_app_get_config(lchip, (char*)init_cfg_file, (char*)datapath_cfg_file, (char*)mem_cfg_file, init_config, NULL);
+    //status = ctc_app_get_config(lchip, (char*)init_cfg_file, (char*)datapath_cfg_file, (char*)mem_cfg_file, init_config, NULL);
+    status = ctc_app_parse_config(lchip, (char*)init_cfg_file, (char*)datapath_cfg_file, (char*)mem_cfg_file, init_config);
     if (status != 0)
     {
         CTC_SAI_LOG_ERROR(SAI_API_SWITCH, "ctc_app_get_config failed:%s@%d \n",  __FUNCTION__, __LINE__);
@@ -3260,8 +3351,8 @@ ctc_sai_switch_init_switch(uint8 lchip, dal_pci_dev_t* p_pci_dev, sai_object_id_
     }
 
     //p_overlay_cfg->vxlan_mode = CTC_OVERLAY_TUNNEL_DECAP_BY_IPDA_VNI;
-    p_overlay_cfg->vxlan_mode = 0;
-    p_overlay_cfg->vni_mapping_mode = 0;
+    init_config->p_overlay_cfg->vxlan_mode = 0;
+    init_config->p_overlay_cfg->vni_mapping_mode = 0;
 
     //ECMP number of members per group Default is 64
     //nh_global_cfg.max_ecmp = 64;
@@ -3356,6 +3447,9 @@ roll_back_1:
     ctcs_sdk_deinit(lchip);
 
 roll_back_0:
+    ctc_app_free_init_param(init_config);
+    
+#ifdef sai_alloc
     if (ftm_key_info)
     {
         sal_free(ftm_key_info);
@@ -3404,7 +3498,7 @@ roll_back_0:
     {
         sal_free(p_overlay_cfg);
     }
-
+#endif
     if(init_config)
     {
         sal_free(init_config);
@@ -3472,11 +3566,12 @@ ctc_sai_switch_deinit_switch(sai_object_id_t switch_id)
     }
     CTC_SAI_ERROR_RETURN(ctc_sai_switch_destroy_db(lchip));
     ctcs_get_local_chip_num(lchip, &lchip_num);
+    
+    CTC_SAI_CTC_ERROR_RETURN(ctcs_sdk_deinit(lchip));
     if (1 == lchip_num)
     {
         ctc_wb_deinit(lchip);
     }
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_sdk_deinit(lchip));
 
     sal_time(&tv);
     p_time_str = sal_ctime(&tv);

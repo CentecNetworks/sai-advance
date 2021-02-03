@@ -633,7 +633,7 @@ def sai_thrift_create_fdb_bport(client, bv_id, mac, bport_id=None, mac_action=No
     fdb_entry = sai_thrift_fdb_entry_t(mac_address=mac, bv_id=bv_id)
 
     if type is None:
-        type = SAI_FDB_ENTRY_TYPE_STATIC
+        type = SAI_FDB_ENTRY_TYPE_DYNAMIC
     fdb_attr_value = sai_thrift_attribute_value_t(s32=type)
     fdb_attr = sai_thrift_attribute_t(id=SAI_FDB_ENTRY_ATTR_TYPE, value=fdb_attr_value)
     fdb_attr_list.append(fdb_attr)
@@ -675,20 +675,20 @@ def sai_thrift_create_fdb(client, bv_id, mac, port, mac_action=None, is_lag=None
 
 def sai_thrift_create_fdb_subport(client, bridge_id, mac, subport_id, mac_action, type):
     '''
-    exist for compatibility, do not use this function
+    Deprecated for backward compatibility
     '''
     return sai_thrift_create_fdb_bport(client, bridge_id, mac, subport_id, mac_action, type)
 
 def sai_thrift_create_fdb_tunnel(client, bv_id, mac, bport_id, mac_action, ip_addr):
     '''
-    exist for compatibility, do not use this function
+    Deprecated for backward compatibility
     '''
     return sai_thrift_create_fdb_bport(client, bv_id, mac, bport_id, mac_action, ip_addr=ip_addr)
 
 
 def sai_thrift_delete_fdb(client, bv_id, mac, port=None):
     '''
-    no need to assign port, exist for compatibility
+    No need to assign port, exist for compatibility
     '''
     fdb_entry = sai_thrift_fdb_entry_t(mac_address=mac, bv_id=bv_id)
     return client.sai_thrift_delete_fdb_entry(thrift_fdb_entry=fdb_entry)
@@ -728,13 +728,13 @@ def sai_thrift_flush_fdb(client, bport_id=None, bv_id=None, type=None):
 
 def sai_thrift_flush_fdb_by_vlan(client, bv_id):
     '''
-    exist for compatibility, better not to use this function
+    Deprecated for backward compatibility
     '''
     return sai_thrift_flush_fdb(client, bv_id=bv_id)
 
 def sai_thrift_flush_fdb_by_bridge_port(client, bport_id):
     '''
-    exist for compatibility, better not to use this function
+    Deprecated for backward compatibility
     '''
     return sai_thrift_flush_fdb(client, bport_id=bport_id)
 
@@ -1186,7 +1186,7 @@ def sai_thrift_remove_nhop(client, nhop_list):
     for nhop in nhop_list:
         client.sai_thrift_remove_next_hop(nhop)
 
-def sai_thrift_create_neighbor(client, addr_family, rif_id, ip_addr, dmac, no_host_route = False):
+def sai_thrift_create_neighbor(client, addr_family, rif_id, ip_addr, dmac, no_host_route = False, pkt_action = SAI_PACKET_ACTION_FORWARD):
     if addr_family == SAI_IP_ADDR_FAMILY_IPV4:
         addr = sai_thrift_ip_t(ip4=ip_addr)
         ipaddr = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4, addr=addr)
@@ -1199,7 +1199,10 @@ def sai_thrift_create_neighbor(client, addr_family, rif_id, ip_addr, dmac, no_ho
     neighbor_attribute2_value = sai_thrift_attribute_value_t(booldata=no_host_route)
     neighbor_attribute2 = sai_thrift_attribute_t(id=SAI_NEIGHBOR_ENTRY_ATTR_NO_HOST_ROUTE,
                                                  value=neighbor_attribute2_value)
-    neighbor_attr_list = [neighbor_attribute1, neighbor_attribute2]
+    neighbor_attribute3_value = sai_thrift_attribute_value_t(s32=pkt_action)
+    neighbor_attribute3 = sai_thrift_attribute_t(id=SAI_NEIGHBOR_ENTRY_ATTR_PACKET_ACTION,
+                                                 value=neighbor_attribute3_value)
+    neighbor_attr_list = [neighbor_attribute1, neighbor_attribute2, neighbor_attribute3]
     neighbor_entry = sai_thrift_neighbor_entry_t(rif_id=rif_id, ip_address=ipaddr)
     return client.sai_thrift_create_neighbor_entry(neighbor_entry, neighbor_attr_list)
 
@@ -1352,14 +1355,14 @@ def sai_thrift_remove_lag(client, lag_id):
 
 def sai_thrift_create_bport_by_lag(client, lag_id):
     '''
-    Exist for compatibility, no need to use this function
+    Deprecated for backward compatibility
     '''
     return sai_thrift_create_bridge_port(client, lag_id)
 
 
 def sai_thrift_remove_bport_by_lag(client, lag_bridge_port_id):
     '''
-    Exist for compatibility, no need to use this function
+    Deprecated for backward compatibility
     '''
     return client.sai_thrift_remove_bridge_port(lag_bridge_port_id)
 

@@ -24,6 +24,7 @@ from switch import *
 
 import sai_base_test
 from ptf.mask import Mask
+import ctypes
 
 @group('hash_api')
 class func_01_create_hash(sai_base_test.ThriftInterfaceDataPlane):
@@ -358,14 +359,60 @@ class func_06_hash_set_attribute_ecmp_multi_hashfield(sai_base_test.ThriftInterf
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
 
-#unsupport
 class func_07_hash_set_attribute_lag_udf(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("======func_07_hash_set_attribute_lag_udf======")
         switch_init(self.client)
 
         hash_id_lag = 0
-        objlist = [0x1F]
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %u" %udf_group_id
+        print "udf_group_id = %lu" %udf_group_id
+        print "udf_group_id = %x" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x1122
+        l2_type_mask = U16MASKFULL
+        l3_type = 57
+        l3_type_mask = 0x0F
+        gre_type = 0x22eb
+        gre_type_mask = U16MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   None,
+                                                   None,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L3
+        offset = 4
+        # default value
+        #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
 
         warmboot(self.client)
         try:
@@ -386,7 +433,6 @@ class func_07_hash_set_attribute_lag_udf(sai_base_test.ThriftInterfaceDataPlane)
             assert (attrs.status == SAI_STATUS_SUCCESS)
             print attrs
             for a in attrs.attr_list:
-                print(a.id)
                 if a.id == SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST:
                     print(a.value.s32list)
                     assert(SAI_NATIVE_HASH_FIELD_ETHERTYPE == a.value.s32list.s32list[0])
@@ -403,8 +449,7 @@ class func_07_hash_set_attribute_lag_udf(sai_base_test.ThriftInterfaceDataPlane)
             print(attr)
             status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
             sys_logging( "set hash attribute status = %d" %status)
-            #TBD
-            #assert (status == SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
             # get hash attribute
             sys_logging("======get hash attribute======")
@@ -416,11 +461,21 @@ class func_07_hash_set_attribute_lag_udf(sai_base_test.ThriftInterfaceDataPlane)
                 print(a.id)
                 if a.id == SAI_HASH_ATTR_UDF_GROUP_LIST:
                     print(a.value.objlist)
-                    #TBD
-                    #assert(SAI_NATIVE_HASH_FIELD_DST_IP == a.value.s32list.s32list[0])
+                    assert(udf_group_id == a.value.objlist.object_id_list[0])
         finally:
             sys_logging("Success!")
             sys_logging("Clean up")
+
+            hash_obj_list = sai_thrift_object_list_t(count=0, object_id_list=[])
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
             field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
             if field_list:
                 hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
@@ -429,14 +484,60 @@ class func_07_hash_set_attribute_lag_udf(sai_base_test.ThriftInterfaceDataPlane)
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
 
-#unsupport
 class func_08_hash_set_attribute_ecmp_udf(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("======func_08_hash_set_attribute_ecmp_udf======")
         switch_init(self.client)
 
         hash_id_ecmp = 0
-        objlist = [0x1F]
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %u" %udf_group_id
+        print "udf_group_id = %lu" %udf_group_id
+        print "udf_group_id = %x" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x1122
+        l2_type_mask = U16MASKFULL
+        l3_type = 57
+        l3_type_mask = 0x0F
+        gre_type = 0x22eb
+        gre_type_mask = U16MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   None,
+                                                   None,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L3
+        offset = 4
+        # default value
+        #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
 
         warmboot(self.client)
         try:
@@ -475,8 +576,7 @@ class func_08_hash_set_attribute_ecmp_udf(sai_base_test.ThriftInterfaceDataPlane
             print(attr)
             status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
             sys_logging( "set hash attribute status = %d" %status)
-            #TBD
-            #assert (status == SAI_STATUS_SUCCESS)
+            assert (status == SAI_STATUS_SUCCESS)
 
             # get hash attribute
             sys_logging("======get hash attribute======")
@@ -485,14 +585,22 @@ class func_08_hash_set_attribute_ecmp_udf(sai_base_test.ThriftInterfaceDataPlane
             assert (attrs.status == SAI_STATUS_SUCCESS)
             print attrs
             for a in attrs.attr_list:
-                print(a.id)
                 if a.id == SAI_HASH_ATTR_UDF_GROUP_LIST:
                     print(a.value.objlist)
-                    #TBD
-                    #assert(SAI_NATIVE_HASH_FIELD_DST_IP == a.value.s32list.s32list[0])
+                    assert(udf_group_id == a.value.objlist.object_id_list[0])
         finally:
             sys_logging("Success!")
             sys_logging("Clean up")
+            hash_obj_list = sai_thrift_object_list_t(count=0, object_id_list=[])
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            
             field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
             if field_list:
                 hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
@@ -965,6 +1073,7 @@ class scenario_01_lag_hash_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
                                                 value=attr_value)
             self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
         warmboot(self.client)
+
         try:
             count = [0, 0, 0]
             max_itrs = 20
@@ -1040,7 +1149,7 @@ class scenario_01_lag_hash_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
             
             attr_value = sai_thrift_attribute_value_t(u16=1)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
-            self.client.sai_thrift_set_port_attribute(port4, attr) 
+            self.client.sai_thrift_set_port_attribute(port4, attr)
             field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
             if field_list:
                 hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
@@ -4175,7 +4284,7 @@ class scenario_22_lag_hash_l3vpn_inner_l4_dst_port_test(sai_base_test.ThriftInte
 #===============
 
 #=====l2VPN=====
-'''
+
 class scenario_23_lag_hash_l2vpn_inner_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("scenario_23_lag_hash_l2vpn_inner_src_ip_test")
@@ -4707,7 +4816,6 @@ class scenario_25_lag_hash_l2vpn_inner_ip_protocol_test(sai_base_test.ThriftInte
                 attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
-'''
 
 class scenario_26_lag_hash_l2vpn_inner_ethertype_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -4879,7 +4987,6 @@ class scenario_26_lag_hash_l2vpn_inner_ethertype_test(sai_base_test.ThriftInterf
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
 
-'''
 class scenario_27_lag_hash_l2vpn_inner_l4_src_port_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("scenario_27_lag_hash_l2vpn_inner_l4_src_port_test")
@@ -5243,7 +5350,6 @@ class scenario_28_lag_hash_l2vpn_inner_l4_dst_port_test(sai_base_test.ThriftInte
                 attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
-'''
 
 class scenario_29_lag_hash_l2vpn_inner_src_mac_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
@@ -5808,7 +5914,7 @@ class scenario_31_ecmp_hash_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
                 attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
-                
+
 class scenario_32_ecmp_hash_dst_ip_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("======scenario_32_ecmp_hash_dst_ip_test======")
@@ -13607,7 +13713,6 @@ class scenario_76_lag_hash_l3vpn_ipv6_inner_ip_protocol_test(sai_base_test.Thrif
 #===========================================
 
 #====================L2VPN==================
-'''
 class scenario_77_lag_hash_l2vpn_ipv6_inner_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("scenario_77_lag_hash_l2vpn_ipv6_inner_src_ip_test")
@@ -14460,7 +14565,7 @@ class scenario_81_lag_hash_l2vpn_ipv6_inner_ip_protocol_test(sai_base_test.Thrif
                 attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
                                                     value=attr_value)
                 self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
-'''
+
 class scenario_82_lag_hash_l2vpn_ipv6_inner_src_mac_test(sai_base_test.ThriftInterfaceDataPlane):
     def runTest(self):
         sys_logging("scenario_82_lag_hash_l2vpn_ipv6_inner_src_mac_test")
@@ -18893,6 +18998,3628 @@ class scenario_105_lag_hash_mpls_label_2_test(sai_base_test.ThriftInterfaceDataP
             sai_thrift_remove_lag_member(self.client, lag_member_id2)
             sai_thrift_remove_lag_member(self.client, lag_member_id3)
             sai_thrift_remove_lag(self.client, lag_id1)
+            
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_106_lag_hash_udf_src_mac_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_106_lag_hash_udf_src_mac_test======")
+        switch_init(self.client)
+        vlan_id = 10
+        hash_id_lag = 0
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+        is_lag = True
+        sys_logging("======create a vlan======")
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        lag_oid1 = sai_thrift_create_bport_by_lag(self.client, lag_id1)
+        print"lag:%lx" %lag_id1
+        print"lag_oid:%lx" %lag_oid1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        sys_logging("======add lag and port4 to vlan======")
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_oid1, SAI_VLAN_TAGGING_MODE_UNTAGGED, is_lag)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port4, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_lag_attribute(lag_id1, attr)
+
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port4, attr)
+
+        sai_thrift_create_fdb_bport(self.client, vlan_oid, mac1, lag_oid1, mac_action)
+        sai_thrift_create_fdb(self.client, vlan_oid, mac2, port4, mac_action)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x0800
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L2
+        offset = 8
+        # default value
+        #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            count = [0, 0, 0]
+            max_itrs = 20
+            src_mac_start = '00:22:22:22:22:{0}'
+            sys_logging("======send 20 packages to lag,every package's src mac address is not equal======")
+            for i in range(0, max_itrs):
+                src_mac = src_mac_start.format(str(i).zfill(4)[2:])
+                pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                        eth_src=src_mac,
+                                        ip_dst='10.10.10.1',
+                                        ip_src='192.168.8.1',
+                                        ip_id=109,
+                                        ip_ttl=64)
+
+                exp_pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                            eth_src=src_mac,
+                                            ip_dst='10.10.10.1',
+                                            ip_src='192.168.8.1',
+                                            ip_id=109,
+                                            ip_ttl=64)
+
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                       "Not all paths are equally balanced")
+
+            pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                    eth_dst='00:22:22:22:22:22',
+                                    ip_dst='10.0.0.1',
+                                    ip_id=109,
+                                    ip_ttl=64)
+            exp_pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                    eth_dst='00:22:22:22:22:22',
+                                    ip_dst='10.0.0.1',
+                                    ip_id=109,
+                                    ip_ttl=64)
+            print "Sending packet port 1 (lag member) -> port 4"
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 2 (lag member) -> port 4"
+            self.ctc_send_packet( 1, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 3 (lag member) -> port 4"
+            self.ctc_send_packet( 2, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac2, port4)
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac1, lag_oid1)
+
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            
+            sai_thrift_remove_bport_by_lag(self.client, lag_oid1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            for port in sai_port_list:
+                sai_thrift_create_vlan_member(self.client, switch.default_vlan.oid, port, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+            
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port4, attr) 
+
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_107_lag_hash_udf_hash_l4_dst_port_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_107_lag_hash_udf_hash_l4_dst_port_test======")
+        switch_init(self.client)
+        vlan_id = 10
+        hash_id_lag = 0
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+        is_lag = True
+        sys_logging("======create a vlan======")
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        lag_oid1 = sai_thrift_create_bport_by_lag(self.client, lag_id1)
+        print"lag:%lx" %lag_id1
+        print"lag_oid:%lx" %lag_oid1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        sys_logging("======add lag and port4 to vlan======")
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_oid1, SAI_VLAN_TAGGING_MODE_UNTAGGED, is_lag)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port4, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_lag_attribute(lag_id1, attr)
+
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port4, attr)
+
+        sai_thrift_create_fdb_bport(self.client, vlan_oid, mac1, lag_oid1, mac_action)
+        sai_thrift_create_fdb(self.client, vlan_oid, mac2, port4, mac_action)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+
+        if chipname == "tsingma":
+            group_length = 4
+            offset = 0
+            hash_mask_list = [-1, -1, -1, -1]
+        elif chipname == "tsingma_mx":
+            group_length = 2
+            offset = 2
+            hash_mask_list = [-1, -1]
+        else:
+            group_length = 0
+            offset = 0
+            hash_mask_list = []
+            sys_logging("======chipname is error======")
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x0800
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L4
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            count = [0, 0, 0]
+            max_itrs = 20
+            dst_port = 80
+            sys_logging("======send 20 packages to lag,every package's dst port is not equal======")
+            for i in range(0, max_itrs):
+                pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                        eth_src='00:22:22:22:22:22',
+                                        ip_dst='10.10.10.1',
+                                        ip_src='192.168.8.1',
+                                        ip_id=109,
+                                        ip_ttl=64,
+                                        tcp_sport=1234,
+                                        tcp_dport=dst_port)
+
+                exp_pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                            eth_src='00:22:22:22:22:22',
+                                            ip_dst='10.10.10.1',
+                                            ip_src='192.168.8.1',
+                                            ip_id=109,
+                                            ip_ttl=64,
+                                            tcp_sport=1234,
+                                            tcp_dport=dst_port)
+
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+                dst_port += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.3)),
+                       "Not all paths are equally balanced")
+
+            pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                    eth_dst='00:22:22:22:22:22',
+                                    ip_dst='10.0.0.1',
+                                    ip_src='192.168.8.1',
+                                    ip_id=109,
+                                    ip_ttl=64,
+                                    tcp_sport=1234,
+                                    tcp_dport=80)
+            exp_pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                    eth_dst='00:22:22:22:22:22',
+                                    ip_dst='10.0.0.1',
+                                    ip_src='192.168.8.1',
+                                    ip_id=109,
+                                    ip_ttl=64,
+                                    tcp_sport=1234,
+                                    tcp_dport=80)
+            print "Sending packet port 1 (lag member) -> port 4"
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 2 (lag member) -> port 4"
+            self.ctc_send_packet( 1, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 3 (lag member) -> port 4"
+            self.ctc_send_packet( 2, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac2, port4)
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac1, lag_oid1)
+
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            
+            sai_thrift_remove_bport_by_lag(self.client, lag_oid1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            for port in sai_port_list:
+                sai_thrift_create_vlan_member(self.client, switch.default_vlan.oid, port, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+            
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port4, attr) 
+            
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_108_lag_hash_udf_hash_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_108_lag_hash_udf_hash_src_ip_test======")
+        switch_init(self.client)
+        vlan_id = 10
+        hash_id_lag = 0
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+        is_lag = True
+        sys_logging("======create a vlan======")
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        lag_oid1 = sai_thrift_create_bport_by_lag(self.client, lag_id1)
+        print"lag:%lx" %lag_id1
+        print"lag_oid:%lx" %lag_oid1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        sys_logging("======add lag and port4 to vlan======")
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_oid1, SAI_VLAN_TAGGING_MODE_UNTAGGED, is_lag)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port4, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_lag_attribute(lag_id1, attr)
+
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port4, attr)
+
+        sai_thrift_create_fdb_bport(self.client, vlan_oid, mac1, lag_oid1, mac_action)
+        sai_thrift_create_fdb(self.client, vlan_oid, mac2, port4, mac_action)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x0800
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L3
+        offset = 12
+        # default value
+        #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            count = [0, 0, 0]
+            max_itrs = 30
+            sys_logging("======send 20 packages to lag,every package's src ip is not equal======")
+            src_ip = int(socket.inet_aton('192.168.8.1').encode('hex'),16)
+            for i in range(0, max_itrs):
+                src_ip_addr = socket.inet_ntoa(hex(src_ip)[2:].zfill(8).decode('hex'))
+                pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                        eth_src='00:22:22:22:22:22',
+                                        ip_dst='10.10.10.1',
+                                        ip_src=src_ip_addr,
+                                        ip_id=109,
+                                        ip_ttl=64)
+
+                exp_pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                            eth_src='00:22:22:22:22:22',
+                                            ip_dst='10.10.10.1',
+                                            ip_src=src_ip_addr,
+                                            ip_id=109,
+                                            ip_ttl=64)
+
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+                src_ip += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.3)),
+                       "Not all paths are equally balanced")
+
+            pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                    eth_dst='00:22:22:22:22:22',
+                                    ip_dst='10.0.0.1',
+                                    ip_src='192.168.8.1',
+                                    ip_id=109,
+                                    ip_ttl=64)
+            exp_pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                    eth_dst='00:22:22:22:22:22',
+                                    ip_dst='10.0.0.1',
+                                    ip_src='192.168.8.1',
+                                    ip_id=109,
+                                    ip_ttl=64)
+            print "Sending packet port 1 (lag member) -> port 4"
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 2 (lag member) -> port 4"
+            self.ctc_send_packet( 1, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 3 (lag member) -> port 4"
+            self.ctc_send_packet( 2, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac2, port4)
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac1, lag_oid1)
+
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            
+            sai_thrift_remove_bport_by_lag(self.client, lag_oid1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            for port in sai_port_list:
+                sai_thrift_create_vlan_member(self.client, switch.default_vlan.oid, port, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+            
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port4, attr) 
+            
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_109_lag_hash_two_udf_hash_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_109_lag_hash_two_udf_hash_src_ip_test======")
+        switch_init(self.client)
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+
+        if chipname != "tsingma":
+            vlan_id = 10
+            hash_id_lag = 0
+            port1 = port_list[0]
+            port2 = port_list[1]
+            port3 = port_list[2]
+            port4 = port_list[3]
+            
+            mac1 = '00:11:11:11:11:11'
+            mac2 = '00:22:22:22:22:22'
+            mac_action = SAI_PACKET_ACTION_FORWARD
+            is_lag = True
+            sys_logging("======create a vlan======")
+            vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+            
+            sys_logging("======create a lag include three ports======")
+            lag_id1 = sai_thrift_create_lag(self.client)
+            lag_oid1 = sai_thrift_create_bport_by_lag(self.client, lag_id1)
+            print"lag:%lx" %lag_id1
+            print"lag_oid:%lx" %lag_oid1
+            
+            lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+            lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+            lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+            
+            sys_logging("======add lag and port4 to vlan======")
+            vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_oid1, SAI_VLAN_TAGGING_MODE_UNTAGGED, is_lag)
+            vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port4, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+            
+            attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+            attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_lag_attribute(lag_id1, attr)
+            
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port4, attr)
+            
+            sai_thrift_create_fdb_bport(self.client, vlan_oid, mac1, lag_oid1, mac_action)
+            sai_thrift_create_fdb(self.client, vlan_oid, mac2, port4, mac_action)
+            
+            #get lag hash object id
+            sys_logging("======get lag hash object id======")
+            ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+            switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+            attr_list = switch_attr_list.attr_list
+            for attribute in attr_list:
+                if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                    sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                    hash_id_lag = attribute.value.oid
+            
+            # create udf group
+            group_type = SAI_UDF_GROUP_TYPE_HASH
+            group_length = 2
+            sys_logging("======Create udf group======")
+            udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_id = %d" %udf_group_id
+            print "udf_group_id = %lx" %udf_group_id
+            
+            group_type = SAI_UDF_GROUP_TYPE_HASH
+            group_length = 2
+            sys_logging("======Create udf group======")
+            udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_id2 = %d" %udf_group_id2
+            print "udf_group_id2 = %lx" %udf_group_id2
+            
+            sys_logging("======Create udf match======")
+            l2_type = 0x0800
+            l2_type_mask = U16MASKFULL
+            l3_type = 0x6
+            l3_type_mask = U8MASKFULL
+            priority = 15
+            
+            udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                       l2_type,
+                                                       l2_type_mask,
+                                                       l3_type,
+                                                       l3_type_mask,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       priority)
+            
+            print "udf_match_id = 0x%lx" %udf_match_id
+            
+            sys_logging("======Create udf======")
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+            hash_mask_list = [-1, -1]
+            udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            print "udf_id = 0x%lx" %udf_id
+            
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            hash_mask_list = [-1, -1]
+            udf_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            print "udf_id2 = 0x%lx" %udf_id2
+            
+            objlist = [udf_group_id, udf_group_id2]
+            
+            sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+            hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            sys_logging( "set hash attribute status = %d" %status)
+            
+            warmboot(self.client)
+            try:
+                count = [0, 0, 0]
+                max_itrs = 30
+                sys_logging("======send 20 packages to lag,every package's src ip is not equal======")
+                src_ip = int(socket.inet_aton('192.168.8.1').encode('hex'),16)
+                for i in range(0, max_itrs):
+                    src_ip_addr = socket.inet_ntoa(hex(src_ip)[2:].zfill(8).decode('hex'))
+                    pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                            eth_src='00:22:22:22:22:22',
+                                            ip_dst='10.10.10.1',
+                                            ip_src=src_ip_addr,
+                                            ip_id=109,
+                                            ip_ttl=64)
+            
+                    exp_pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                                eth_src='00:22:22:22:22:22',
+                                                ip_dst='10.10.10.1',
+                                                ip_src=src_ip_addr,
+                                                ip_id=109,
+                                                ip_ttl=64)
+            
+                    self.ctc_send_packet( 3, str(pkt))
+                    rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                    print"*********************** rcv_idx:%d" %rcv_idx
+                    count[rcv_idx] += 1
+                    src_ip += 1
+            
+                print"############################count###################################"
+                print count
+                print"####################################################################"
+                for i in range(0, 3):
+                    self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                           "Not all paths are equally balanced")
+            
+                pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                        eth_dst='00:22:22:22:22:22',
+                                        ip_dst='10.0.0.1',
+                                        ip_src='192.168.8.1',
+                                        ip_id=109,
+                                        ip_ttl=64)
+                exp_pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                        eth_dst='00:22:22:22:22:22',
+                                        ip_dst='10.0.0.1',
+                                        ip_src='192.168.8.1',
+                                        ip_id=109,
+                                        ip_ttl=64)
+                print "Sending packet port 1 (lag member) -> port 4"
+                self.ctc_send_packet( 0, str(pkt))
+                self.ctc_verify_packets( exp_pkt, [3])
+                print "Sending packet port 2 (lag member) -> port 4"
+                self.ctc_send_packet( 1, str(pkt))
+                self.ctc_verify_packets( exp_pkt, [3])
+                print "Sending packet port 3 (lag member) -> port 4"
+                self.ctc_send_packet( 2, str(pkt))
+                self.ctc_verify_packets( exp_pkt, [3])
+            
+            finally:
+                sys_logging("======clean up======")
+                sai_thrift_delete_fdb(self.client, vlan_oid, mac2, port4)
+                sai_thrift_delete_fdb(self.client, vlan_oid, mac1, lag_oid1)
+            
+                self.client.sai_thrift_remove_vlan_member(vlan_member1)
+                self.client.sai_thrift_remove_vlan_member(vlan_member2)
+                
+                sai_thrift_remove_bport_by_lag(self.client, lag_oid1)
+                sai_thrift_remove_lag_member(self.client, lag_member_id1)
+                sai_thrift_remove_lag_member(self.client, lag_member_id2)
+                sai_thrift_remove_lag_member(self.client, lag_member_id3)
+                sai_thrift_remove_lag(self.client, lag_id1)
+                self.client.sai_thrift_remove_vlan(vlan_oid)
+                for port in sai_port_list:
+                    sai_thrift_create_vlan_member(self.client, switch.default_vlan.oid, port, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+                
+                attr_value = sai_thrift_attribute_value_t(u16=1)
+                attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+                self.client.sai_thrift_set_port_attribute(port4, attr) 
+                
+                udf_group_list = []
+                hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+                attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                    value=attr_value)
+                status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+                
+                self.client.sai_thrift_remove_udf(udf_id)
+                self.client.sai_thrift_remove_udf(udf_id2)
+                self.client.sai_thrift_remove_udf_match(udf_match_id)
+                self.client.sai_thrift_remove_udf_group(udf_group_id)
+                self.client.sai_thrift_remove_udf_group(udf_group_id2)
+                
+                field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+                if field_list:
+                    hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                    attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                    attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                        value=attr_value)
+                    self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_110_ecmp_hash_udf_src_mac_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_110_ecmp_hash_udf_src_mac_test======")
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        hash_id_ecmp = 0
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_addr2 = '10.10.10.2'
+        ip_addr3 = '10.10.10.3'
+        ip_addr1_subnet = '10.10.10.0'
+        ip_mask1 = '255.255.255.0'
+        dmac1 = '00:11:22:33:44:55'
+        dmac2 = '00:11:22:33:44:56'
+        dmac3 = '00:11:22:33:44:57'
+
+        sys_logging("======create a VRF======")
+        vr1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        sys_logging("======create four interfaces======")
+        rif1 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif2 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+        rif3 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+        rif4 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+
+        sys_logging("======create neighbors======")
+        sai_thrift_create_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+        sai_thrift_create_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+        sai_thrift_create_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+
+        sys_logging("======create nexthops======")
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif1)
+        nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif2)
+        nhop3 = sai_thrift_create_nhop(self.client, addr_family, ip_addr3, rif3)
+        
+        sys_logging("======add nexthops to group======")
+        nhop_group1 = sai_thrift_create_next_hop_group(self.client)
+        nhop_gmember1 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop1)
+        nhop_gmember2 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
+        nhop_gmember3 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop3)
+
+        sys_logging("======create route======")
+        sai_thrift_create_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+
+        # get ecmp hash object id
+        sys_logging("======get ecmp hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_ECMP_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_ECMP_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_ECMP_HASH = %d ###"  %attribute.value.oid)
+                hash_id_ecmp = attribute.value.oid
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x0800
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L2
+        offset = 8
+        # default value
+        #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=106,
+                                ip_ttl=64)
+
+            exp_pkt1 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=router_mac,
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=106,
+                                ip_ttl=63)
+
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt1, [0])
+
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                    eth_src='00:22:22:22:22:22',
+                                    ip_dst='10.10.10.2',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=64)
+
+            exp_pkt2 = simple_tcp_packet(
+                                    eth_dst='00:11:22:33:44:56',
+                                    eth_src=router_mac,
+                                    ip_dst='10.10.10.2',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=63)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt2, [1])
+
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                    eth_src='00:22:22:22:22:22',
+                                    ip_dst='10.10.10.3',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=64)
+
+            exp_pkt3 = simple_tcp_packet(
+                                    eth_dst='00:11:22:33:44:57',
+                                    eth_src=router_mac,
+                                    ip_dst='10.10.10.3',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=63)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt3, [2])
+
+            count = [0, 0, 0]
+            src_mac_start = '00:22:22:22:22:{0}'
+            max_itrs = 20
+            sys_logging("======send 20 packages to ecmp,every package's src mac address is not equal======")
+            for i in range(0, max_itrs):
+                src_mac = src_mac_start.format(str(i).zfill(4)[2:])
+                pkt = simple_tcp_packet(eth_dst=router_mac,
+                                        eth_src=src_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=64)
+            
+                exp_pkt1 = simple_tcp_packet(eth_dst='00:11:22:33:44:55',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=63)
+                exp_pkt2 = simple_tcp_packet(eth_dst='00:11:22:33:44:56',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=63)
+                exp_pkt3 = simple_tcp_packet(eth_dst='00:11:22:33:44:57',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=63)
+
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt1,exp_pkt2,exp_pkt3], [0, 1, 2])
+                count[rcv_idx] += 1
+                print"*********************** rcv_idx:%d" %rcv_idx
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                        "Not all paths are equally balanced")
+                        
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember1)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember2)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember3)
+            
+            self.client.sai_thrift_remove_next_hop_group(nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop2)
+            self.client.sai_thrift_remove_next_hop(nhop3)
+            
+            sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+            
+            self.client.sai_thrift_remove_router_interface(rif1)
+            self.client.sai_thrift_remove_router_interface(rif2)
+            self.client.sai_thrift_remove_router_interface(rif3)
+            self.client.sai_thrift_remove_router_interface(rif4)
+            
+            self.client.sai_thrift_remove_virtual_router(vr1)
+
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+class scenario_111_ecmp_hash_udf_l4_dst_port_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_111_ecmp_hash_udf_l4_dst_port_test======")
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        hash_id_ecmp = 0
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_addr2 = '10.10.10.2'
+        ip_addr3 = '10.10.10.3'
+        ip_addr1_subnet = '10.10.10.0'
+        ip_mask1 = '255.255.255.0'
+        dmac1 = '00:11:22:33:44:55'
+        dmac2 = '00:11:22:33:44:56'
+        dmac3 = '00:11:22:33:44:57'
+
+        sys_logging("======create a VRF======")
+        vr1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        sys_logging("======create four interfaces======")
+        rif1 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif2 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+        rif3 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+        rif4 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+
+        sys_logging("======create neighbors======")
+        sai_thrift_create_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+        sai_thrift_create_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+        sai_thrift_create_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+
+        sys_logging("======create nexthops======")
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif1)
+        nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif2)
+        nhop3 = sai_thrift_create_nhop(self.client, addr_family, ip_addr3, rif3)
+        nhop_group1 = sai_thrift_create_next_hop_group(self.client)
+        
+        sys_logging("======add nexthops to group======")
+        nhop_gmember1 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop1)
+        nhop_gmember2 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
+        nhop_gmember3 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop3)
+
+        sys_logging("======create route======")
+        sai_thrift_create_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+
+        # get ecmp hash object id
+        sys_logging("======get ecmp hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_ECMP_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_ECMP_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_ECMP_HASH = %d ###"  %attribute.value.oid)
+                hash_id_ecmp = attribute.value.oid
+
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+
+        if chipname == "tsingma":
+            group_length = 4
+            offset = 0
+            hash_mask_list = [-1, -1, -1, -1]
+        elif chipname == "tsingma_mx":
+            group_length = 2
+            offset = 2
+            hash_mask_list = [-1, -1]
+        else:
+            group_length = 0
+            offset = 0
+            hash_mask_list = []
+            sys_logging("======chipname is error======")
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x0800
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L4
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=106,
+                                ip_ttl=64,
+                                tcp_sport=1234,
+                                tcp_dport=80)
+
+            exp_pkt1 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=router_mac,
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=106,
+                                ip_ttl=63,
+                                tcp_sport=1234,
+                                tcp_dport=80)
+
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt1, [0])
+
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                    eth_src='00:22:22:22:22:22',
+                                    ip_dst='10.10.10.2',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=64,
+                                    tcp_sport=1234,
+                                    tcp_dport=80)
+
+            exp_pkt2 = simple_tcp_packet(
+                                    eth_dst='00:11:22:33:44:56',
+                                    eth_src=router_mac,
+                                    ip_dst='10.10.10.2',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=63,
+                                    tcp_sport=1234,
+                                    tcp_dport=80)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt2, [1])
+
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                    eth_src='00:22:22:22:22:22',
+                                    ip_dst='10.10.10.3',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=64,
+                                    tcp_sport=1234,
+                                    tcp_dport=80)
+
+            exp_pkt3 = simple_tcp_packet(
+                                    eth_dst='00:11:22:33:44:57',
+                                    eth_src=router_mac,
+                                    ip_dst='10.10.10.3',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=63,
+                                    tcp_sport=1234,
+                                    tcp_dport=80)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt3, [2])
+
+            count = [0, 0, 0]
+            dst_port = 80
+            max_itrs = 30
+            sys_logging("======send 20 packages to ecmp,every package's dst port is not equal======")
+            for i in range(0, max_itrs):
+                pkt = simple_tcp_packet(eth_dst=router_mac,
+                                        eth_src='00:22:22:22:22:22',
+                                        ip_dst='10.10.10.4',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=64,
+                                        tcp_sport=1234,
+                                        tcp_dport=dst_port)
+            
+                exp_pkt1 = simple_tcp_packet(eth_dst='00:11:22:33:44:55',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=dst_port)
+                exp_pkt2 = simple_tcp_packet(eth_dst='00:11:22:33:44:56',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=dst_port)
+                exp_pkt3 = simple_tcp_packet(eth_dst='00:11:22:33:44:57',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=dst_port)
+            
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt1,exp_pkt2,exp_pkt3], [0, 1, 2])
+                count[rcv_idx] += 1
+                print"*********************** rcv_idx:%d" %rcv_idx
+                dst_port += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                        "Not all paths are equally balanced")
+                        
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember1)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember2)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember3)
+            
+            self.client.sai_thrift_remove_next_hop_group(nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop2)
+            self.client.sai_thrift_remove_next_hop(nhop3)
+            
+            sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+            
+            self.client.sai_thrift_remove_router_interface(rif1)
+            self.client.sai_thrift_remove_router_interface(rif2)
+            self.client.sai_thrift_remove_router_interface(rif3)
+            self.client.sai_thrift_remove_router_interface(rif4)
+            
+            self.client.sai_thrift_remove_virtual_router(vr1)
+
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+class scenario_112_ecmp_hash_udf_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_112_ecmp_hash_udf_src_ip_test======")
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        hash_id_ecmp = 0
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_addr2 = '10.10.10.2'
+        ip_addr3 = '10.10.10.3'
+        ip_addr1_subnet = '10.10.10.0'
+        ip_mask1 = '255.255.255.0'
+        dmac1 = '00:11:22:33:44:55'
+        dmac2 = '00:11:22:33:44:56'
+        dmac3 = '00:11:22:33:44:57'
+
+        sys_logging("======create a VRF======")
+        vr1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        sys_logging("======create four interfaces======")
+        rif1 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif2 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+        rif3 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+        rif4 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+
+        sys_logging("======create neighbors======")
+        sai_thrift_create_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+        sai_thrift_create_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+        sai_thrift_create_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+
+        sys_logging("======create nexthops======")
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif1)
+        nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif2)
+        nhop3 = sai_thrift_create_nhop(self.client, addr_family, ip_addr3, rif3)
+        
+        sys_logging("======add nexthops to group======")
+        nhop_group1 = sai_thrift_create_next_hop_group(self.client)
+        nhop_gmember1 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop1)
+        nhop_gmember2 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
+        nhop_gmember3 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop3)
+
+        sys_logging("======create route======")
+        sai_thrift_create_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+
+        # get ecmp hash object id
+        sys_logging("======get ecmp hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_ECMP_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_ECMP_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_ECMP_HASH = %d ###"  %attribute.value.oid)
+                hash_id_ecmp = attribute.value.oid
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x0800
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L3
+        offset = 12
+        # default value
+        #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=106,
+                                ip_ttl=64)
+
+            exp_pkt1 = simple_tcp_packet(
+                                eth_dst='00:11:22:33:44:55',
+                                eth_src=router_mac,
+                                ip_dst='10.10.10.1',
+                                ip_src='192.168.0.1',
+                                ip_id=106,
+                                ip_ttl=63)
+
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt1, [0])
+
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                    eth_src='00:22:22:22:22:22',
+                                    ip_dst='10.10.10.2',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=64)
+
+            exp_pkt2 = simple_tcp_packet(
+                                    eth_dst='00:11:22:33:44:56',
+                                    eth_src=router_mac,
+                                    ip_dst='10.10.10.2',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=63)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt2, [1])
+
+            pkt = simple_tcp_packet(eth_dst=router_mac,
+                                    eth_src='00:22:22:22:22:22',
+                                    ip_dst='10.10.10.3',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=64)
+
+            exp_pkt3 = simple_tcp_packet(
+                                    eth_dst='00:11:22:33:44:57',
+                                    eth_src=router_mac,
+                                    ip_dst='10.10.10.3',
+                                    ip_src='192.168.100.3',
+                                    ip_id=106,
+                                    ip_ttl=63)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt3, [2])
+
+            count = [0, 0, 0]
+            src_ip = int(socket.inet_aton('192.168.100.3').encode('hex'),16)
+            max_itrs = 20
+            sys_logging("======send 20 packages to ecmp,every package's src ip is not equal======")
+            for i in range(0, max_itrs):
+                src_ip_addr = socket.inet_ntoa(hex(src_ip)[2:].zfill(8).decode('hex'))
+                pkt = simple_tcp_packet(eth_dst=router_mac,
+                                        eth_src='00:22:22:22:22:22',
+                                        ip_dst='10.10.10.4',
+                                        ip_src=src_ip_addr,
+                                        ip_id=106,
+                                        ip_ttl=64)
+            
+                exp_pkt1 = simple_tcp_packet(eth_dst='00:11:22:33:44:55',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src=src_ip_addr,
+                                        ip_id=106,
+                                        ip_ttl=63)
+                exp_pkt2 = simple_tcp_packet(eth_dst='00:11:22:33:44:56',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src=src_ip_addr,
+                                        ip_id=106,
+                                        ip_ttl=63)
+                exp_pkt3 = simple_tcp_packet(eth_dst='00:11:22:33:44:57',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.4',
+                                        ip_src=src_ip_addr,
+                                        ip_id=106,
+                                        ip_ttl=63)
+            
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt1,exp_pkt2,exp_pkt3], [0, 1, 2])
+                count[rcv_idx] += 1
+                print"*********************** rcv_idx:%d" %rcv_idx
+                src_ip += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                        "Not all paths are equally balanced")
+                        
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember1)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember2)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember3)
+            
+            self.client.sai_thrift_remove_next_hop_group(nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop2)
+            self.client.sai_thrift_remove_next_hop(nhop3)
+            
+            sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+            
+            self.client.sai_thrift_remove_router_interface(rif1)
+            self.client.sai_thrift_remove_router_interface(rif2)
+            self.client.sai_thrift_remove_router_interface(rif3)
+            self.client.sai_thrift_remove_router_interface(rif4)
+            
+            self.client.sai_thrift_remove_virtual_router(vr1)
+
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+class scenario_113_ecmp_hash_two_udf_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_113_ecmp_hash_two_udf_src_ip_test======")
+        switch_init(self.client)
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+
+        if chipname != "tsingma":
+            port1 = port_list[0]
+            port2 = port_list[1]
+            port3 = port_list[2]
+            port4 = port_list[3]
+            v4_enabled = 1
+            v6_enabled = 1
+            mac = ''
+            hash_id_ecmp = 0
+            
+            addr_family = SAI_IP_ADDR_FAMILY_IPV4
+            ip_addr1 = '10.10.10.1'
+            ip_addr2 = '10.10.10.2'
+            ip_addr3 = '10.10.10.3'
+            ip_addr1_subnet = '10.10.10.0'
+            ip_mask1 = '255.255.255.0'
+            dmac1 = '00:11:22:33:44:55'
+            dmac2 = '00:11:22:33:44:56'
+            dmac3 = '00:11:22:33:44:57'
+            
+            sys_logging("======create a VRF======")
+            vr1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+            
+            sys_logging("======create four interfaces======")
+            rif1 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+            rif2 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+            rif3 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+            rif4 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+            
+            sys_logging("======create neighbors======")
+            sai_thrift_create_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+            sai_thrift_create_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+            sai_thrift_create_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+            
+            sys_logging("======create nexthops======")
+            nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif1)
+            nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif2)
+            nhop3 = sai_thrift_create_nhop(self.client, addr_family, ip_addr3, rif3)
+            
+            sys_logging("======add nexthops to group======")
+            nhop_group1 = sai_thrift_create_next_hop_group(self.client)
+            nhop_gmember1 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop1)
+            nhop_gmember2 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
+            nhop_gmember3 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop3)
+            
+            sys_logging("======create route======")
+            sai_thrift_create_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+            
+            # get ecmp hash object id
+            sys_logging("======get ecmp hash object id======")
+            ids_list = [SAI_SWITCH_ATTR_ECMP_HASH]
+            switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+            attr_list = switch_attr_list.attr_list
+            for attribute in attr_list:
+                if attribute.id == SAI_SWITCH_ATTR_ECMP_HASH:
+                    sys_logging("### SAI_SWITCH_ATTR_ECMP_HASH = %d ###"  %attribute.value.oid)
+                    hash_id_ecmp = attribute.value.oid
+            
+            # create udf group
+            group_type = SAI_UDF_GROUP_TYPE_HASH
+            group_length = 2
+            sys_logging("======Create udf group======")
+            udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_id = %d" %udf_group_id
+            print "udf_group_id = %lx" %udf_group_id
+            
+            group_type = SAI_UDF_GROUP_TYPE_HASH
+            group_length = 2
+            sys_logging("======Create udf group======")
+            udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_id2 = %d" %udf_group_id2
+            print "udf_group_id2 = %lx" %udf_group_id2
+            
+            sys_logging("======Create udf match======")
+            l2_type = 0x0800
+            l2_type_mask = U16MASKFULL
+            l3_type = 0x6
+            l3_type_mask = U8MASKFULL
+            priority = 15
+            
+            udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                       l2_type,
+                                                       l2_type_mask,
+                                                       l3_type,
+                                                       l3_type_mask,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       priority)
+            
+            print "udf_match_id = 0x%lx" %udf_match_id
+            
+            sys_logging("======Create udf======")
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+            hash_mask_list = [-1, -1]
+            udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            print "udf_id = 0x%lx" %udf_id
+            
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            hash_mask_list = [-1, -1]
+            udf_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            print "udf_id2 = 0x%lx" %udf_id2
+            
+            objlist = [udf_group_id, udf_group_id2]
+            
+            sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+            hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+            sys_logging( "set hash attribute status = %d" %status)
+            
+            warmboot(self.client)
+            try:
+                pkt = simple_tcp_packet(eth_dst=router_mac,
+                                    eth_src='00:22:22:22:22:22',
+                                    ip_dst='10.10.10.1',
+                                    ip_src='192.168.0.1',
+                                    ip_id=106,
+                                    ip_ttl=64)
+            
+                exp_pkt1 = simple_tcp_packet(
+                                    eth_dst='00:11:22:33:44:55',
+                                    eth_src=router_mac,
+                                    ip_dst='10.10.10.1',
+                                    ip_src='192.168.0.1',
+                                    ip_id=106,
+                                    ip_ttl=63)
+            
+                self.ctc_send_packet( 3, str(pkt))
+                self.ctc_verify_packets( exp_pkt1, [0])
+            
+                pkt = simple_tcp_packet(eth_dst=router_mac,
+                                        eth_src='00:22:22:22:22:22',
+                                        ip_dst='10.10.10.2',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=64)
+            
+                exp_pkt2 = simple_tcp_packet(
+                                        eth_dst='00:11:22:33:44:56',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.2',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=63)
+                
+                self.ctc_send_packet( 3, str(pkt))
+                self.ctc_verify_packets( exp_pkt2, [1])
+            
+                pkt = simple_tcp_packet(eth_dst=router_mac,
+                                        eth_src='00:22:22:22:22:22',
+                                        ip_dst='10.10.10.3',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=64)
+            
+                exp_pkt3 = simple_tcp_packet(
+                                        eth_dst='00:11:22:33:44:57',
+                                        eth_src=router_mac,
+                                        ip_dst='10.10.10.3',
+                                        ip_src='192.168.100.3',
+                                        ip_id=106,
+                                        ip_ttl=63)
+                
+                self.ctc_send_packet( 3, str(pkt))
+                self.ctc_verify_packets( exp_pkt3, [2])
+            
+                count = [0, 0, 0]
+                src_ip = int(socket.inet_aton('192.168.100.3').encode('hex'),16)
+                max_itrs = 20
+                sys_logging("======send 20 packages to ecmp,every package's src ip is not equal======")
+                for i in range(0, max_itrs):
+                    src_ip_addr = socket.inet_ntoa(hex(src_ip)[2:].zfill(8).decode('hex'))
+                    pkt = simple_tcp_packet(eth_dst=router_mac,
+                                            eth_src='00:22:22:22:22:22',
+                                            ip_dst='10.10.10.4',
+                                            ip_src=src_ip_addr,
+                                            ip_id=106,
+                                            ip_ttl=64)
+                
+                    exp_pkt1 = simple_tcp_packet(eth_dst='00:11:22:33:44:55',
+                                            eth_src=router_mac,
+                                            ip_dst='10.10.10.4',
+                                            ip_src=src_ip_addr,
+                                            ip_id=106,
+                                            ip_ttl=63)
+                    exp_pkt2 = simple_tcp_packet(eth_dst='00:11:22:33:44:56',
+                                            eth_src=router_mac,
+                                            ip_dst='10.10.10.4',
+                                            ip_src=src_ip_addr,
+                                            ip_id=106,
+                                            ip_ttl=63)
+                    exp_pkt3 = simple_tcp_packet(eth_dst='00:11:22:33:44:57',
+                                            eth_src=router_mac,
+                                            ip_dst='10.10.10.4',
+                                            ip_src=src_ip_addr,
+                                            ip_id=106,
+                                            ip_ttl=63)
+                
+                    self.ctc_send_packet( 3, str(pkt))
+                    rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt1,exp_pkt2,exp_pkt3], [0, 1, 2])
+                    count[rcv_idx] += 1
+                    print"*********************** rcv_idx:%d" %rcv_idx
+                    src_ip += 1
+            
+                print"############################count###################################"
+                print count
+                print"####################################################################"
+                for i in range(0, 3):
+                    self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                            "Not all paths are equally balanced")
+                            
+            finally:
+                sys_logging("======clean up======")
+                sai_thrift_remove_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+                
+                self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember1)
+                self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember2)
+                self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember3)
+                
+                self.client.sai_thrift_remove_next_hop_group(nhop_group1)
+                
+                self.client.sai_thrift_remove_next_hop(nhop1)
+                self.client.sai_thrift_remove_next_hop(nhop2)
+                self.client.sai_thrift_remove_next_hop(nhop3)
+                
+                sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+                sai_thrift_remove_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+                sai_thrift_remove_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+                
+                self.client.sai_thrift_remove_router_interface(rif1)
+                self.client.sai_thrift_remove_router_interface(rif2)
+                self.client.sai_thrift_remove_router_interface(rif3)
+                self.client.sai_thrift_remove_router_interface(rif4)
+                
+                self.client.sai_thrift_remove_virtual_router(vr1)
+            
+                udf_group_list = []
+                hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+                attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                    value=attr_value)
+                status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+                
+                self.client.sai_thrift_remove_udf(udf_id)
+                self.client.sai_thrift_remove_udf(udf_id2)
+                self.client.sai_thrift_remove_udf_match(udf_match_id)
+                self.client.sai_thrift_remove_udf_group(udf_group_id)
+                self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            
+                field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+                if field_list:
+                    hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                    attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                    attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                        value=attr_value)
+                    self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+class scenario_114_lag_hash_udf_ipv6_dst_port_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_114_lag_hash_udf_ipv6_dst_port_test======")
+        switch_init(self.client)
+        vlan_id = 10
+        hash_id_lag = 0
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+        is_lag = True
+        sys_logging("======create a vlan======")
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        lag_oid1 = sai_thrift_create_bport_by_lag(self.client, lag_id1)
+        print"lag:%lx" %lag_id1
+        print"lag_oid:%lx" %lag_oid1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        sys_logging("======add lag and port4 to vlan======")
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_oid1, SAI_VLAN_TAGGING_MODE_UNTAGGED, is_lag)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port4, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_lag_attribute(lag_id1, attr)
+
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port4, attr)
+
+        sai_thrift_create_fdb_bport(self.client, vlan_oid, mac1, lag_oid1, mac_action)
+        sai_thrift_create_fdb(self.client, vlan_oid, mac2, port4, mac_action)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+        if chipname == "tsingma":
+            group_length = 4
+            offset = 0
+            hash_mask_list = [-1, -1, -1, -1]
+        elif chipname == "tsingma_mx":
+            group_length = 2
+            offset = 2
+            hash_mask_list = [-1, -1]
+        else:
+            group_length = 0
+            offset = 0
+            hash_mask_list = []
+            sys_logging("======chipname is error======")
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = ctypes.c_int16(0x86dd)
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type.value,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L4
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            count = [0, 0, 0]
+            max_itrs = 20
+            sys_logging("======send 20 packages to lag,every package's dst port is not equal======")
+            dst_port = 80
+            for i in range(0, max_itrs):
+                pkt = simple_tcpv6_packet(eth_dst='00:11:11:11:11:11',
+                                          eth_src='00:22:22:22:22:22',
+                                          ipv6_dst='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7335',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=dst_port)
+
+                exp_pkt = simple_tcpv6_packet(eth_dst='00:11:11:11:11:11',
+                                              eth_src='00:22:22:22:22:22',
+                                              ipv6_dst='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7335',
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=dst_port)
+
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+                dst_port += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.3)),
+                       "Not all paths are equally balanced")
+
+            pkt = simple_tcpv6_packet(eth_src='00:11:11:11:11:11',
+                                          eth_dst='00:22:22:22:22:22',
+                                          ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            exp_pkt = simple_tcpv6_packet(eth_src='00:11:11:11:11:11',
+                                          eth_dst='00:22:22:22:22:22',
+                                          ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            print "Sending packet port 1 (lag member) -> port 4"
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 2 (lag member) -> port 4"
+            self.ctc_send_packet( 1, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 3 (lag member) -> port 4"
+            self.ctc_send_packet( 2, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac2, port4)
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac1, lag_oid1)
+
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            
+            sai_thrift_remove_bport_by_lag(self.client, lag_oid1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            for port in sai_port_list:
+                sai_thrift_create_vlan_member(self.client, switch.default_vlan.oid, port, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+            
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port4, attr) 
+            
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_115_lag_hash_udf_ipv6_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_115_lag_hash_udf_ipv6_src_ip_test======")
+        switch_init(self.client)
+        vlan_id = 10
+        hash_id_lag = 0
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+        is_lag = True
+        sys_logging("======create a vlan======")
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        lag_oid1 = sai_thrift_create_bport_by_lag(self.client, lag_id1)
+        print"lag:%lx" %lag_id1
+        print"lag_oid:%lx" %lag_oid1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        sys_logging("======add lag and port4 to vlan======")
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_oid1, SAI_VLAN_TAGGING_MODE_UNTAGGED, is_lag)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port4, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_lag_attribute(lag_id1, attr)
+
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port4, attr)
+
+        sai_thrift_create_fdb_bport(self.client, vlan_oid, mac1, lag_oid1, mac_action)
+        sai_thrift_create_fdb(self.client, vlan_oid, mac2, port4, mac_action)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = ctypes.c_int16(0x86dd)
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type.value,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L3
+        offset = 20
+        # default value
+        #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            count = [0, 0, 0]
+            max_itrs = 20
+            sys_logging("======send 20 packages to lag,every package's src ip is not equal======")
+            src_ip = '2001:db8:85a3::8a2e:370:73{0}'
+            for i in range(0, max_itrs):
+                src_ip_addr = src_ip.format(str(i).zfill(4)[2:])
+                pkt = simple_tcpv6_packet(eth_dst='00:11:11:11:11:11',
+                                          eth_src='00:22:22:22:22:22',
+                                          ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                          ipv6_src=src_ip_addr,
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+                exp_pkt = simple_tcpv6_packet(eth_dst='00:11:11:11:11:11',
+                                              eth_src='00:22:22:22:22:22',
+                                              ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                              ipv6_src=src_ip_addr,
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.3)),
+                       "Not all paths are equally balanced")
+
+            pkt = simple_tcpv6_packet(eth_src='00:11:11:11:11:11',
+                                          eth_dst='00:22:22:22:22:22',
+                                          ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            exp_pkt = simple_tcpv6_packet(eth_src='00:11:11:11:11:11',
+                                          eth_dst='00:22:22:22:22:22',
+                                          ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            print "Sending packet port 1 (lag member) -> port 4"
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 2 (lag member) -> port 4"
+            self.ctc_send_packet( 1, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 3 (lag member) -> port 4"
+            self.ctc_send_packet( 2, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac2, port4)
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac1, lag_oid1)
+
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            
+            sai_thrift_remove_bport_by_lag(self.client, lag_oid1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            for port in sai_port_list:
+                sai_thrift_create_vlan_member(self.client, switch.default_vlan.oid, port, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+            
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port4, attr)
+
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_116_lag_hash_two_udf_ipv6_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_116_lag_hash_two_udf_ipv6_src_ip_test======")
+        switch_init(self.client)
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+
+        if chipname != "tsingma":
+            vlan_id = 10
+            hash_id_lag = 0
+            port1 = port_list[0]
+            port2 = port_list[1]
+            port3 = port_list[2]
+            port4 = port_list[3]
+            
+            mac1 = '00:11:11:11:11:11'
+            mac2 = '00:22:22:22:22:22'
+            mac_action = SAI_PACKET_ACTION_FORWARD
+            is_lag = True
+            sys_logging("======create a vlan======")
+            vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+            
+            sys_logging("======create a lag include three ports======")
+            lag_id1 = sai_thrift_create_lag(self.client)
+            lag_oid1 = sai_thrift_create_bport_by_lag(self.client, lag_id1)
+            print"lag:%lx" %lag_id1
+            print"lag_oid:%lx" %lag_oid1
+            
+            lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+            lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+            lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+            
+            sys_logging("======add lag and port4 to vlan======")
+            vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_oid1, SAI_VLAN_TAGGING_MODE_UNTAGGED, is_lag)
+            vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port4, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+            
+            attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+            attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_lag_attribute(lag_id1, attr)
+            
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port4, attr)
+            
+            sai_thrift_create_fdb_bport(self.client, vlan_oid, mac1, lag_oid1, mac_action)
+            sai_thrift_create_fdb(self.client, vlan_oid, mac2, port4, mac_action)
+            
+            #get lag hash object id
+            sys_logging("======get lag hash object id======")
+            ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+            switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+            attr_list = switch_attr_list.attr_list
+            for attribute in attr_list:
+                if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                    sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                    hash_id_lag = attribute.value.oid
+            
+            # create udf group
+            group_type = SAI_UDF_GROUP_TYPE_HASH
+            group_length = 2
+            sys_logging("======Create udf group======")
+            udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_id = %d" %udf_group_id
+            print "udf_group_id = %lx" %udf_group_id
+            
+            group_type = SAI_UDF_GROUP_TYPE_HASH
+            group_length = 2
+            sys_logging("======Create udf group======")
+            udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_id2 = %d" %udf_group_id2
+            print "udf_group_id2 = %lx" %udf_group_id2
+            
+            sys_logging("======Create udf match======")
+            l2_type = ctypes.c_int16(0x86dd)
+            l2_type_mask = U16MASKFULL
+            l3_type = 0x6
+            l3_type_mask = U8MASKFULL
+            priority = 15
+            
+            udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                       l2_type.value,
+                                                       l2_type_mask,
+                                                       l3_type,
+                                                       l3_type_mask,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       priority)
+            
+            print "udf_match_id = 0x%lx" %udf_match_id
+            
+            sys_logging("======Create udf======")
+            base = SAI_UDF_BASE_L3
+            offset = 20
+            # default value
+            #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+            hash_mask_list = [-1, -1]
+            udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            print "udf_id = 0x%lx" %udf_id
+            
+            base = SAI_UDF_BASE_L3
+            offset = 22
+            hash_mask_list = [-1, -1]
+            udf_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            print "udf_id2 = 0x%lx" %udf_id2
+            
+            objlist = [udf_group_id, udf_group_id2]
+            
+            sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+            hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            sys_logging( "set hash attribute status = %d" %status)
+            
+            warmboot(self.client)
+            try:
+                count = [0, 0, 0]
+                max_itrs = 20
+                sys_logging("======send 20 packages to lag,every package's src ip is not equal======")
+                src_ip = '2001:db8:85a3::8a2e:370:73{0}'
+                for i in range(0, max_itrs):
+                    src_ip_addr = src_ip.format(str(i).zfill(4)[2:])
+                    pkt = simple_tcpv6_packet(eth_dst='00:11:11:11:11:11',
+                                              eth_src='00:22:22:22:22:22',
+                                              ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                              ipv6_src=src_ip_addr,
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+            
+                    exp_pkt = simple_tcpv6_packet(eth_dst='00:11:11:11:11:11',
+                                                  eth_src='00:22:22:22:22:22',
+                                                  ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                                  ipv6_src=src_ip_addr,
+                                                  ipv6_hlim=64,
+                                                  tcp_sport=1234,
+                                                  tcp_dport=80)
+            
+                    self.ctc_send_packet( 3, str(pkt))
+                    rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                    print"*********************** rcv_idx:%d" %rcv_idx
+                    count[rcv_idx] += 1
+            
+                print"############################count###################################"
+                print count
+                print"####################################################################"
+                for i in range(0, 3):
+                    self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                           "Not all paths are equally balanced")
+            
+                pkt = simple_tcpv6_packet(eth_src='00:11:11:11:11:11',
+                                              eth_dst='00:22:22:22:22:22',
+                                              ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+                exp_pkt = simple_tcpv6_packet(eth_src='00:11:11:11:11:11',
+                                              eth_dst='00:22:22:22:22:22',
+                                              ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+                print "Sending packet port 1 (lag member) -> port 4"
+                self.ctc_send_packet( 0, str(pkt))
+                self.ctc_verify_packets( exp_pkt, [3])
+                print "Sending packet port 2 (lag member) -> port 4"
+                self.ctc_send_packet( 1, str(pkt))
+                self.ctc_verify_packets( exp_pkt, [3])
+                print "Sending packet port 3 (lag member) -> port 4"
+                self.ctc_send_packet( 2, str(pkt))
+                self.ctc_verify_packets( exp_pkt, [3])
+            
+            finally:
+                sys_logging("======clean up======")
+                sai_thrift_delete_fdb(self.client, vlan_oid, mac2, port4)
+                sai_thrift_delete_fdb(self.client, vlan_oid, mac1, lag_oid1)
+            
+                self.client.sai_thrift_remove_vlan_member(vlan_member1)
+                self.client.sai_thrift_remove_vlan_member(vlan_member2)
+                
+                sai_thrift_remove_bport_by_lag(self.client, lag_oid1)
+                sai_thrift_remove_lag_member(self.client, lag_member_id1)
+                sai_thrift_remove_lag_member(self.client, lag_member_id2)
+                sai_thrift_remove_lag_member(self.client, lag_member_id3)
+                sai_thrift_remove_lag(self.client, lag_id1)
+                self.client.sai_thrift_remove_vlan(vlan_oid)
+                for port in sai_port_list:
+                    sai_thrift_create_vlan_member(self.client, switch.default_vlan.oid, port, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+                
+                attr_value = sai_thrift_attribute_value_t(u16=1)
+                attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+                self.client.sai_thrift_set_port_attribute(port4, attr)
+            
+                udf_group_list = []
+                hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+                attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                    value=attr_value)
+                status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+                
+                self.client.sai_thrift_remove_udf(udf_id)
+                self.client.sai_thrift_remove_udf(udf_id2)
+                self.client.sai_thrift_remove_udf_match(udf_match_id)
+                self.client.sai_thrift_remove_udf_group(udf_group_id)
+                self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            
+                field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+                if field_list:
+                    hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                    attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                    attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                        value=attr_value)
+                    self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+
+class scenario_117_ecmp_hash_udf_ipv6_dst_port_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_117_ecmp_hash_udf_ipv6_dst_port_test======")
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        hash_id_ecmp = 0
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV6
+        ip_addr1 = '1234:5678:9abc:def0:4422:1133:5577:9901'
+        ip_addr2 = '1234:5678:9abc:def0:4422:1133:5577:9902'
+        ip_addr3 = '1234:5678:9abc:def0:4422:1133:5577:9903'
+        ip_addr1_subnet = '1234:5678:9abc:def0:4422:1133:5577:0'
+        ip_mask1 = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:0'
+        dmac1 = '00:11:22:33:44:55'
+        dmac2 = '00:11:22:33:44:56'
+        dmac3 = '00:11:22:33:44:57'
+
+        sys_logging("======create a VRF======")
+        vr1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        sys_logging("======create four interfaces======")
+        rif1 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif2 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+        rif3 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+        rif4 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+
+        sys_logging("======create neighbors======")
+        sai_thrift_create_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+        sai_thrift_create_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+        sai_thrift_create_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+
+        sys_logging("======create nexthops======")
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif1)
+        nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif2)
+        nhop3 = sai_thrift_create_nhop(self.client, addr_family, ip_addr3, rif3)
+        
+        sys_logging("======add nexthops to group======")
+        nhop_group1 = sai_thrift_create_next_hop_group(self.client)
+        nhop_gmember1 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop1)
+        nhop_gmember2 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
+        nhop_gmember3 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop3)
+
+        sys_logging("======create route======")
+        sai_thrift_create_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+
+        # get ecmp hash object id
+        sys_logging("======get ecmp hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_ECMP_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_ECMP_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_ECMP_HASH = %d ###"  %attribute.value.oid)
+                hash_id_ecmp = attribute.value.oid
+
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+        if chipname == "tsingma":
+            group_length = 4
+            offset = 0
+            hash_mask_list = [-1, -1, -1, -1]
+        elif chipname == "tsingma_mx":
+            group_length = 2
+            offset = 2
+            hash_mask_list = [-1, -1]
+        else:
+            group_length = 0
+            offset = 0
+            hash_mask_list = []
+            sys_logging("======chipname is error======")
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = ctypes.c_int16(0x86dd)
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type.value,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L4
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                          eth_dst=router_mac,
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9901',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+            exp_pkt1 = simple_tcpv6_packet(eth_src=router_mac,
+                                          eth_dst='00:11:22:33:44:55',
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9901',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=63,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt1, [0])
+
+            pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                          eth_dst=router_mac,
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9902',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+            exp_pkt2 = simple_tcpv6_packet(eth_src=router_mac,
+                                          eth_dst='00:11:22:33:44:56',
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9902',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=63,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt2, [1])
+
+            pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                          eth_dst=router_mac,
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9903',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+            exp_pkt3 = simple_tcpv6_packet(eth_src=router_mac,
+                                          eth_dst='00:11:22:33:44:57',
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9903',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=63,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt3, [2])
+
+            count = [0, 0, 0]
+            dst_port = 80
+            max_itrs = 20
+            sys_logging("======send 20 packages to ecmp,every package's dst port is not equal======")
+            for i in range(0, max_itrs):
+                pkt = simple_tcpv6_packet(eth_dst=router_mac,
+                                          eth_src='00:22:22:22:22:22',
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=dst_port)
+            
+                exp_pkt1 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:55',
+                                        eth_src=router_mac,
+                                        ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                        ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                        ipv6_hlim=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=dst_port)
+                exp_pkt2 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:56',
+                                        eth_src=router_mac,
+                                        ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                        ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                        ipv6_hlim=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=dst_port)
+                exp_pkt3 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:57',
+                                        eth_src=router_mac,
+                                        ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                        ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                        ipv6_hlim=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=dst_port)
+            
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt1,exp_pkt2,exp_pkt3], [0, 1, 2])
+                count[rcv_idx] += 1
+                dst_port += 1
+                print"*********************** rcv_idx:%d" %rcv_idx
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                        "Not all paths are equally balanced")
+                        
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember1)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember2)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember3)
+            
+            self.client.sai_thrift_remove_next_hop_group(nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop2)
+            self.client.sai_thrift_remove_next_hop(nhop3)
+            
+            sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+            
+            self.client.sai_thrift_remove_router_interface(rif1)
+            self.client.sai_thrift_remove_router_interface(rif2)
+            self.client.sai_thrift_remove_router_interface(rif3)
+            self.client.sai_thrift_remove_router_interface(rif4)
+            
+            self.client.sai_thrift_remove_virtual_router(vr1)
+
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+class scenario_118_ecmp_hash_udf_ipv6_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_118_ecmp_hash_udf_ipv6_src_ip_test======")
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+        hash_id_ecmp = 0
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV6
+        ip_addr1 = '1234:5678:9abc:def0:4422:1133:5577:9901'
+        ip_addr2 = '1234:5678:9abc:def0:4422:1133:5577:9902'
+        ip_addr3 = '1234:5678:9abc:def0:4422:1133:5577:9903'
+        ip_addr1_subnet = '1234:5678:9abc:def0:4422:1133:5577:0'
+        ip_mask1 = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:0'
+        dmac1 = '00:11:22:33:44:55'
+        dmac2 = '00:11:22:33:44:56'
+        dmac3 = '00:11:22:33:44:57'
+
+        sys_logging("======create a VRF======")
+        vr1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+
+        sys_logging("======create four interfaces======")
+        rif1 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif2 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+        rif3 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+        rif4 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+
+        sys_logging("======create neighbors======")
+        sai_thrift_create_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+        sai_thrift_create_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+        sai_thrift_create_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+
+        sys_logging("======create nexthops======")
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif1)
+        nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif2)
+        nhop3 = sai_thrift_create_nhop(self.client, addr_family, ip_addr3, rif3)
+        
+        sys_logging("======add nexthops to group======")
+        nhop_group1 = sai_thrift_create_next_hop_group(self.client)
+        nhop_gmember1 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop1)
+        nhop_gmember2 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
+        nhop_gmember3 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop3)
+
+        sys_logging("======create route======")
+        sai_thrift_create_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+
+        # get ecmp hash object id
+        sys_logging("======get ecmp hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_ECMP_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_ECMP_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_ECMP_HASH = %d ###"  %attribute.value.oid)
+                hash_id_ecmp = attribute.value.oid
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = ctypes.c_int16(0x86dd)
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type.value,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L3
+        offset = 20
+        # default value
+        #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+
+        print "udf_id = 0x%lx" %udf_id
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+
+        warmboot(self.client)
+        try:
+            pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                          eth_dst=router_mac,
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9901',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+            exp_pkt1 = simple_tcpv6_packet(eth_src=router_mac,
+                                          eth_dst='00:11:22:33:44:55',
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9901',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=63,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt1, [0])
+
+            pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                          eth_dst=router_mac,
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9902',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+            exp_pkt2 = simple_tcpv6_packet(eth_src=router_mac,
+                                          eth_dst='00:11:22:33:44:56',
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9902',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=63,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt2, [1])
+
+            pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                          eth_dst=router_mac,
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9903',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+
+            exp_pkt3 = simple_tcpv6_packet(eth_src=router_mac,
+                                          eth_dst='00:11:22:33:44:57',
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9903',
+                                          ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                          ipv6_hlim=63,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            
+            self.ctc_send_packet( 3, str(pkt))
+            self.ctc_verify_packets( exp_pkt3, [2])
+
+            count = [0, 0, 0]
+            src_ip = '2001:db8:85a3::8a2e:370:73{0}'
+            max_itrs = 20
+            sys_logging("======send 20 packages to ecmp,every package's src ip is not equal======")
+            for i in range(0, max_itrs):
+                src_ip_addr = src_ip.format(str(i).zfill(4)[2:])
+                pkt = simple_tcpv6_packet(eth_dst=router_mac,
+                                          eth_src='00:22:22:22:22:22',
+                                          ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                          ipv6_src=src_ip_addr,
+                                          ipv6_hlim=64,
+                                          tcp_sport=1234,
+                                          tcp_dport=80)
+            
+                exp_pkt1 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:55',
+                                        eth_src=router_mac,
+                                        ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                        ipv6_src=src_ip_addr,
+                                        ipv6_hlim=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=80)
+                exp_pkt2 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:56',
+                                        eth_src=router_mac,
+                                        ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                        ipv6_src=src_ip_addr,
+                                        ipv6_hlim=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=80)
+                exp_pkt3 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:57',
+                                        eth_src=router_mac,
+                                        ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                        ipv6_src=src_ip_addr,
+                                        ipv6_hlim=63,
+                                        tcp_sport=1234,
+                                        tcp_dport=80)
+            
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt1,exp_pkt2,exp_pkt3], [0, 1, 2])
+                count[rcv_idx] += 1
+                print"*********************** rcv_idx:%d" %rcv_idx
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                        "Not all paths are equally balanced")
+                        
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember1)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember2)
+            self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember3)
+            
+            self.client.sai_thrift_remove_next_hop_group(nhop_group1)
+            
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop2)
+            self.client.sai_thrift_remove_next_hop(nhop3)
+            
+            sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+            
+            self.client.sai_thrift_remove_router_interface(rif1)
+            self.client.sai_thrift_remove_router_interface(rif2)
+            self.client.sai_thrift_remove_router_interface(rif3)
+            self.client.sai_thrift_remove_router_interface(rif4)
+            
+            self.client.sai_thrift_remove_virtual_router(vr1)
+
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+
+            field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+            if field_list:
+                hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                    value=attr_value)
+                self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+class scenario_119_ecmp_hash_two_udf_ipv6_src_ip_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_119_ecmp_hash_two_udf_ipv6_src_ip_test======")
+        switch_init(self.client)
+        chipname = testutils.test_params_get()['chipname']
+        sys_logging("chipname = %s" %chipname)
+
+        if chipname != "tsingma":
+            port1 = port_list[0]
+            port2 = port_list[1]
+            port3 = port_list[2]
+            port4 = port_list[3]
+            v4_enabled = 1
+            v6_enabled = 1
+            mac = ''
+            hash_id_ecmp = 0
+            
+            addr_family = SAI_IP_ADDR_FAMILY_IPV6
+            ip_addr1 = '1234:5678:9abc:def0:4422:1133:5577:9901'
+            ip_addr2 = '1234:5678:9abc:def0:4422:1133:5577:9902'
+            ip_addr3 = '1234:5678:9abc:def0:4422:1133:5577:9903'
+            ip_addr1_subnet = '1234:5678:9abc:def0:4422:1133:5577:0'
+            ip_mask1 = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:0'
+            dmac1 = '00:11:22:33:44:55'
+            dmac2 = '00:11:22:33:44:56'
+            dmac3 = '00:11:22:33:44:57'
+            
+            sys_logging("======create a VRF======")
+            vr1 = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+            
+            sys_logging("======create four interfaces======")
+            rif1 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+            rif2 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+            rif3 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port3, 0, v4_enabled, v6_enabled, mac)
+            rif4 = sai_thrift_create_router_interface(self.client, vr1, SAI_ROUTER_INTERFACE_TYPE_PORT, port4, 0, v4_enabled, v6_enabled, mac)
+            
+            sys_logging("======create neighbors======")
+            sai_thrift_create_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+            sai_thrift_create_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+            sai_thrift_create_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+            
+            sys_logging("======create nexthops======")
+            nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif1)
+            nhop2 = sai_thrift_create_nhop(self.client, addr_family, ip_addr2, rif2)
+            nhop3 = sai_thrift_create_nhop(self.client, addr_family, ip_addr3, rif3)
+            
+            sys_logging("======add nexthops to group======")
+            nhop_group1 = sai_thrift_create_next_hop_group(self.client)
+            nhop_gmember1 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop1)
+            nhop_gmember2 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop2)
+            nhop_gmember3 = sai_thrift_create_next_hop_group_member(self.client, nhop_group1, nhop3)
+            
+            sys_logging("======create route======")
+            sai_thrift_create_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+            
+            # get ecmp hash object id
+            sys_logging("======get ecmp hash object id======")
+            ids_list = [SAI_SWITCH_ATTR_ECMP_HASH]
+            switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+            attr_list = switch_attr_list.attr_list
+            for attribute in attr_list:
+                if attribute.id == SAI_SWITCH_ATTR_ECMP_HASH:
+                    sys_logging("### SAI_SWITCH_ATTR_ECMP_HASH = %d ###"  %attribute.value.oid)
+                    hash_id_ecmp = attribute.value.oid
+            
+            # create udf group
+            group_type = SAI_UDF_GROUP_TYPE_HASH
+            group_length = 2
+            sys_logging("======Create udf group======")
+            udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_id = %d" %udf_group_id
+            print "udf_group_id = %lx" %udf_group_id
+            
+            group_type = SAI_UDF_GROUP_TYPE_HASH
+            group_length = 2
+            sys_logging("======Create udf group======")
+            udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+            print "udf_group_id2 = %d" %udf_group_id2
+            print "udf_group_id2 = %lx" %udf_group_id2
+            
+            sys_logging("======Create udf match======")
+            l2_type = ctypes.c_int16(0x86dd)
+            l2_type_mask = U16MASKFULL
+            l3_type = 0x6
+            l3_type_mask = U8MASKFULL
+            priority = 15
+            
+            udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                       l2_type.value,
+                                                       l2_type_mask,
+                                                       l3_type,
+                                                       l3_type_mask,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       priority)
+            
+            print "udf_match_id = 0x%lx" %udf_match_id
+            
+            sys_logging("======Create udf======")
+            base = SAI_UDF_BASE_L3
+            offset = 20
+            # default value
+            #hash_mask_list = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+            hash_mask_list = [-1, -1]
+            udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            print "udf_id = 0x%lx" %udf_id
+            
+            base = SAI_UDF_BASE_L3
+            offset = 22
+            hash_mask_list = [-1, -1]
+            udf_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            print "udf_id2 = 0x%lx" %udf_id2
+            
+            objlist = [udf_group_id, udf_group_id2]
+            
+            sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+            hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+            sys_logging( "set hash attribute status = %d" %status)
+            
+            warmboot(self.client)
+            try:
+                pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                              eth_dst=router_mac,
+                                              ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9901',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+            
+                exp_pkt1 = simple_tcpv6_packet(eth_src=router_mac,
+                                              eth_dst='00:11:22:33:44:55',
+                                              ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9901',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_hlim=63,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+            
+                self.ctc_send_packet( 3, str(pkt))
+                self.ctc_verify_packets( exp_pkt1, [0])
+            
+                pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                              eth_dst=router_mac,
+                                              ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9902',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+            
+                exp_pkt2 = simple_tcpv6_packet(eth_src=router_mac,
+                                              eth_dst='00:11:22:33:44:56',
+                                              ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9902',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_hlim=63,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+                
+                self.ctc_send_packet( 3, str(pkt))
+                self.ctc_verify_packets( exp_pkt2, [1])
+            
+                pkt = simple_tcpv6_packet(eth_src='00:22:22:22:22:22',
+                                              eth_dst=router_mac,
+                                              ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9903',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+            
+                exp_pkt3 = simple_tcpv6_packet(eth_src=router_mac,
+                                              eth_dst='00:11:22:33:44:57',
+                                              ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9903',
+                                              ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                                              ipv6_hlim=63,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+                
+                self.ctc_send_packet( 3, str(pkt))
+                self.ctc_verify_packets( exp_pkt3, [2])
+            
+                count = [0, 0, 0]
+                src_ip = '2001:db8:85a3::8a2e:370:73{0}'
+                max_itrs = 20
+                sys_logging("======send 20 packages to ecmp,every package's src ip is not equal======")
+                for i in range(0, max_itrs):
+                    src_ip_addr = src_ip.format(str(i).zfill(4)[2:])
+                    pkt = simple_tcpv6_packet(eth_dst=router_mac,
+                                              eth_src='00:22:22:22:22:22',
+                                              ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                              ipv6_src=src_ip_addr,
+                                              ipv6_hlim=64,
+                                              tcp_sport=1234,
+                                              tcp_dport=80)
+                
+                    exp_pkt1 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:55',
+                                            eth_src=router_mac,
+                                            ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                            ipv6_src=src_ip_addr,
+                                            ipv6_hlim=63,
+                                            tcp_sport=1234,
+                                            tcp_dport=80)
+                    exp_pkt2 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:56',
+                                            eth_src=router_mac,
+                                            ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                            ipv6_src=src_ip_addr,
+                                            ipv6_hlim=63,
+                                            tcp_sport=1234,
+                                            tcp_dport=80)
+                    exp_pkt3 = simple_tcpv6_packet(eth_dst='00:11:22:33:44:57',
+                                            eth_src=router_mac,
+                                            ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:9904',
+                                            ipv6_src=src_ip_addr,
+                                            ipv6_hlim=63,
+                                            tcp_sport=1234,
+                                            tcp_dport=80)
+                
+                    self.ctc_send_packet( 3, str(pkt))
+                    rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt1,exp_pkt2,exp_pkt3], [0, 1, 2])
+                    count[rcv_idx] += 1
+                    print"*********************** rcv_idx:%d" %rcv_idx
+            
+                print"############################count###################################"
+                print count
+                print"####################################################################"
+                for i in range(0, 3):
+                    self.assertTrue((count[i] >= ((max_itrs / 3) * 0.8)),
+                            "Not all paths are equally balanced")
+                            
+            finally:
+                sys_logging("======clean up======")
+                sai_thrift_remove_route(self.client, vr1, addr_family, ip_addr1_subnet, ip_mask1, nhop_group1)
+                
+                self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember1)
+                self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember2)
+                self.client.sai_thrift_remove_next_hop_group_member(nhop_gmember3)
+                
+                self.client.sai_thrift_remove_next_hop_group(nhop_group1)
+                
+                self.client.sai_thrift_remove_next_hop(nhop1)
+                self.client.sai_thrift_remove_next_hop(nhop2)
+                self.client.sai_thrift_remove_next_hop(nhop3)
+                
+                sai_thrift_remove_neighbor(self.client, addr_family, rif1, ip_addr1, dmac1)
+                sai_thrift_remove_neighbor(self.client, addr_family, rif2, ip_addr2, dmac2)
+                sai_thrift_remove_neighbor(self.client, addr_family, rif3, ip_addr3, dmac3)
+                
+                self.client.sai_thrift_remove_router_interface(rif1)
+                self.client.sai_thrift_remove_router_interface(rif2)
+                self.client.sai_thrift_remove_router_interface(rif3)
+                self.client.sai_thrift_remove_router_interface(rif4)
+                
+                self.client.sai_thrift_remove_virtual_router(vr1)
+            
+                udf_group_list = []
+                hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+                attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+                attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                    value=attr_value)
+                status = self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+                
+                self.client.sai_thrift_remove_udf(udf_id)
+                self.client.sai_thrift_remove_udf(udf_id2)
+                self.client.sai_thrift_remove_udf_match(udf_match_id)
+                self.client.sai_thrift_remove_udf_group(udf_group_id)
+                self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            
+                field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
+                if field_list:
+                    hash_field_list = sai_thrift_s32_list_t(count=len(field_list), s32list=field_list)
+                    attr_value = sai_thrift_attribute_value_t(s32list=hash_field_list)
+                    attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST,
+                                                        value=attr_value)
+                    self.client.sai_thrift_set_hash_attribute(hash_id_ecmp, attr)
+
+class scenario_120_lag_hash_change_udf_group_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        sys_logging("======scenario_120_lag_hash_change_udf_group_test======")
+        switch_init(self.client)
+        vlan_id = 10
+        hash_id_lag = 0
+        port1 = port_list[0]
+        port2 = port_list[1]
+        port3 = port_list[2]
+        port4 = port_list[3]
+
+        mac1 = '00:11:11:11:11:11'
+        mac2 = '00:22:22:22:22:22'
+        mac_action = SAI_PACKET_ACTION_FORWARD
+        is_lag = True
+        sys_logging("======create a vlan======")
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+
+        sys_logging("======create a lag include three ports======")
+        lag_id1 = sai_thrift_create_lag(self.client)
+        lag_oid1 = sai_thrift_create_bport_by_lag(self.client, lag_id1)
+        print"lag:%lx" %lag_id1
+        print"lag_oid:%lx" %lag_oid1
+
+        lag_member_id1 = sai_thrift_create_lag_member(self.client, lag_id1, port1)
+        lag_member_id2 = sai_thrift_create_lag_member(self.client, lag_id1, port2)
+        lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_id1, port3)
+
+        sys_logging("======add lag and port4 to vlan======")
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, lag_oid1, SAI_VLAN_TAGGING_MODE_UNTAGGED, is_lag)
+        vlan_member2 = sai_thrift_create_vlan_member(self.client, vlan_oid, port4, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+
+        attr_value = sai_thrift_attribute_value_t(u16=vlan_id)
+        attr = sai_thrift_attribute_t(id=SAI_LAG_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_lag_attribute(lag_id1, attr)
+
+        attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+        self.client.sai_thrift_set_port_attribute(port4, attr)
+
+        sai_thrift_create_fdb_bport(self.client, vlan_oid, mac1, lag_oid1, mac_action)
+        sai_thrift_create_fdb(self.client, vlan_oid, mac2, port4, mac_action)
+
+        #get lag hash object id
+        sys_logging("======get lag hash object id======")
+        ids_list = [SAI_SWITCH_ATTR_LAG_HASH]
+        switch_attr_list = self.client.sai_thrift_get_switch_attribute(ids_list)
+        attr_list = switch_attr_list.attr_list
+        for attribute in attr_list:
+            if attribute.id == SAI_SWITCH_ATTR_LAG_HASH:
+                sys_logging("### SAI_SWITCH_ATTR_LAG_HASH = %d ###"  %attribute.value.oid)
+                hash_id_lag = attribute.value.oid
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = %d" %udf_group_id
+        print "udf_group_id = %lx" %udf_group_id
+
+        sys_logging("======Create udf match======")
+        l2_type = 0x0800
+        l2_type_mask = U16MASKFULL
+        l3_type = 0x6
+        l3_type_mask = U8MASKFULL
+        priority = 15
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   l2_type,
+                                                   l2_type_mask,
+                                                   l3_type,
+                                                   l3_type_mask,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   None,
+                                                   priority)
+
+        print "udf_match_id = 0x%lx" %udf_match_id
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L3
+        offset = 12
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+        print "udf_id = 0x%lx" %udf_id
+
+        # create udf group
+        group_type = SAI_UDF_GROUP_TYPE_HASH
+        group_length = 4
+        sys_logging("======Create udf group======")
+        udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id2 = %d" %udf_group_id2
+        print "udf_group_id2 = %lx" %udf_group_id2
+
+        sys_logging("======Create udf======")
+        base = SAI_UDF_BASE_L3
+        offset = 16
+        hash_mask_list = [-1, -1, -1, -1]
+        udf_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+        print "udf_id2 = 0x%lx" %udf_id2
+
+        objlist = [udf_group_id]
+
+        sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+        hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+        attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+        attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                            value=attr_value)
+        status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+        sys_logging( "set hash attribute status = %d" %status)
+        #pdb.set_trace()
+        warmboot(self.client)
+        try:
+            count = [0, 0, 0]
+            max_itrs = 30
+            sys_logging("======send 20 packages to lag,every package's src ip is not equal======")
+            src_ip = int(socket.inet_aton('192.168.8.1').encode('hex'),16)
+            for i in range(0, max_itrs):
+                src_ip_addr = socket.inet_ntoa(hex(src_ip)[2:].zfill(8).decode('hex'))
+                pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                        eth_src='00:22:22:22:22:22',
+                                        ip_dst='10.10.10.1',
+                                        ip_src=src_ip_addr,
+                                        ip_id=109,
+                                        ip_ttl=64)
+
+                exp_pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                            eth_src='00:22:22:22:22:22',
+                                            ip_dst='10.10.10.1',
+                                            ip_src=src_ip_addr,
+                                            ip_id=109,
+                                            ip_ttl=64)
+
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+                src_ip += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.3)),
+                       "Not all paths are equally balanced")
+
+            objlist = [udf_group_id2]
+            
+            sys_logging("======set lag hash attribute:SAI_HASH_ATTR_UDF_GROUP_LIST======")
+            hash_obj_list = sai_thrift_object_list_t(count=len(objlist), object_id_list=objlist)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            sys_logging( "set hash attribute status = %d" %status)
+
+            count = [0, 0, 0]
+            max_itrs = 30
+            dst_ip = int(socket.inet_aton('10.10.10.1').encode('hex'),16)
+            sys_logging("======send 20 packages to lag,every package's dst ip is not equal======")
+            for i in range(0, max_itrs):
+                dst_ip_addr = socket.inet_ntoa(hex(dst_ip)[2:].zfill(8).decode('hex'))
+                pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                        eth_src='00:22:22:22:22:22',
+                                        ip_dst=dst_ip_addr,
+                                        ip_src='192.168.8.1',
+                                        ip_id=109,
+                                        ip_ttl=64)
+
+                exp_pkt = simple_tcp_packet(eth_dst='00:11:11:11:11:11',
+                                            eth_src='00:22:22:22:22:22',
+                                            ip_dst=dst_ip_addr,
+                                            ip_src='192.168.8.1',
+                                            ip_id=109,
+                                            ip_ttl=64)
+
+                self.ctc_send_packet( 3, str(pkt))
+                rcv_idx = self.ctc_verify_any_packet_any_port( [exp_pkt], [0, 1, 2])
+                print"*********************** rcv_idx:%d" %rcv_idx
+                count[rcv_idx] += 1
+                dst_ip += 1
+
+            print"############################count###################################"
+            print count
+            print"####################################################################"
+            for i in range(0, 3):
+                self.assertTrue((count[i] >= ((max_itrs / 3) * 0.3)),
+                       "Not all paths are equally balanced")
+
+            pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                    eth_dst='00:22:22:22:22:22',
+                                    ip_dst='10.0.0.1',
+                                    ip_src='192.168.8.1',
+                                    ip_id=109,
+                                    ip_ttl=64)
+            exp_pkt = simple_tcp_packet(eth_src='00:11:11:11:11:11',
+                                    eth_dst='00:22:22:22:22:22',
+                                    ip_dst='10.0.0.1',
+                                    ip_src='192.168.8.1',
+                                    ip_id=109,
+                                    ip_ttl=64)
+            print "Sending packet port 1 (lag member) -> port 4"
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 2 (lag member) -> port 4"
+            self.ctc_send_packet( 1, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+            print "Sending packet port 3 (lag member) -> port 4"
+            self.ctc_send_packet( 2, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [3])
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac2, port4)
+            sai_thrift_delete_fdb(self.client, vlan_oid, mac1, lag_oid1)
+
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan_member(vlan_member2)
+            
+            sai_thrift_remove_bport_by_lag(self.client, lag_oid1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id1)
+            sai_thrift_remove_lag_member(self.client, lag_member_id2)
+            sai_thrift_remove_lag_member(self.client, lag_member_id3)
+            sai_thrift_remove_lag(self.client, lag_id1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+            for port in sai_port_list:
+                sai_thrift_create_vlan_member(self.client, switch.default_vlan.oid, port, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+            
+            attr_value = sai_thrift_attribute_value_t(u16=1)
+            attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_PORT_VLAN_ID, value=attr_value)
+            self.client.sai_thrift_set_port_attribute(port4, attr) 
+            
+            udf_group_list = []
+            hash_obj_list = sai_thrift_object_list_t(count=len(udf_group_list), object_id_list=udf_group_list)
+            attr_value = sai_thrift_attribute_value_t(objlist=hash_obj_list)
+            attr = sai_thrift_attribute_t(id=SAI_HASH_ATTR_UDF_GROUP_LIST,
+                                                value=attr_value)
+            status = self.client.sai_thrift_set_hash_attribute(hash_id_lag, attr)
+            
+            self.client.sai_thrift_remove_udf(udf_id)
+            self.client.sai_thrift_remove_udf(udf_id2)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id2)
             
             field_list = [SAI_NATIVE_HASH_FIELD_SRC_MAC, SAI_NATIVE_HASH_FIELD_DST_MAC, SAI_NATIVE_HASH_FIELD_IN_PORT, SAI_NATIVE_HASH_FIELD_ETHERTYPE]
             if field_list:

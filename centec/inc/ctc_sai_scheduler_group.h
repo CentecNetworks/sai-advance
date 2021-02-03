@@ -14,25 +14,25 @@ This module defines SAI Scheduler Group.
  The Scheduler Group Module APIs supported by centec devices:
 \p
 \b
-\t  |   API                                                 |       SUPPORT CHIPS LIST       |
-\t  |  create_scheduler_group                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  remove_scheduler_group                               |    CTC8096,CTC7148,CTC7132     |
-\t  |  set_scheduler_group_attribute                        |    CTC8096,CTC7148,CTC7132     |
-\t  |  get_scheduler_group_attribute                        |    CTC8096,CTC7148,CTC7132     |
+\t  |   API                                                 |           SUPPORT CHIPS LIST           |
+\t  |  create_scheduler_group                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  remove_scheduler_group                               |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  set_scheduler_group_attribute                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  get_scheduler_group_attribute                        |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \b
 \p
  The Scheduler Group attributes supported by centec devices:
 \p
 \b
-\t  |   ATTRIBUTE                                           |       SUPPORT CHIPS LIST       |
-\t  |  SAI_SCHEDULER_GROUP_ATTR_CHILD_COUNT                 |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_GROUP_ATTR_CHILD_LIST                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_GROUP_ATTR_PORT_ID                     |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_GROUP_ATTR_LEVEL                       |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_GROUP_ATTR_MAX_CHILDS                  |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_GROUP_ATTR_SCHEDULER_PROFILE_ID        |    CTC8096,CTC7148,CTC7132     |
-\t  |  SAI_SCHEDULER_GROUP_ATTR_PARENT_NODE                 |    CTC8096,CTC7148,CTC7132     |
-\e  |  SAI_SCHEDULER_GROUP_ATTR_SERVICE_ID                  |            CTC7132             |
+\t  |   ATTRIBUTE                                           |           SUPPORT CHIPS LIST           |
+\t  |  SAI_SCHEDULER_GROUP_ATTR_CHILD_COUNT                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_GROUP_ATTR_CHILD_LIST                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_GROUP_ATTR_PORT_ID                     |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_GROUP_ATTR_LEVEL                       |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_GROUP_ATTR_MAX_CHILDS                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_GROUP_ATTR_SCHEDULER_PROFILE_ID        |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\t  |  SAI_SCHEDULER_GROUP_ATTR_PARENT_NODE                 |    CTC8096,CTC7148,CTC7132,CTC8180     |
+\e  |  SAI_SCHEDULER_GROUP_ATTR_SERVICE_ID                  |            CTC7132,CTC8180             |
 \b
 */
 

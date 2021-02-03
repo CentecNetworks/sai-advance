@@ -44,6 +44,12 @@ typedef struct ctc_para_pair_s
 int32
 ctc_app_read_ftm_profile(const int8* file_name,
                      ctc_ftm_profile_info_t* profile_info);
+
+ctc_key_name_size_pair_t* ctc_app_get_ftm_tcam_pair(uint32* array_cnt);
+ctc_key_name_value_pair_t* ctc_app_get_ftm_tbl_pair(uint32* array_cnt);
+extern int32 ctc_app_get_mem_profile(uint8 lchip, char* mem_buff, ctc_ftm_profile_info_t* p_mem_config);
+
+
 #ifdef __cplusplus
 }
 #endif

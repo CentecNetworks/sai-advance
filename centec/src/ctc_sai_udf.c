@@ -128,6 +128,7 @@ _ctc_sai_udf_remove_udf_db(uint8 lchip, sai_object_id_t udf_obj_id)
     {
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
+
     ctc_sai_db_remove_object_property(lchip, udf_obj_id);
     mem_free(p_udf);
     return SAI_STATUS_SUCCESS;
@@ -324,7 +325,7 @@ _ctc_sai_udf_entry_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
 }
 
 static sai_status_t
-_ctc_sai_udf_add_udf(sai_object_id_t udf_entry_oid, sai_object_id_t udf_match_oid, sai_object_id_t udf_group_oid, uint8* p_free_offset)
+_ctc_sai_udf_add_udf(sai_object_id_t udf_entry_oid, sai_object_id_t udf_match_oid, sai_object_id_t udf_group_oid, uint32 ctc_udf_group_id, uint8* p_free_offset)
 {
     int8 field_num = 0;
     uint8 lchip = 0;
@@ -347,24 +348,23 @@ _ctc_sai_udf_add_udf(sai_object_id_t udf_entry_oid, sai_object_id_t udf_match_oi
 
     sal_memset(&ctc_udf_entry, 0, sizeof(ctc_acl_classify_udf_t));
 
+    ctc_udf_entry.udf_ad_id = ctc_udf_group_id;
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF_MATCH, udf_match_oid, &ctc_object_id);
+
     chip_type = ctcs_get_chip_type(lchip);
-    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF_GROUP, udf_group_oid, &ctc_object_id);
     if (CTC_CHIP_TSINGMA == chip_type)
     {
-        ctc_udf_entry.udf_ad_id = ctc_object_id.value;
+        ctc_udf_entry.priority = ctc_object_id.value + 1;
     }
     else if (CTC_CHIP_TSINGMA_MX == chip_type)
     {
-        ctc_udf_entry.udf_ad_id = ctc_object_id.value + 1;
+        ctc_udf_entry.priority = p_udf_match->priority;
     }
-
-    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF_MATCH, udf_match_oid, &ctc_object_id);
     ctc_udf_entry.priority = ctc_object_id.value;
 
+    ctc_udf_entry.udf_id = ctc_object_id.value;
     ctc_udf_entry.shared_udf = 1;
     ctc_udf_entry.granularity = 1;
-
-    ctc_udf_entry.udf_id = ctc_object_id.value;
     ctc_udf_entry.query_type = 0;
 
     ctcs_acl_get_udf_entry(lchip, &ctc_udf_entry);
@@ -372,20 +372,12 @@ _ctc_sai_udf_add_udf(sai_object_id_t udf_entry_oid, sai_object_id_t udf_match_oi
 
     for (ii = 0; ii < field_num; ii++)
     {
-        if (4 == CTC_SAI_UDF_OFFSET_BYTE_LEN)
-        {
-            ctc_udf_entry.offset[p_free_offset[ii]] = p_udf_entry->offset + CTC_SAI_UDF_OFFSET_BYTE_LEN*(field_num-1-ii);
-        }
-        else
-        {
-            ctc_udf_entry.offset[p_free_offset[ii]] = p_udf_entry->offset + CTC_SAI_UDF_OFFSET_BYTE_LEN*(((field_num-1-ii)>>1)<<1) + (ii%2)*2;
-            sal_printf("%s %d, ctc_udf_entry[%u].offset[%u] = %u\n", __FUNCTION__, __LINE__, ctc_udf_entry.priority, p_free_offset[ii], ctc_udf_entry.offset[p_free_offset[ii]]);
-        }
+        ctc_udf_entry.offset[p_free_offset[ii]] = p_udf_entry->offset + ii*CTC_SAI_UDF_OFFSET_BYTE_LEN;
         ctc_udf_entry.offset_type_array[p_free_offset[ii]] = p_udf_entry->base + 1;
         ctc_udf_entry.offset_num += ((p_free_offset[ii]==ctc_udf_entry.offset_num)?1:0);
     }
-
     CTC_SAI_CTC_ERROR_RETURN(ctcs_acl_add_udf_entry(lchip, &ctc_udf_entry));
+    p_udf_match->ctc_group_id = ctc_udf_group_id;
 
     sal_memset(&ctc_field_key, 0, sizeof(ctc_field_key_t));
     if (p_udf_match->ethertype[1])
@@ -520,8 +512,9 @@ _ctc_sai_udf_remove_udf(sai_object_id_t udf_entry_oid)
         return SAI_STATUS_ITEM_NOT_FOUND;
     }
 
+
     field_num = p_udf_group->length/CTC_SAI_UDF_OFFSET_BYTE_LEN;
-    for (ii = 0; ii < ctc_udf_entry.offset_num; ii++)
+    for (ii = 0; ii < CTC_SAI_UDF_OFFSET_NUM; ii++)
     {
         field_free += (CTC_ACL_UDF_TYPE_NONE == ctc_udf_entry.offset_type_array[ii]);
     }
@@ -973,7 +966,7 @@ ctc_sai_udf_create_group(sai_object_id_t* udf_group_id, sai_object_id_t switch_i
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_UDF_GROUP_ATTR_LENGTH, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        if (CTC_SAI_UDF_GROUP_LENGTH(lchip) < attr_value->u16) /* group length must be match with its all entry member. */
+        if (CTC_SAI_UDF_GROUP_LENGTH(lchip) < attr_value->u16 || attr_value->u16 < CTC_SAI_UDF_OFFSET_BYTE_LEN)
         {
             status = SAI_STATUS_INVALID_PARAMETER;
             goto error0;
@@ -1000,7 +993,7 @@ ctc_sai_udf_create_group(sai_object_id_t* udf_group_id, sai_object_id_t switch_i
     p_udf_group->member_list = ctc_slist_new();
     p_udf_group->length = length;
     p_udf_group->type = type;
-    sal_memset(p_udf_group->offset, CTC_MAX_UINT8_VALUE, sizeof(p_udf_group->offset));
+    sal_memset(p_udf_group->offset, CTC_SAI_UDF_OFFSET_NUM, sizeof(p_udf_group->offset));
     *udf_group_id = udf_group_obj_id;
     goto error0;
 
@@ -1033,7 +1026,7 @@ ctc_sai_udf_remove_group(sai_object_id_t udf_group_id)
         goto error0;
     }
 
-    if (!((NULL == p_udf_group->member_list) || CTC_LIST_ISEMPTY(p_udf_group->member_list) || (0 == p_udf_group->hash_ref_cnt)))
+    if (!((NULL == p_udf_group->member_list || CTC_LIST_ISEMPTY(p_udf_group->member_list)) && 0 == p_udf_group->ref_cnt))
     {
         CTC_SAI_LOG_ERROR(SAI_API_UDF, "Failed to remove udf group, group member is not empty!\n", udf_group_id);
         goto error0;
@@ -1261,6 +1254,8 @@ ctc_sai_udf_create_udf(sai_object_id_t* p_udf_oid, sai_object_id_t switch_id, ui
     uint8 lchip = 0;
     uint8 offset_num = 0;
     uint8 free_index = 0;
+    uint8 group_exist_udf = 0;
+    uint8 alloc_udf_group_id = 0;
     uint8 free_offset[CTC_SAI_UDF_OFFSET_NUM] = {0};
     uint16 udf_offset = 0;
     uint16 udf_base = 0;
@@ -1268,13 +1263,17 @@ ctc_sai_udf_create_udf(sai_object_id_t* p_udf_oid, sai_object_id_t switch_id, ui
     uint32 jj = 0;
     uint32 index = 0;
     uint32 ctc_sai_udf_id = 0;
+    uint32 ctc_udf_group_id = 0;
     ctc_object_id_t ctc_object_id = {0};
+    sai_object_id_t udf_entry_oid = 0;
     sai_object_id_t udf_match_oid = 0;
     sai_object_id_t udf_group_oid = 0;
+    ctc_slistnode_t* p_member_node = NULL;
     ctc_acl_classify_udf_t ctc_udf_entry;
     ctc_sai_udf_entry_t* p_udf_entry = NULL;
     ctc_sai_udf_group_t* p_udf_group = NULL;
-    ctc_sai_udf_match_t* p_udf_match = NULL;
+    ctc_sai_udf_match_t* p_lookup_udf_match = NULL;
+    ctc_sai_udf_match_t* p_search_udf_match = NULL;
     ctc_sai_udf_group_member_t* p_udf_group_member = NULL;
     uint8 hash_mask[CTC_SAI_UDF_HASH_MASK_LENGTH] = {0};
     const sai_attribute_value_t* attr_value;
@@ -1297,8 +1296,8 @@ ctc_sai_udf_create_udf(sai_object_id_t* p_udf_oid, sai_object_id_t switch_id, ui
         goto error0;
     }
 
-    p_udf_match = ctc_sai_db_get_object_property(lchip, udf_match_oid);
-    if (NULL == p_udf_match)
+    p_lookup_udf_match = ctc_sai_db_get_object_property(lchip, udf_match_oid);
+    if (NULL == p_lookup_udf_match)
     {
         CTC_SAI_LOG_ERROR(SAI_API_UDF, "UDF match id is not exist\n");
         status = SAI_STATUS_ITEM_NOT_FOUND;
@@ -1325,17 +1324,18 @@ ctc_sai_udf_create_udf(sai_object_id_t* p_udf_oid, sai_object_id_t switch_id, ui
         goto error0;
     }
 
-    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF_MATCH, udf_match_oid, &ctc_object_id);
     sal_memset(&ctc_udf_entry, 0, sizeof(ctc_acl_classify_udf_t));
+    ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF_MATCH, udf_match_oid, &ctc_object_id);
     ctc_udf_entry.udf_id = ctc_object_id.value;
     ctc_udf_entry.query_type = 0;
 
     offset_num = p_udf_group->length/CTC_SAI_UDF_OFFSET_BYTE_LEN;
     ctcs_acl_get_udf_entry(lchip, &ctc_udf_entry);
+    group_exist_udf = (CTC_SAI_UDF_OFFSET_NUM != p_udf_group->offset[0])?1:0;
 
     for (ii = 0; ii < CTC_SAI_UDF_OFFSET_NUM; ii++)
     {
-        if (CTC_MAX_UINT8_VALUE == p_udf_group->offset[0])
+        if (!group_exist_udf)
         {
             if (CTC_ACL_UDF_TYPE_NONE == ctc_udf_entry.offset_type_array[ii])
             {
@@ -1421,9 +1421,58 @@ ctc_sai_udf_create_udf(sai_object_id_t* p_udf_oid, sai_object_id_t switch_id, ui
         }
     }
 
-    CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_UDF_ENTRY, &ctc_sai_udf_id), status, error0);
-    *p_udf_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_UDF, lchip, 0, 0, ctc_sai_udf_id);
-    sal_printf("%s %d, 0x%lx\n", __FUNCTION__, __LINE__, *p_udf_oid);
+    CTC_SLIST_LOOP(p_udf_group->member_list, p_member_node)
+    {
+        p_udf_group_member = (ctc_sai_udf_group_member_t*)p_member_node;
+        if (NULL != p_udf_group_member)
+        {
+            break;
+        }
+    }
+
+    if (p_lookup_udf_match->ref_cnt > 0)
+    {
+        /* the udf match allocate ctc_group_id alreay */
+        ctc_udf_group_id = p_lookup_udf_match->ctc_group_id;
+    }
+    else
+    {
+        /* new udf match, not attach to group yet, the group which require the match maybe attached other match entry already.*/
+        if (NULL == p_udf_group_member)
+        {
+            alloc_udf_group_id = 1;
+            CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_SDK_UDF_MAPPED_ID, &ctc_udf_group_id), status, error0);
+        }
+        else
+        {
+            p_udf_entry = ctc_sai_db_get_object_property(lchip, p_udf_group_member->udf_oid);
+            if (NULL == p_udf_entry)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_UDF, "UDF entry id is not exist\n");
+                status = SAI_STATUS_ITEM_NOT_FOUND;
+                goto error0;
+            }
+
+            p_search_udf_match = ctc_sai_db_get_object_property(lchip, p_udf_entry->match_oid);
+            if (NULL == p_search_udf_match)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_UDF, "UDF match id is not exist\n");
+                status = SAI_STATUS_ITEM_NOT_FOUND;
+                goto error0;
+            }
+
+            if (0 != p_search_udf_match->ref_cnt && 0 != p_lookup_udf_match->ref_cnt && p_search_udf_match->ctc_group_id != p_lookup_udf_match->ctc_group_id)
+            {
+                CTC_SAI_LOG_ERROR(SAI_API_UDF, "UDF match ctc group id is different!\n");
+                status = SAI_STATUS_INVALID_PARAMETER;
+                goto error0;
+            }
+            ctc_udf_group_id = p_search_udf_match->ctc_group_id;
+        }
+    }
+
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_UDF_ENTRY, &ctc_sai_udf_id), status, error1);
+    udf_entry_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_UDF, lchip, 0, 0, ctc_sai_udf_id);
 
     p_udf_entry = NULL;
     MALLOC_ZERO(MEM_ACL_MODULE, p_udf_entry, sizeof(ctc_sai_udf_entry_t));
@@ -1431,7 +1480,7 @@ ctc_sai_udf_create_udf(sai_object_id_t* p_udf_oid, sai_object_id_t switch_id, ui
     {
         CTC_SAI_LOG_ERROR(SAI_API_UDF, "Fail to allocate udf entry memory\n");
         status = SAI_STATUS_NO_MEMORY;
-        goto error1;
+        goto error2;
     }
 
     p_udf_entry->match_oid = udf_match_oid;
@@ -1445,26 +1494,34 @@ ctc_sai_udf_create_udf(sai_object_id_t* p_udf_oid, sai_object_id_t switch_id, ui
     {
         CTC_SAI_LOG_ERROR(SAI_API_UDF, "Fail to allocate udf group member memory\n");
         status = SAI_STATUS_NO_MEMORY;
-        goto error2;
+        goto error3;
     }
-    p_udf_group_member->udf_oid = *p_udf_oid;
+    p_udf_group_member->udf_oid = udf_entry_oid;
 
-    CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, *p_udf_oid, (void*)p_udf_entry), status, error3);
-    CTC_SAI_ERROR_GOTO(_ctc_sai_udf_add_udf(*p_udf_oid, udf_match_oid, udf_group_oid, free_offset), status, error3);
+    CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, udf_entry_oid, (void*)p_udf_entry), status, error4);
+    CTC_SAI_ERROR_GOTO(_ctc_sai_udf_add_udf(udf_entry_oid, udf_match_oid, udf_group_oid, ctc_udf_group_id, free_offset), status, error5);
 
     ctc_slist_add_tail(p_udf_group->member_list, &(p_udf_group_member->head));
-    p_udf_match->ref_cnt++;
-    CTC_SAI_LOG_ERROR(SAI_API_UDF, "udf_entry_id = 0x%"PRIx64"\n", *p_udf_oid);
+    p_lookup_udf_match->ref_cnt++;
+    CTC_SAI_LOG_ERROR(SAI_API_UDF, "udf_entry_id = 0x%"PRIx64"\n", udf_entry_oid);
 
     sal_memcpy(p_udf_group->offset, free_offset, sizeof(free_offset));
+    *p_udf_oid = udf_entry_oid;
     goto error0;
 
-error3:
+error5:
+    ctc_sai_db_remove_object_property(lchip, udf_entry_oid);
+error4:
     mem_free(p_udf_group_member);
-error2:
+error3:
     mem_free(p_udf_entry);
-error1:
+error2:
     ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_UDF_ENTRY, ctc_sai_udf_id);
+error1:
+    if (alloc_udf_group_id)
+    {
+        ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_SDK_UDF_MAPPED_ID, ctc_udf_group_id);
+    }
 error0:
     CTC_SAI_DB_UNLOCK(lchip);
     return status;
@@ -1475,12 +1532,15 @@ ctc_sai_udf_remove_udf(sai_object_id_t udf_oid)
 {
     sai_status_t status = SAI_STATUS_SUCCESS;
     uint8 lchip = 0;
+    uint8 ctc_mapped_id_refer_cnt = 0;
     ctc_object_id_t ctc_object_id = {0};
     ctc_sai_udf_entry_t* p_udf_entry = NULL;
     ctc_sai_udf_group_t* p_udf_group = NULL;
-    ctc_sai_udf_match_t* p_udf_match = NULL;
+    ctc_sai_udf_match_t* p_lookup_udf_match = NULL;
+    ctc_sai_udf_match_t* p_search_udf_match = NULL;
     ctc_slistnode_t* p_member_node = NULL;
-    ctc_sai_udf_group_member_t* p_udf_group_member = NULL;
+    ctc_sai_udf_group_member_t* p_lookup_udf_group_member = NULL;
+    ctc_sai_udf_group_member_t* p_search_udf_group_member = NULL;
 
     CTC_SAI_ERROR_RETURN(ctc_sai_oid_get_lchip(udf_oid, &lchip));
     CTC_SAI_DB_LOCK(lchip);
@@ -1497,42 +1557,73 @@ ctc_sai_udf_remove_udf(sai_object_id_t udf_oid)
     p_udf_group = ctc_sai_db_get_object_property(lchip, p_udf_entry->group_oid);
     if (NULL == p_udf_group)
     {
-        CTC_SAI_LOG_ERROR(SAI_API_UDF, "Failed to remove udf entry, invalid udf_group_id 0x%"PRIx64" !\n", p_udf_entry->group_oid);
+        CTC_SAI_LOG_ERROR(SAI_API_UDF, "Failed to remove udf_entry_id 0x%"PRIx64", invalid udf_group_id 0x%"PRIx64" !\n", udf_oid, p_udf_entry->group_oid);
         status = SAI_STATUS_ITEM_NOT_FOUND;
         goto error0;
     }
 
-    p_udf_match = ctc_sai_db_get_object_property(lchip, p_udf_entry->match_oid);
-    if (NULL == p_udf_match)
+    p_search_udf_match = ctc_sai_db_get_object_property(lchip, p_udf_entry->match_oid);
+    if (NULL == p_search_udf_match)
     {
         CTC_SAI_LOG_ERROR(SAI_API_UDF, "Failed to remove udf entry, invalid match_id 0x%"PRIx64"!\n", p_udf_entry->match_oid);
         status = SAI_STATUS_ITEM_NOT_FOUND;
         goto error0;
     }
 
-    if (0 != p_udf_group->hash_ref_cnt)
+    if (0 != p_udf_group->ref_cnt)
     {
         CTC_SAI_LOG_ERROR(SAI_API_UDF, "Failed to remove udf entry 0x%"PRIx64", Its group has been refered by hash!\n", p_udf_entry->group_oid);
         goto error0;
     }
 
-    p_udf_match->ref_cnt--;
     CTC_SLIST_LOOP(p_udf_group->member_list, p_member_node)
     {
-        p_udf_group_member = (ctc_sai_udf_group_member_t*)p_member_node;
-        if (p_udf_group_member->udf_oid == udf_oid)
+        p_lookup_udf_group_member = (ctc_sai_udf_group_member_t*)p_member_node;
+        p_udf_entry = ctc_sai_db_get_object_property(lchip, p_lookup_udf_group_member->udf_oid);
+
+        if (NULL == p_udf_entry)
         {
-            break;
+            CTC_SAI_LOG_ERROR(SAI_API_UDF, "UDF entry id is not exist\n");
+            status = SAI_STATUS_ITEM_NOT_FOUND;
+            goto error0;
+        }
+
+        p_lookup_udf_match = ctc_sai_db_get_object_property(lchip, p_udf_entry->match_oid);
+        if (NULL == p_lookup_udf_match)
+        {
+            CTC_SAI_LOG_ERROR(SAI_API_UDF, "UDF match id is not exist\n");
+            status = SAI_STATUS_ITEM_NOT_FOUND;
+            goto error0;
+        }
+
+        ctc_mapped_id_refer_cnt += p_lookup_udf_match->ref_cnt;
+
+        if (p_lookup_udf_group_member->udf_oid == udf_oid)
+        {
+            p_search_udf_group_member = (ctc_sai_udf_group_member_t*)p_member_node;
         }
     }
-    ctc_slist_delete_node(p_udf_group->member_list, p_member_node);
+
+    if (NULL == p_search_udf_group_member)
+    {
+        CTC_SAI_LOG_ERROR(SAI_API_UDF, "UDF group id 0x%"PRIx64" is not exist udf entry id 0x%"PRIx64"\n", p_udf_entry->group_oid, udf_oid);
+        goto error0;
+    }
+
+    if (1 == ctc_mapped_id_refer_cnt)
+    {
+        ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_SDK_UDF_MAPPED_ID, p_search_udf_match->ctc_group_id);
+    }
+
+    p_search_udf_match->ref_cnt--;
+    ctc_slist_delete_node(p_udf_group->member_list, (ctc_slistnode_t*)p_search_udf_group_member);
     mem_free(p_member_node);
     _ctc_sai_udf_remove_udf(udf_oid);
     _ctc_sai_udf_remove_udf_db(lchip, udf_oid);
 
     if (CTC_LIST_ISEMPTY(p_udf_group->member_list))
     {
-        sal_memset(p_udf_group->offset, CTC_MAX_UINT8_VALUE, sizeof(p_udf_group->offset));
+        sal_memset(p_udf_group->offset, CTC_SAI_UDF_OFFSET_NUM, sizeof(p_udf_group->offset));
     }
 
     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_UDF, udf_oid, &ctc_object_id);

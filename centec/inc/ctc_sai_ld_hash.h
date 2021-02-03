@@ -27,7 +27,7 @@ This module defines SAI HASH.
 \b
 \t  |   ATTRIBUTE                             |           SUPPORT CHIPS LIST           |
 \t  |  SAI_HASH_ATTR_NATIVE_HASH_FIELD_LIST   |    CTC8096,CTC7148,CTC7132,CTC8180     |
-\t  |  SAI_HASH_ATTR_UDF_GROUP_LIST           |                  -                     |
+\t  |  SAI_HASH_ATTR_UDF_GROUP_LIST           |            CTC7132,CTC8180             |
 \b
 
 \p

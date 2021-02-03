@@ -272,6 +272,12 @@ sai_status_t  ctc_sai_fdb_get_fdb_info(  sai_object_key_t      *key,   sai_attri
                 attr->value.oid = bridge_port_oid;
                 break;
             }
+            bridge_port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE_PORT, lchip, SAI_BRIDGE_PORT_TYPE_PORT, SAI_BRIDGE_TYPE_1D, query_rst.buffer->gport);
+            if (ctc_sai_db_get_object_property(lchip, bridge_port_oid))
+            {
+                attr->value.oid = bridge_port_oid;
+                break;
+            }
         }
         else
         {

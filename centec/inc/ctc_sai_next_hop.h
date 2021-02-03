@@ -79,6 +79,7 @@ typedef struct  ctc_sai_next_hop_s
     uint8 outseg_exp_val;
     uint8 outseg_type;
     uint8 tc_color_to_exp_map_id;
+    uint8 ctc_domain_id;
 }ctc_sai_next_hop_t;
 
 

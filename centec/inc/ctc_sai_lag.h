@@ -94,6 +94,9 @@ typedef struct ctc_sai_lag_info_s
 
     uint16 max_lag_member;
     ctc_sai_lag_member_change_notification_fn cb[CTC_SAI_LAG_MEM_CHANGE_TYPE_MAX];
+
+    uint16 logic_port;  //for port type 1d bridge port
+    uint16 bridge_id;   //for port type 1d bridge port
 }ctc_sai_lag_info_t;
 
 

@@ -30,6 +30,14 @@
 \t  |  get_port_pool_stats                 |                   -                    |
 \t  |  get_port_pool_stats_ext             |                   -                    |
 \t  |  clear_port_pool_stats               |                   -                    |
+\t  |  create_port_connector               |                   -                    |
+\t  |  remove_port_connector               |                   -                    |
+\t  |  set_port_connector_attribute        |                   -                    |
+\t  |  get_port_connector_attribute        |                   -                    |
+\t  |  create_port_serdes                  |                   -                    |
+\t  |  remove_port_serdes                  |                   -                    |
+\t  |  set_port_serdes_attribute           |                   -                    |
+\t  |  get_port_serdes_attribute           |                   -                    |
 \b
 
 \p
@@ -92,6 +100,9 @@
 \t  |  SAI_PORT_ATTR_GLOBAL_FLOW_CONTROL_MODE                |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \t  |  SAI_PORT_ATTR_INGRESS_ACL                             |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \t  |  SAI_PORT_ATTR_EGRESS_ACL                              |                   -                    |
+\t  |  SAI_PORT_ATTR_INGRESS_MACSEC_ACL                      |                   -                    |
+\t  |  SAI_PORT_ATTR_EGRESS_MACSEC_ACL                       |                   -                    |
+\t  |  SAI_PORT_ATTR_MACSEC_PORT_LIST                        |                   -                    |
 \t  |  SAI_PORT_ATTR_INGRESS_MIRROR_SESSION                  |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \t  |  SAI_PORT_ATTR_EGRESS_MIRROR_SESSION                   |    CTC8096,CTC7148,CTC7132,CTC8180     |
 \t  |  SAI_PORT_ATTR_INGRESS_SAMPLEPACKET_ENABLE             |    CTC8096,CTC7148,CTC7132,CTC8180     |
@@ -129,8 +140,29 @@
 \t  |  SAI_PORT_ATTR_SERDES_IDRIVER                          |                   -                    |
 \t  |  SAI_PORT_ATTR_SERDES_IPREDRIVER                       |                   -                    |
 \t  |  SAI_PORT_ATTR_LINK_TRAINING_ENABLE                    |                   -                    |
-\t  |  SAI_PORT_ATTR_PTP_MODE                                |                   -                    |
+\t  |  SAI_PORT_ATTR_PTP_MODE                                |            CTC7132,CTC8180             |
+\t  |  SAI_PORT_ATTR_INTERFACE_TYPE                          |                   -                    |
+\t  |  SAI_PORT_ATTR_REFERENCE_CLOCK                         |                   -                    |
+\t  |  SAI_PORT_ATTR_PRBS_POLYNOMIAL                         |                   -                    |
 \t  |  SAI_PORT_ATTR_PORT_SERDES_ID                          |                   -                    |
+\t  |  SAI_PORT_ATTR_LINK_TRAINING_FAILURE_STATUS            |                   -                    |
+\t  |  SAI_PORT_ATTR_LINK_TRAINING_RX_STATUS                 |                   -                    |
+\t  |  SAI_PORT_ATTR_PRBS_CONFIG                             |                   -                    |
+\t  |  SAI_PORT_ATTR_PRBS_LOCK_STATUS                        |                   -                    |
+\t  |  SAI_PORT_ATTR_PRBS_LOCK_LOSS_STATUS                   |                   -                    |
+\t  |  SAI_PORT_ATTR_AUTO_NEG_STATUS                         |                   -                    |
+\t  |  SAI_PORT_ATTR_DECREMENT_TTL                           |                   -                    |
+\t  |  SAI_PORT_ATTR_QOS_MPLS_EXP_TO_TC_MAP                  |                   -                    |
+\t  |  SAI_PORT_ATTR_QOS_MPLS_EXP_TO_COLOR_MAP               |                   -                    |
+\t  |  SAI_PORT_ATTR_QOS_TC_AND_COLOR_TO_MPLS_EXP_MAP        |                   -                    |
+\t  |  SAI_PORT_ATTR_TPID                                    |                   -                    |
+\t  |  SAI_PORT_ATTR_ERR_STATUS_LIST                         |                   -                    |
+\t  |  SAI_PORT_ATTR_FABRIC_ATTACHED                         |                   -                    |
+\t  |  SAI_PORT_ATTR_FABRIC_ATTACHED_SWITCH_TYPE             |                   -                    |
+\t  |  SAI_PORT_ATTR_FABRIC_ATTACHED_SWITCH_ID               |                   -                    |
+\t  |  SAI_PORT_ATTR_FABRIC_ATTACHED_PORT_INDEX              |                   -                    |
+\t  |  SAI_PORT_ATTR_FABRIC_REACHABILITY                     |                   -                    |
+\t  |  SAI_PORT_ATTR_SYSTEM_PORT                             |                   -                    |
 \e  |  SAI_PORT_ATTR_PTP_INGRESS_ASYMMETRY_DELAY             |            CTC7132,CTC8180             |
 \e  |  SAI_PORT_ATTR_PTP_EGRESS_ASYMMETRY_DELAY              |            CTC7132,CTC8180             |
 \e  |  SAI_PORT_ATTR_PTP_PATH_DELAY                          |            CTC7132,CTC8180             |

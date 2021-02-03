@@ -147,7 +147,7 @@ typedef enum _sai_y1731_remote_mep_attr_t
      *
      * @type bool
      * @flags CREATE_AND_SET
-     * @default false
+     * @default true
      */
     SAI_Y1731_REMOTE_MEP_ATTR_ENABLE,
 
@@ -330,7 +330,8 @@ typedef enum _sai_y1731_session_attr_t
 
     /**
      * @brief Y1731 session bridge id for L2 Virtual Private Network
-     * validonly SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPLS
+     *
+     * condition SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPLS or SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPWS
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
@@ -341,7 +342,7 @@ typedef enum _sai_y1731_session_attr_t
     /**
      * @brief Y1731 session Associated Port or LAG object id
      *
-     * condition SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_ETHER_VLAN or SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VLAN or SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPLS
+     * condition SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_ETHER_VLAN or SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VLAN or SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPLS or SAI_Y1731_MEG_ATTR_TYPE == SAI_Y1731_MEG_TYPE_L2VPN_VPWS
      *
      * @type sai_object_id_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY

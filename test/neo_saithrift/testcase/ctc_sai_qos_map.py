@@ -9396,7 +9396,7 @@ class scenario_39_mpls_l3vpn_uniform_php(sai_base_test.ThriftInterfaceDataPlane)
         pkt1 = simple_mpls_packet(eth_dst = router_mac, eth_src = dmac1,
                                   mpls_type = 0x8847, mpls_tags = mpls1, inner_frame = inner_ip_pkt1)
 
-        mpls2 = [{'label':label2, 'tc':1, 'ttl':61, 's':1}]
+        mpls2 = [{'label':label2, 'tc':2, 'ttl':61, 's':1}]
         exp_pkt1 = simple_mpls_packet(eth_dst = dmac3, eth_src = router_mac,
                                       mpls_type = 0x8847, mpls_tags = mpls2, inner_frame = inner_ip_pkt1)
 
@@ -9437,7 +9437,7 @@ class scenario_39_mpls_l3vpn_uniform_php(sai_base_test.ThriftInterfaceDataPlane)
             '''
             outseg_type=SAI_OUTSEG_TYPE_PHP and outseg_ttl_mode=SAI_OUTSEG_TTL_MODE_UNIFORM
             '''
-            #use exp from outer label
+            #use exp from inner label
             self.ctc_send_packet(0, pkt1)
             self.ctc_verify_packets(exp_pkt1, [1])
 
@@ -9825,7 +9825,6 @@ class scenario_41_mpls_l3vpn_uniform_decap_without_php(sai_base_test.ThriftInter
             
         finally:
             sys_logging("### ---------------clean up--------------- ###")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid = SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id = SAI_ROUTER_INTERFACE_ATTR_QOS_TC_AND_COLOR_TO_DSCP_MAP, value = attr_value)
             self.client.sai_thrift_set_router_interface_attribute(rif_id2, attr)

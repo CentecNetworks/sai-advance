@@ -8,7 +8,7 @@
 
 
 static sai_status_t
-_ctc_sai_scheduler_map_attr_to_db(const sai_attribute_t* attr_list, uint32 attr_count, ctc_sai_scheduler_db_t* p_scheduler)
+_ctc_sai_scheduler_map_attr_to_db(const sai_attribute_t* attr_list, uint32 attr_count, ctc_sai_scheduler_db_t* p_scheduler, uint8 lchip)
 {
     sai_status_t status = 0;
     const sai_attribute_value_t *attr_value;
@@ -36,9 +36,9 @@ _ctc_sai_scheduler_map_attr_to_db(const sai_attribute_t* attr_list, uint32 attr_
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_SCHEDULER_ATTR_METER_TYPE, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        if (attr_value->s32 != SAI_METER_TYPE_BYTES)
+        if ((attr_value->s32 != SAI_METER_TYPE_BYTES)&&(CTC_CHIP_TSINGMA >= ctcs_get_chip_type(lchip)))
         {
-            CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "Not supported meter type value:%d\n", attr_value->s32);
+            CTC_SAI_LOG_ERROR(SAI_API_SCHEDULER, "TM not supported meter type value:%d\n", attr_value->s32);
             return SAI_STATUS_INVALID_PARAMETER;
         }
         p_scheduler->meter_type = attr_value->s32;
@@ -272,6 +272,10 @@ _ctc_sai_scheduler_queue_map_scheduler(uint8 lchip, uint32 gport, uint16 ctc_que
     shape.shape.queue_shape.queue.queue_id = cfg_queue_id;
     shape.shape.queue_shape.queue.gport = gport;
     shape.shape.queue_shape.queue.service_id = service_id;
+    if(p_scheduler->meter_type == 0)
+    {
+        shape.shape.queue_shape.pps_en = 1;
+    }
     if(p_scheduler->max_rate)
     {
         shape.shape.queue_shape.enable = 1;
@@ -397,14 +401,11 @@ _ctc_sai_scheduler_set_attr(sai_object_key_t *key, const sai_attribute_t* attr)
             p_scheduler->weight = attr->value.u8;
             break;
         case SAI_SCHEDULER_ATTR_METER_TYPE:
-            if(SAI_METER_TYPE_BYTES != attr->value.s32)
+            if((SAI_METER_TYPE_BYTES != attr->value.s32)&&(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip)))
             {
                 return SAI_STATUS_NOT_SUPPORTED;
             }
-            else
-            {
-                return SAI_STATUS_SUCCESS;
-            }
+            p_scheduler->meter_type = attr->value.s32;
             break;
         case SAI_SCHEDULER_ATTR_MIN_BANDWIDTH_RATE:
             if (p_scheduler->min_rate == attr->value.u64)
@@ -655,6 +656,10 @@ ctc_sai_scheduler_port_set_scheduler(sai_object_id_t port_id, const sai_attribut
         }
         shape.type = CTC_QOS_SHAPE_PORT;
         shape.shape.port_shape.gport = gport;
+        if(p_scheduler_db->meter_type == 0)
+        {
+            shape.shape.port_shape.pps_en = 1;
+        }
         if(p_scheduler_db->max_rate)
         {
             shape.shape.port_shape.enable = 1;
@@ -1041,6 +1046,10 @@ ctc_sai_scheduler_group_set_scheduler_tmm(sai_object_id_t sch_group_id, const sa
             qos_shape.shape.group_shape.class_prio = ctc_sch_group_id.value2 % 4;
         }
         qos_shape.shape.group_shape.class_prio_valid = 1;
+        if(p_scheduler_db->meter_type == 0)
+        {
+            qos_shape.shape.group_shape.pps_en = 1;
+        }
         if(p_scheduler_db->max_rate)
         {
             qos_shape.shape.group_shape.enable = 1;
@@ -1196,7 +1205,7 @@ ctc_sai_scheduler_create_scheduler_id(
     p_scheduler_db->weight = 1;
     p_scheduler_db->meter_type = SAI_METER_TYPE_BYTES;
 
-    CTC_SAI_ERROR_GOTO(_ctc_sai_scheduler_map_attr_to_db(attr_list, attr_count, p_scheduler_db), status, error_1);
+    CTC_SAI_ERROR_GOTO(_ctc_sai_scheduler_map_attr_to_db(attr_list, attr_count, p_scheduler_db, lchip), status, error_1);
 
     //opf alloc scheduler id
     status = ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_COMMON, &ctc_scheduler_id);

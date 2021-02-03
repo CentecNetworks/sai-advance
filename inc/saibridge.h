@@ -422,6 +422,44 @@ typedef enum _sai_bridge_port_attr_t
      */
     SAI_BRIDGE_PORT_ATTR_NEED_FLOOD,
 
+    /**
+     * @brief Sub port traffic class assigned valid
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default false
+     */
+    SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID,
+    
+    /**
+     * @brief Sub port traffic class assigned
+     *
+     * @type sai_uint8_t
+     * @flags CREATE_AND_SET
+     * @default 0
+     * @validonly SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC_VALID == true
+     */
+    SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_TC,
+
+    /**
+     * @brief Sub port color assigned valid
+     *
+     * @type bool
+     * @flags CREATE_AND_SET
+     * @default false
+     */
+    SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID,
+    
+    /**
+     * @brief Sub port color assigned
+     *
+     * @type sai_packet_color_t
+     * @flags CREATE_AND_SET
+     * @default 0
+     * @validonly SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR_VALID == true
+     */
+    SAI_BRIDGE_PORT_ATTR_SUB_PORT_QOS_COLOR,
+
     /** End of custom range base */
     SAI_BRIDGE_PORT_ATTR_CUSTOM_RANGE_END
 

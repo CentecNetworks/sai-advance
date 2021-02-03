@@ -131,6 +131,10 @@ _ctc_sai_wred_map_db_to_ctc_drop(ctc_sai_wred_db_t* psai_wred, ctc_qos_drop_t* p
             pctc_drop->drop.drop_prob[ctc_idx] = psai_wred->drop_prob[idx] * 31U / 100U;//default value is 100%
             if (!psai_wred->color_en[idx])
             {
+                if(pctc_drop->drop.max_th[ctc_idx] == 0x1fff8)
+                {
+                    pctc_drop->drop.max_th[ctc_idx] = 79872;
+                }
                 continue;
             }
             pctc_drop->drop.min_th[ctc_idx] = psai_wred->min_th[idx];
@@ -358,6 +362,8 @@ ctc_sai_wred_queue_set_wred(sai_object_id_t queue_id, uint32 wred_id, uint32 old
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_get_drop_scheme(lchip, &ctc_drop));
 
         _ctc_sai_wred_map_db_to_ctc_drop(p_wred_db, &ctc_drop, 1);
+        ctc_drop.drop.max_th[3] = 0x44;
+        ctc_drop.drop.drop_prob[3] = 10;
         ctc_drop.drop.is_coexist = 1;
         CTC_SAI_CTC_ERROR_RETURN(ctcs_qos_set_drop_scheme(lchip, &ctc_drop));
 

@@ -46,7 +46,6 @@ class CreateAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             group_type)
         assert acl_table_group_id > 0, 'acl_table_group_id is <= 0'
         print "acl_table_group_id:0x%lx" %acl_table_group_id
-        pdb.set_trace()
 
         warmboot(self.client)
         status = self.client.sai_thrift_remove_acl_table_group(acl_table_group_id)
@@ -176,8 +175,6 @@ class RemoveAclTableGroup(sai_base_test.ThriftInterfaceDataPlane):
             group_member_priority)
         print "acl_table_group_member_ids:0x%lx" %acl_table_group_member_id
             
-        pdb.set_trace()
-
         warmboot(self.client)
 
         # remove acl table group member first
@@ -680,7 +677,6 @@ class RemoveAclTable(sai_base_test.ThriftInterfaceDataPlane):
         assert acl_entry_id > 0, 'acl_entry_id is <= 0'
         print "acl_entry_id: 0x%lx" %acl_entry_id
 
-        pdb.set_trace()
         warmboot(self.client)
 
         # try to remove acl table
@@ -6867,8 +6863,6 @@ class AclV4EntryRangeTypeTest(sai_base_test.ThriftInterfaceDataPlane):
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port1, attr)
 
-        #pdb.set_trace()
-
         warmboot(self.client)
         try:
             assert acl_table_id > 0, 'acl_table_id is <= 0'
@@ -7188,7 +7182,6 @@ class AclV4EntryRedirectActionTest(sai_base_test.ThriftInterfaceDataPlane):
         attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
         self.client.sai_thrift_set_port_attribute(port2, attr)
 
-        #pdb.set_trace()
         warmboot(self.client)
         try:
             print '#### ACL Applied ####'
@@ -7266,6 +7259,24 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             ip_ttl=64,
             tcp_sport=1234,
             tcp_dport=80)
+        pkt1 = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+            
         exp_pkt = simple_tcp_packet(pktlen=92,
             eth_dst='00:11:22:33:44:55',
             eth_src=router_mac,
@@ -7277,6 +7288,17 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             ip_ttl=63,
             tcp_sport=1234,
             tcp_dport=80)
+        exp_pkt1 = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=62,
+            tcp_sport=1234,
+            tcp_dport=80)
 
         try:
             print '#### NO ACL Applied ####'
@@ -7284,6 +7306,7 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             self.ctc_send_packet(1, str(pkt))
             print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
             self.ctc_verify_packets( exp_pkt, [0])
+
         finally:
             print '----------------------------------------------------------------------------------------------'
 
@@ -7333,22 +7356,6 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         mpls_label4_ttl = None
         mpls_label4_exp = None
         mpls_label4_bos = None
-
-        #ip_src = "192.168.0.1"
-        #ip_src_mask = "255.255.255.255"
-        #ip_dst = '10.10.10.1'
-        #ip_dst_mask = "255.255.255.255"
-        #ip_tos=5
-        #ip_ecn=1
-        #ip_dscp=1
-        #ip_ttl=None
-        #ip_protocol = None
-        #in_port = 1
-        #out_port = None
-        #out_ports = None
-        #src_l4_port = 1234
-        #dst_l4_port = 80
-
         ip_src=None
         ip_src_mask=None
         ip_dst=None
@@ -7382,45 +7389,64 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         deny_learn = None
         admin_state = True
 
-        #DsAclQosUdfKey320.udf
-        #"128'H0A0A0A01C0A800014006A5F000010000"
+        udf0 = ctypes.c_int8(0)
+        udf1 = ctypes.c_int8(1)
+        udf2 = ctypes.c_int8(0)
+        udf3 = ctypes.c_int8(0)
 
-        udf0 = ctypes.c_int8(10)
-        udf1 = ctypes.c_int8(10)
-        udf2 = ctypes.c_int8(10)
-        udf3 = ctypes.c_int8(1)
+        udf4 = ctypes.c_int8(64)
+        udf5 = ctypes.c_int8(6)
+        udf6 = ctypes.c_int8(165)
+        udf7 = ctypes.c_int8(240)
 
-        udf4 = ctypes.c_int8(192)
-        udf5 = ctypes.c_int8(168)
-        udf6 = ctypes.c_int8(0)
-        udf7 = ctypes.c_int8(1)
+        udf8 = ctypes.c_int8(192)
+        udf9 = ctypes.c_int8(168)
+        udf10 = ctypes.c_int8(0)
+        udf11 = ctypes.c_int8(1)
 
-        udf8 = ctypes.c_int8(64)
-        udf9 = ctypes.c_int8(6)
-        udf10 = ctypes.c_int8(165)
-        udf11 = ctypes.c_int8(240)
-
-        udf12 = ctypes.c_int8(0)
-        udf13 = ctypes.c_int8(1)
-        udf14 = ctypes.c_int8(0)
-        udf15 = ctypes.c_int8(0)
-
-        user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value, udf4.value, udf5.value, udf6.value, udf7.value, udf8.value, udf9.value, udf10.value, udf11.value, udf12.value, udf13.value, udf14.value, udf15.value]
-        user_define_filed_group_mask = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1, -1]
+        udf12 = ctypes.c_int8(10)
+        udf13 = ctypes.c_int8(10)
+        udf14 = ctypes.c_int8(10)
+        udf15 = ctypes.c_int8(1)
 
         group_type = SAI_UDF_GROUP_TYPE_GENERIC
-        group_length = 16
+        
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            group_length = 4
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+            group_length = 2
 
         print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
         udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
         print "udf_group_id = 0x%lx" %udf_group_id
 
+        udf_group_id1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id1 = 0x%lx" %udf_group_id1
+
+        udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id2 = 0x%lx" %udf_group_id2
+
+        udf_group_id3 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id3 = 0x%lx" %udf_group_id3
+
+        udf_group_id4 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id4 = 0x%lx" %udf_group_id4
+
+        udf_group_id5 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id5 = 0x%lx" %udf_group_id5
+
+        udf_group_id6 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id6 = 0x%lx" %udf_group_id6
+
+        udf_group_id7 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id7 = 0x%lx" %udf_group_id7
+
         #ipv4
         ether_type = 0x0800
         ether_type_mask = U16MASKFULL
         #tcp
-        l3_header_protocol = None
-        l3_header_protocol_mask = None
+        l3_header_protocol = 6
+        l3_header_protocol_mask = U8MASKFULL
         #gre
         gre_type = None
         gre_type_mask = None
@@ -7448,16 +7474,117 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
                                                    mpls_label_num,
                                                    priority)
 
-        base = SAI_UDF_BASE_L3
-        offset = 4
-        # default value
-        hash_mask_list = [-1, -1]
+        if 'tsingma' == testutils.test_params_get()['chipname']:
 
-        udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
-        assert udf_entry_id > 0, 'udf_entry_id is <= 0'
-        print "udf_entry_id = 0x%lx" %udf_entry_id
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
 
-        user_define_filed_group0 = True
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 6
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 10
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id4 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id4 > 0, 'udf_entry_id4 is <= 0'
+            print "udf_entry_id4 = 0x%lx" %udf_entry_id4
+
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id5 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id5 > 0, 'udf_entry_id5 is <= 0'
+            print "udf_entry_id5 = 0x%lx" %udf_entry_id5
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id6 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id6 > 0, 'udf_entry_id6 is <= 0'
+            print "udf_entry_id6 = 0x%lx" %udf_entry_id6
+
+            base = SAI_UDF_BASE_L3
+            offset = 18
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id7 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id7 > 0, 'udf_entry_id7 is <= 0'
+            print "udf_entry_id7 = 0x%lx" %udf_entry_id7
 
         acl_attr_list = []
         # acl key field
@@ -7465,6 +7592,34 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         # create acl table
         attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id)
         attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id1)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id2)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id3)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id4)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id5)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id6)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id7)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
         acl_attr_list.append(attribute)
 
         acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
@@ -7501,14 +7656,153 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
         attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
         acl_attr_list.append(attribute)
 
-        user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
-        user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+        if 'tsingma' == testutils.test_params_get()['chipname']:
 
-        attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
-                                                                                            data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
-                                                                                            mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
-        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
-        acl_attr_list.append(attribute)
+            user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf4.value, udf5.value, udf6.value, udf7.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf8.value, udf9.value, udf10.value, udf11.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            user_define_filed_group_data = [udf0.value, udf1.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf2.value, udf3.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf4.value, udf5.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf6.value, udf7.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf8.value, udf9.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf10.value, udf11.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf12.value, udf13.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf14.value, udf15.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+            acl_attr_list.append(attribute)
 
         #Packet action
         attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
@@ -7535,10 +7829,98 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
             # send the same packet
             self.ctc_send_packet(1, str(pkt))
+
             # ensure packet is dropped
             # check for absence of packet here!
             print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
             self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+            user_define_filed_group_data = [0, 0]
+            user_define_filed_group_mask = [0, 0]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+            self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            # send the same packet
+            self.ctc_send_packet(1, str(pkt))
+            # ensure packet is dropped
+            # check for absence of packet here!
+            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+            print '#### ACL \'Permit, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            self.ctc_send_packet(1, str(pkt1))
+            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_packets(exp_pkt1, [0])
+
+            udf4 = ctypes.c_int8(63)
+            udf5 = ctypes.c_int8(6)
+            #change to correct header checksum
+            udf6 = ctypes.c_int8(166)
+            udf7 = ctypes.c_int8(240)
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [udf4.value, udf5.value, udf6.value, udf7.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                user_define_filed_group_data = [udf4.value, udf5.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'Permit, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                self.ctc_send_packet(1, str(pkt1))
+                print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_packets(exp_pkt1, [0])
+
+                user_define_filed_group_data = [udf6.value, udf7.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt1))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt1, 0, default_time_out)
 
         finally:
             # unbind this ACL table from switch object id
@@ -7559,8 +7941,23 @@ class ACLTableUDFBindPointPortTest(sai_base_test.ThriftInterfaceDataPlane):
             self.client.sai_thrift_remove_virtual_router(vr_id)
 
             self.client.sai_thrift_remove_udf(udf_entry_id)
+            self.client.sai_thrift_remove_udf(udf_entry_id1)
+            self.client.sai_thrift_remove_udf(udf_entry_id2)
+            self.client.sai_thrift_remove_udf(udf_entry_id3)
+            if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                self.client.sai_thrift_remove_udf(udf_entry_id4)
+                self.client.sai_thrift_remove_udf(udf_entry_id5)
+                self.client.sai_thrift_remove_udf(udf_entry_id6)
+                self.client.sai_thrift_remove_udf(udf_entry_id7)
             self.client.sai_thrift_remove_udf_match(udf_match_id)
             self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id1)
+            self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            self.client.sai_thrift_remove_udf_group(udf_group_id3)
+            self.client.sai_thrift_remove_udf_group(udf_group_id4)
+            self.client.sai_thrift_remove_udf_group(udf_group_id5)
+            self.client.sai_thrift_remove_udf_group(udf_group_id6)
+            self.client.sai_thrift_remove_udf_group(udf_group_id7)
 
 
 class func_01_create_acl_range_fn(sai_base_test.ThriftInterfaceDataPlane):
@@ -7575,7 +7972,6 @@ class func_01_create_acl_range_fn(sai_base_test.ThriftInterfaceDataPlane):
         range_max = 5678
 
         try:
-
             acl_range_oid = sai_thrift_create_acl_range(self.client, range_type, stage, range_min, range_max)
             sys_logging("create acl range = %d" %acl_range_oid)
             assert(acl_range_oid != SAI_NULL_OBJECT_ID )
@@ -7663,7 +8059,6 @@ class func_03_create_multi_acl_range_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         finally:
             sys_logging("clear config")
-            #pdb.set_trace()
             status = self.client.sai_thrift_remove_acl_range(acl_range_oid)
             assert (status == SAI_STATUS_SUCCESS)
             status = self.client.sai_thrift_remove_acl_range(acl_range_oid_2)
@@ -11338,12 +11733,10 @@ class func_31_create_acl_entry_fn(sai_base_test.ThriftInterfaceDataPlane):
 
         finally:
             sys_logging("clear config")
-            #pdb.set_trace()
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
             assert (status == SAI_STATUS_SUCCESS)
             status = self.client.sai_thrift_remove_acl_table(acl_table_oid)
             assert (status == SAI_STATUS_SUCCESS)
-
 
 
 #comment: not check same acl entry
@@ -14335,8 +14728,6 @@ class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_tes
         status = self.client.sai_thrift_set_port_attribute(port2, attr)
         assert (status == SAI_STATUS_SUCCESS)
 
-        #pdb.set_trace()
-
         warmboot(self.client)
         try:
             sys_logging(" step3: get acl entry attr info  ")
@@ -14436,7 +14827,6 @@ class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_tes
                     sys_logging("get SAI_ACL_ENTRY_ATTR_ACTION_COUNTER = 0x%lx" %a.value.aclaction.parameter.oid)
                     assert(acl_counter_oid4 == a.value.aclaction.parameter.oid)
 
-            #pdb.set_trace()
 
             status = self.client.sai_thrift_remove_acl_table_group_member(acl_table_group_member_oid1)
             assert (status == SAI_STATUS_SUCCESS)
@@ -14462,7 +14852,6 @@ class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_tes
             status = self.client.sai_thrift_remove_acl_counter(acl_counter_oid4)
             assert (status != SAI_STATUS_SUCCESS)
 
-            #pdb.set_trace()
 
             group_member_priority = 0
             # create ACL table group members
@@ -14500,7 +14889,6 @@ class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_tes
             assert acl_table_group_member_oid4 > 0, 'acl_table_group_member_oid4 is <= 0'
             sys_logging("create table group member oid4 = 0x%lx" %acl_table_group_member_oid4)
 
-            #pdb.set_trace()
 
             attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid3), enable = True))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
@@ -14512,7 +14900,6 @@ class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_tes
             status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid2, attribute)
             assert (status != SAI_STATUS_SUCCESS)
 
-            #pdb.set_trace()
 
             attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
@@ -14524,7 +14911,6 @@ class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_tes
             attrs = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid2, attribute)
             assert (status == SAI_STATUS_SUCCESS)
 
-            #pdb.set_trace()
 
             attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid2), enable = True))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
@@ -14536,7 +14922,6 @@ class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_tes
             status = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid4, attribute)
             assert (status != SAI_STATUS_SUCCESS)
 
-            #pdb.set_trace()
 
             attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(oid=acl_counter_oid4), enable = True))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_COUNTER, value=attribute_value)
@@ -14548,7 +14933,6 @@ class func_40_paraell_group_per_table_per_entry_counter_reorder_group_member_tes
             attrs = self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid4, attribute)
             assert (status == SAI_STATUS_SUCCESS)
 
-            #pdb.set_trace()
 
             attr_list_ids = [SAI_ACL_ENTRY_ATTR_TABLE_ID, SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION]
             attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid1, attr_list_ids)
@@ -17376,7 +17760,6 @@ class scenario_03_seq_group_bind_port_ingress_test(sai_base_test.ThriftInterface
             self.ctc_send_packet( 0, str(pkt))
             self.ctc_verify_no_packet( pkt, 1)
 
-            #pdb.set_trace()
             sys_logging(" step4: insert log acl entry ")
 
             entry_priority = 5
@@ -17932,8 +18315,7 @@ class scenario_05_par_group_bind_port_ingress_test(sai_base_test.ThriftInterface
 
                 self.ctc_send_packet(0, str(pkt))
                 self.ctc_verify_packets(rx_pkt_list[t], [1])
-                #pdb.set_trace()
-
+    
                 if t < (num-1):
                     sys_logging(" step%d: remove acl entry %d and match acl entry %d" %((3+(t*2)+1), (t+1), (t+2)))
                 else:
@@ -20020,7 +20402,6 @@ class scenario_07_table_bind_vlan_ingress_test(sai_base_test.ThriftInterfaceData
             self.client.sai_thrift_set_vlan_attribute(vlan_oid, attr)
 
             sys_logging(" step3: match drop acl entry ")
-            #pdb.set_trace()
             self.ctc_send_packet( 0, str(pkt))
             self.ctc_verify_no_packet( pkt, 1)
 
@@ -20091,7 +20472,6 @@ class scenario_07_table_bind_vlan_ingress_test(sai_base_test.ThriftInterfaceData
                 raise NotImplementedError()
 
             self.client.sai_thrift_clear_cpu_packet_info()
-            #pdb.set_trace()
             sys_logging(" step6: remove log acl entry  ")
 
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
@@ -20487,7 +20867,6 @@ class scenario_08_table_bind_vlan_egress_test (sai_base_test.ThriftInterfaceData
                 raise NotImplementedError()
 
             self.client.sai_thrift_clear_cpu_packet_info()
-            #pdb.set_trace()
             sys_logging(" step6: remove log acl entry  ")
 
             status = self.client.sai_thrift_remove_acl_entry(acl_entry_oid_2)
@@ -20953,7 +21332,6 @@ class scenario_09_seq_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
 
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
             sys_logging(" step6: insert trap acl entry ")
 
             entry_priority = 6
@@ -21649,7 +22027,6 @@ class scenario_11_par_group_bind_vlan_ingress_test(sai_base_test.ThriftInterface
             sys_logging(" step%u: match acl entry 1" %step)
             self.ctc_send_packet(0, str(pkt))
             self.ctc_verify_packets(pkt1, [1])
-            #pdb.set_trace()
 
             step = step + 1
             sys_logging(" step%u: remove acl entry 1 and match acl entry 2" %step)
@@ -22893,7 +23270,6 @@ class scenario_12_par_group_bind_vlan_egress_test(sai_base_test.ThriftInterfaceD
             self.ctc_send_packet( 0, str(pkt))
             self.ctc_verify_packets( pkt1, [1])
 
-            #pdb.set_trace()
 
             sys_logging(" step4: remove acl entry 1 and match acl entry 2")
 
@@ -23465,7 +23841,6 @@ class scenario_12_par_group_bind_vlan_egress_test_ad_merge(sai_base_test.ThriftI
             assert (ret.data.u16 == 1)
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
 
             sys_logging(" step4: remove acl entry 3 and ad merge result is still trap ")
 
@@ -23913,7 +24288,6 @@ class scenario_13_table_bind_lag_ingress_test(sai_base_test.ThriftInterfaceDataP
 
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
 
             sys_logging(" remove lag member ")
 
@@ -23931,7 +24305,6 @@ class scenario_13_table_bind_lag_ingress_test(sai_base_test.ThriftInterfaceDataP
 
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
 
             sys_logging(" step6: remove log acl entry  ")
 
@@ -24485,7 +24858,6 @@ class scenario_15_seq_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
 
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
 
             sys_logging(" add lag member ")
 
@@ -24519,7 +24891,6 @@ class scenario_15_seq_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
 
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
 
             sys_logging(" step8: remove trap acl entry  ")
 
@@ -25141,7 +25512,6 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
             self.ctc_send_packet(0, str(pkt))
             self.ctc_verify_packets(pkt1, [2])
 
-            #pdb.set_trace()
             sys_logging(" add lag member ")
             lag_member_id3 = sai_thrift_create_lag_member(self.client, lag_oid, port4)
 
@@ -25158,7 +25528,6 @@ class scenario_17_par_group_bind_lag_ingress_test(sai_base_test.ThriftInterfaceD
             attr = sai_thrift_attribute_t(id=SAI_BRIDGE_PORT_ATTR_INGRESS_FILTERING, value=attr_value)
             self.client.sai_thrift_set_bridge_port_attribute(bport_oid, attr)
 
-            #pdb.set_trace()
 
             self.ctc_send_packet(3, str(pkt))
             self.ctc_verify_no_packet(pkt1, 2)
@@ -26200,7 +26569,6 @@ class scenario_19_table_bind_switch_ingress_test(sai_base_test.ThriftInterfaceDa
             self.ctc_send_packet( 1, str(pkt1))
             self.ctc_verify_no_packet( pkt1, 0)
 
-            #pdb.set_trace()
 
             sys_logging(" step4: insert log acl entry ")
 
@@ -26840,7 +27208,6 @@ class scenario_21_seq_group_bind_switch_ingress_test(sai_base_test.ThriftInterfa
 
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
 
             sys_logging(" step8: remove trap acl entry  ")
 
@@ -27461,14 +27828,12 @@ class scenario_23_par_group_bind_switch_ingress_test(sai_base_test.ThriftInterfa
             attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_switch_attribute(attr)
 
-            #pdb.set_trace()
 
             sys_logging(" step3: match acl entry 1")
 
             self.ctc_send_packet( 0, str(pkt))
             self.ctc_verify_packets( pkt1, [1])
 
-            #pdb.set_trace()
 
             sys_logging(" step4: remove acl entry 1 and match acl entry 2")
 
@@ -27777,12 +28142,14 @@ class scenario_25_src_ipv6_key_bind_port_test(sai_base_test.ThriftInterfaceDataP
             if ret.data.u16 != 1:
                 raise NotImplementedError()
 
+            self.client.sai_thrift_clear_cpu_packet_info()
+
             self.ctc_send_packet( 0, str(pkt1))
             self.ctc_verify_packets( pkt1, [1])
 
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
-            if ret.data.u16 != 1:
+            if ret.data.u16 != 0:
                 raise NotImplementedError()
 
             self.client.sai_thrift_clear_cpu_packet_info()
@@ -27791,23 +28158,23 @@ class scenario_25_src_ipv6_key_bind_port_test(sai_base_test.ThriftInterfaceDataP
 
             ipv6_src = ipsa_not_match
             ipv6_src_mask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
-
+            
             attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_src), mask =sai_thrift_acl_mask_t(ip6=ipv6_src_mask)))
             attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, value=attribute_value)
             self.client.sai_thrift_set_acl_entry_attribute(acl_entry_oid, attribute)
-
+            
             attr_list_ids = [SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6]
-
+            
             # get acl entry attr
             attrs = self.client.sai_thrift_get_acl_entry_attribute(acl_entry_oid, attr_list_ids)
             assert (attrs.status == SAI_STATUS_SUCCESS)
-
+            
             for a in attrs.attr_list:
-
+            
                 if a.id == SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
                     sys_logging("get SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6 = %s" %a.value.aclfield.data.ip6)
                     assert(ipv6_src == a.value.aclfield.data.ip6 )
-
+            
             pkt = simple_tcpv6_packet(eth_dst=macda,
                                     eth_src=macsa,
                                     ipv6_dst=ipda,
@@ -27815,7 +28182,7 @@ class scenario_25_src_ipv6_key_bind_port_test(sai_base_test.ThriftInterfaceDataP
                                     ipv6_hlim=64,
                                     dl_vlan_enable=True,
                                     vlan_vid=vlan_id)
-
+            
             pkt1 = simple_tcpv6_packet(eth_dst=macda,
                                     eth_src=macsa,
                                     ipv6_dst=ipda,
@@ -27823,27 +28190,27 @@ class scenario_25_src_ipv6_key_bind_port_test(sai_base_test.ThriftInterfaceDataP
                                     ipv6_hlim=64,
                                     dl_vlan_enable=True,
                                     vlan_vid=vlan_id)
-
+            
             self.client.sai_thrift_clear_cpu_packet_info()
-
+            
             self.ctc_send_packet( 0, str(pkt))
             self.ctc_verify_packets( pkt, [1])
-
+            
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
             if ret.data.u16 != 0:
                 raise NotImplementedError()
-
+            
             self.ctc_send_packet( 0, str(pkt1))
             self.ctc_verify_packets( pkt1, [1])
-
+            
             ret = self.client.sai_thrift_get_cpu_packet_count()
             sys_logging ("receive rx packet %d" %ret.data.u16)
             if ret.data.u16 != 1:
                 raise NotImplementedError()
-
+            
             self.client.sai_thrift_clear_cpu_packet_info()
-
+            
         finally:
 
             sys_logging("clear config")
@@ -28457,7 +28824,6 @@ class scenario_28_dst_mac_key_bind_port_test(sai_base_test.ThriftInterfaceDataPl
 
             self.client.sai_thrift_clear_cpu_packet_info()
 
-            #pdb.set_trace()
 
         finally:
 
@@ -29796,7 +30162,6 @@ class scenario_34_inner_vlan_id_key_bind_port_test(sai_base_test.ThriftInterface
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -30682,7 +31047,6 @@ class scenario_38_ipv4_ecn_key_bind_port_test(sai_base_test.ThriftInterfaceDataP
             self.client.sai_thrift_clear_cpu_packet_info()
 
         finally:
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -30902,7 +31266,6 @@ class scenario_39_ipv4_tos_key_bind_port_test(sai_base_test.ThriftInterfaceDataP
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -31122,7 +31485,6 @@ class scenario_40_ipv4_ttl_key_bind_port_test(sai_base_test.ThriftInterfaceDataP
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -31342,7 +31704,6 @@ class scenario_41_ipv4_frag_key_bind_port_test(sai_base_test.ThriftInterfaceData
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -31591,7 +31952,6 @@ class scenario_42_tcp_flag_key_bind_port_test(sai_base_test.ThriftInterfaceDataP
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -31833,7 +32193,6 @@ class scenario_43_tcp_src_port_key_bind_port_test(sai_base_test.ThriftInterfaceD
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -32079,7 +32438,6 @@ class scenario_44_tcp_dst_port_key_bind_port_test(sai_base_test.ThriftInterfaceD
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -32286,7 +32644,6 @@ class scenario_45_ether_type_port_key_bind_port_test(sai_base_test.ThriftInterfa
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -32795,7 +33152,6 @@ class scenario_47_icmp_type_port_key_bind_port_test(sai_base_test.ThriftInterfac
         finally:
 
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
@@ -33066,13 +33422,10 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
             sys_logging ("receive rx packet %d" %ret.data.u16)
             if ret.data.u16 != 1:
                 raise NotImplementedError()
-
             self.client.sai_thrift_clear_cpu_packet_info()
 
         finally:
-
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
@@ -33083,8 +33436,6 @@ class scenario_48_icmpv6_type_port_key_bind_port_test(sai_base_test.ThriftInterf
             self.client.sai_thrift_remove_vlan_member(vlan_member1)
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid)
-
-
 
 '''
 class scenario_49_packet_vlan_port_key_bind_port_test(sai_base_test.ThriftInterfaceDataPlane):
@@ -33186,7 +33537,7 @@ class scenario_49_packet_vlan_port_key_bind_port_test(sai_base_test.ThriftInterf
         acl_entry_oid = self.client.sai_thrift_create_acl_entry(acl_attr_list)
 
         sys_logging("create acl entry = %d" %acl_entry_oid)
-        assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+        assert(acl_entry_oid != SAI_NULL_OBJECT_ID)
 
         sys_logging(" step2: bind this ACL table to port  ")
         attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
@@ -33287,13 +33638,10 @@ class scenario_49_packet_vlan_port_key_bind_port_test(sai_base_test.ThriftInterf
             sys_logging ("receive rx packet %d" %ret.data.u16)
             if ret.data.u16 != 1:
                 raise NotImplementedError()
-
             self.client.sai_thrift_clear_cpu_packet_info()
 
         finally:
-
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
@@ -33305,7 +33653,6 @@ class scenario_49_packet_vlan_port_key_bind_port_test(sai_base_test.ThriftInterf
             self.client.sai_thrift_remove_vlan_member(vlan_member2)
             self.client.sai_thrift_remove_vlan(vlan_oid)
 '''
-
 
 class scenario_50_mpls0_label_port_key_bind_port_test(sai_base_test.ThriftInterfaceDataPlane):
 
@@ -33554,7 +33901,6 @@ class scenario_50_mpls0_label_port_key_bind_port_test(sai_base_test.ThriftInterf
         finally:
 
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port2, attr)
@@ -33848,7 +34194,6 @@ class scenario_51_acl_range_port_key_bind_port_test(sai_base_test.ThriftInterfac
         finally:
 
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
@@ -34074,7 +34419,6 @@ class scenario_52_port_metadata_key_bind_port_test(sai_base_test.ThriftInterface
 
         finally:
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
@@ -34634,7 +34978,6 @@ class scenario_54_both_direction_for_port_test(sai_base_test.ThriftInterfaceData
         finally:
 
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
@@ -35121,7 +35464,6 @@ class scenario_55_par_group_add_and_remove_group_member_test(sai_base_test.Thrif
 
             sys_logging("clear config")
 
-            #pdb.set_trace()
 
             # unbind this ACL table from port
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
@@ -35603,7 +35945,6 @@ class scenario_56_get_acl_counter_test(sai_base_test.ThriftInterfaceDataPlane):
 
             sys_logging("clear config")
 
-            #pdb.set_trace()
 
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -35806,7 +36147,6 @@ class scenario_57_action_for_redirect_test(sai_base_test.ThriftInterfaceDataPlan
         finally:
 
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_port_attribute(port1, attr)
@@ -36021,7 +36361,6 @@ class scenario_58_action_for_set_inner_vlanid_test(sai_base_test.ThriftInterface
 
         finally:
 
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -37061,7 +37400,6 @@ class scenario_63_action_for_set_ipv4_ecn_test(sai_base_test.ThriftInterfaceData
             self.ctc_verify_packets(pkt1, [1])
 
         finally:
-            #pdb.set_trace()
             sys_logging("clear config")
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_PORT_ATTR_INGRESS_ACL, value=attr_value)
@@ -38046,7 +38384,6 @@ class scenario_67_ingress_ports_bind_vlan_test(sai_base_test.ThriftInterfaceData
         finally:
 
             sys_logging("clear config")
-            #pdb.set_trace()
             attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
             attr = sai_thrift_attribute_t(id=SAI_VLAN_ATTR_INGRESS_ACL, value=attr_value)
             self.client.sai_thrift_set_vlan_attribute(vlan_oid, attr)
@@ -39527,4 +39864,4952 @@ class scenario_72_bind_none_member_parallel_group_and_add_member_fn(sai_base_tes
             self.client.sai_thrift_remove_router_interface(rif_id1)
             self.client.sai_thrift_remove_router_interface(rif_id2)
             self.client.sai_thrift_remove_virtual_router(vr_id)
+
+
+@group('acl')
+class scenario_73_udf_group_add_update_from_min_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
+
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        # send the test packet(s)
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        pkt1 = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+            
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt1 = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=62,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            print '#### NO ACL Applied ####'
+            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            self.ctc_send_packet(1, str(pkt))
+            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
+        # setup ACL to block based on Source IP
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = [port1, port2]
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type=None
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        ip_src=None
+        ip_src_mask=None
+        ip_dst=None
+        ip_dst_mask=None
+        ipv6_src=None
+        ipv6_src_mask=None
+        ipv6_dst=None
+        ipv6_dst_mask=None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        ip_protocol=None
+        in_port=None
+        out_port=None
+        out_ports=None
+        src_l4_port=None
+        dst_l4_port=None
+        acl_range_type_list=None
+        ingress_mirror_id=None
+        egress_mirror_id=None
+        ingress_samplepacket=None
+        acl_range_id_list=None
+        redirect=None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+
+        udf0 = ctypes.c_int8(0)
+        udf1 = ctypes.c_int8(1)
+        udf2 = ctypes.c_int8(0)
+        udf3 = ctypes.c_int8(0)
+
+        udf4 = ctypes.c_int8(64)
+        udf5 = ctypes.c_int8(6)
+        udf6 = ctypes.c_int8(165)
+        udf7 = ctypes.c_int8(240)
+
+        udf8 = ctypes.c_int8(192)
+        udf9 = ctypes.c_int8(168)
+        udf10 = ctypes.c_int8(0)
+        udf11 = ctypes.c_int8(1)
+
+        udf12 = ctypes.c_int8(10)
+        udf13 = ctypes.c_int8(10)
+        udf14 = ctypes.c_int8(10)
+        udf15 = ctypes.c_int8(1)
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+        
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            group_length = 4
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+            group_length = 2
+
+        print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = 0x%lx" %udf_group_id
+
+        udf_group_id1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id1 = 0x%lx" %udf_group_id1
+
+        udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id2 = 0x%lx" %udf_group_id2
+
+        udf_group_id3 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id3 = 0x%lx" %udf_group_id3
+
+        udf_group_id4 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id4 = 0x%lx" %udf_group_id4
+
+        udf_group_id5 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id5 = 0x%lx" %udf_group_id5
+
+        udf_group_id6 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id6 = 0x%lx" %udf_group_id6
+
+        udf_group_id7 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id7 = 0x%lx" %udf_group_id7
+
+        #ipv4
+        ether_type = 0x0800
+        ether_type_mask = U16MASKFULL
+        #tcp
+        l3_header_protocol = 6
+        l3_header_protocol_mask = U8MASKFULL
+        #gre
+        gre_type = None
+        gre_type_mask = None
+        #l4 port
+        l4_src_port = 1234
+        l4_src_port_mask = U16MASKFULL
+        l4_dst_port = 80
+        l4_dst_port_mask = U16MASKFULL
+        #mpls label num
+        mpls_label_num = None
+        #entry proirity
+        priority = 0
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   ether_type,
+                                                   ether_type_mask,
+                                                   l3_header_protocol,
+                                                   l3_header_protocol_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 6
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 10
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id4 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id4 > 0, 'udf_entry_id4 is <= 0'
+            print "udf_entry_id4 = 0x%lx" %udf_entry_id4
+
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id5 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id5 > 0, 'udf_entry_id5 is <= 0'
+            print "udf_entry_id5 = 0x%lx" %udf_entry_id5
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id6 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id6 > 0, 'udf_entry_id6 is <= 0'
+            print "udf_entry_id6 = 0x%lx" %udf_entry_id6
+
+            base = SAI_UDF_BASE_L3
+            offset = 18
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id7 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id7 > 0, 'udf_entry_id7 is <= 0'
+            print "udf_entry_id7 = 0x%lx" %udf_entry_id7
+
+        acl_attr_list = []
+        # acl key field
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id1)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id2)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id3)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id4)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id5)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id6)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id7)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_id = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_id)
+        assert(acl_table_id != SAI_NULL_OBJECT_ID)
+
+        # acl entry info
+        action = SAI_PACKET_ACTION_DROP
+        entry_priority = 1
+        admin_state = True
+
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_id = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_id)
+        assert(acl_entry_id != SAI_NULL_OBJECT_ID)
+
+        # bind this ACL table to port2s object id
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_switch_attribute(attr)
+
+        warmboot(self.client)
+        try:
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                assert acl_table_id > 0, 'acl_entry_id is <= 0'
+                assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf4.value, udf5.value, udf6.value, udf7.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf8.value, udf9.value, udf10.value, udf11.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+            
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [udf0.value, udf1.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                assert acl_table_id > 0, 'acl_entry_id is <= 0'
+                assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf2.value, udf3.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf4.value, udf5.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf6.value, udf7.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf8.value, udf9.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf10.value, udf11.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf12.value, udf13.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf14.value, udf15.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+        finally:
+            # unbind this ACL table from switch object id
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            self.client.sai_thrift_remove_udf(udf_entry_id)
+            self.client.sai_thrift_remove_udf(udf_entry_id1)
+            self.client.sai_thrift_remove_udf(udf_entry_id2)
+            self.client.sai_thrift_remove_udf(udf_entry_id3)
+
+            if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                self.client.sai_thrift_remove_udf(udf_entry_id4)
+                self.client.sai_thrift_remove_udf(udf_entry_id5)
+                self.client.sai_thrift_remove_udf(udf_entry_id6)
+                self.client.sai_thrift_remove_udf(udf_entry_id7)
+
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id1)
+            self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            self.client.sai_thrift_remove_udf_group(udf_group_id3)
+            self.client.sai_thrift_remove_udf_group(udf_group_id4)
+            self.client.sai_thrift_remove_udf_group(udf_group_id5)
+            self.client.sai_thrift_remove_udf_group(udf_group_id6)
+            self.client.sai_thrift_remove_udf_group(udf_group_id7)
+
+
+@group('acl')
+class scenario_74_udf_group_add_update_from_max_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
+
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        # send the test packet(s)
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        pkt1 = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+            
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt1 = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=62,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            print '#### NO ACL Applied ####'
+            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            self.ctc_send_packet(1, str(pkt))
+            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
+        # setup ACL to block based on Source IP
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = [port1, port2]
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type=None
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        ip_src=None
+        ip_src_mask=None
+        ip_dst=None
+        ip_dst_mask=None
+        ipv6_src=None
+        ipv6_src_mask=None
+        ipv6_dst=None
+        ipv6_dst_mask=None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        ip_protocol=None
+        in_port=None
+        out_port=None
+        out_ports=None
+        src_l4_port=None
+        dst_l4_port=None
+        acl_range_type_list=None
+        ingress_mirror_id=None
+        egress_mirror_id=None
+        ingress_samplepacket=None
+        acl_range_id_list=None
+        redirect=None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+
+        udf0 = ctypes.c_int8(0)
+        udf1 = ctypes.c_int8(1)
+        udf2 = ctypes.c_int8(0)
+        udf3 = ctypes.c_int8(0)
+
+        udf4 = ctypes.c_int8(64)
+        udf5 = ctypes.c_int8(6)
+        udf6 = ctypes.c_int8(165)
+        udf7 = ctypes.c_int8(240)
+
+        udf8 = ctypes.c_int8(192)
+        udf9 = ctypes.c_int8(168)
+        udf10 = ctypes.c_int8(0)
+        udf11 = ctypes.c_int8(1)
+
+        udf12 = ctypes.c_int8(10)
+        udf13 = ctypes.c_int8(10)
+        udf14 = ctypes.c_int8(10)
+        udf15 = ctypes.c_int8(1)
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+        
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            group_length = 4
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:    
+            group_length = 2
+
+        print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = 0x%lx" %udf_group_id
+
+        udf_group_id1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id1 = 0x%lx" %udf_group_id1
+
+        udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id2 = 0x%lx" %udf_group_id2
+
+        udf_group_id3 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id3 = 0x%lx" %udf_group_id3
+
+        udf_group_id4 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id4 = 0x%lx" %udf_group_id4
+
+        udf_group_id5 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id5 = 0x%lx" %udf_group_id5
+
+        udf_group_id6 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id6 = 0x%lx" %udf_group_id6
+
+        udf_group_id7 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id7 = 0x%lx" %udf_group_id7
+
+        #ipv4
+        ether_type = 0x0800
+        ether_type_mask = U16MASKFULL
+        #tcp
+        l3_header_protocol = 6
+        l3_header_protocol_mask = U8MASKFULL
+        #gre
+        gre_type = None
+        gre_type_mask = None
+        #l4 port
+        l4_src_port = 1234
+        l4_src_port_mask = U16MASKFULL
+        l4_dst_port = 80
+        l4_dst_port_mask = U16MASKFULL
+        #mpls label num
+        mpls_label_num = None
+        #entry proirity
+        priority = 0
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   ether_type,
+                                                   ether_type_mask,
+                                                   l3_header_protocol,
+                                                   l3_header_protocol_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 6
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 10
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id4 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id4 > 0, 'udf_entry_id4 is <= 0'
+            print "udf_entry_id4 = 0x%lx" %udf_entry_id4
+
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id5 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id5 > 0, 'udf_entry_id5 is <= 0'
+            print "udf_entry_id5 = 0x%lx" %udf_entry_id5
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id6 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id6 > 0, 'udf_entry_id6 is <= 0'
+            print "udf_entry_id6 = 0x%lx" %udf_entry_id6
+
+            base = SAI_UDF_BASE_L3
+            offset = 18
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id7 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id7 > 0, 'udf_entry_id7 is <= 0'
+            print "udf_entry_id7 = 0x%lx" %udf_entry_id7
+
+        acl_attr_list = []
+        # acl key field
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-7), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id1)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-6), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id2)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-5), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id3)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-4), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id4)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id5)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id6)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id7)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_id = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_id)
+        assert(acl_table_id != SAI_NULL_OBJECT_ID)
+
+        # acl entry info
+        action = SAI_PACKET_ACTION_DROP
+        entry_priority = 1
+        admin_state = True
+
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_id = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_id)
+        assert(acl_entry_id != SAI_NULL_OBJECT_ID)
+
+        # bind this ACL table to port2s object id
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_switch_attribute(attr)
+
+        warmboot(self.client)
+        try:
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:    
+
+                user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+                
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+                
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf8.value, udf9.value, udf10.value, udf11.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+                
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+                
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf4.value, udf5.value, udf6.value, udf7.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+                
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+                
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+                
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+                
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [udf14.value, udf15.value]
+                user_define_filed_group_mask = [-1, -1]
+                
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+                
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf12.value, udf13.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf10.value, udf11.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf8.value, udf9.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf6.value, udf7.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-4), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf4.value, udf5.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-5), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf2.value, udf3.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-6), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf0.value, udf1.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-7), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+        finally:
+            # unbind this ACL table from switch object id
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            self.client.sai_thrift_remove_udf(udf_entry_id)
+            self.client.sai_thrift_remove_udf(udf_entry_id1)
+            self.client.sai_thrift_remove_udf(udf_entry_id2)
+            self.client.sai_thrift_remove_udf(udf_entry_id3)
+            if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                self.client.sai_thrift_remove_udf(udf_entry_id4)
+                self.client.sai_thrift_remove_udf(udf_entry_id5)
+                self.client.sai_thrift_remove_udf(udf_entry_id6)
+                self.client.sai_thrift_remove_udf(udf_entry_id7)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id1)
+            self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            self.client.sai_thrift_remove_udf_group(udf_group_id3)
+            self.client.sai_thrift_remove_udf_group(udf_group_id4)
+            self.client.sai_thrift_remove_udf_group(udf_group_id5)
+            self.client.sai_thrift_remove_udf_group(udf_group_id6)
+            self.client.sai_thrift_remove_udf_group(udf_group_id7)
+
+
+class scenario_75_udf_group_add_update_from_mid_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
+
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        # send the test packet(s)
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        pkt1 = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+            
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt1 = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=62,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            print '#### NO ACL Applied ####'
+            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            self.ctc_send_packet(1, str(pkt))
+            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
+        # setup ACL to block based on Source IP
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = [port1, port2]
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type=None
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        ip_src=None
+        ip_src_mask=None
+        ip_dst=None
+        ip_dst_mask=None
+        ipv6_src=None
+        ipv6_src_mask=None
+        ipv6_dst=None
+        ipv6_dst_mask=None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        ip_protocol=None
+        in_port=None
+        out_port=None
+        out_ports=None
+        src_l4_port=None
+        dst_l4_port=None
+        acl_range_type_list=None
+        ingress_mirror_id=None
+        egress_mirror_id=None
+        ingress_samplepacket=None
+        acl_range_id_list=None
+        redirect=None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+
+        udf0 = ctypes.c_int8(0)
+        udf1 = ctypes.c_int8(1)
+        udf2 = ctypes.c_int8(0)
+        udf3 = ctypes.c_int8(0)
+
+        udf4 = ctypes.c_int8(64)
+        udf5 = ctypes.c_int8(6)
+        udf6 = ctypes.c_int8(165)
+        udf7 = ctypes.c_int8(240)
+
+        udf8 = ctypes.c_int8(192)
+        udf9 = ctypes.c_int8(168)
+        udf10 = ctypes.c_int8(0)
+        udf11 = ctypes.c_int8(1)
+
+        udf12 = ctypes.c_int8(10)
+        udf13 = ctypes.c_int8(10)
+        udf14 = ctypes.c_int8(10)
+        udf15 = ctypes.c_int8(1)
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+        
+        if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+            group_length = 2
+        elif 'tsingma' == testutils.test_params_get()['chipname']:
+            group_length = 4
+
+        print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = 0x%lx" %udf_group_id
+
+        udf_group_id1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id1 = 0x%lx" %udf_group_id1
+
+        udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id2 = 0x%lx" %udf_group_id2
+
+        udf_group_id3 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id3 = 0x%lx" %udf_group_id3
+
+        udf_group_id4 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id4 = 0x%lx" %udf_group_id4
+
+        udf_group_id5 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id5 = 0x%lx" %udf_group_id5
+
+        udf_group_id6 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id6 = 0x%lx" %udf_group_id6
+
+        udf_group_id7 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id7 = 0x%lx" %udf_group_id7
+
+        #ipv4
+        ether_type = 0x0800
+        ether_type_mask = U16MASKFULL
+        #tcp
+        l3_header_protocol = 6
+        l3_header_protocol_mask = U8MASKFULL
+        #gre
+        gre_type = None
+        gre_type_mask = None
+        #l4 port
+        l4_src_port = 1234
+        l4_src_port_mask = U16MASKFULL
+        l4_dst_port = 80
+        l4_dst_port_mask = U16MASKFULL
+        #mpls label num
+        mpls_label_num = None
+        #entry proirity
+        priority = 0
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   ether_type,
+                                                   ether_type_mask,
+                                                   l3_header_protocol,
+                                                   l3_header_protocol_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 6
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 10
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id4 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id4 > 0, 'udf_entry_id4 is <= 0'
+            print "udf_entry_id4 = 0x%lx" %udf_entry_id4
+
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id5 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id5 > 0, 'udf_entry_id5 is <= 0'
+            print "udf_entry_id5 = 0x%lx" %udf_entry_id5
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id6 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id6 > 0, 'udf_entry_id6 is <= 0'
+            print "udf_entry_id6 = 0x%lx" %udf_entry_id6
+
+            base = SAI_UDF_BASE_L3
+            offset = 18
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id7 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id7 > 0, 'udf_entry_id7 is <= 0'
+            print "udf_entry_id7 = 0x%lx" %udf_entry_id7
+
+        acl_attr_list = []
+        # acl key field
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-7), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id1)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-6), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id2)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-5), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id3)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-4), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id4)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id5)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id6)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id7)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_id = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_id)
+        assert(acl_table_id != SAI_NULL_OBJECT_ID)
+
+        # acl entry info
+        action = SAI_PACKET_ACTION_DROP
+        entry_priority = 1
+        admin_state = True
+
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_id = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_id)
+        assert(acl_entry_id != SAI_NULL_OBJECT_ID)
+
+        # bind this ACL table to port2s object id
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_switch_attribute(attr)
+
+        warmboot(self.client)
+        try:
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [udf4.value, udf5.value, udf6.value, udf7.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-4), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf8.value, udf9.value, udf10.value, udf11.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value]
+                user_define_filed_group_mask = [-1, -1, -1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-5), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [udf6.value, udf7.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-4), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf8.value, udf9.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf10.value, udf11.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf4.value, udf5.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-5), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf2.value, udf3.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-6), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf12.value, udf13.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf14.value, udf15.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [udf0.value, udf1.value]
+                user_define_filed_group_mask = [-1, -1]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-7), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+        finally:
+            # unbind this ACL table from switch object id
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            self.client.sai_thrift_remove_udf(udf_entry_id)
+            self.client.sai_thrift_remove_udf(udf_entry_id1)
+            self.client.sai_thrift_remove_udf(udf_entry_id2)
+            self.client.sai_thrift_remove_udf(udf_entry_id3)
+            if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                self.client.sai_thrift_remove_udf(udf_entry_id4)
+                self.client.sai_thrift_remove_udf(udf_entry_id5)
+                self.client.sai_thrift_remove_udf(udf_entry_id6)
+                self.client.sai_thrift_remove_udf(udf_entry_id7)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id1)
+            self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            self.client.sai_thrift_remove_udf_group(udf_group_id3)
+            self.client.sai_thrift_remove_udf_group(udf_group_id4)
+            self.client.sai_thrift_remove_udf_group(udf_group_id5)
+            self.client.sai_thrift_remove_udf_group(udf_group_id6)
+            self.client.sai_thrift_remove_udf_group(udf_group_id7)
+
+
+@group('acl')
+class scenario_76_udf_group_remove_update_from_min_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
+
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        # send the test packet(s)
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        pkt1 = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+            
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt1 = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=62,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            print '#### NO ACL Applied ####'
+            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            self.ctc_send_packet(1, str(pkt))
+            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
+        # setup ACL to block based on Source IP
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = [port1, port2]
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type=None
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        ip_src=None
+        ip_src_mask=None
+        ip_dst=None
+        ip_dst_mask=None
+        ipv6_src=None
+        ipv6_src_mask=None
+        ipv6_dst=None
+        ipv6_dst_mask=None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        ip_protocol=None
+        in_port=None
+        out_port=None
+        out_ports=None
+        src_l4_port=None
+        dst_l4_port=None
+        acl_range_type_list=None
+        ingress_mirror_id=None
+        egress_mirror_id=None
+        ingress_samplepacket=None
+        acl_range_id_list=None
+        redirect=None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+
+        udf0 = ctypes.c_int8(0)
+        udf1 = ctypes.c_int8(1)
+        udf2 = ctypes.c_int8(0)
+        udf3 = ctypes.c_int8(0)
+
+        udf4 = ctypes.c_int8(64)
+        udf5 = ctypes.c_int8(6)
+        udf6 = ctypes.c_int8(165)
+        udf7 = ctypes.c_int8(240)
+
+        udf8 = ctypes.c_int8(192)
+        udf9 = ctypes.c_int8(168)
+        udf10 = ctypes.c_int8(0)
+        udf11 = ctypes.c_int8(1)
+
+        udf12 = ctypes.c_int8(10)
+        udf13 = ctypes.c_int8(10)
+        udf14 = ctypes.c_int8(10)
+        udf15 = ctypes.c_int8(1)
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            group_length = 4
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:    
+            group_length = 2
+
+        print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = 0x%lx" %udf_group_id
+
+        udf_group_id1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id1 = 0x%lx" %udf_group_id1
+
+        udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id2 = 0x%lx" %udf_group_id2
+
+        udf_group_id3 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id3 = 0x%lx" %udf_group_id3
+
+        udf_group_id4 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id4 = 0x%lx" %udf_group_id4
+
+        udf_group_id5 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id5 = 0x%lx" %udf_group_id5
+
+        udf_group_id6 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id6 = 0x%lx" %udf_group_id6
+
+        udf_group_id7 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id7 = 0x%lx" %udf_group_id7
+
+        #ipv4
+        ether_type = 0x0800
+        ether_type_mask = U16MASKFULL
+        #tcp
+        l3_header_protocol = 6
+        l3_header_protocol_mask = U8MASKFULL
+        #gre
+        gre_type = None
+        gre_type_mask = None
+        #l4 port
+        l4_src_port = 1234
+        l4_src_port_mask = U16MASKFULL
+        l4_dst_port = 80
+        l4_dst_port_mask = U16MASKFULL
+        #mpls label num
+        mpls_label_num = None
+        #entry proirity
+        priority = 0
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   ether_type,
+                                                   ether_type_mask,
+                                                   l3_header_protocol,
+                                                   l3_header_protocol_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+    
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 6
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 10
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id4 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id4 > 0, 'udf_entry_id4 is <= 0'
+            print "udf_entry_id4 = 0x%lx" %udf_entry_id4
+
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id5 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id5 > 0, 'udf_entry_id5 is <= 0'
+            print "udf_entry_id5 = 0x%lx" %udf_entry_id5
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id6 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id6 > 0, 'udf_entry_id6 is <= 0'
+            print "udf_entry_id6 = 0x%lx" %udf_entry_id6
+
+            base = SAI_UDF_BASE_L3
+            offset = 18
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id7 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id7 > 0, 'udf_entry_id7 is <= 0'
+            print "udf_entry_id7 = 0x%lx" %udf_entry_id7
+
+        acl_attr_list = []
+        # acl key field
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id1)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id2)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id3)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id4)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id5)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id6)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id7)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_id = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_id)
+        assert(acl_table_id != SAI_NULL_OBJECT_ID)
+
+        # acl entry info
+        action = SAI_PACKET_ACTION_DROP
+        entry_priority = 1
+        admin_state = True
+
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+
+            user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf4.value, udf5.value, udf6.value, udf7.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf8.value, udf9.value, udf10.value, udf11.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            user_define_filed_group_data = [udf0.value, udf1.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf2.value, udf3.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf4.value, udf5.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf6.value, udf7.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf8.value, udf9.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf10.value, udf11.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf12.value, udf13.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf14.value, udf15.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_id = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_id)
+        assert(acl_entry_id != SAI_NULL_OBJECT_ID)
+
+        # bind this ACL table to port2s object id
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_switch_attribute(attr)
+
+        warmboot(self.client)
+        try:
+            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            # send the same packet
+            self.ctc_send_packet(1, str(pkt))
+
+            # ensure packet is dropped
+            # check for absence of packet here!
+            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### NO ACL Applied ####'
+                print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                self.ctc_send_packet(1, str(pkt))
+                print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_packets( exp_pkt, [0])
+
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+0), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### NO ACL Applied ####'
+                print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                self.ctc_send_packet(1, str(pkt))
+                print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_packets( exp_pkt, [0])
+
+        finally:
+            # unbind this ACL table from switch object id
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            self.client.sai_thrift_remove_udf(udf_entry_id)
+            self.client.sai_thrift_remove_udf(udf_entry_id1)
+            self.client.sai_thrift_remove_udf(udf_entry_id2)
+            self.client.sai_thrift_remove_udf(udf_entry_id3)
+            if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                self.client.sai_thrift_remove_udf(udf_entry_id4)
+                self.client.sai_thrift_remove_udf(udf_entry_id5)
+                self.client.sai_thrift_remove_udf(udf_entry_id6)
+                self.client.sai_thrift_remove_udf(udf_entry_id7)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id1)
+            self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            self.client.sai_thrift_remove_udf_group(udf_group_id3)
+            self.client.sai_thrift_remove_udf_group(udf_group_id4)
+            self.client.sai_thrift_remove_udf_group(udf_group_id5)
+            self.client.sai_thrift_remove_udf_group(udf_group_id6)
+            self.client.sai_thrift_remove_udf_group(udf_group_id7)
+
+
+@group('acl')
+class scenario_77_udf_group_remove_update_from_max_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
+
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        # send the test packet(s)
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        pkt1 = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+            
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt1 = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=62,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            print '#### NO ACL Applied ####'
+            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            self.ctc_send_packet(1, str(pkt))
+            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
+        # setup ACL to block based on Source IP
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = [port1, port2]
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type=None
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        ip_src=None
+        ip_src_mask=None
+        ip_dst=None
+        ip_dst_mask=None
+        ipv6_src=None
+        ipv6_src_mask=None
+        ipv6_dst=None
+        ipv6_dst_mask=None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        ip_protocol=None
+        in_port=None
+        out_port=None
+        out_ports=None
+        src_l4_port=None
+        dst_l4_port=None
+        acl_range_type_list=None
+        ingress_mirror_id=None
+        egress_mirror_id=None
+        ingress_samplepacket=None
+        acl_range_id_list=None
+        redirect=None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+
+        udf0 = ctypes.c_int8(0)
+        udf1 = ctypes.c_int8(1)
+        udf2 = ctypes.c_int8(0)
+        udf3 = ctypes.c_int8(0)
+
+        udf4 = ctypes.c_int8(64)
+        udf5 = ctypes.c_int8(6)
+        udf6 = ctypes.c_int8(165)
+        udf7 = ctypes.c_int8(240)
+
+        udf8 = ctypes.c_int8(192)
+        udf9 = ctypes.c_int8(168)
+        udf10 = ctypes.c_int8(0)
+        udf11 = ctypes.c_int8(1)
+
+        udf12 = ctypes.c_int8(10)
+        udf13 = ctypes.c_int8(10)
+        udf14 = ctypes.c_int8(10)
+        udf15 = ctypes.c_int8(1)
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            group_length = 4
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+            group_length = 2
+
+        print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = 0x%lx" %udf_group_id
+
+        udf_group_id1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id1 = 0x%lx" %udf_group_id1
+
+        udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id2 = 0x%lx" %udf_group_id2
+
+        udf_group_id3 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id3 = 0x%lx" %udf_group_id3
+
+        udf_group_id4 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id4 = 0x%lx" %udf_group_id4
+
+        udf_group_id5 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id5 = 0x%lx" %udf_group_id5
+
+        udf_group_id6 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id6 = 0x%lx" %udf_group_id6
+
+        udf_group_id7 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id7 = 0x%lx" %udf_group_id7
+
+        #ipv4
+        ether_type = 0x0800
+        ether_type_mask = U16MASKFULL
+        #tcp
+        l3_header_protocol = 6
+        l3_header_protocol_mask = U8MASKFULL
+        #gre
+        gre_type = None
+        gre_type_mask = None
+        #l4 port
+        l4_src_port = 1234
+        l4_src_port_mask = U16MASKFULL
+        l4_dst_port = 80
+        l4_dst_port_mask = U16MASKFULL
+        #mpls label num
+        mpls_label_num = None
+        #entry proirity
+        priority = 0
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   ether_type,
+                                                   ether_type_mask,
+                                                   l3_header_protocol,
+                                                   l3_header_protocol_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 6
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 10
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id4 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id4 > 0, 'udf_entry_id4 is <= 0'
+            print "udf_entry_id4 = 0x%lx" %udf_entry_id4
+
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id5 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id5 > 0, 'udf_entry_id5 is <= 0'
+            print "udf_entry_id5 = 0x%lx" %udf_entry_id5
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id6 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id6 > 0, 'udf_entry_id6 is <= 0'
+            print "udf_entry_id6 = 0x%lx" %udf_entry_id6
+
+            base = SAI_UDF_BASE_L3
+            offset = 18
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id7 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id7 > 0, 'udf_entry_id7 is <= 0'
+            print "udf_entry_id7 = 0x%lx" %udf_entry_id7
+
+        acl_attr_list = []
+        # acl key field
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-7), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id1)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-6), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id2)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-5), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id3)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-4), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id4)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id5)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id6)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id7)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MAX), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_id = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_id)
+        assert(acl_table_id != SAI_NULL_OBJECT_ID)
+
+        # acl entry info
+        action = SAI_PACKET_ACTION_DROP
+        entry_priority = 1
+        admin_state = True
+
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+
+            user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf4.value, udf5.value, udf6.value, udf7.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf8.value, udf9.value, udf10.value, udf11.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            user_define_filed_group_data = [udf0.value, udf1.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-7), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf2.value, udf3.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-6), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf4.value, udf5.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-5), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf6.value, udf7.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-4), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf8.value, udf9.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf10.value, udf11.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf12.value, udf13.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf14.value, udf15.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_id = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_id)
+        assert(acl_entry_id != SAI_NULL_OBJECT_ID)
+
+        # bind this ACL table to port2s object id
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_switch_attribute(attr)
+
+        warmboot(self.client)
+        try:
+            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            # send the same packet
+            self.ctc_send_packet(1, str(pkt))
+
+            # ensure packet is dropped
+            # check for absence of packet here!
+            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### NO ACL Applied ####'
+                print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                self.ctc_send_packet(1, str(pkt))
+                print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_packets(exp_pkt, [0])
+
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-7), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-6), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-5), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-4), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX-1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### NO ACL Applied ####'
+                print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                self.ctc_send_packet(1, str(pkt))
+                print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_packets( exp_pkt, [0])
+
+        finally:
+            # unbind this ACL table from switch object id
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+
+            self.client.sai_thrift_remove_udf(udf_entry_id)
+            self.client.sai_thrift_remove_udf(udf_entry_id1)
+            self.client.sai_thrift_remove_udf(udf_entry_id2)
+            self.client.sai_thrift_remove_udf(udf_entry_id3)
+            if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                self.client.sai_thrift_remove_udf(udf_entry_id4)
+                self.client.sai_thrift_remove_udf(udf_entry_id5)
+                self.client.sai_thrift_remove_udf(udf_entry_id6)
+                self.client.sai_thrift_remove_udf(udf_entry_id7)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id1)
+            self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            self.client.sai_thrift_remove_udf_group(udf_group_id3)
+            self.client.sai_thrift_remove_udf_group(udf_group_id4)
+            self.client.sai_thrift_remove_udf_group(udf_group_id5)
+            self.client.sai_thrift_remove_udf_group(udf_group_id6)
+            self.client.sai_thrift_remove_udf_group(udf_group_id7)
+
+
+@group('acl')
+class scenario_78_udf_group_remove_update_from_mid_test(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        print
+        print '----------------------------------------------------------------------------------------------'
+        print "Sending packet ptf_intf 2 -> ptf_intf 1 (192.168.0.1 ---> 10.10.10.1 [id = 105])"
+
+        switch_init(self.client)
+
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        mac = ''
+
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port2, 0, v4_enabled, v6_enabled, mac)
+
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_mask1 = '255.255.255.255'
+        dmac1 = '00:11:22:33:44:55'
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id1)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+
+        # send the test packet(s)
+        pkt = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=64,
+            tcp_sport=1234,
+            tcp_dport=80)
+        pkt1 = simple_qinq_tcp_packet(pktlen=100,
+            eth_dst=router_mac,
+            eth_src='00:22:22:22:22:22',
+            dl_vlan_outer=20,
+            dl_vlan_pcp_outer=4,
+            dl_vlan_cfi_outer=1,
+            vlan_vid=10,
+            vlan_pcp=2,
+            dl_vlan_cfi=1,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+            
+        exp_pkt = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=63,
+            tcp_sport=1234,
+            tcp_dport=80)
+        exp_pkt1 = simple_tcp_packet(pktlen=92,
+            eth_dst='00:11:22:33:44:55',
+            eth_src=router_mac,
+            ip_dst='10.10.10.1',
+            ip_src='192.168.0.1',
+            ip_tos=5,
+            ip_ecn=1,
+            ip_dscp=1,
+            ip_ttl=62,
+            tcp_sport=1234,
+            tcp_dport=80)
+
+        try:
+            print '#### NO ACL Applied ####'
+            print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            self.ctc_send_packet(1, str(pkt))
+            print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_packets( exp_pkt, [0])
+        finally:
+            print '----------------------------------------------------------------------------------------------'
+
+        print "Sending packet ptf_intf 2 -[acl]-> ptf_intf 1 (192.168.0.1 -[acl]-> 10.10.10.1 [id = 105])"
+        # setup ACL to block based on Source IP
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_SWITCH]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        in_ports = [port1, port2]
+        mac_src = None
+        mac_dst = None
+        mac_src_mask = "ff:ff:ff:ff:ff:ff"
+        mac_dst_mask = "ff:ff:ff:ff:ff:ff"
+        svlan_id=None
+        svlan_pri=None
+        svlan_cfi=None
+        cvlan_id=None
+        cvlan_pri=None
+        cvlan_cfi=None
+        ip_type=None
+        mpls_label0_label = None
+        mpls_label0_ttl = None
+        mpls_label0_exp = None
+        mpls_label0_bos = None
+        mpls_label1_label = None
+        mpls_label1_ttl = None
+        mpls_label1_exp = None
+        mpls_label1_bos = None
+        mpls_label2_label = None
+        mpls_label2_ttl = None
+        mpls_label2_exp = None
+        mpls_label2_bos = None
+        mpls_label3_label = None
+        mpls_label3_ttl = None
+        mpls_label3_exp = None
+        mpls_label3_bos = None
+        mpls_label4_label = None
+        mpls_label4_ttl = None
+        mpls_label4_exp = None
+        mpls_label4_bos = None
+
+        ip_src=None
+        ip_src_mask=None
+        ip_dst=None
+        ip_dst_mask=None
+        ipv6_src=None
+        ipv6_src_mask=None
+        ipv6_dst=None
+        ipv6_dst_mask=None
+        ip_tos=None
+        ip_ecn=None
+        ip_dscp=None
+        ip_ttl=None
+        ip_protocol=None
+        in_port=None
+        out_port=None
+        out_ports=None
+        src_l4_port=None
+        dst_l4_port=None
+        acl_range_type_list=None
+        ingress_mirror_id=None
+        egress_mirror_id=None
+        ingress_samplepacket=None
+        acl_range_id_list=None
+        redirect=None
+        #add vlan edit action
+        new_svlan = None
+        new_scos = None
+        new_cvlan = None
+        new_ccos = None
+        #deny learning
+        deny_learn = None
+        admin_state = True
+
+        udf0 = ctypes.c_int8(0)
+        udf1 = ctypes.c_int8(1)
+        udf2 = ctypes.c_int8(0)
+        udf3 = ctypes.c_int8(0)
+
+        udf4 = ctypes.c_int8(64)
+        udf5 = ctypes.c_int8(6)
+        udf6 = ctypes.c_int8(165)
+        udf7 = ctypes.c_int8(240)
+
+        udf8 = ctypes.c_int8(192)
+        udf9 = ctypes.c_int8(168)
+        udf10 = ctypes.c_int8(0)
+        udf11 = ctypes.c_int8(1)
+
+        udf12 = ctypes.c_int8(10)
+        udf13 = ctypes.c_int8(10)
+        udf14 = ctypes.c_int8(10)
+        udf15 = ctypes.c_int8(1)
+
+        group_type = SAI_UDF_GROUP_TYPE_GENERIC
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+            group_length = 4
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+            group_length = 2    
+
+        print "Create udf group: udf_group_type = SAI_UDF_GROUP_ATTR_TYPE, group_length = SAI_UDF_GROUP_ATTR_LENGTH "
+        udf_group_id = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id = 0x%lx" %udf_group_id
+
+        udf_group_id1 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id1 = 0x%lx" %udf_group_id1
+
+        udf_group_id2 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id2 = 0x%lx" %udf_group_id2
+
+        udf_group_id3 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id3 = 0x%lx" %udf_group_id3
+
+        udf_group_id4 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id4 = 0x%lx" %udf_group_id4
+
+        udf_group_id5 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id5 = 0x%lx" %udf_group_id5
+
+        udf_group_id6 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id6 = 0x%lx" %udf_group_id6
+
+        udf_group_id7 = sai_thrift_create_udf_group(self.client, group_type, group_length)
+        print "udf_group_id7 = 0x%lx" %udf_group_id7
+
+        #ipv4
+        ether_type = 0x0800
+        ether_type_mask = U16MASKFULL
+        #tcp
+        l3_header_protocol = 6
+        l3_header_protocol_mask = U8MASKFULL
+        #gre
+        gre_type = None
+        gre_type_mask = None
+        #l4 port
+        l4_src_port = 1234
+        l4_src_port_mask = U16MASKFULL
+        l4_dst_port = 80
+        l4_dst_port_mask = U16MASKFULL
+        #mpls label num
+        mpls_label_num = None
+        #entry proirity
+        priority = 0
+
+        udf_match_id = sai_thrift_create_udf_match(self.client,
+                                                   ether_type,
+                                                   ether_type_mask,
+                                                   l3_header_protocol,
+                                                   l3_header_protocol_mask,
+                                                   gre_type,
+                                                   gre_type_mask,
+                                                   l4_src_port,
+                                                   l4_src_port_mask,
+                                                   l4_dst_port,
+                                                   l4_dst_port_mask,
+                                                   mpls_label_num,
+                                                   priority)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:    
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1, -1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+        if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            base = SAI_UDF_BASE_L3
+            offset = 4
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id, base, offset, hash_mask_list)
+            assert udf_entry_id > 0, 'udf_entry_id is <= 0'
+            print "udf_entry_id = 0x%lx" %udf_entry_id
+
+            base = SAI_UDF_BASE_L3
+            offset = 6
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id1 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id1, base, offset, hash_mask_list)
+            assert udf_entry_id1 > 0, 'udf_entry_id1 is <= 0'
+            print "udf_entry_id1 = 0x%lx" %udf_entry_id1
+
+            base = SAI_UDF_BASE_L3
+            offset = 8
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id2 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id2, base, offset, hash_mask_list)
+            assert udf_entry_id2 > 0, 'udf_entry_id2 is <= 0'
+            print "udf_entry_id2 = 0x%lx" %udf_entry_id2
+
+            base = SAI_UDF_BASE_L3
+            offset = 10
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id3 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id3, base, offset, hash_mask_list)
+            assert udf_entry_id3 > 0, 'udf_entry_id3 is <= 0'
+            print "udf_entry_id3 = 0x%lx" %udf_entry_id3
+
+            base = SAI_UDF_BASE_L3
+            offset = 12
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id4 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id4, base, offset, hash_mask_list)
+            assert udf_entry_id4 > 0, 'udf_entry_id4 is <= 0'
+            print "udf_entry_id4 = 0x%lx" %udf_entry_id4
+
+            base = SAI_UDF_BASE_L3
+            offset = 14
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id5 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id5, base, offset, hash_mask_list)
+            assert udf_entry_id5 > 0, 'udf_entry_id5 is <= 0'
+            print "udf_entry_id5 = 0x%lx" %udf_entry_id5
+
+            base = SAI_UDF_BASE_L3
+            offset = 16
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id6 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id6, base, offset, hash_mask_list)
+            assert udf_entry_id6 > 0, 'udf_entry_id6 is <= 0'
+            print "udf_entry_id6 = 0x%lx" %udf_entry_id6
+
+            base = SAI_UDF_BASE_L3
+            offset = 18
+            # default value
+            hash_mask_list = [-1, -1]
+
+            udf_entry_id7 =  sai_thrift_create_udf(self.client, udf_match_id, udf_group_id7, base, offset, hash_mask_list)
+            assert udf_entry_id7 > 0, 'udf_entry_id7 is <= 0'
+            print "udf_entry_id7 = 0x%lx" %udf_entry_id7
+
+        acl_attr_list = []
+        # acl key field
+
+        # create acl table
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id1)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id2)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id3)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id4)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id5)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id6)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(oid=udf_group_id7)
+        attribute = sai_thrift_attribute_t(id=(SAI_ACL_TABLE_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+        attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        acl_table_id = self.client.sai_thrift_create_acl_table(acl_attr_list)
+        sys_logging("create acl table = 0x%lx" %acl_table_id)
+        assert(acl_table_id != SAI_NULL_OBJECT_ID)
+
+        # acl entry info
+        action = SAI_PACKET_ACTION_DROP
+        entry_priority = 1
+        admin_state = True
+
+        acl_attr_list = []
+        #ACL table OID
+        attribute_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        #Priority
+        attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # Admin State
+        attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        if 'tsingma' == testutils.test_params_get()['chipname']:
+
+            user_define_filed_group_data = [udf0.value, udf1.value, udf2.value, udf3.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf4.value, udf5.value, udf6.value, udf7.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf8.value, udf9.value, udf10.value, udf11.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf12.value, udf13.value, udf14.value, udf15.value]
+            user_define_filed_group_mask = [-1, -1, -1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+        elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+            user_define_filed_group_data = [udf0.value, udf1.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf2.value, udf3.value]
+            user_define_filed_group_mask = [-1, -1]
+
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf4.value, udf5.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf6.value, udf7.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf8.value, udf9.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            user_define_filed_group_data = [udf10.value, udf11.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf12.value, udf13.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            user_define_filed_group_data = [udf14.value, udf15.value]
+            user_define_filed_group_mask = [-1, -1]
+            
+            user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+            user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+            
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True,
+                                                                                                data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+            attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+            acl_attr_list.append(attribute)
+
+        #Packet action
+        attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),
+                                                                                              enable = True))
+        attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+        acl_attr_list.append(attribute)
+
+        # create entry
+        acl_entry_id = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+        sys_logging("create acl entry = 0x%lx" %acl_entry_id)
+        assert(acl_entry_id != SAI_NULL_OBJECT_ID)
+
+        # bind this ACL table to port2s object id
+        attr_value = sai_thrift_attribute_value_t(oid=acl_table_id)
+        attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+        self.client.sai_thrift_set_switch_attribute(attr)
+
+        warmboot(self.client)
+        try:
+            assert acl_table_id > 0, 'acl_entry_id is <= 0'
+            assert acl_entry_id > 0, 'acl_entry_id is <= 0'
+
+            print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+            print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+            # send the same packet
+            self.ctc_send_packet(1, str(pkt))
+
+            # ensure packet is dropped
+            # check for absence of packet here!
+            print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+            self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+            if 'tsingma' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0, 0, 0]
+                user_define_filed_group_mask = [0, 0, 0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### NO ACL Applied ####'
+                print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                self.ctc_send_packet(1, str(pkt))
+                print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_packets( exp_pkt, [0])
+
+            elif 'tsingma_mx' == testutils.test_params_get()['chipname']:
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+3), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+     
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+4), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+5), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+2), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+1), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+6), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=(SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN+7), value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### ACL \'DROP, src 192.168.0.1/255.255.255.0, in_ports[ptf_intf_1,2]\' Applied ####'
+                print '#### Sending      ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                # send the same packet
+                self.ctc_send_packet(1, str(pkt))
+                # ensure packet is dropped
+                # check for absence of packet here!
+                print '#### NOT Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_no_packet(exp_pkt, 0, default_time_out)
+
+                user_define_filed_group_data = [0, 0]
+                user_define_filed_group_mask = [0, 0]
+
+                user_define_filed_group_data_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_data), u8list=user_define_filed_group_data)
+                user_define_filed_group_mask_list = sai_thrift_u8_list_t(count=len(user_define_filed_group_mask), u8list=user_define_filed_group_mask)
+
+                attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = False,
+                                                                                                    data = sai_thrift_acl_data_t(u8list=user_define_filed_group_data_list),
+                                                                                                    mask = sai_thrift_acl_mask_t(u8list=user_define_filed_group_mask_list)))
+                attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN, value=attribute_value)
+                self.client.sai_thrift_set_acl_entry_attribute(acl_entry_id, attribute)
+
+                print '#### NO ACL Applied ####'
+                print '#### Sending  ', router_mac, '| 00:22:22:22:22:22 | 10.10.10.1 | 192.168.0.1 | @ ptf_intf 2'
+                self.ctc_send_packet(1, str(pkt))
+                print '#### Expecting 00:11:22:33:44:55 |', router_mac, '| 10.10.10.1 | 192.168.0.1 | @ ptf_intf 1'
+                self.ctc_verify_packets( exp_pkt, [0])
+
+        finally:
+            # unbind this ACL table from switch object id
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_SWITCH_ATTR_INGRESS_ACL, value=attr_value)
+            self.client.sai_thrift_set_switch_attribute(attr)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_id)
+            self.client.sai_thrift_remove_acl_table(acl_table_id)
+
+            # cleanup
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id1, ip_addr1, dmac1)
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            self.client.sai_thrift_remove_udf(udf_entry_id)
+            self.client.sai_thrift_remove_udf(udf_entry_id1)
+            self.client.sai_thrift_remove_udf(udf_entry_id2)
+            self.client.sai_thrift_remove_udf(udf_entry_id3)
+            if 'tsingma_mx' == testutils.test_params_get()['chipname']:
+                self.client.sai_thrift_remove_udf(udf_entry_id4)
+                self.client.sai_thrift_remove_udf(udf_entry_id5)
+                self.client.sai_thrift_remove_udf(udf_entry_id6)
+                self.client.sai_thrift_remove_udf(udf_entry_id7)
+            self.client.sai_thrift_remove_udf_match(udf_match_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id)
+            self.client.sai_thrift_remove_udf_group(udf_group_id1)
+            self.client.sai_thrift_remove_udf_group(udf_group_id2)
+            self.client.sai_thrift_remove_udf_group(udf_group_id3)
+            self.client.sai_thrift_remove_udf_group(udf_group_id4)
+            self.client.sai_thrift_remove_udf_group(udf_group_id5)
+            self.client.sai_thrift_remove_udf_group(udf_group_id6)
+            self.client.sai_thrift_remove_udf_group(udf_group_id7)
 

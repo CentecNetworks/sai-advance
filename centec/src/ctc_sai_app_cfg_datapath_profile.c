@@ -37,6 +37,7 @@ ctc_app_read_datapath_profile_pll_info(ctc_app_parse_file_t* pfile, ctc_datapath
 {
     uint8  entry_num = 0;
     int32  value = 0;
+    int32  value_new = 0;
     const char* field_sub = NULL;
 
     /* get PLLA core frequency*/
@@ -57,6 +58,70 @@ ctc_app_read_datapath_profile_pll_info(ctc_app_parse_file_t* pfile, ctc_datapath
                    &entry_num);
     p_datapath_cfg->core_frequency_b = value;
 
+    /* get PLL core frequency*/
+    entry_num = 1;
+    ctc_app_parse_file(pfile,
+                   "CORE_PLL",
+                   field_sub,
+                   &value_new,
+                   &entry_num);
+    if(0 != value_new)
+    {
+        p_datapath_cfg->core_frequency_a = value_new;
+    }
+
+    /* DP0 FLEXE client num*/
+    value_new = 0;
+    entry_num = 1;
+    ctc_app_parse_file(pfile,
+                   "DP0_FLEXE_CLIENT_NUM",
+                   field_sub,
+                   &value_new,
+                   &entry_num);
+    if(0 != value_new)
+    {
+        p_datapath_cfg->flexe_client_num[0] = value_new;
+    }
+
+    /* DP1 FLEXE client num*/
+    value_new = 0;
+    entry_num = 1;
+    ctc_app_parse_file(pfile,
+                   "DP1_FLEXE_CLIENT_NUM",
+                   field_sub,
+                   &value_new,
+                   &entry_num);
+    if(0 != value_new)
+    {
+        p_datapath_cfg->flexe_client_num[1] = value_new;
+    }
+
+    /* DP0 XPIPE port num*/
+    value_new = 0;
+    entry_num = 1;
+    ctc_app_parse_file(pfile,
+                   "DP0_PIPE_PORT_NUM",
+                   field_sub,
+                   &value_new,
+                   &entry_num);
+    if(0 != value_new)
+    {
+        p_datapath_cfg->xpipe_num[0] = value_new;
+    }
+
+    /* DP1 XPIPE port num*/
+    value_new = 0;
+    entry_num = 1;
+    ctc_app_parse_file(pfile,
+                   "DP1_PIPE_PORT_NUM",
+                   field_sub,
+                   &value_new,
+                   &entry_num);
+    if(0 != value_new)
+    {
+        p_datapath_cfg->xpipe_num[1] = value_new;
+    }
+
     return CTC_E_NONE;
 }
 
@@ -72,9 +137,11 @@ ctc_app_read_datapath_profile_serdes_info(ctc_app_parse_file_t* pfile, ctc_datap
     static uint32   serdes_id[CTC_DATAPATH_SERDES_NUM] = {0} ;
     static uint32   serdes_group[CTC_DATAPATH_SERDES_NUM] = {0} ;
     static uint32   is_xpipe[CTC_DATAPATH_SERDES_NUM] = {0} ;
+    static uint32   index[CTC_DATAPATH_SERDES_NUM] = {0};
     int      ret = 0;
 
     entry_num = CTC_DATAPATH_SERDES_NUM;
+
     ret = ctc_app_parse_file(pfile,
                        "SERDES_ITEM",
                        "SERDES_ID",
@@ -116,9 +183,17 @@ ctc_app_read_datapath_profile_serdes_info(ctc_app_parse_file_t* pfile, ctc_datap
                        "SERDES_XPIPE",
                        is_xpipe,
                        &entry_num);    
+    
+    ret = ctc_app_parse_file(pfile,
+                       "SERDES_ITEM",
+                       "INDEX",
+                       index,
+                       &entry_num);
 
     for(cnt = 0; cnt < CTC_DATAPATH_SERDES_NUM; cnt++)
     {
+        p_datapath_cfg->serdes[cnt].logical_serdes_id = index[cnt];
+        p_datapath_cfg->serdes[cnt].physical_serdes_id = serdes_id[cnt];
         p_datapath_cfg->serdes[cnt].mode = serdes_mode[cnt];
         p_datapath_cfg->serdes[cnt].rx_polarity = rx_polarity[cnt];
         p_datapath_cfg->serdes[cnt].tx_polarity = tx_polarity[cnt];

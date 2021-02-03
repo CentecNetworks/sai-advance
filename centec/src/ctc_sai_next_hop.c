@@ -78,6 +78,7 @@ _ctc_sai_next_hop_gen_mpls_push_para(ctc_mpls_nexthop_push_param_t* nh_param_pus
             nh_param_push->push_label[0].exp_type = CTC_NH_EXP_SELECT_ASSIGN;
             nh_param_push->push_label[0].exp = p_tunnel->encap_exp_val;
         }
+        CTC_SET_FLAG(nh_param_push->push_label[0].lable_flag, CTC_MPLS_NH_LABEL_IS_VALID);
 
         
     }
@@ -216,6 +217,7 @@ _ctc_sai_next_hop_add_mpls(uint8 lchip, uint32 nh_id, sai_u32_list_t label, ctc_
         }
         CTC_SAI_ERROR_RETURN(ctc_sai_qos_map_mpls_nh_set_map(next_hop_obj_id, p_next_hop_info->tc_color_to_exp_map_id,
             SAI_QOS_MAP_TYPE_TC_AND_COLOR_TO_MPLS_EXP, 1, &set_exp_domain));
+        p_next_hop_info->ctc_domain_id = set_exp_domain;
     }
     if(0 < label.count)
     {
@@ -470,6 +472,7 @@ _ctc_sai_next_hop_add_mpls(uint8 lchip, uint32 nh_id, sai_u32_list_t label, ctc_
     }
 
     nh_mpls_param.nh_prop = CTC_MPLS_NH_PUSH_TYPE;
+    nh_mpls_param.upd_type  = CTC_NH_UPD_FWD_ATTR;
     if(0 == p_next_hop_info->next_level_nexthop_id)
     {
         if(SAI_OUTSEG_TYPE_PUSH == p_next_hop_info->outseg_type)
@@ -836,16 +839,27 @@ _ctc_sai_next_hop_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
     uint8 lchip = 0;
     uint8 rif_type;
     ctc_object_id_t ctc_object_id;
+    ctc_object_id_t attr_ctc_object_id;
+    ctc_object_id_t attr_ctc_object_id_old;
     ctc_sai_next_hop_t* p_next_hop_info = NULL;
+    ctc_sai_next_hop_t* p_next_hop_info_next_level = NULL;
+    ctc_sai_next_hop_t* p_next_hop_info_next_level_old = NULL;
+    ctc_sai_next_hop_grp_t* p_next_hop_grp_info_next_level = NULL;
     sai_neighbor_entry_t neighbor_entry;
     ctc_sai_neighbor_t* p_neighbor_info = NULL;
     ctc_sai_neighbor_t* p_neighbor_info_old = NULL;
     ctc_ip_nh_param_t  nh_param;
     ctc_mpls_nexthop_tunnel_param_t mpls_tunnel_param;
+    ctc_mpls_nexthop_param_t nh_mpls_param;
+    uint16 adjust_length = 0;
+    ctc_sai_tunnel_t* p_tunnel = NULL;
+    uint8 is_l2vpn = 0;
+    uint32 stats_id = 0;
 
     sal_memset(&nh_param, 0 , sizeof(ctc_ip_nh_param_t));
     sal_memset(&neighbor_entry, 0 , sizeof(sai_neighbor_entry_t));
     sal_memset(&mpls_tunnel_param, 0, sizeof(ctc_mpls_nexthop_tunnel_param_t));
+    sal_memset(&nh_mpls_param, 0, sizeof(nh_mpls_param));
     ctc_sai_oid_get_lchip(key->key.object_id, &lchip);
     p_next_hop_info = ctc_sai_db_get_object_property(lchip, key->key.object_id);
     if (NULL == p_next_hop_info)
@@ -921,6 +935,106 @@ _ctc_sai_next_hop_set_attr(sai_object_key_t* key, const sai_attribute_t* attr)
         p_neighbor_info->ref_cnt++;
         p_neighbor_info_old->ref_cnt--;
         
+    }
+    else if (SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID == attr->id)
+    {
+        /* 
+        nh_info.nh_type = CTC_NH_TYPE_MPLS;
+        sal_memset(&nh_info, 0, sizeof(ctc_nh_info_t));
+        sal_memset(&mpls_nh, 0, sizeof(ctc_mpls_nexthop_param_t));
+        nh_info.p_nh_param = &mpls_nh;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_nh_get_nh_info(lchip, ctc_object_id.value, &nh_info)); //this sdk api have bug
+        */
+        p_tunnel = ctc_sai_db_get_object_property(lchip, p_next_hop_info->tunnel_id);
+        if (NULL == p_tunnel)
+        {
+            return SAI_STATUS_INVALID_OBJECT_ID;
+        }
+        if(SAI_TUNNEL_TYPE_MPLS_L2 == p_tunnel->tunnel_type)
+        {
+            nh_mpls_param.logic_port_valid = 1;
+            nh_mpls_param.logic_port = p_tunnel->logic_port;
+            is_l2vpn = 1;
+        }
+        _ctc_sai_next_hop_gen_mpls_push_para(&nh_mpls_param.nh_para.nh_param_push,p_tunnel,&(p_next_hop_info->label), p_next_hop_info->ctc_domain_id);
+        
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP, attr->value.oid, &attr_ctc_object_id);
+        if(SAI_OBJECT_TYPE_NEXT_HOP_GROUP == attr_ctc_object_id.type)
+        {
+            if(SAI_NEXT_HOP_GROUP_TYPE_PROTECTION != attr_ctc_object_id.sub_type)
+            {
+                return SAI_STATUS_INVALID_OBJECT_ID;
+            }
+            p_next_hop_grp_info_next_level = ctc_sai_db_get_object_property(lchip, attr->value.oid);
+            if (NULL == p_next_hop_grp_info_next_level)
+            {
+                return SAI_STATUS_INVALID_OBJECT_ID;
+            }
+            if( CTC_NH_APS_TYPE_TUNNEL != p_next_hop_grp_info_next_level->aps_nh_type)
+            {
+                return SAI_STATUS_INVALID_OBJECT_ID;
+            }
+            adjust_length += 4; // not accurate value
+            nh_mpls_param.nh_para.nh_param_push.tunnel_id = p_next_hop_grp_info_next_level->aps_tunnel_id;
+        }
+        else
+        {
+            p_next_hop_info_next_level = ctc_sai_db_get_object_property(lchip, attr->value.oid);
+            if(NULL == p_next_hop_info_next_level)
+            {
+                return SAI_STATUS_ITEM_NOT_FOUND;
+            }
+            if(0 == p_next_hop_info_next_level->ctc_mpls_tunnel_id)
+            {
+                return SAI_STATUS_ITEM_NOT_FOUND;
+            }
+            adjust_length += p_next_hop_info_next_level->label.count << 2;
+
+            ctcs_nh_get_mpls_tunnel_label(lchip, p_next_hop_info_next_level->ctc_mpls_tunnel_id, &mpls_tunnel_param);
+            if(mpls_tunnel_param.nh_param.is_sr)
+            {
+                if(CTC_CHIP_TSINGMA == ctcs_get_chip_type(lchip))
+                {
+                    nh_mpls_param.nh_para.nh_param_push.loop_nhid = ctc_object_id.value;
+                }
+                else if(CTC_CHIP_TSINGMA_MX <= ctcs_get_chip_type(lchip))
+                {
+                    nh_mpls_param.nh_para.nh_param_push.tunnel_id = p_next_hop_info_next_level->ctc_mpls_tunnel_id;
+                }
+            }
+            else
+            {
+                nh_mpls_param.nh_para.nh_param_push.tunnel_id = p_next_hop_info_next_level->ctc_mpls_tunnel_id;
+            }
+        }
+        adjust_length += p_next_hop_info->label.count << 2;
+        nh_mpls_param.adjust_length = is_l2vpn ? adjust_length + 14 : adjust_length;
+        if(p_next_hop_info->counter_obj_id)
+        {
+            CTC_SAI_ERROR_RETURN(ctc_sai_counter_id_create(p_next_hop_info->counter_obj_id, CTC_SAI_COUNTER_TYPE_NEXTHOP_MPLS_PW, &stats_id));
+            nh_mpls_param.nh_para.nh_param_push.stats_valid = 1;
+            nh_mpls_param.nh_para.nh_param_push.stats_id = stats_id;
+        }
+
+        nh_mpls_param.nh_prop = CTC_MPLS_NH_PUSH_TYPE;
+        nh_mpls_param.upd_type  = CTC_NH_UPD_FWD_ATTR;
+        CTC_SAI_CTC_ERROR_RETURN(ctcs_nh_update_mpls(lchip, ctc_object_id.value, &nh_mpls_param));
+
+        if(SAI_OBJECT_TYPE_NEXT_HOP_GROUP != attr_ctc_object_id.type)
+        {
+            p_next_hop_info_next_level->ref_cnt++;
+        }
+        ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NEXT_HOP, p_next_hop_info->next_level_nexthop_id, &attr_ctc_object_id_old);
+        if(SAI_OBJECT_TYPE_NEXT_HOP_GROUP != attr_ctc_object_id_old.type)
+        {
+            p_next_hop_info_next_level_old = ctc_sai_db_get_object_property(lchip, p_next_hop_info->next_level_nexthop_id);
+            if(p_next_hop_info_next_level_old)
+            {
+                p_next_hop_info_next_level_old->ref_cnt--;
+            }
+        }
+
+        p_next_hop_info->next_level_nexthop_id = attr->value.oid;
     }
     return SAI_STATUS_SUCCESS;
 }
@@ -1079,7 +1193,7 @@ static  ctc_sai_attr_fn_entry_t next_hop_attr_fn_entries[] = {
       NULL},
     { SAI_NEXT_HOP_ATTR_NEXT_LEVEL_NEXT_HOP_ID,
       _ctc_sai_next_hop_get_attr,
-      NULL},
+      _ctc_sai_next_hop_set_attr},
     { SAI_NEXT_HOP_ATTR_OUTSEG_TYPE,
       _ctc_sai_next_hop_get_attr,
       NULL},
