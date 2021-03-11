@@ -1473,7 +1473,7 @@ sai_status_t ctc_sai_vlan_create_vlan( sai_object_id_t      *sai_vlan_id,
             sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
             acl_prop.direction = CTC_INGRESS;
             acl_prop.acl_priority = i;
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_get_acl_property(lchip, vlan.user_vlanptr, &acl_prop));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_vlan_get_acl_property(lchip, vlan.user_vlanptr, &acl_prop), status, error4);
             if (0 == acl_prop.acl_en)
             {
                 acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
@@ -1481,7 +1481,7 @@ sai_status_t ctc_sai_vlan_create_vlan( sai_object_id_t      *sai_vlan_id,
             acl_prop.acl_en = 1;
             acl_prop.acl_priority = i;
             acl_prop.class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr_list[attr_index].value.u32);
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_set_acl_property(lchip, vlan.user_vlanptr, &acl_prop));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_vlan_set_acl_property(lchip, vlan.user_vlanptr, &acl_prop), status, error4);
         }
 
         for (i = 0; i < egress_acl_num; i++)
@@ -1489,7 +1489,7 @@ sai_status_t ctc_sai_vlan_create_vlan( sai_object_id_t      *sai_vlan_id,
             sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
             acl_prop.direction = CTC_EGRESS;
             acl_prop.acl_priority = i;
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_get_acl_property(lchip, vlan.user_vlanptr, &acl_prop));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_vlan_get_acl_property(lchip, vlan.user_vlanptr, &acl_prop), status, error4);
             if (0 == acl_prop.acl_en)
             {
                 acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
@@ -1497,7 +1497,7 @@ sai_status_t ctc_sai_vlan_create_vlan( sai_object_id_t      *sai_vlan_id,
             acl_prop.acl_en = 1;
             acl_prop.acl_priority = i;
             acl_prop.class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr_list[attr_index].value.u32);
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_vlan_set_acl_property(lchip, vlan.user_vlanptr, &acl_prop));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_vlan_set_acl_property(lchip, vlan.user_vlanptr, &acl_prop), status, error4);
         }
     }
 
@@ -1580,7 +1580,7 @@ static sai_status_t ctc_sai_vlan_remove_vlan( sai_object_id_t sai_vlan_id)
     CTC_SAI_CTC_ERROR_GOTO(ctcs_vlan_destroy_vlan( ctc_object_id.lchip, p_dbvlan->vlan_id), status, out);
 
     /*flush fdb*/
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_get_gchip_id(ctc_object_id.lchip, &gchip));
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_get_gchip_id(ctc_object_id.lchip, &gchip), status, out);
     switch_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_SWITCH, ctc_object_id.lchip, 0, 0, (uint32) gchip);
     attr_list.id = SAI_FDB_FLUSH_ATTR_BV_ID;
     attr_list.value.oid = sai_vlan_id;

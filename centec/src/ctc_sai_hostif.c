@@ -888,7 +888,7 @@ ctc_sai_hostif_create_hostif(
         }
         p_hostif_port->port_id = attr_port_val->oid;
         sal_strcpy(p_hostif_port->ifname, attr_name_val->chardata);
-        CTC_SAI_ERROR_GOTO(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_HOSTIF, attr_port_val->oid, &ctc_oid), status, roll_back_0);
+        CTC_SAI_ERROR_GOTO(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_HOSTIF, attr_port_val->oid, &ctc_oid), status, roll_back_1);
         p_hostif_port->port_type = ctc_oid.type;
         ctc_hostif_oid.sub_type = ctc_oid.type;
         ctc_hostif_oid.value = ctc_oid.value;
@@ -1015,7 +1015,7 @@ roll_back_2:
     }
 roll_back_1:
     CTC_SAI_DB_UNLOCK(lchip);
-roll_back_0:
+
     _ctc_sai_hostif_free_hostif(p_hostif_port);
 
     return status;

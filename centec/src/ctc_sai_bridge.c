@@ -4028,6 +4028,7 @@ ctc_sai_bridge_create_bridge_port(sai_object_id_t* bridge_port_id,
             }
             default:
             {
+                CTC_SAI_DB_UNLOCK(lchip);
                 return SAI_STATUS_ATTR_NOT_SUPPORTED_0;
             }
         }
@@ -4706,8 +4707,8 @@ ctc_sai_bridge_create_bridge(
     }
     else
     {
-        CTC_SAI_DB_LOCK(lchip);
         CTC_SAI_ERROR_RETURN(ctc_sai_db_alloc_id(lchip, CTC_SAI_DB_ID_TYPE_VPWS, &fid));
+        CTC_SAI_DB_LOCK(lchip);
         *bridge_id = ctc_sai_create_object_id(SAI_OBJECT_TYPE_BRIDGE, lchip, SAI_BRIDGE_TYPE_CROSS_CONNECT, 0, fid);
         CTC_SAI_ERROR_GOTO(ctc_sai_db_add_object_property(lchip, *bridge_id, NULL), status, roll_back_2);
     }
@@ -4793,6 +4794,7 @@ ctc_sai_bridge_remove_bridge( sai_object_id_t bridge_id)
     else if(SAI_BRIDGE_TYPE_CROSS_CONNECT == ctc_bridge_id.sub_type)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_BRIDGE_TYPE_CROSS_CONNECT, bridge_id, &ctc_oid));
+        CTC_SAI_DB_LOCK(lchip);
         fid = ctc_oid.value & 0xFFFF;
         
         ctc_sai_db_free_id(lchip, CTC_SAI_DB_ID_TYPE_VPWS, fid);

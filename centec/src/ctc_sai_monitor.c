@@ -918,20 +918,20 @@ static sai_status_t ctc_sai_monitor_create_monitor_buffer( sai_object_id_t *moni
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MIN_THRESHOLD, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_from_byte(lchip, attr_value->u32, &min_threshold));
+        CTC_SAI_ERROR_GOTO (ctc_sai_monitor_mapping_from_byte(lchip, attr_value->u32, &min_threshold), status, out);
         buffer_monitor_cfg.value = min_threshold;
         buffer_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MIN;
-        CTC_SAI_ERROR_GOTO (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg), status, error1);            
+        CTC_SAI_CTC_ERROR_GOTO (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg), status, error1);            
         p_monitor_buffer_info->mb_port_thrd_min= attr_value->u32;
     }
 
     status = ctc_sai_find_attrib_in_list(attr_count, attr_list, SAI_MONITOR_BUFFER_MONITOR_ATTR_MB_PORT_MAX_THRESHOLD, &attr_value, &attr_index);
     if (status == SAI_STATUS_SUCCESS)
     {
-        CTC_SAI_CTC_ERROR_RETURN (ctc_sai_monitor_mapping_from_byte(lchip, attr_value->u32, &max_threshold));
+        CTC_SAI_ERROR_GOTO (ctc_sai_monitor_mapping_from_byte(lchip, attr_value->u32, &max_threshold), status, out);
         buffer_monitor_cfg.value = max_threshold;
         buffer_monitor_cfg.cfg_type = CTC_MONITOR_CONFIG_MON_INFORM_MAX;
-        CTC_SAI_ERROR_GOTO (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg), status, error1);            
+        CTC_SAI_CTC_ERROR_GOTO (ctcs_monitor_set_config(lchip, &buffer_monitor_cfg), status, error1);            
         p_monitor_buffer_info->mb_port_thrd_max=attr_value->u32;
     }
 

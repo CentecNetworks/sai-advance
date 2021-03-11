@@ -1789,7 +1789,7 @@ ctc_sai_router_interface_create_rif(sai_object_id_t *router_interface_id, sai_ob
         else
         {
             port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, l3if.gport);
-            CTC_SAI_ERROR_RETURN(_ctc_sai_port_get_port_db(port_oid, &p_port_db));
+            CTC_SAI_ERROR_GOTO(_ctc_sai_port_get_port_db(port_oid, &p_port_db), status, error5);
             p_port_db->sub_if_ref_cnt++;
             if (1 == p_port_db->sub_if_ref_cnt)
             {
@@ -2071,7 +2071,7 @@ ctc_sai_router_interface_remove_rif(sai_object_id_t router_interface_id)
         else
         {
             port_oid = ctc_sai_create_object_id(SAI_OBJECT_TYPE_PORT, lchip, 0, 0, l3if.gport);
-            CTC_SAI_ERROR_RETURN(_ctc_sai_port_get_port_db(port_oid, &p_port_db));
+            CTC_SAI_ERROR_GOTO(_ctc_sai_port_get_port_db(port_oid, &p_port_db), status, out);
             p_port_db->sub_if_ref_cnt--;
             if (0 == p_port_db->sub_if_ref_cnt)
             {

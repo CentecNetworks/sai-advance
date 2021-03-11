@@ -549,6 +549,7 @@ sai_status_t ctc_sai_counter_create_counter (
         if (SAI_COUNTER_TYPE_REGULAR != attr_value->u32)
         {
             CTC_SAI_LOG_ERROR(SAI_API_COUNTER, "Invalid attr SAI_COUNTER_ATTR_TYPE value!\n");
+            CTC_SAI_DB_UNLOCK(lchip);
             return SAI_STATUS_INVALID_PARAMETER;
         }
         else

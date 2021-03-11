@@ -1095,6 +1095,7 @@ static sai_status_t ctc_sai_port_set_basic_info(  sai_object_key_t   *key, const
         }
         else
         {
+            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_FEC_EN, value));
             CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_property(lchip, gport, CTC_PORT_PROP_AUTO_NEG_FEC, value));
         }
         break;
@@ -2649,8 +2650,8 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
         CTC_SAI_LOG_ERROR(SAI_API_PORT, "set port speed. chiptype:%u gport:0x%x, phy_id:%u, speed_mode:%u\n", chip_type, gport, phy_id, speed_mode);
         if ((CTC_E_NONE == sys_usw_peri_get_phy_register_exist(lchip, CTC_MAP_GPORT_TO_LPORT(gport))) && (phy_id != CTC_CHIP_PHY_NULL_PHY_ID))
         {
-            CTC_SAI_ERROR_RETURN(sys_usw_peri_set_phy_prop(lchip, CTC_MAP_GPORT_TO_LPORT(gport), CTC_PORT_PROP_SPEED, speed_mode));
-            CTC_SAI_ERROR_RETURN(ctcs_port_set_speed(lchip, gport, speed_mode));
+            CTC_SAI_CTC_ERROR_GOTO(sys_usw_peri_set_phy_prop(lchip, CTC_MAP_GPORT_TO_LPORT(gport), CTC_PORT_PROP_SPEED, speed_mode), status, out );
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_speed(lchip, gport, speed_mode), status, out);
         }
         else
         {
@@ -2671,11 +2672,11 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
 
             if_mode.speed = speed_mode;
             if_mode.interface_type = if_type;
-            CTC_SAI_ERROR_RETURN(ctcs_port_set_interface_mode(lchip, gport, &if_mode));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_interface_mode(lchip, gport, &if_mode), status, out );
 
             if(speed_mode == CTC_PORT_SPEED_1G)
             {
-                CTC_SAI_ERROR_RETURN(ctcs_port_set_speed(lchip, gport, CTC_PORT_SPEED_1G));
+                CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_speed(lchip, gport, CTC_PORT_SPEED_1G), status, out);
             }
         }
     }
@@ -2791,7 +2792,7 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
             sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
             acl_prop.direction = CTC_INGRESS;
             acl_prop.acl_priority = i;
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_acl_property(lchip, gport, &acl_prop));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_get_acl_property(lchip, gport, &acl_prop), status, out);
             if (0 == acl_prop.acl_en)
             {
                 acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
@@ -2799,7 +2800,7 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
             acl_prop.acl_en = 1;
             acl_prop.acl_priority = i;
             acl_prop.class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr_list[attr_index].value.u32);
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_acl_property(lchip, gport, &acl_prop));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, gport, &acl_prop), status, out);
         }
 
         for (i = 0; i < egress_acl_num; i++)
@@ -2807,7 +2808,7 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
             sal_memset(&acl_prop, 0, sizeof(ctc_acl_property_t));
             acl_prop.direction = CTC_EGRESS;
             acl_prop.acl_priority = i;
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_get_acl_property(lchip, gport, &acl_prop));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_get_acl_property(lchip, gport, &acl_prop), status, out);
             if (0 == acl_prop.acl_en)
             {
                 acl_prop.tcam_lkup_type = CTC_ACL_TCAM_LKUP_TYPE_MAX;
@@ -2815,7 +2816,7 @@ ctc_sai_port_create_port( sai_object_id_t     * port_id,
             acl_prop.acl_en = 1;
             acl_prop.acl_priority = i;
             acl_prop.class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr_list[attr_index].value.u32);
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_port_set_acl_property(lchip, gport, &acl_prop));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_port_set_acl_property(lchip, gport, &acl_prop), status, out);
         }
     }
 
@@ -4000,6 +4001,7 @@ _ctc_sai_port_polling_thread(void *data)
         //chip active check
         if(sys_usw_chip_check_active(lchip) < 0)
         {
+            CTC_SAI_DB_UNLOCK(lchip);
             return;
         }
 

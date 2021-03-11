@@ -1663,7 +1663,8 @@ ctc_sai_next_hop_create_nh(sai_object_id_t *next_hop_id, sai_object_id_t switch_
                         if (NULL == p_map_db)
                         {
                             CTC_SAI_LOG_ERROR(SAI_API_NEXT_HOP, "qos map db not found\n");
-                            return SAI_STATUS_INVALID_OBJECT_ID;
+                            status = SAI_STATUS_INVALID_OBJECT_ID;
+                            goto error2;
                         }
                     }
                     else

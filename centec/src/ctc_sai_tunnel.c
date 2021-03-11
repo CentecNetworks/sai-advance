@@ -2245,6 +2245,7 @@ ctc_sai_tunnel_get_tunnel_stats(
         const sai_stat_id_t *counter_ids,
         uint64_t *counters)
 {
+    sai_status_t           status = SAI_STATUS_SUCCESS;
     ctc_sai_tunnel_t* p_tunnel = NULL;
     uint8 lchip = 0;
     ctc_object_id_t ctc_oid;
@@ -2271,8 +2272,8 @@ ctc_sai_tunnel_get_tunnel_stats(
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
 
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_get_stats(lchip, p_tunnel->encap_stats_id, &stats_encap));
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_get_stats(lchip, p_tunnel->decap_stats_id, &stats_decap));
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_stats(lchip, p_tunnel->encap_stats_id, &stats_encap), status, out);
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_stats(lchip, p_tunnel->decap_stats_id, &stats_decap), status, out);
     for (index = 0; index < number_of_counters; index ++ )
     {
         switch(counter_ids[index])
@@ -2296,9 +2297,10 @@ ctc_sai_tunnel_get_tunnel_stats(
         }
 
     }
+out:    
     CTC_SAI_DB_UNLOCK(lchip);
 
-    return SAI_STATUS_SUCCESS;
+    return status;
 }
 
 static sai_status_t
@@ -2309,6 +2311,7 @@ ctc_sai_tunnel_get_tunnel_stats_ext(
         sai_stats_mode_t mode,
         uint64_t *counters)
 {
+    sai_status_t           status = SAI_STATUS_SUCCESS;
     ctc_sai_tunnel_t* p_tunnel = NULL;
     uint8 lchip = 0;
     ctc_object_id_t ctc_oid;
@@ -2338,8 +2341,8 @@ ctc_sai_tunnel_get_tunnel_stats_ext(
         return SAI_STATUS_INVALID_OBJECT_ID;
     }
 
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_get_stats(lchip, p_tunnel->encap_stats_id, &stats_encap));
-    CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_get_stats(lchip, p_tunnel->decap_stats_id, &stats_decap));
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_stats(lchip, p_tunnel->encap_stats_id, &stats_encap), status, out);
+    CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_get_stats(lchip, p_tunnel->decap_stats_id, &stats_decap), status, out);
     for (index = 0; index < number_of_counters; index ++ )
     {
         switch(counter_ids[index])
@@ -2367,21 +2370,23 @@ ctc_sai_tunnel_get_tunnel_stats_ext(
         }
 
     }
-    CTC_SAI_DB_UNLOCK(lchip);
+    
 
     if (SAI_STATS_MODE_READ_AND_CLEAR == mode)
     {
         if (encap_en)
         {
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_clear_stats(lchip, p_tunnel->encap_stats_id));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_clear_stats(lchip, p_tunnel->encap_stats_id), status, out);
         }
         if (decap_en)
         {
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_clear_stats(lchip, p_tunnel->decap_stats_id));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_clear_stats(lchip, p_tunnel->decap_stats_id), status, out);
         }
     }
+out:    
+    CTC_SAI_DB_UNLOCK(lchip);
 
-    return SAI_STATUS_SUCCESS;
+    return status;
 }
 
 static sai_status_t
@@ -2390,6 +2395,7 @@ ctc_sai_tunnel_clear_tunnel_stats(
         uint32_t number_of_counters,
         const sai_stat_id_t *counter_ids)
 {
+    sai_status_t           status = SAI_STATUS_SUCCESS;
     ctc_sai_tunnel_t* p_tunnel = NULL;
     uint8 lchip = 0;
     ctc_object_id_t ctc_oid;
@@ -2448,17 +2454,18 @@ ctc_sai_tunnel_clear_tunnel_stats(
 
         if (CTC_IS_BIT_SET(flag, SAI_TUNNEL_STAT_IN_OCTETS) && CTC_IS_BIT_SET(flag, SAI_TUNNEL_STAT_IN_PACKETS))
         {
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_clear_stats(lchip, p_tunnel->encap_stats_id));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_clear_stats(lchip, p_tunnel->encap_stats_id), status, out);
         }
 
         if (CTC_IS_BIT_SET(flag, SAI_TUNNEL_STAT_OUT_OCTETS) && CTC_IS_BIT_SET(flag, SAI_TUNNEL_STAT_OUT_PACKETS))
         {
-            CTC_SAI_CTC_ERROR_RETURN(ctcs_stats_clear_stats(lchip, p_tunnel->decap_stats_id));
+            CTC_SAI_CTC_ERROR_GOTO(ctcs_stats_clear_stats(lchip, p_tunnel->decap_stats_id), status, out);
         }
     }
+out:    
     CTC_SAI_DB_UNLOCK(lchip);
 
-    return SAI_STATUS_SUCCESS;
+    return status;
 }
 
 static sai_status_t
@@ -3090,9 +3097,10 @@ ctc_sai_tunnel_remove_tunnel_term_table_entry(
 
     CTC_SAI_LOG_ENTER(SAI_API_TUNNEL);
     sal_memset(&ctc_oid, 0, sizeof(ctc_object_id_t));
-
-    CTC_SAI_DB_LOCK(lchip);
+    
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TUNNEL_TERM_TABLE_ENTRY, tunnel_term_table_entry_id, &ctc_oid));
+    CTC_SAI_DB_LOCK(lchip);
+    
     lchip = ctc_oid.lchip;
     p_tunnel_term = ctc_sai_db_get_object_property(lchip, tunnel_term_table_entry_id);
     if (NULL == p_tunnel_term)
