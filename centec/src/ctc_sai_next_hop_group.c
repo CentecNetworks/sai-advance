@@ -1300,22 +1300,24 @@ ctc_sai_next_hop_group_bulk_remove_members(
     uint8 lchip = 0;
     uint32 i =  0;
     sai_status_t           status = SAI_STATUS_SUCCESS;
-    CTC_SAI_DB_LOCK(lchip);
+
     for (i = 0; i < object_count; i++)
     {
         CTC_SAI_ERROR_GOTO(ctc_sai_oid_get_lchip(object_id[i], &lchip), status, out);
+        CTC_SAI_DB_LOCK(lchip);
         object_statuses[i] = _ctc_sai_next_hop_group_remove_member(object_id[i]);
         if (CTC_SAI_ERROR(object_statuses[i]))
         {
             status = SAI_STATUS_FAILURE;
             if (SAI_BULK_OP_ERROR_MODE_STOP_ON_ERROR == mode)
             {
-                goto out;
+                CTC_SAI_DB_UNLOCK(lchip);
+                return status;
             }
         }
+        CTC_SAI_DB_UNLOCK(lchip);
     }
 out:
-    CTC_SAI_DB_UNLOCK(lchip);
     return status;
 }
 

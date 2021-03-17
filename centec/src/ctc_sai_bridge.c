@@ -4794,6 +4794,7 @@ ctc_sai_bridge_remove_bridge( sai_object_id_t bridge_id)
     else if(SAI_BRIDGE_TYPE_CROSS_CONNECT == ctc_bridge_id.sub_type)
     {
         CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_BRIDGE_TYPE_CROSS_CONNECT, bridge_id, &ctc_oid));
+        lchip = ctc_oid.lchip;
         CTC_SAI_DB_LOCK(lchip);
         fid = ctc_oid.value & 0xFFFF;
         

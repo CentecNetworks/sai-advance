@@ -514,8 +514,9 @@ ctc_sai_tunnel_remove_tunnel_map_entry(
     sal_memset(&ctc_oid, 0, sizeof(ctc_object_id_t));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TUNNEL_MAP_ENTRY, tunnel_map_entry_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
+    
     p_tunnel_map_entry = ctc_sai_db_get_object_property(lchip, tunnel_map_entry_id);
     if (NULL == p_tunnel_map_entry)
     {
@@ -751,8 +752,9 @@ ctc_sai_tunnel_remove_tunnel_map(
     sal_memset(&ctc_oid, 0, sizeof(ctc_object_id_t));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TUNNEL_MAP, tunnel_map_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
+    
     p_tunnel_map = ctc_sai_db_get_object_property(lchip, tunnel_map_id);
     if (NULL == p_tunnel_map)
     {
@@ -2208,8 +2210,8 @@ ctc_sai_tunnel_remove_tunnel(
     sal_memset(&ctc_oid, 0, sizeof(ctc_object_id_t));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TUNNEL, tunnel_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
     p_tunnel = ctc_sai_db_get_object_property(lchip, tunnel_id);
     if (NULL == p_tunnel)
     {
@@ -2263,8 +2265,8 @@ ctc_sai_tunnel_get_tunnel_stats(
     sal_memset(&stats_decap, 0, sizeof(ctc_stats_basic_t));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TUNNEL, tunnel_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
     p_tunnel = ctc_sai_db_get_object_property(lchip, tunnel_id);
     if (NULL == p_tunnel)
     {
@@ -2332,8 +2334,8 @@ ctc_sai_tunnel_get_tunnel_stats_ext(
     sal_memset(&stats_decap, 0, sizeof(ctc_stats_basic_t));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TUNNEL, tunnel_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
     p_tunnel = ctc_sai_db_get_object_property(lchip, tunnel_id);
     if (NULL == p_tunnel)
     {
@@ -2411,8 +2413,8 @@ ctc_sai_tunnel_clear_tunnel_stats(
 
 
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TUNNEL, tunnel_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
     p_tunnel = ctc_sai_db_get_object_property(lchip, tunnel_id);
     if (NULL == p_tunnel)
     {
@@ -3099,9 +3101,8 @@ ctc_sai_tunnel_remove_tunnel_term_table_entry(
     sal_memset(&ctc_oid, 0, sizeof(ctc_object_id_t));
     
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_TUNNEL_TERM_TABLE_ENTRY, tunnel_term_table_entry_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
-    
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
     p_tunnel_term = ctc_sai_db_get_object_property(lchip, tunnel_term_table_entry_id);
     if (NULL == p_tunnel_term)
     {

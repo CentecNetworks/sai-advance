@@ -219,8 +219,8 @@ ctc_sai_samplepacket_remove_samplepacket(sai_object_id_t samplepacket_id)
 
     sal_memset(&ctc_oid, 0, sizeof(ctc_object_id_t));
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_SAMPLEPACKET, samplepacket_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
     p_samplepacket = ctc_sai_db_get_object_property(lchip, samplepacket_id);
     if (NULL == p_samplepacket)
     {

@@ -3163,8 +3163,8 @@ ctc_sai_hostif_remove_hostif_trap(
     sal_memset(&ctc_oid, 0, sizeof(ctc_object_id_t));
 
     CTC_SAI_ERROR_RETURN(ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_HOSTIF_TRAP, hostif_trap_id, &ctc_oid));
-    CTC_SAI_DB_LOCK(lchip);
     lchip = ctc_oid.lchip;
+    CTC_SAI_DB_LOCK(lchip);
     p_hostif_trap = ctc_sai_db_get_object_property(lchip, hostif_trap_id);
     if (NULL == p_hostif_trap)
     {
