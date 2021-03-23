@@ -1308,9 +1308,18 @@ typedef enum _sai_acl_table_attr_t
     SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID,
 
     /**
+     * @brief Virtual Router defined
+     *
+     * @type bool
+     * @flags CREATE_ONLY
+     * @default false
+     */
+    SAI_ACL_TABLE_ATTR_FIELD_VIRTUAL_ROUTER,
+
+    /**
      * @brief End of ACL Table Match Field
      */
-    SAI_ACL_TABLE_ATTR_FIELD_END = SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID,
+    SAI_ACL_TABLE_ATTR_FIELD_END = SAI_ACL_TABLE_ATTR_FIELD_VIRTUAL_ROUTER,
 
     /**
      * @brief ACL table entries associated with this table.
@@ -2233,9 +2242,19 @@ typedef enum _sai_acl_entry_attr_t
     SAI_ACL_ENTRY_ATTR_FIELD_INTERFACE_ID,
 
     /**
+     * @brief Virtual Router defined
+     *
+     * @type sai_acl_field_data_t sai_object_id_t
+     * @flags CREATE_AND_SET
+     * @objects SAI_OBJECT_TYPE_VIRTUAL_ROUTER
+     * @default disabled
+     */
+    SAI_ACL_ENTRY_ATTR_FIELD_VIRTUAL_ROUTER,
+
+    /**
      * @brief End of Rule Match Fields
      */
-    SAI_ACL_ENTRY_ATTR_FIELD_END = SAI_ACL_ENTRY_ATTR_FIELD_INTERFACE_ID,
+    SAI_ACL_ENTRY_ATTR_FIELD_END = SAI_ACL_ENTRY_ATTR_FIELD_VIRTUAL_ROUTER,
 
     /*
      * Actions [sai_acl_action_data_t]

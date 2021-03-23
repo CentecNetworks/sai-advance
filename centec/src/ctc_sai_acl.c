@@ -19,6 +19,7 @@
 #include "ctc_sai_policer.h"
 #include "ctc_sai_mirror.h"
 #include "ctc_sai_udf.h"
+#include "ctc_sai_virtual_router.h"
 
 /*sdk include file*/
 #include "ctcs_api.h"
@@ -28,7 +29,7 @@
 #define SAI_ACL_ATTR_ID2INDEX(ATTR_ID) ((ATTR_ID) <= SAI_ACL_TABLE_ATTR_FIELD_END)    \
                                        ? ((ATTR_ID) - SAI_ACL_TABLE_ATTR_FIELD_START) \
                                        : ((SAI_ACL_TABLE_ATTR_FIELD_END - SAI_ACL_TABLE_ATTR_FIELD_START + 1) + ((ATTR_ID) - SAI_ACL_TABLE_ATTR_CUSTOM_RANGE_START))
-#define SAI_ACL_ATTR_IS_KEY(ATTR_ID)   ((((ATTR_ID) >= SAI_ACL_TABLE_ATTR_FIELD_START) && ((ATTR_ID) <= SAI_ACL_TABLE_ATTR_FIELD_END)) || ((ATTR_ID) == SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID))
+#define SAI_ACL_ATTR_IS_KEY(ATTR_ID)   ((((ATTR_ID) >= SAI_ACL_TABLE_ATTR_FIELD_START) && ((ATTR_ID) <= SAI_ACL_TABLE_ATTR_FIELD_END)) || ((ATTR_ID) == SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID) || ((ATTR_ID) == SAI_ACL_TABLE_ATTR_FIELD_VIRTUAL_ROUTER))
 
 struct acl_table_group_oid_info_s
 {
@@ -1186,20 +1187,29 @@ static sai_status_t
 _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_direction_t dir, sai_object_id_t entry_object_id, uint8 group_priority, ctc_acl_key_type_t type, sai_attribute_t* attr_list, ctc_field_key_t* field_key, uint32* p_key_count, uint8* p_bmp_cnt, uint32* p_bmp_start)
 {
     uint8  flag_valid = 0;/* make default equal to zeros */
-    uint8  is_first_udf = 0;
+    static uint8 dot1ae_sci_data[8] = {0};
+    static uint8 dot1ae_sci_mask[8] = {0};
     uint16 lport = 0;
     uint16 max_num = 0;
     uint16 cnt = 0;
+    uint16 udf_key_index = CTC_MAX_UINT16_VALUE;
     uint32* p_gports = NULL;
     uint32 i = 0;/* need use uint32 */
     uint32 j = 0;
     uint32 n = 0;
     uint32 loop = 0;
+    uint32 vrf_id = 0;
+    static uint32 vlan_range_ext_data = 0;
+    static uint32 vlan_range_ext_mask = 0;
     sai_status_t status = SAI_STATUS_SUCCESS;
-    ctc_field_port_t *p_field_port = NULL;
-    ctc_field_port_t *p_field_port_mask = NULL;
-    ctc_field_port_t *p_field_port_array = NULL;
-    ctc_field_port_t *p_field_port_mask_array = NULL;
+    static ctc_field_port_t port_field_port;
+    static ctc_field_port_t port_field_port_mask;
+    static ctc_field_port_t port_field_port_user_meta;
+    static ctc_field_port_t port_field_port_user_meta_mask;
+    static ctc_field_port_t port_field_vlan_user_meta;
+    static ctc_field_port_t port_field_vlan_user_meta_mask;
+    static ctc_field_port_t field_port_array[8];
+    static ctc_field_port_t field_port_mask_array[8];
     ctc_object_id_t ctc_object_id;
     ctc_object_id_t ctc_port_object_id;
     sai_object_id_t sai_object_id = SAI_NULL_OBJECT_ID;
@@ -1207,18 +1217,19 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
     ctc_parser_l3_type_t ctc_ip_type = CTC_PARSER_L3_TYPE_NONE;
     ctc_parser_l4_type_t ctc_l4_type = CTC_PARSER_L4_TYPE_NONE;
     sai_acl_ip_type_t sai_ip_type = SAI_ACL_IP_TYPE_ANY;
-    sai_mac_t *macsa = NULL;
-    sai_mac_t *macsa_mask = NULL;
-    sai_mac_t *macda = NULL;
-    sai_mac_t *macda_mask = NULL;
-    ipv6_addr_t *ipv6_sa = NULL;
-    ipv6_addr_t *ipv6_sa_mask = NULL;
-    ipv6_addr_t *ipv6_da = NULL;
-    ipv6_addr_t *ipv6_da_mask = NULL;
+    ctc_sai_virtual_router_t* p_virtual_router = NULL;
+    static sai_mac_t macsa;
+    static sai_mac_t macsa_mask;
+    static sai_mac_t macda;
+    static sai_mac_t macda_mask;
+    static ipv6_addr_t ipv6_sa;
+    static ipv6_addr_t ipv6_sa_mask;
+    static ipv6_addr_t ipv6_da;
+    static ipv6_addr_t ipv6_da_mask;
     ctc_sai_acl_range_t *p_acl_range = NULL;
     sai_acl_entry_attr_t packet_type_field[] = {SAI_ACL_ENTRY_ATTR_FIELD_ETHER_TYPE, SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, SAI_ACL_ENTRY_ATTR_FIELD_IP_PROTOCOL, SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER};
-    ctc_acl_udf_t* p_acl_udf_data = NULL;
-    ctc_acl_udf_t* p_acl_udf_mask = NULL;
+    static ctc_acl_udf_t acl_udf_data;
+    static ctc_acl_udf_t acl_udf_mask;
     ctc_parser_l3_type_t l3_type = CTC_PARSER_L3_TYPE_NONE;
     ctc_slistnode_t* p_node = NULL;
     ctc_sai_udf_entry_t* p_udf_entry = NULL;
@@ -1232,6 +1243,8 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
     sal_memset(&sai_object_id, 0, sizeof(sai_object_id_t));
     sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
     sal_memset(&ctc_port_object_id, 0, sizeof(ctc_object_id_t));
+    sal_memset(&acl_udf_data, 0, sizeof(ctc_acl_udf_t));
+    sal_memset(&acl_udf_mask, 0, sizeof(ctc_acl_udf_t));
 
     for (i = 0; i < SAI_ACL_KEY_ATTR_NUM; i++)
     {
@@ -1240,7 +1253,6 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
             || (SAI_ACL_ENTRY_ATTR_FIELD_INNER_SRC_IP == attr_list[i].id)
             || (SAI_ACL_ENTRY_ATTR_FIELD_INNER_DST_IP == attr_list[i].id)
             || (SAI_ACL_ENTRY_ATTR_FIELD_OUT_PORTS == attr_list[i].id)
-            || (SAI_ACL_ENTRY_ATTR_FIELD_OUT_PORT == attr_list[i].id)
             || (SAI_ACL_ENTRY_ATTR_FIELD_IP_IDENTIFICATION == attr_list[i].id)
             || (SAI_ACL_ENTRY_ATTR_FIELD_IP_FLAGS == attr_list[i].id)
             || (SAI_ACL_ENTRY_ATTR_FIELD_TC == attr_list[i].id)
@@ -1271,8 +1283,8 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
             switch (attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].id)
             {
                 case SAI_ACL_ENTRY_ATTR_FIELD_IP_PROTOCOL:
-                    _ctc_sai_acl_mapping_l4_type_info(attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.data.u8, ctc_ip_type, &ctc_l4_type);
 
+                    CTC_SAI_ERROR_RETURN(_ctc_sai_acl_mapping_l4_type_info(attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.data.u8, ctc_ip_type, &ctc_l4_type));
                     field_key[*p_key_count].type = CTC_FIELD_KEY_IP_PROTOCOL;
                     field_key[*p_key_count].data = attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.data.u8;
                     field_key[*p_key_count].mask = attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.mask.u8;
@@ -1288,8 +1300,8 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                     break;
 
                 case SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER:
-                    _ctc_sai_acl_mapping_l4_type_info(attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.data.u8, ctc_ip_type, &ctc_l4_type);
 
+                    CTC_SAI_ERROR_RETURN(_ctc_sai_acl_mapping_l4_type_info(attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.data.u8, ctc_ip_type, &ctc_l4_type));
                     field_key[*p_key_count].type = CTC_FIELD_KEY_IP_PROTOCOL;
                     field_key[*p_key_count].data = attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.data.u8;
                     field_key[*p_key_count].mask = attr_list[packet_type_field[i]-SAI_ACL_ENTRY_ATTR_FIELD_START].value.aclfield.mask.u8;
@@ -1363,101 +1375,45 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
         {
             case SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6:
             {
-                MALLOC_ZERO(MEM_ACL_MODULE, ipv6_sa, sizeof(ipv6_addr_t));
-                if (NULL == ipv6_sa)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry ipv6 sa field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                MALLOC_ZERO(MEM_ACL_MODULE, ipv6_sa_mask, sizeof(ipv6_addr_t));
-                if (NULL == ipv6_sa_mask)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry ipv6 sa mask field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                sal_memcpy(ipv6_sa, attr_list[i].value.aclfield.data.ip6, sizeof(sai_ip6_t));
-                sal_memcpy(ipv6_sa_mask, attr_list[i].value.aclfield.mask.ip6, sizeof(sai_ip6_t));
-                CTC_SAI_NTOH_V6(*ipv6_sa);
-                CTC_SAI_NTOH_V6(*ipv6_sa_mask);
+                sal_memcpy(&ipv6_sa, attr_list[i].value.aclfield.data.ip6, sizeof(sai_ip6_t));
+                sal_memcpy(&ipv6_sa_mask, attr_list[i].value.aclfield.mask.ip6, sizeof(sai_ip6_t));
+                CTC_SAI_NTOH_V6(ipv6_sa);
+                CTC_SAI_NTOH_V6(ipv6_sa_mask);
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IPV6_SA;
-                field_key[*p_key_count].ext_data = (void*)ipv6_sa;
-                field_key[*p_key_count].ext_mask = (void*)ipv6_sa_mask;
+                field_key[*p_key_count].ext_data = (void*)(&ipv6_sa);
+                field_key[*p_key_count].ext_mask = (void*)(&ipv6_sa_mask);
                 (*p_key_count)++;
                 break;
             }
             case SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6:
             {
-                MALLOC_ZERO(MEM_ACL_MODULE, ipv6_da, sizeof(ipv6_addr_t));
-                if (NULL == ipv6_da)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry ipv6 da field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                MALLOC_ZERO(MEM_ACL_MODULE, ipv6_da_mask, sizeof(ipv6_addr_t));
-                if (NULL == ipv6_da_mask)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry ipv6 da mask field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                sal_memcpy(ipv6_da, attr_list[i].value.aclfield.data.ip6, sizeof(sai_ip6_t));
-                sal_memcpy(ipv6_da_mask, attr_list[i].value.aclfield.mask.ip6, sizeof(sai_ip6_t));
-                CTC_SAI_NTOH_V6(*ipv6_da);
-                CTC_SAI_NTOH_V6(*ipv6_da_mask);
+                sal_memcpy(&ipv6_da, attr_list[i].value.aclfield.data.ip6, sizeof(sai_ip6_t));
+                sal_memcpy(&ipv6_da_mask, attr_list[i].value.aclfield.mask.ip6, sizeof(sai_ip6_t));
+                CTC_SAI_NTOH_V6(ipv6_da);
+                CTC_SAI_NTOH_V6(ipv6_da_mask);
                 field_key[*p_key_count].type = CTC_FIELD_KEY_IPV6_DA;
-                field_key[*p_key_count].ext_data = (void*)ipv6_da;
-                field_key[*p_key_count].ext_mask = (void*)ipv6_da_mask;
+                field_key[*p_key_count].ext_data = (void*)(&ipv6_da);
+                field_key[*p_key_count].ext_mask = (void*)(&ipv6_da_mask);
                 (*p_key_count)++;
                 break;
             }
             case SAI_ACL_ENTRY_ATTR_FIELD_SRC_MAC:
             {
-                MALLOC_ZERO(MEM_ACL_MODULE, macsa, sizeof(sai_mac_t));
-                if (NULL == macsa)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry macsa field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                MALLOC_ZERO(MEM_ACL_MODULE, macsa_mask, sizeof(sai_mac_t));
-                if (NULL == macsa_mask)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry macsa mask field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                sal_memcpy(macsa, attr_list[i].value.aclfield.data.mac, sizeof(sai_mac_t));
-                sal_memcpy(macsa_mask, attr_list[i].value.aclfield.mask.mac, sizeof(sai_mac_t));
+                sal_memcpy(&macsa, attr_list[i].value.aclfield.data.mac, sizeof(sai_mac_t));
+                sal_memcpy(&macsa_mask, attr_list[i].value.aclfield.mask.mac, sizeof(sai_mac_t));
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MAC_SA;
-                field_key[*p_key_count].ext_data = (void*)(macsa);
-                field_key[*p_key_count].ext_mask = (void*)(macsa_mask);
+                field_key[*p_key_count].ext_data = (void*)(&macsa);
+                field_key[*p_key_count].ext_mask = (void*)(&macsa_mask);
                 (*p_key_count)++;
                 break;
             }
             case SAI_ACL_ENTRY_ATTR_FIELD_DST_MAC:
             {
-                MALLOC_ZERO(MEM_ACL_MODULE, macda, sizeof(sai_mac_t));
-                if (NULL == macda)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry macda field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                MALLOC_ZERO(MEM_ACL_MODULE, macda_mask, sizeof(sai_mac_t));
-                if (NULL == macda_mask)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry macda mask field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
                 sal_memcpy(macda, attr_list[i].value.aclfield.data.mac, sizeof(sai_mac_t));
                 sal_memcpy(macda_mask, attr_list[i].value.aclfield.mask.mac, sizeof(sai_mac_t));
                 field_key[*p_key_count].type = CTC_FIELD_KEY_MAC_DA;
-                field_key[*p_key_count].ext_data = (void*)(macda);
-                field_key[*p_key_count].ext_mask = (void*)(macda_mask);
+                field_key[*p_key_count].ext_data = (void*)(&macda);
+                field_key[*p_key_count].ext_mask = (void*)(&macda_mask);
                 (*p_key_count)++;
                 break;
             }
@@ -1479,35 +1435,24 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
             }
             case SAI_ACL_ENTRY_ATTR_FIELD_IN_PORTS : /* (mask is not needed) */
             {
-                MALLOC_ZERO(MEM_ACL_MODULE, p_field_port_array, sizeof(ctc_field_port_t) * 8);
-                if (NULL == p_field_port_array)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry field port array memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                MALLOC_ZERO(MEM_ACL_MODULE, p_field_port_mask_array, sizeof(ctc_field_port_t) * 8);
-                if (NULL == p_field_port_mask_array)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry field port mask array memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
+                sal_memset(field_port_array, 0, sizeof(field_port_array));
+                sal_memset(field_port_mask_array, 0, sizeof(field_port_mask_array));
+
                 for (loop = 0; loop < attr_list[i].value.aclfield.data.objlist.count; loop++)
                 {
                     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[i].value.aclfield.data.objlist.list[loop], &ctc_port_object_id);
                     lport = CTC_MAP_GPORT_TO_LPORT(ctc_port_object_id.value);
-                    CTC_BMP_SET(p_field_port_array[lport / 16].port_bitmap, lport);
+                    CTC_BMP_SET(field_port_array[lport / 16].port_bitmap, lport);
                 }
                 for (loop = 0; loop < 8; loop++)
                 {
-                    p_field_port_array[loop].type = CTC_FIELD_PORT_TYPE_PORT_BITMAP;
-                    p_field_port_array[loop].lchip = lchip;
-                    if (_ctc_sai_acl_port_bmp_is_valid(p_field_port_array[loop].port_bitmap))
+                    field_port_array[loop].type = CTC_FIELD_PORT_TYPE_PORT_BITMAP;
+                    field_port_array[loop].lchip = lchip;
+                    if (_ctc_sai_acl_port_bmp_is_valid(field_port_array[loop].port_bitmap))
                     {
                         field_key[*p_key_count].type = CTC_FIELD_KEY_PORT;
-                        field_key[*p_key_count].ext_data = (void*)(p_field_port_array + loop);
-                        field_key[*p_key_count].ext_mask = (void*)(p_field_port_mask_array + loop);
+                        field_key[*p_key_count].ext_data = (void*)(field_port_array + loop);
+                        field_key[*p_key_count].ext_mask = (void*)(field_port_mask_array + loop);
                         if (p_bmp_start && !flag_valid)
                         {
                             *p_bmp_start = *p_key_count;/* do this before key_count++ */
@@ -1524,29 +1469,16 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
             }
             case SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT:
             case SAI_ACL_ENTRY_ATTR_FIELD_SRC_PORT:
+            case SAI_ACL_ENTRY_ATTR_FIELD_OUT_PORT:
             {
-                MALLOC_ZERO(MEM_ACL_MODULE, p_field_port, sizeof(ctc_field_port_t));
-                if (NULL == p_field_port)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry port field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                MALLOC_ZERO(MEM_ACL_MODULE, p_field_port_mask, sizeof(ctc_field_port_t));
-                if (NULL == p_field_port_mask)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry port mask field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
                 ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[i].value.aclfield.data.oid, &ctc_object_id);
 
-                p_field_port->type = CTC_FIELD_PORT_TYPE_GPORT;
-                p_field_port->gport = ctc_object_id.value;
-                p_field_port_mask->gport = 0xFFFFFFFF;
+                port_field_port.type = CTC_FIELD_PORT_TYPE_GPORT;
+                port_field_port.gport = ctc_object_id.value;
+                port_field_port_mask.gport = 0xFFFFFFFF;
                 field_key[*p_key_count].type = CTC_FIELD_KEY_PORT;
-                field_key[*p_key_count].ext_data = (void*)p_field_port;
-                field_key[*p_key_count].ext_mask = (void*)p_field_port_mask;
+                field_key[*p_key_count].ext_data = (void*)(&port_field_port);
+                field_key[*p_key_count].ext_mask = (void*)(&port_field_port_mask);
                 (*p_key_count)++;
                 break;
             }
@@ -1726,7 +1658,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                 (*p_key_count)++;
                 break;
             }
-            case SAI_ACL_ENTRY_ATTR_FIELD_PACKET_VLAN : /* only acl support */
+            case SAI_ACL_ENTRY_ATTR_FIELD_PACKET_VLAN: /* only acl support */
             {
                 if (SAI_PACKET_VLAN_SINGLE_OUTER_TAG == attr_list[i].value.aclfield.data.s32)
                 {
@@ -1851,52 +1783,23 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
             }
             case SAI_ACL_ENTRY_ATTR_FIELD_PORT_USER_META:
             {
-                MALLOC_ZERO(MEM_ACL_MODULE, p_field_port, sizeof(ctc_field_port_t));
-                if (NULL == p_field_port)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry port field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                MALLOC_ZERO(MEM_ACL_MODULE, p_field_port_mask, sizeof(ctc_field_port_t));
-                if (NULL == p_field_port_mask)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry port mask field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-
-                p_field_port->type = CTC_FIELD_PORT_TYPE_PORT_CLASS;
-                p_field_port->port_class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr_list[i].value.aclfield.data.u32);
-                p_field_port_mask->port_class_id = 0xFFFF;
+                port_field_port_user_meta.type = CTC_FIELD_PORT_TYPE_PORT_CLASS;
+                port_field_port_user_meta.port_class_id = CTC_SAI_META_DATA_SAI_TO_CTC(attr_list[i].value.aclfield.data.u32);
+                port_field_port_user_meta_mask.port_class_id = 0xFFFF;
                 field_key[*p_key_count].type = CTC_FIELD_KEY_PORT;
-                field_key[*p_key_count].ext_data = (void*)p_field_port;
-                field_key[*p_key_count].ext_mask = (void*)p_field_port_mask;
+                field_key[*p_key_count].ext_data = (void*)(&port_field_port_user_meta);
+                field_key[*p_key_count].ext_mask = (void*)(&port_field_port_user_meta_mask);
                 (*p_key_count)++;
                 break;
             }
             case SAI_ACL_ENTRY_ATTR_FIELD_VLAN_USER_META:
             {
-                MALLOC_ZERO(MEM_ACL_MODULE, p_field_port, sizeof(ctc_field_port_t));
-                if (NULL == p_field_port)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry port field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                MALLOC_ZERO(MEM_ACL_MODULE, p_field_port_mask, sizeof(ctc_field_port_t));
-                if (NULL == p_field_port_mask)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry port mask field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                p_field_port->type = CTC_FIELD_PORT_TYPE_VLAN_CLASS;
-                p_field_port->vlan_class_id = attr_list[i].value.aclfield.data.u32 + 1;
-                p_field_port_mask->vlan_class_id = 0xFFFF;
+                port_field_vlan_user_meta.type = CTC_FIELD_PORT_TYPE_VLAN_CLASS;
+                port_field_vlan_user_meta.vlan_class_id = attr_list[i].value.aclfield.data.u32 + 1;
+                port_field_vlan_user_meta_mask.vlan_class_id = 0xFFFF;
                 field_key[*p_key_count].type = CTC_FIELD_KEY_PORT;
-                field_key[*p_key_count].ext_data = (void*)p_field_port;
-                field_key[*p_key_count].ext_mask = (void*)p_field_port_mask;
+                field_key[*p_key_count].ext_data = (void*)&port_field_vlan_user_meta;
+                field_key[*p_key_count].ext_mask = (void*)&port_field_vlan_user_meta_mask;
                 (*p_key_count)++;
                 break;
             }
@@ -1939,20 +1842,8 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                         sal_memset(&ctc_object_id, 0, sizeof(ctc_object_id_t));
                         sal_memset(&vrange_info, 0, sizeof(ctc_vlan_range_info_t));
                         ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ACL_RANGE, sai_object_id, &ctc_object_id);
-                        MALLOC_ZERO(MEM_ACL_MODULE, field_key[*p_key_count].ext_data, sizeof(uint32));
-                        if (NULL == field_key[*p_key_count].ext_data)
-                        {
-                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry vlan range field memory\n");
-                            status =  SAI_STATUS_NO_MEMORY;
-                            goto error0;
-                        }
-                        MALLOC_ZERO(MEM_ACL_MODULE, field_key[*p_key_count].ext_mask, sizeof(uint32));
-                        if (NULL == field_key[*p_key_count].ext_mask)
-                        {
-                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry vlan range field memory\n");
-                            status =  SAI_STATUS_NO_MEMORY;
-                            goto error0;
-                        }
+                        field_key[*p_key_count].ext_data = &vlan_range_ext_data;
+                        field_key[*p_key_count].ext_mask = &vlan_range_ext_mask;
                         ((uint32*)field_key[*p_key_count].ext_data)[0] = ctc_object_id.value;
 
                         vrange_info.direction = (SAI_ACL_STAGE_INGRESS == p_acl_range->stage) ? CTC_INGRESS : CTC_EGRESS;
@@ -1961,17 +1852,41 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                         ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, key->key.object_id, &ctc_object_id);
                         if (SAI_OBJECT_TYPE_PORT == ctc_object_id.type)
                         {
-                            CTC_SAI_ERROR_GOTO(ctcs_port_set_vlan_range(lchip, ctc_object_id.value, &vrange_info, 1), status, error0);
+                            status = ctcs_port_set_vlan_range(lchip, ctc_object_id.value, &vrange_info, 1);
+                            if (CTC_E_NONE != status)
+                            {
+                                return ctc_error_code_mapping(status);
+                            }
                         }
                         else if (SAI_OBJECT_TYPE_LAG == ctc_object_id.type)
                         {
-                            ctcs_linkagg_get_max_mem_num(lchip, &max_num);
+                            status = ctcs_linkagg_get_max_mem_num(lchip, &max_num);
+                            if (CTC_E_NONE != status)
+                            {
+                                return ctc_error_code_mapping(status);
+                            }
+                            
                             MALLOC_ZERO(MEM_ACL_MODULE, p_gports, sizeof(uint32)* max_num);
-                            ctcs_linkagg_get_member_ports(lchip, (ctc_object_id.value & 0xFF), p_gports, &cnt);
+                            if (NULL == p_gports)
+                            {
+                                return SAI_STATUS_NO_MEMORY;
+                            }
+                            status = ctcs_linkagg_get_member_ports(lchip, (ctc_object_id.value & 0xFF), p_gports, &cnt);
+                            if (CTC_E_NONE != status)
+                            {
+                                mem_free(p_gports);
+                                return ctc_error_code_mapping(status);
+                            }
                             for (n = 0; n < cnt; n++)
                             {
-                                CTC_SAI_ERROR_GOTO(ctcs_port_set_vlan_range(lchip, p_gports[n], &vrange_info, 1), status, error0);
+                                status = ctcs_port_set_vlan_range(lchip, p_gports[n], &vrange_info, 1);
+                                if (CTC_E_NONE != status)
+                                {
+                                    mem_free(p_gports);
+                                    return ctc_error_code_mapping(status);
+                                }
                             }
+                            mem_free(p_gports);
                         }
                         else
                         {
@@ -1982,21 +1897,28 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                                     if ((SAI_ACL_ENTRY_ATTR_FIELD_IN_PORT == attr_list[j].id) || (SAI_ACL_ENTRY_ATTR_FIELD_SRC_PORT == attr_list[j].id))
                                     {
                                         ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[j].value.aclfield.data.oid, &ctc_object_id);
-                                        CTC_SAI_ERROR_GOTO(ctcs_port_set_vlan_range(lchip, ctc_object_id.value, &vrange_info, 1), status, error0);
+                                        status = ctcs_port_set_vlan_range(lchip, ctc_object_id.value, &vrange_info, 1);
+                                        if (CTC_E_NONE != status)
+                                        {
+                                            return ctc_error_code_mapping(status);
+                                        }
                                     }
                                     else if (SAI_ACL_ENTRY_ATTR_FIELD_IN_PORTS == attr_list[j].id)
                                     {
                                         for (n = 0; n < attr_list[j].value.aclfield.data.objlist.count; n++)
                                         {
-                                            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[j].value.aclfield.data.oid, &ctc_object_id);
-                                            CTC_SAI_ERROR_GOTO(ctcs_port_set_vlan_range(lchip, ctc_object_id.value, &vrange_info, 1), status, error0);
+                                            ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_PORT, attr_list[j].value.aclfield.data.objlist.list[n], &ctc_object_id);
+                                            status = ctcs_port_set_vlan_range(lchip, ctc_object_id.value, &vrange_info, 1);
+                                            if (CTC_E_NONE != status)
+                                            {
+                                                return ctc_error_code_mapping(status);
+                                            }
                                         }
                                     }
                                     else
                                     {
                                         CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to set acl vlan range!\n");
-                                        status =  SAI_STATUS_INVALID_PARAMETER;
-                                        goto error0;
+                                        return SAI_STATUS_INVALID_PARAMETER;
                                     }
                                 }
                             }
@@ -2019,71 +1941,48 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
             case SAI_ACL_ENTRY_ATTR_FIELD_MACSEC_SCI:
             {
                 field_key[*p_key_count].type = CTC_FIELD_KEY_DOT1AE_SCI;
-
-                field_key[*p_key_count].ext_data = mem_malloc(MEM_ACL_MODULE, 8);
-                if (NULL == field_key[*p_key_count].ext_data)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry macsec sci field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;;
-                }
-                field_key[*p_key_count].ext_mask = mem_malloc(MEM_ACL_MODULE, 8);
-                if (NULL == field_key[*p_key_count].ext_mask)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry macsec sci field memory\n");
-                    status =  SAI_STATUS_NO_MEMORY;
-                    goto error0;;
-                }
+                field_key[*p_key_count].ext_data = (void*)dot1ae_sci_data;
+                field_key[*p_key_count].ext_mask = (void*)dot1ae_sci_mask;
                 sal_memcpy(field_key[*p_key_count].ext_data, attr_list[i].value.aclfield.data.u8list.list, 8);
                 sal_memcpy(field_key[*p_key_count].ext_mask, attr_list[i].value.aclfield.mask.u8list.list, 8);
                 (*p_key_count)++;
                 break;
             }
+            case SAI_ACL_ENTRY_ATTR_FIELD_VIRTUAL_ROUTER:
+            {
+                ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_NULL, attr_list[i].value.aclfield.data.oid, &ctc_object_id);
+                if (SAI_OBJECT_TYPE_VIRTUAL_ROUTER == ctc_object_id.type)
+                {
+                    p_virtual_router = ctc_sai_db_get_object_property(lchip, attr_list[i].value.aclfield.data.oid);
+                    if (NULL == p_virtual_router)
+                    {
+                        return SAI_STATUS_ITEM_NOT_FOUND;
+                    }
+                    ctc_sai_oid_get_vrf_id_u32(attr_list[i].value.aclfield.data.oid, &vrf_id);
+
+                    field_key[*p_key_count].type = CTC_FIELD_KEY_VRFID;
+                    field_key[*p_key_count].data = vrf_id;
+                    field_key[*p_key_count].mask = 0xFFFFFFFF;
+                    (*p_key_count)++;
+                }
+                break;
+            }
             default:
             {
-                if (attr_list[i].id >= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN
-                   && attr_list[i].id <= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX)
+                if (attr_list[i].id >= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MIN && attr_list[i].id <= SAI_ACL_ENTRY_ATTR_USER_DEFINED_FIELD_GROUP_MAX)
                 {
                     p_acl_entry = ctc_sai_db_get_object_property(lchip, entry_object_id);
                     if (NULL == p_acl_entry)
                     {
                         CTC_SAI_LOG_ERROR(SAI_API_ACL, "The ACL entry is not exist\n");
-                        status =  SAI_STATUS_ITEM_NOT_FOUND;
-                        goto error0;
+                        return SAI_STATUS_ITEM_NOT_FOUND;
                     }
 
                     p_acl_table = ctc_sai_db_get_object_property(lchip, p_acl_entry->table_id);
                     if (NULL == p_acl_table)
                     {
                         CTC_SAI_LOG_ERROR(SAI_API_ACL, "The ACL table is not exist\n");
-                        status =  SAI_STATUS_ITEM_NOT_FOUND;
-                        goto error0;
-                    }
-
-                    is_first_udf = ((NULL == p_acl_udf_data && NULL == p_acl_udf_mask))?1:0;
-                    if (NULL == p_acl_udf_data)
-                    {
-                        p_acl_udf_data = (ctc_acl_udf_t*)mem_malloc(MEM_ACL_MODULE, sizeof(ctc_acl_udf_t));
-                        if (NULL == p_acl_udf_data)
-                        {
-                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry udf field memory\n");
-                            status =  SAI_STATUS_NO_MEMORY;
-                            goto error0;
-                        }
-                        sal_memset(p_acl_udf_data, 0, sizeof(ctc_acl_udf_t));
-                    }
-
-                    if (NULL == p_acl_udf_mask)
-                    {
-                        p_acl_udf_mask = (ctc_acl_udf_t*)mem_malloc(MEM_ACL_MODULE, sizeof(ctc_acl_udf_t));
-                        if (NULL == p_acl_udf_mask)
-                        {
-                            CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl entry udf field memory\n");
-                            status =  SAI_STATUS_NO_MEMORY;
-                            goto error0;
-                        }
-                        sal_memset(p_acl_udf_mask, 0xff, sizeof(ctc_acl_udf_t));
-                        sal_memset(p_acl_udf_mask->udf, 0, sizeof(p_acl_udf_mask->udf));
+                        return SAI_STATUS_ITEM_NOT_FOUND;
                     }
 
                     CTC_SLIST_LOOP(p_acl_table->udf_groups, p_node)
@@ -2096,8 +1995,7 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                             if (NULL == p_udf_group)
                             {
                                 CTC_SAI_LOG_ERROR(SAI_API_ACL, "Failed to add udf field, invalid udf_group_id 0x%"PRIx64"!\n", sai_object_id);
-                                status = SAI_STATUS_ITEM_NOT_FOUND;
-                                goto error0;
+                                return SAI_STATUS_ITEM_NOT_FOUND;
                             }
 
                             if (CTC_SAI_UDF_OFFSET_NUM == p_udf_group->offset[j])
@@ -2108,8 +2006,9 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
 
                             for (j = 0; j < attr_list[i].value.aclfield.data.u8list.count/CTC_SAI_UDF_OFFSET_BYTE_LEN; j++)
                             {
-                                sal_memcpy(p_acl_udf_data->udf + p_udf_group->offset[j]*CTC_SAI_UDF_OFFSET_BYTE_LEN, attr_list[i].value.aclfield.data.u8list.list+j*CTC_SAI_UDF_OFFSET_BYTE_LEN, CTC_SAI_UDF_OFFSET_BYTE_LEN);
-                                sal_memcpy(p_acl_udf_mask->udf + p_udf_group->offset[j]*CTC_SAI_UDF_OFFSET_BYTE_LEN, attr_list[i].value.aclfield.mask.u8list.list+j*CTC_SAI_UDF_OFFSET_BYTE_LEN, CTC_SAI_UDF_OFFSET_BYTE_LEN);
+                                sal_memcpy(acl_udf_data.udf + p_udf_group->offset[j]*CTC_SAI_UDF_OFFSET_BYTE_LEN, attr_list[i].value.aclfield.data.u8list.list+j*CTC_SAI_UDF_OFFSET_BYTE_LEN, CTC_SAI_UDF_OFFSET_BYTE_LEN);
+                                sal_memcpy(acl_udf_mask.udf + p_udf_group->offset[j]*CTC_SAI_UDF_OFFSET_BYTE_LEN, attr_list[i].value.aclfield.mask.u8list.list+j*CTC_SAI_UDF_OFFSET_BYTE_LEN, CTC_SAI_UDF_OFFSET_BYTE_LEN);
+                                udf_key_index = (CTC_MAX_UINT16_VALUE == udf_key_index) ? (*p_key_count)++ : udf_key_index;
                             }
                             break;
                         }
@@ -2124,29 +2023,22 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
                         {
                             CTC_SAI_LOG_ERROR(SAI_API_ACL, "sai udf entry oid:0x%"PRIx64" is not exist!\n", p_udf_group_member->udf_oid);
                             return SAI_STATUS_ITEM_NOT_FOUND;
-                            goto error0;
                         }
 
                         p_udf_match = ctc_sai_db_get_object_property(lchip, p_udf_entry->match_oid);
                         if (NULL == p_udf_match)
                         {
                             CTC_SAI_LOG_ERROR(SAI_API_ACL, "sai udf match oid:0x%"PRIx64" is not exist!\n", p_udf_entry->match_oid);
-                            status = SAI_STATUS_ITEM_NOT_FOUND;
-                            goto error0;
+                            return SAI_STATUS_ITEM_NOT_FOUND;
                         }
-
-                        p_acl_udf_data->udf_ad_id = p_udf_match->ctc_group_id;
+                        acl_udf_data.udf_ad_id = p_udf_match->ctc_group_id;
                         break;
                     }
 
-                    if (is_first_udf)
-                    {
-                        field_key[*p_key_count].mask = 0xFFFFFFFF;
-                        field_key[*p_key_count].type = CTC_FIELD_KEY_UDF_AD_ID;
-                        field_key[*p_key_count].ext_data = p_acl_udf_data;
-                        field_key[*p_key_count].ext_mask = p_acl_udf_mask;
-                        (*p_key_count)++;
-                    }
+                    field_key[udf_key_index].mask = 0xFFFFFFFF;
+                    field_key[udf_key_index].type = CTC_FIELD_KEY_UDF_AD_ID;
+                    field_key[udf_key_index].ext_data = (void*)(&acl_udf_data);
+                    field_key[udf_key_index].ext_mask = (void*)(&acl_udf_mask);
                     break;
                 }
                 else
@@ -2159,79 +2051,6 @@ _ctc_sai_acl_mapping_entry_key_fields(uint8 lchip, sai_object_key_t* key, ctc_di
     }
 
     return SAI_STATUS_SUCCESS;
-
-error0:
-
-    if (p_acl_udf_data)
-    {
-        mem_free(p_acl_udf_data);
-    }
-    if (p_acl_udf_mask)
-    {
-        mem_free(p_acl_udf_mask);
-    }
-    if (ipv6_sa)
-    {
-        mem_free(ipv6_sa);
-    }
-    if (ipv6_sa_mask)
-    {
-        mem_free(ipv6_sa_mask);
-    }
-    if (ipv6_da)
-    {
-        mem_free(ipv6_da);
-    }
-    if (ipv6_da_mask)
-    {
-        mem_free(ipv6_da_mask);
-    }
-    if (macsa)
-    {
-        mem_free(macsa);
-    }
-    if (macsa_mask)
-    {
-        mem_free(macsa_mask);
-    }
-    if (macda)
-    {
-        mem_free(macda);
-    }
-    if (macda_mask)
-    {
-        mem_free(macda_mask);
-    }
-    if (p_field_port)
-    {
-        mem_free(p_field_port);
-    }
-    if (p_field_port_mask)
-    {
-        mem_free(p_field_port_mask);
-    }
-
-    if (p_field_port_array)
-    {
-        mem_free(p_field_port_array);
-    }
-
-    if (p_field_port_mask_array)
-    {
-        mem_free(p_field_port_mask_array);
-    }
-
-    if (p_acl_udf_data)
-    {
-        mem_free(p_acl_udf_data);
-    }
-
-    if (p_acl_udf_mask)
-    {
-        mem_free(p_acl_udf_mask);
-    }
-
-    return status;
 }
 
 
@@ -2254,10 +2073,10 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
     ctc_object_id_t ctc_entry_object_id;
     ctc_object_id_t ctc_policer_object_id;
     sai_packet_action_t packet_action_type = SAI_PACKET_ACTION_DROP;
-    ctc_acl_to_cpu_t    *p_acl_to_cpu = NULL;
-    ctc_acl_inter_cn_t  *p_acl_ecn = NULL;
-    ctc_acl_vlan_edit_t *p_vlan_edit = NULL;
-    ctc_acl_log_t* p_acl_log = NULL;
+    static ctc_acl_to_cpu_t acl_to_cpu;
+    static ctc_acl_inter_cn_t acl_ecn;
+    static ctc_acl_vlan_edit_t vlan_edit;
+    static ctc_acl_log_t acl_log;
     ctc_sai_acl_counter_t *p_acl_counter = NULL;
     ctc_sai_acl_entry_t *p_acl_entry = NULL;
     uint8 igs_radom_log_ismirror = 0;
@@ -2265,6 +2084,8 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
     uint32 ctc_sample_rate = 0;
 
     sal_memset(&trap_id, 0, sizeof(ctc_object_id_t));
+    sal_memset(&vlan_edit, 0, sizeof(ctc_acl_vlan_edit_t));
+    sal_memset(&acl_to_cpu, 0, sizeof(ctc_object_id_t));
     sal_memset(&ctc_entry_object_id, 0, sizeof(ctc_object_id_t));
     sal_memset(&ctc_policer_object_id, 0, sizeof(ctc_object_id_t));
 
@@ -2375,18 +2196,9 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
                 if (copy_to_cpu)
                 {
                     /* if already config copy action, must config trap id */
-                    MALLOC_ZERO(MEM_ACL_MODULE, p_acl_to_cpu, sizeof(ctc_acl_to_cpu_t));
-                    if (NULL == p_acl_to_cpu)
-                    {
-                        CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl to cpu memory!\n");
-                        ret = SAI_STATUS_NO_MEMORY;
-                        goto error0;
-                    }
-
-                    p_acl_to_cpu->mode = CTC_ACL_TO_CPU_MODE_TO_CPU_NOT_COVER;
-
+                    acl_to_cpu.mode = CTC_ACL_TO_CPU_MODE_TO_CPU_NOT_COVER;
                     field_action[*p_action_count].type = CTC_ACL_FIELD_ACTION_CP_TO_CPU;
-                    field_action[*p_action_count].ext_data = p_acl_to_cpu;
+                    field_action[*p_action_count].ext_data = (void*)&acl_to_cpu;
                     (*p_action_count)++;
                 }
                 break;
@@ -2423,21 +2235,11 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
                     }
                     else if (CTC_CHIP_TSINGMA_MX == chip_type)
                     {
-                        if (NULL == p_acl_log)
-                        {
-                            MALLOC_ZERO(MEM_ACL_MODULE, p_acl_log, sizeof(ctc_acl_log_t));
-                            if (NULL == p_acl_log)
-                            {
-                                CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl log memory!\n");
-                                ret = SAI_STATUS_NO_MEMORY;
-                                goto error0;
-                            }
-                        }
-                        sal_memset(p_acl_log, 0, sizeof(ctc_acl_log_t));
-                        p_acl_log->log_id = log_id;
-                        p_acl_log->session_id = p_acl_entry->ctc_session_id;
-                        p_acl_log->percent = ctc_sample_rate;
-                        field_action[*p_action_count].ext_data = p_acl_log;
+                        sal_memset(&acl_log, 0, sizeof(ctc_acl_log_t));
+                        acl_log.log_id = log_id;
+                        acl_log.session_id = p_acl_entry->ctc_session_id;
+                        acl_log.percent = ctc_sample_rate;
+                        field_action[*p_action_count].ext_data = (void*)&acl_log;
                     }
                     (*p_action_count)++;
                 }
@@ -2479,40 +2281,30 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
             case SAI_ACL_ENTRY_ATTR_ACTION_SET_INNER_VLAN_PRI:
             case SAI_ACL_ENTRY_ATTR_ACTION_SET_OUTER_VLAN_ID:
             case SAI_ACL_ENTRY_ATTR_ACTION_SET_OUTER_VLAN_PRI:
-                /* first one to set action vlan edit */
-                if (NULL == p_vlan_edit)
-                {
-                    MALLOC_ZERO(MEM_ACL_MODULE, p_vlan_edit, sizeof(ctc_acl_vlan_edit_t));
-                    if (NULL == p_vlan_edit)
-                    {
-                        CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl vlan edit memory!\n");
-                        ret = SAI_STATUS_NO_MEMORY;
-                        goto error0;
-                    }
-                }
+
                 if (SAI_ACL_ENTRY_ATTR_ACTION_SET_OUTER_VLAN_ID == attr_list[i].id)
                 {
-                    p_vlan_edit->svid_new = attr_list[i].value.aclaction.parameter.u16;
-                    p_vlan_edit->svid_sl = CTC_VLAN_TAG_SL_NEW;
-                    p_vlan_edit->stag_op = CTC_VLAN_TAG_OP_REP_OR_ADD;
+                    vlan_edit.svid_new = attr_list[i].value.aclaction.parameter.u16;
+                    vlan_edit.svid_sl = CTC_VLAN_TAG_SL_NEW;
+                    vlan_edit.stag_op = CTC_VLAN_TAG_OP_REP_OR_ADD;
                 }
                 else if (SAI_ACL_ENTRY_ATTR_ACTION_SET_OUTER_VLAN_PRI == attr_list[i].id)
                 {
-                    p_vlan_edit->scos_new = attr_list[i].value.aclaction.parameter.u8;
-                    p_vlan_edit->scos_sl = CTC_VLAN_TAG_SL_NEW;
-                    p_vlan_edit->stag_op = CTC_VLAN_TAG_OP_REP_OR_ADD;
+                    vlan_edit.scos_new = attr_list[i].value.aclaction.parameter.u8;
+                    vlan_edit.scos_sl = CTC_VLAN_TAG_SL_NEW;
+                    vlan_edit.stag_op = CTC_VLAN_TAG_OP_REP_OR_ADD;
                 }
                 else if (SAI_ACL_ENTRY_ATTR_ACTION_SET_INNER_VLAN_ID == attr_list[i].id)
                 {
-                    p_vlan_edit->cvid_new = attr_list[i].value.aclaction.parameter.u16;
-                    p_vlan_edit->cvid_sl = CTC_VLAN_TAG_SL_NEW;
-                    p_vlan_edit->ctag_op = CTC_VLAN_TAG_OP_REP_OR_ADD;
+                    vlan_edit.cvid_new = attr_list[i].value.aclaction.parameter.u16;
+                    vlan_edit.cvid_sl = CTC_VLAN_TAG_SL_NEW;
+                    vlan_edit.ctag_op = CTC_VLAN_TAG_OP_REP_OR_ADD;
                 }
                 else if (SAI_ACL_ENTRY_ATTR_ACTION_SET_INNER_VLAN_PRI == attr_list[i].id)
                 {
-                    p_vlan_edit->ccos_new = attr_list[i].value.aclaction.parameter.u8;
-                    p_vlan_edit->ccos_sl = CTC_VLAN_TAG_SL_NEW;
-                    p_vlan_edit->ctag_op = CTC_VLAN_TAG_OP_REP_OR_ADD;
+                    vlan_edit.ccos_new = attr_list[i].value.aclaction.parameter.u8;
+                    vlan_edit.ccos_sl = CTC_VLAN_TAG_SL_NEW;
+                    vlan_edit.ctag_op = CTC_VLAN_TAG_OP_REP_OR_ADD;
                 }
 
                 /* must check the vlan edit action has already exist or not in the current established field action array */
@@ -2520,7 +2312,7 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
                 if (!is_action_type_present)
                 {
                     field_action[*p_action_count].type = CTC_ACL_FIELD_ACTION_VLAN_EDIT;
-                    field_action[*p_action_count].ext_data = p_vlan_edit;
+                    field_action[*p_action_count].ext_data = (void*)&vlan_edit;
                     (*p_action_count)++;
                 }
                 break;
@@ -2530,16 +2322,10 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
                 (*p_action_count)++;
                 break;
             case SAI_ACL_ENTRY_ATTR_ACTION_SET_ECN:
-                MALLOC_ZERO(MEM_ACL_MODULE, p_acl_ecn, sizeof(ctc_acl_inter_cn_t));
-                if (NULL == p_acl_ecn)
-                {
-                    CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl ecn memory!\n");
-                    ret = SAI_STATUS_NO_MEMORY;
-                    goto error0;
-                }
-                p_acl_ecn->inter_cn = attr_list[i].value.aclaction.parameter.u8;
+                sal_memset(&acl_ecn, 0, sizeof(ctc_acl_inter_cn_t));
+                acl_ecn.inter_cn = attr_list[i].value.aclaction.parameter.u8;
                 field_action[*p_action_count].type = CTC_ACL_FIELD_ACTION_INTER_CN;
-                field_action[*p_action_count].ext_data = p_acl_ecn;
+                field_action[*p_action_count].ext_data = (void*)&acl_ecn;
                 (*p_action_count)++;
                 break;
             case SAI_ACL_ENTRY_ATTR_ACTION_INGRESS_SAMPLEPACKET_ENABLE:
@@ -2560,21 +2346,11 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
                     }
                     else if (CTC_CHIP_TSINGMA_MX == chip_type)
                     {
-                        if (NULL == p_acl_log)
-                        {
-                            MALLOC_ZERO(MEM_ACL_MODULE, p_acl_log, sizeof(ctc_acl_log_t));
-                            if (NULL == p_acl_log)
-                            {
-                                CTC_SAI_LOG_ERROR(SAI_API_ACL, "Fail to allocate acl log memory!\n");
-                                ret = SAI_STATUS_NO_MEMORY;
-                                goto error0;
-                            }
-                        }
-                        sal_memset(p_acl_log, 0, sizeof(ctc_acl_log_t));
-                        p_acl_log->log_id = ctc_log_id;
-                        p_acl_log->session_id = ctc_session_id;
-                        p_acl_log->percent = log_rate;
-                        field_action[*p_action_count].ext_data = p_acl_log;
+                        sal_memset(&acl_log, 0, sizeof(ctc_acl_log_t));
+                        acl_log.log_id = ctc_log_id;
+                        acl_log.session_id = ctc_session_id;
+                        acl_log.percent = log_rate;
+                        field_action[*p_action_count].ext_data = (void*)&acl_log;
                     }
                     (*p_action_count)++;
                 }
@@ -2593,8 +2369,8 @@ _ctc_sai_acl_mapping_acl_entry_action_fields(uint8 lchip, sai_object_key_t* key,
                 if (is_action_type_present)
                 {
                     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_HOSTIF_USER_DEFINED_TRAP, attr_list[temp_index2].value.aclaction.parameter.oid, &trap_id);
-                    p_acl_to_cpu->mode = CTC_ACL_TO_CPU_MODE_TO_CPU_COVER;
-                    p_acl_to_cpu->cpu_reason_id = trap_id.value;
+                    acl_to_cpu.mode = CTC_ACL_TO_CPU_MODE_TO_CPU_COVER;
+                    acl_to_cpu.cpu_reason_id = trap_id.value;
                 }
                 else
                 {
@@ -3676,8 +3452,6 @@ static sai_status_t
 _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_direction_t dir, uint32 ctc_group_id, uint8 group_priority, sai_object_id_t entry_object_id, uint32 ctc_entry_id, uint32 entry_priority,
                                       ctc_sai_acl_entry_t *p_acl_entry, const sai_attribute_t *update_attr)
 {
-    uint8  first_free = 1;
-    //uint8  is_add_operation = 0;
     uint8  bmp_count = 0;
     int32  status = SAI_STATUS_SUCCESS;
     uint32 index = 0;
@@ -3791,7 +3565,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                         ctcs_acl_uninstall_entry(lchip, ctc_entry_id + rr);
                         ctcs_acl_remove_entry(lchip, ctc_entry_id + rr);
                     }
-                    goto error0;
+                    return ctc_sai_mapping_error_ctc(status);
                 }
             }
             else
@@ -3872,7 +3646,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                 {
                     ctcs_acl_uninstall_entry(lchip, ctc_entry_id);
                     ctcs_acl_remove_entry(lchip, ctc_entry_id);
-                    goto error0;
+                    return ctc_sai_mapping_error_ctc(status);
                 }
             }
         }
@@ -3990,7 +3764,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                     }
 
                     /* finish updating and return directly */
-                    return status;
+                    return ctc_sai_mapping_error_ctc(status);
                 }
                 else if (SAI_ACL_ENTRY_ATTR_ACTION_SET_USER_TRAP_ID == update_attr->id)
                 {
@@ -4013,7 +3787,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                         ctcs_acl_uninstall_entry(lchip, ctc_entry_id);
                         ctcs_acl_remove_entry(lchip, ctc_entry_id);
                     }
-                    return status;
+                    return ctc_sai_mapping_error_ctc(status);
                 }
                 else if (SAI_ACL_ENTRY_ATTR_ACTION_INGRESS_SAMPLEPACKET_ENABLE == update_attr->id)
                 {
@@ -4066,7 +3840,11 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                         statsid.statsid.acl_priority = group_priority;
 
                         /* create stats with CTC_STATS_MODE_DEFINE mode */
-                        CTC_SAI_ERROR_GOTO(ctcs_stats_create_statsid(lchip, &statsid), status, error0);
+                        status = ctcs_stats_create_statsid(lchip, &statsid);
+                        if (CTC_E_NONE != status)
+                        {
+                            return ctc_sai_mapping_error_ctc(status);
+                        }
                         p_acl_counter->stats_id = statsid.stats_id;
                     }
                     p_acl_counter->ref_ins_cnt++;
@@ -4099,7 +3877,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                     ctcs_acl_uninstall_entry(lchip, ctc_entry_id);
                     ctcs_acl_remove_entry(lchip, ctc_entry_id);
                 }
-                return status;
+                return ctc_sai_mapping_error_ctc(status);
             }
             else
             {
@@ -4215,16 +3993,15 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                 {
                     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_ACL_ENTRY, entry_object_id, &ctc_object_id);
                     ctc_sai_get_ctc_object_id(SAI_OBJECT_TYPE_POLICER, p_acl_entry->action_attr_list[SAI_ACL_ENTRY_ATTR_ACTION_SET_POLICER - SAI_ACL_ENTRY_ATTR_ACTION_START].value.aclaction.parameter.oid, &ctc_policer_object_id);
-                    ctc_sai_policer_acl_set_policer(lchip, ctc_object_id.value, ctc_policer_object_id.value, false);
+                    status = status?:ctc_sai_policer_acl_set_policer(lchip, ctc_object_id.value, ctc_policer_object_id.value, false);
                 }
             }
-
             if (CTC_E_NONE != status)
             {
                 ctcs_acl_uninstall_entry(lchip, ctc_entry_id);
                 ctcs_acl_remove_entry(lchip, ctc_entry_id);
             }
-            return status;
+            return ctc_sai_mapping_error_ctc(status);
         }
         else if (SAI_ACL_ENTRY_ATTR_PRIORITY == update_attr->id)
         {
@@ -4246,7 +4023,7 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
             ctcs_acl_uninstall_entry(lchip, ctc_entry_id);
             ctcs_acl_remove_entry(lchip, ctc_entry_id);
         }
-        return status;
+        return ctc_sai_mapping_error_ctc(status);
     }
     else
     {
@@ -4344,35 +4121,11 @@ _ctc_sai_acl_add_acl_entry_to_sdk_usw(uint8 lchip, sai_object_key_t *key, ctc_di
                 ctcs_acl_remove_entry(lchip, ctc_entry_id + rr);
             }
         }
-        return status;
+
+        return ctc_sai_mapping_error_ctc(status);
     }
 
-error0:
-    /* need free the memory generated by mapping sai key and action attribute to sdk key and action field, sdk will store these fields in its own sw table */
-    for (ii = 0; ii < key_count; ii++)
-    {
-        if (key_fields_array[ii].ext_data && key_fields_array[ii].ext_mask && key_fields_array[ii].type != CTC_FIELD_KEY_PORT)
-        {
-            mem_free(key_fields_array[ii].ext_data);
-            mem_free(key_fields_array[ii].ext_mask);
-        }
-        else if (key_fields_array[ii].ext_data && key_fields_array[ii].ext_mask && key_fields_array[ii].type == CTC_FIELD_KEY_PORT && first_free)
-        {
-            mem_free(key_fields_array[ii].ext_data);
-            mem_free(key_fields_array[ii].ext_mask);
-            first_free = 0;
-        }
-    }
-
-    for (ii = 0; ii < action_count; ii++)
-    {
-        if (acl_action_fields_array[ii].ext_data)
-        {
-            mem_free(acl_action_fields_array[ii].ext_data);
-        }
-    }
-
-    return status;
+    return SAI_STATUS_SUCCESS;
 }
 
 static sai_status_t
@@ -6177,7 +5930,7 @@ static ctc_sai_attr_fn_entry_t acl_table_attr_fn_entries[] = {
       ctc_sai_acl_get_acl_table_field,
       NULL },
     { SAI_ACL_TABLE_ATTR_FIELD_OUT_PORTS,
-      ctc_sai_acl_get_acl_table_field,
+      NULL,
       NULL },
     { SAI_ACL_TABLE_ATTR_FIELD_IN_PORT,
       ctc_sai_acl_get_acl_table_field,
@@ -6296,7 +6049,7 @@ static ctc_sai_attr_fn_entry_t acl_table_attr_fn_entries[] = {
     { SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_EXP,
       ctc_sai_acl_get_acl_table_field,
       NULL },
-    { SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_BOS,
+    { SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL0_BOS,
       ctc_sai_acl_get_acl_table_field,
       NULL },
     { SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_LABEL,
@@ -6306,9 +6059,6 @@ static ctc_sai_attr_fn_entry_t acl_table_attr_fn_entries[] = {
       ctc_sai_acl_get_acl_table_field,
       NULL },
     { SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_EXP,
-      ctc_sai_acl_get_acl_table_field,
-      NULL },
-    { SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_BOS,
       ctc_sai_acl_get_acl_table_field,
       NULL },
     { SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL1_BOS,
@@ -6400,6 +6150,12 @@ static ctc_sai_attr_fn_entry_t acl_table_attr_fn_entries[] = {
       NULL },
     { SAI_ACL_TABLE_ATTR_FIELD_TAM_INT_TYPE,
       NULL,
+      NULL },
+    { SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID,
+      ctc_sai_acl_get_acl_table_info,
+      NULL },
+    { SAI_ACL_TABLE_ATTR_FIELD_VIRTUAL_ROUTER,
+      ctc_sai_acl_get_acl_table_info,
       NULL },
     { SAI_ACL_TABLE_ATTR_ENTRY_LIST,
       ctc_sai_acl_get_acl_table_info,
@@ -7423,6 +7179,12 @@ static ctc_sai_attr_fn_entry_t acl_entry_attr_fn_entries[] = {
       ctc_sai_acl_get_acl_entry_info,
       ctc_sai_acl_set_acl_entry_info },
     { SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_FIELD_INTERFACE_ID,
+      ctc_sai_acl_get_acl_entry_info,
+      ctc_sai_acl_set_acl_entry_info },
+    { SAI_ACL_ENTRY_ATTR_FIELD_VIRTUAL_ROUTER,
       ctc_sai_acl_get_acl_entry_info,
       ctc_sai_acl_set_acl_entry_info },
     { SAI_ACL_ENTRY_ATTR_ACTION_REDIRECT,
@@ -11772,6 +11534,7 @@ ctc_sai_acl_init_ctc_key_field(uint8 lchip)
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV4_EXT], CTC_FIELD_KEY_AWARE_TUNNEL_INFO);
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV4_EXT], CTC_FIELD_KEY_CPU_REASON_ID);
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV4_EXT], CTC_FIELD_KEY_L4_USER_TYPE);
+        CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV4_EXT], CTC_FIELD_KEY_VRFID);
 
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_PORT);
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_CLASS_ID);
@@ -11833,6 +11596,7 @@ ctc_sai_acl_init_ctc_key_field(uint8 lchip)
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_WLAN_RADIO_ID);
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_WLAN_CTL_PKT);
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_VRFID);
+        CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_INTERFACE_ID);
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_AWARE_TUNNEL_INFO);
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_L3_TYPE);
         CTC_BMP_SET(ctc_sai_key_info.key2field[CTC_EGRESS][CTC_ACL_KEY_MAC_IPV6], CTC_FIELD_KEY_ETHER_TYPE);
@@ -12061,6 +11825,7 @@ ctc_sai_acl_db_init(uint8 lchip)
     CTC_BMP_SET(ctc_sai_key_info.attr2field[SAI_ACL_ATTR_ID2INDEX(SAI_ACL_TABLE_ATTR_FIELD_MPLS_LABEL2_BOS)],     CTC_FIELD_KEY_MPLS_SBIT2);
 
     CTC_BMP_SET(ctc_sai_key_info.attr2field[SAI_ACL_ATTR_ID2INDEX(SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID)],        CTC_FIELD_KEY_INTERFACE_ID);
+    CTC_BMP_SET(ctc_sai_key_info.attr2field[SAI_ACL_ATTR_ID2INDEX(SAI_ACL_TABLE_ATTR_FIELD_VIRTUAL_ROUTER)],      CTC_FIELD_KEY_VRFID);
 
     for (ii = 0; ii <= SAI_ACL_USER_DEFINED_FIELD_ATTR_ID_RANGE; ii++)
     {
@@ -12382,6 +12147,7 @@ ctc_sai_acl_db_init(uint8 lchip)
     ctc_sai_key_info.attr_avail[attr++] = SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER;
     ctc_sai_key_info.attr_avail[attr++] = SAI_ACL_TABLE_ATTR_FIELD_GRE_KEY;
     ctc_sai_key_info.attr_avail[attr++] = SAI_ACL_TABLE_ATTR_FIELD_INTERFACE_ID;
+    ctc_sai_key_info.attr_avail[attr++] = SAI_ACL_TABLE_ATTR_FIELD_VIRTUAL_ROUTER;
     ctc_sai_key_info.avail_num = attr;
 
     CTC_BIT_SET(ctc_sai_key_info.key2packet[CTC_ACL_KEY_IPV4], PKT_TYPE_ETH);
