@@ -44813,3 +44813,435 @@ class scenario_78_udf_group_remove_update_from_mid_test(sai_base_test.ThriftInte
             self.client.sai_thrift_remove_udf_group(udf_group_id6)
             self.client.sai_thrift_remove_udf_group(udf_group_id7)
 
+
+@group('acl')
+class scenario_82_ipv4_entry_bind_ingress_phy_interface_with_virtual_router(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        vlan_id = 10
+        mac = ''
+        addr_family = SAI_IP_ADDR_FAMILY_IPV4
+        ip_addr1 = '10.10.10.1'
+        ip_addr1_subnet = '10.10.10.0'
+        ip_mask1 = '255.255.255.0'
+        dmac1 = '00:11:22:33:44:55'
+
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        sai_thrift_create_fdb(self.client, vlan_oid, dmac1, port2, SAI_PACKET_ACTION_FORWARD)
+        
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_VLAN, 0, vlan_oid, v4_enabled, v6_enabled, mac)
+
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id2)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
+
+        pkt = simple_tcp_packet(eth_dst=router_mac,
+                                eth_src='00:22:22:22:22:22',
+                                ip_dst='10.10.10.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=64,
+                                tcp_sport=1000,
+                                tcp_dport=2000)
+        exp_pkt = simple_tcp_packet(
+                                eth_dst=dmac1,
+                                eth_src=router_mac,
+                                ip_dst='10.10.10.30',
+                                ip_src='192.168.0.1',
+                                ip_id=105,
+                                ip_ttl=63,
+                                tcp_sport=1000,
+                                tcp_dport=2000)
+
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_ROUTER_INTF]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        ip_type = SAI_ACL_IP_TYPE_IPV4ANY
+        ip_type_mask = -1
+        ipv4_src = "192.168.0.1"
+        ipv4_src_mask = "255.255.255.255"
+        ipv4_dst = '10.10.10.30'
+        ipv4_dst_mask = "255.255.255.255"
+        #deny learning
+        deny_learn = None
+        admin_state = True
+        router_interface = True
+        virtual_router = True
+
+        warmboot(self.client)
+        try:
+            sys_logging("======port type rif send dest ip hit v4 packet to vlan type rif======")
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_packets(exp_pkt, [1])
+
+            # acl table info
+            table_stage = SAI_ACL_STAGE_INGRESS
+            table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_ROUTER_INTERFACE]
+
+            acl_attr_list = []
+            # acl key field
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IP, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IP, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IP_PROTOCOL, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_L4_SRC_PORT, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_L4_DST_PORT, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_VIRTUAL_ROUTER, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            # create acl table
+            attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+            attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            acl_table_oid = self.client.sai_thrift_create_acl_table(acl_attr_list)
+
+            sys_logging("create acl table = %d" %acl_table_oid)
+            assert(acl_table_oid != SAI_NULL_OBJECT_ID)
+
+            acl_attr_list = []
+            #ACL table OID
+            attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #Priority
+            attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            # Admin State
+            attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            # ip type
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #src ipv4
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_src), mask =sai_thrift_acl_mask_t(ip4=ipv4_src_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IP, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #dst ipv4
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip4=ipv4_dst), mask =sai_thrift_acl_mask_t(ip4=ipv4_dst_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IP, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            #ip protocol
+            ip_protocol = 6
+            ip_protocol_mask = -1
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(u8=ip_protocol), mask =sai_thrift_acl_mask_t(u8=ip_protocol_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_IP_PROTOCOL, value=attribute_value)
+            acl_attr_list.append(attribute)
+        
+            #l4 src port
+            tcp_src_port = 1000
+            tcp_src_port_mask = -1
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(u16=tcp_src_port), mask =sai_thrift_acl_mask_t(u16=tcp_src_port_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_L4_SRC_PORT, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            #l4 dst port
+            tcp_dst_port = 2000
+            tcp_dst_port_mask = -1
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(u16=tcp_dst_port), mask =sai_thrift_acl_mask_t(u16=tcp_dst_port_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_L4_DST_PORT, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #virtual router
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(oid=vr_id), mask =sai_thrift_acl_mask_t(u8=0)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_VIRTUAL_ROUTER, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #Packet action
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),  enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            # create entry entry
+            acl_entry_oid = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+
+            sys_logging("create acl entry = %d" %acl_entry_oid)
+            assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+            assert(status == SAI_STATUS_SUCCESS)
+
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_no_packet(exp_pkt, 1, default_time_out)
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
+
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+            assert(status == SAI_STATUS_SUCCESS)
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            sai_thrift_delete_fdb(self.client, vlan_oid, dmac1, port2)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
+            self.client.sai_thrift_remove_acl_table(acl_table_oid)
+
+
+class scenario_83_ipv6_entry_bind_ingress_phy_interface_with_virtual_router(sai_base_test.ThriftInterfaceDataPlane):
+    def runTest(self):
+        switch_init(self.client)
+        port1 = port_list[0]
+        port2 = port_list[1]
+        v4_enabled = 1
+        v6_enabled = 1
+        vlan_id = 10
+        mac = ''
+        addr_family = SAI_IP_ADDR_FAMILY_IPV6
+        ip_addr1 = '1234:5678:9abc:def0:4422:1133:5577:99aa'
+        ip_addr1_subnet = '1234:5678:9abc:def0:4422:1133:5577:0'
+        ip_mask1 = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:0'
+        dmac1 = '00:11:22:33:44:55'
+
+        vlan_oid = sai_thrift_create_vlan(self.client, vlan_id)
+        vlan_member1 = sai_thrift_create_vlan_member(self.client, vlan_oid, port2, SAI_VLAN_TAGGING_MODE_UNTAGGED)
+        sai_thrift_create_fdb(self.client, vlan_oid, dmac1, port2, SAI_PACKET_ACTION_FORWARD)
+        
+        vr_id = sai_thrift_create_virtual_router(self.client, v4_enabled, v6_enabled)
+        rif_id1 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_PORT, port1, 0, v4_enabled, v6_enabled, mac)
+        rif_id2 = sai_thrift_create_router_interface(self.client, vr_id, SAI_ROUTER_INTERFACE_TYPE_VLAN, 0, vlan_oid, v4_enabled, v6_enabled, mac)
+
+        sai_thrift_create_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
+        nhop1 = sai_thrift_create_nhop(self.client, addr_family, ip_addr1, rif_id2)
+        sai_thrift_create_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
+
+        pkt = simple_tcpv6_packet( eth_dst=router_mac,
+                                   eth_src='00:22:22:22:22:22',
+                                   ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:1111',
+                                   ipv6_src='2000::1',
+                                   ipv6_hlim=64,
+                                   tcp_sport=1000,
+                                    tcp_dport=2000)
+        exp_pkt = simple_tcpv6_packet(
+                                   eth_dst=dmac1,
+                                   eth_src=router_mac,
+                                   ipv6_dst='1234:5678:9abc:def0:4422:1133:5577:1111',
+                                   ipv6_src='2000::1',
+                                   ipv6_hlim=63,
+                                   tcp_sport=1000,
+                                   tcp_dport=2000)
+
+        table_stage = SAI_ACL_STAGE_INGRESS
+        table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_ROUTER_INTF]
+        entry_priority = SAI_SWITCH_ATTR_ACL_ENTRY_MINIMUM_PRIORITY
+        action = SAI_PACKET_ACTION_DROP
+        ip_type = SAI_ACL_IP_TYPE_IPV6ANY
+        ip_type_mask = -1
+        ipv6_src = '2000::1'
+        ipv6_src_mask = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:0'
+        ipv6_dst = '1234:5678:9abc:def0:4422:1133:5577:1111'
+        ipv6_dst_mask = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:0'
+        #deny learning
+        deny_learn = None
+        admin_state = True
+        router_interface = True
+        virtual_router = True
+
+        warmboot(self.client)
+        try:
+            sys_logging("======port type rif send dest ip hit v6 packet to vlan type rif======")
+            self.ctc_send_packet( 0, str(pkt))
+            self.ctc_verify_packets( exp_pkt, [1])
+
+            # acl table info
+            table_stage = SAI_ACL_STAGE_INGRESS
+            table_bind_point_list = [SAI_ACL_BIND_POINT_TYPE_ROUTER_INTERFACE]
+
+            acl_attr_list = []
+            # acl key field
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_IPV6_NEXT_HEADER, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_L4_SRC_PORT, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_L4_DST_PORT, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            attribute_value = sai_thrift_attribute_value_t(booldata=1)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_VIRTUAL_ROUTER, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            # create acl table
+            attribute_value = sai_thrift_attribute_value_t(s32=table_stage)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_STAGE, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            acl_table_bind_point_list = sai_thrift_s32_list_t(count=len(table_bind_point_list), s32list=table_bind_point_list)
+            attribute_value = sai_thrift_attribute_value_t(s32list=acl_table_bind_point_list)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_ACL_BIND_POINT_TYPE_LIST, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            acl_table_oid = self.client.sai_thrift_create_acl_table(acl_attr_list)
+
+            sys_logging("create acl table = %d" %acl_table_oid)
+            assert(acl_table_oid != SAI_NULL_OBJECT_ID)
+
+            acl_attr_list = []
+            #ACL table OID
+            attribute_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_TABLE_ID, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #Priority
+            attribute_value = sai_thrift_attribute_value_t(u32=entry_priority)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_PRIORITY, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            # Admin State
+            attribute_value = sai_thrift_attribute_value_t(booldata=admin_state)
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ADMIN_STATE, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            # ip type
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(s32=ip_type), mask = sai_thrift_acl_mask_t(s32=ip_type_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #src ipv6
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_src), mask =sai_thrift_acl_mask_t(ip4=ipv6_src_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_SRC_IPV6, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #dst ipv6
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(ip6=ipv6_dst), mask =sai_thrift_acl_mask_t(ip4=ipv6_dst_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_DST_IPV6, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            #ip protocol
+            ip_protocol = 6
+            ip_protocol_mask = -1
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(u8=ip_protocol), mask =sai_thrift_acl_mask_t(u8=ip_protocol_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_IPV6_NEXT_HEADER, value=attribute_value)
+            acl_attr_list.append(attribute)
+        
+            #l4 src port
+            tcp_src_port = 1000
+            tcp_src_port_mask = -1
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(u16=tcp_src_port), mask =sai_thrift_acl_mask_t(u16=tcp_src_port_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_L4_SRC_PORT, value=attribute_value)
+            acl_attr_list.append(attribute)
+            
+            #l4 dst port
+            tcp_dst_port = 2000
+            tcp_dst_port_mask = -1
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(u16=tcp_dst_port), mask =sai_thrift_acl_mask_t(u16=tcp_dst_port_mask)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_L4_DST_PORT, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #virtual router
+            attribute_value = sai_thrift_attribute_value_t(aclfield=sai_thrift_acl_field_data_t(enable = True, data = sai_thrift_acl_data_t(oid=vr_id), mask =sai_thrift_acl_mask_t(u8=0)))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_FIELD_VIRTUAL_ROUTER, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            #Packet action
+            attribute_value = sai_thrift_attribute_value_t(aclaction=sai_thrift_acl_action_data_t(parameter = sai_thrift_acl_parameter_t(s32=action),  enable = True))
+            attribute = sai_thrift_attribute_t(id=SAI_ACL_ENTRY_ATTR_ACTION_PACKET_ACTION, value=attribute_value)
+            acl_attr_list.append(attribute)
+
+            # create entry entry
+            acl_entry_oid = self.client.sai_thrift_create_acl_entry(acl_attr_list)
+
+            sys_logging("create acl entry = %d" %acl_entry_oid)
+            assert(acl_entry_oid != SAI_NULL_OBJECT_ID )
+
+            attr_value = sai_thrift_attribute_value_t(oid=acl_table_oid)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+            assert(status == SAI_STATUS_SUCCESS)
+
+            self.ctc_send_packet(0, str(pkt))
+            self.ctc_verify_no_packet(exp_pkt, 1, default_time_out)
+
+        finally:
+            sys_logging("======clean up======")
+            sai_thrift_remove_route(self.client, vr_id, addr_family, ip_addr1_subnet, ip_mask1, nhop1)
+            self.client.sai_thrift_remove_next_hop(nhop1)
+            sai_thrift_remove_neighbor(self.client, addr_family, rif_id2, ip_addr1, dmac1)
+
+            attr_value = sai_thrift_attribute_value_t(oid=SAI_NULL_OBJECT_ID)
+            attr = sai_thrift_attribute_t(id=SAI_ROUTER_INTERFACE_ATTR_INGRESS_ACL, value=attr_value)
+            status = self.client.sai_thrift_set_router_interface_attribute(rif_id1, attr)
+            assert(status == SAI_STATUS_SUCCESS)
+
+            self.client.sai_thrift_remove_router_interface(rif_id1)
+            self.client.sai_thrift_remove_router_interface(rif_id2)
+
+            self.client.sai_thrift_remove_virtual_router(vr_id)
+            sai_thrift_delete_fdb(self.client, vlan_oid, dmac1, port2)
+            
+            self.client.sai_thrift_remove_vlan_member(vlan_member1)
+            self.client.sai_thrift_remove_vlan(vlan_oid)
+
+            # cleanup ACL
+            self.client.sai_thrift_remove_acl_entry(acl_entry_oid)
+            self.client.sai_thrift_remove_acl_table(acl_table_oid)
